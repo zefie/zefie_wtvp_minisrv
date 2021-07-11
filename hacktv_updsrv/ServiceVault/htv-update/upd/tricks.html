@@ -1,0 +1,52 @@
+<html>
+<head> 
+<title>HackTV Tricks</title>
+<SCRIPT language="JavaScript">
+
+function checkWord(e) {
+   //e.preventDefault();
+   var readersEntry = document.pform.pword.value;
+
+   if (readersEntry.toLowerCase() == "seqret1") {
+		window.location.href="file://disk/Browser/MattMan/Tricks/tricks2.html" ;
+   } else {
+	  document.pform.pword.value="";
+      alert ("Bad password, access denied!!!");
+   }
+   
+   return false;
+
+}
+
+</SCRIPT>
+
+</head>
+<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0> 
+<sidebar width=20%>
+<img src="tricksside.jpg">
+</sidebar>
+           
+<br>
+<br>
+<br>
+<h1>HackTV Tricks</h1>
+<br>
+<br>
+Hello, citizen! You have reached the "tricks" page. This is meant
+for use by 1337 hackers of WebTV networks. If you remember the 
+right "tricks" you know the password and may enter the access password now. 
+Otherwise hit the "back" button on your keyboard / remote now!
+<p>
+Pages beyond this area could cause bodily harm or may render your WebTV useless!
+<p>
+Remember, the computer is your friend.
+<p>
+
+<FORM name="pform" onsubmit="checkWord(e);">
+<input name="pword" id="password" bgcolor=#444444 text=#ffdd33 cursor=#cc9933  type="password" size="16">&nbsp;
+<input name="button1" value="Enter" onclick="checkWord()" type="button">
+
+</FORM> 
+</body>
+
+</html>

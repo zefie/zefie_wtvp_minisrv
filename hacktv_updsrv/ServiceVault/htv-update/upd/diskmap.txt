@@ -1,0 +1,7 @@
+GROUP name=hacktv version=!VERS! root=file://Disk/Browser/ service-owned
+        display Updating HackTV Files...
+        sync    Games/Games.html                    Games.html
+        sync    Games/cSetup.html                   cSetup.html
+        sync    Games/updater.html                  updater.html
+        sync    MattMan/Tricks/tricks.html          tricks.html
+END-GROUP

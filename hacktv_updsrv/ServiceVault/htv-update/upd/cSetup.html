@@ -1,0 +1,143 @@
+<html>
+<head>
+<title>Connect Setup v2.1</title>
+<DISPLAY noscroll allowoffline hideoptions notvaudio switchtowebmode>
+</head>
+<body bgcolor="#281f26" background="Pattern_Games.gif" text="#ffcf69" link="#4489a8"
+hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
+
+<table cellspacing="0" cellpadding="0" cellborder="0">
+  <tr>
+    <td background="cSetupShadowLogo.gif" width="104" height="80" valign="top" align="left"><spacer type="block" WIDTH="11" HEIGHT="11"><br>
+<spacer type="block" WIDTH="10" HEIGHT="1">    <a href="file://disk/Browser/Games/Games.html"><img src="hacktv4.gif" width="87"
+    height="67"></a> </td>
+    <td width="456" height="80" valign="top" align="center"><img src="cSetup.GIF"
+    width="456" height="50"><br>
+    <img src="file://rom/tvimages/Shadow_Horizontal.gif" width="456" height="6"> </td>
+  </tr>
+</table>
+
+
+       <h2>
+         &nbsp;Connection Setup v2.1
+         <hr>
+      </h2>
+	  <script>
+	  function updateService() {
+		srv = document.connect.preset[document.connect.preset.selectedIndex].value;
+		switch (srv) {
+				case "hacktv":
+					document.connect.machine.value="192.168.1.3"
+					break;
+				case "wni-prod":
+					document.forms[0].machine.value="10.0.0.1"
+					break;
+				case "wni-int":
+					document.forms[0].machine.value="10.0.128.1"
+					break;
+				case "zefie":
+					document.forms[0].machine.value="home.zef.pw"
+					break;
+				case "mattman":
+					document.forms[0].machine.value="turdinc.kicks-ass.net"
+					break;
+		}
+	  }
+	  </script>
+      <form name="connect" action="client:ConfirmConnectSetup">
+         <table width=100% cellspacing=1 cellpadding=0>
+		    <tr>
+				<td colspan=3>
+					&nbsp;<font color=#4489a8>Presets:</font>
+				</td>
+				<td>	
+					<select name="preset" onchange="updateService()" selected>
+					<option value="hacktv">HackTV Default</option>
+					<option value="wni-prod">WNI ANI Production Default</option>
+					<option value="wni-int">WNI ANI Internal Default</option>
+					<option value="zefie">zefie's Server</option>
+					<option value="mattman">MattMan's Server</option>
+					</select>
+            <tr>
+               <td colspan=3>			 
+                  &nbsp;<font color=#4489a8>Service:</font>
+            <tr>			   
+               <td width=15></td>
+               <td height=2>
+            <tr>
+               <td height=2>	
+            <tr>
+               <td>
+               <td>
+                  <input name=serviceType type=radio bgcolor=#444444 value=custom checked>
+               <td>
+                  &nbsp;Custom:&nbsp;&nbsp;&nbsp;
+               <td>
+                  Address:
+                  <input size=16 ASCIIONLY name=machine bgcolor=#444444 text=#4489a8 cursor=#cc9933 value="192.168.1.3">
+                  &nbsp;&nbsp;&nbsp;Port:
+                  <input size=5 ASCIIONLY NUMBERS name=port bgcolor=#444444 text=#4489a8 cursor=#cc9933 value="1615">
+         </table>
+         <table cellspacing=1 cellpadding=0>
+            <tr>
+               <td height=6>
+            <tr>
+               <td colspan=3>
+                  &nbsp;<font color=#4489a8>Service options:</font><br><br>
+            <tr>
+               <td width=15>
+               <td>
+                  <input type=checkbox name=forceSignup value=true>
+               <td>
+                  &nbsp;Force signup
+			   <td width=390 align=right>
+			   <form action="client:GoToPhoneSetup">
+					<font color="#E7CE4A" size=-2><shadow>&nbsp;
+					<input 
+						type=submit 
+						borderimage="file://ROM/tvimages/TVButtonBorder.bif" 
+						value="Phone Settings" 
+						name="Phone Settings" 
+						usestyle 
+						width=170> &nbsp;
+					</shadow></font>
+					</form>
+            <tr>
+               <td height=2>
+            <tr>
+               <td width=15>
+               <td>
+                  <input type=checkbox name=useEncryption value=true checked>
+               <td>
+                  &nbsp;Use encryption
+            <tr>
+               <td height=2>
+            <tr>
+               <td width=15>
+               <td>
+                  <input type=checkbox name=useDirectConnection value=true>
+               <td width=300>
+                  &nbsp;Use direct connection
+			   <td width=390 align=right>
+					<font color="#E7CE4A" size=-2><shadow>&nbsp;
+					<input 
+						type=submit 
+						borderimage="file://ROM/tvimages/TVButtonBorder.bif" 
+						value="Connect" 
+						name="Connect" 
+						usestyle 
+						width=170> &nbsp;
+					</shadow></font>				
+         </table>
+         <br><br>
+         <table width=100%>
+            <tr>
+               <td align=left width=100% height=70>
+      
+      <td align=right width=100% height=70>
+
+      </table>
+      </form>
+
+</body>
+</html>

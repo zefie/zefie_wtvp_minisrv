@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31424.327
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "hacktv_updsrv", "hacktv_updsrv\hacktv_updsrv.njsproj", "{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {294F0468-66F1-4FBC-9412-DA873AAB72A6}
+	EndGlobalSection
+EndGlobal

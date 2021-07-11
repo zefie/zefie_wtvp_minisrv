@@ -1,0 +1,15 @@
+{
+  "name": "hacktv_updsrv",
+  "version": "0.0.0",
+  "description": "hacktv_updsrv",
+  "main": "app.js",
+  "author": {
+    "name": ""
+  },
+  "dependencies": {
+    "arc4": "^3.4.0",
+    "crypto-js": "^4.0.0",
+    "mime-types": "^2.1.31",
+    "strftime": "^0.10.0"
+  }
+}
