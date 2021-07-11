@@ -3,13 +3,19 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# ServiceLogPost Posted Logs
+ServiceLogPost/*_*
+
+# Large files not pertaining to the service code
+ServiceVault/wtv-flashrom/content/*
+ServiceVault/wtv-music/content/*
+
 # User-specific files
 *.rsuser
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
-
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

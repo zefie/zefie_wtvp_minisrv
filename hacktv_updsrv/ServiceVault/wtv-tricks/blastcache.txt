@@ -1,0 +1,17 @@
+200 OK
+wtv-noback-all: wtv-
+wtv-expire-all: wtv-
+Content-type: text/html
+
+<html>
+<head>
+    <meta
+        http-equiv=refresh
+        content="1; url=wtv-home:/home?"
+    >	
+<body bgcolor="black" text="gold" link="gold" vlink="gold" alink="gold">
+Successfully expired service URL cache<br>
+Any previously cached pages should be reloaded from the network.<br><br>
+<a href="wtv-home:/home">Go Home</a>
+</body>
+</html>

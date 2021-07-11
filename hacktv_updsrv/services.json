@@ -1,0 +1,47 @@
+{
+  "config": {
+    "service_ip": "192.168.11.8"
+  },
+  "services": {
+
+    "wtv-1800": {
+      "port": 1615,
+      "connections": 1
+    },
+    "wtv-star": {
+      "port": 1603,
+      "flags": "0x00000007"
+    },
+    "wtv-head-waiter": {
+      "port": 1601,
+      "flags": "0x00000001",
+      "connections": 1
+    },
+    "wtv-update": {
+      "port": 1619,
+      "flags": "0x04",
+      "connections": 3
+    },
+    "wtv-log": {
+      "port": 1609,
+      "connections": 1
+    },
+    "wtv-home": {
+      "port": 1612,
+      "flags": "0x00000010"
+    },
+    "wtv-tricks": {
+      "port": 1602,
+      "flags": "0x00000004"
+    },
+    "wtv-flashrom": {
+      "port": 1618,
+      "flags": "0x00000040"
+    },
+    "wtv-music": {
+      "port": 1656,
+      "flags": "0x04",
+      "connections": 3
+    }
+  }
+}
