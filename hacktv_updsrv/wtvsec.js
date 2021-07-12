@@ -1,17 +1,22 @@
 const CryptoJS = require('crypto-js');
 const endianness = require('endianness');
+var crypto = require('crypto');
 
 class WTVNetworkSecurity {
     initial_shared_key = null;
     current_shared_key = null;
     challenge_key = null;
+    challenge_signed_key = null;
+    challenge_raw = null;
     challenge_response = null;
     ticket_b64 = null;
-    incarnation = 1;
+    incarnation = 0;
     session_key1 = null;
     session_key2 = null;
     hRC4_Key1 = null;
     hRC4_Key2 = null;
+    RC4Session = new Array();
+
     zdebug = true;
 
     constructor(wtv_initial_key = CryptoJS.lib.WordArray.random(8), wtv_incarnation = 1) {
@@ -22,30 +27,39 @@ class WTVNetworkSecurity {
         if (initial_key.sigBytes === 8) {
             this.incarnation = wtv_incarnation;
             this.initial_shared_key = initial_key;
-            this.current_shared_key = initial_key;            
+            this.current_shared_key = initial_key;
         } else {
             throw ("Invalid initial key length");
         }
     }
 
     set_incarnation(wtv_incarnation) {
-        this.incarnation = wtv_incarnation;
-        this.SecureOn();
+        if (this.incarnation != wtv_incarnation) {
+            this.incarnation = wtv_incarnation;
+            this.SecureOn();
+        }
     }
 
     increment_incarnation() {
-        this.incarnation = this.incarnation + 1;
+        this.set_incarnation(parseInt(this.incarnation) + 1);
+    }
+
+    DuplicateWordArray(wa) {
+        return CryptoJS.lib.WordArray.create(this.wordArrayToUint8Array(wa).buffer);
     }
 
     PrepareTicket() {
         // store last challenge response in ticket
-        var ticket_data = this.challenge_response;
+        var ticket_data = this.challenge_raw;
         try {
             var ticket_data_enc = CryptoJS.DES.encrypt(ticket_data, this.current_shared_key, {
                 mode: CryptoJS.mode.ECB,
                 padding: CryptoJS.pad.NoPadding
             });
-            this.ticket_b64 = this.current_shared_key.concat(ticket_data_enc.ciphertext).toString(CryptoJS.enc.Base64);
+            // create a copy of WordArray since concat modifies the original
+            var current_shared_key = this.DuplicateWordArray(this.current_shared_key);
+            var challenge_signed_key = this.DuplicateWordArray(this.challenge_signed_key);
+            this.ticket_b64 = current_shared_key.concat(challenge_signed_key.concat(ticket_data_enc.ciphertext)).toString(CryptoJS.enc.Base64);
         } catch (e) {
             console.log("Error encrypting ticket: " + e.toString());
             return null;
@@ -54,8 +68,10 @@ class WTVNetworkSecurity {
     }
 
     DecodeTicket(ticket_b64) {
-        var ticket_hex = CryptoJS.enc.Base64.parse(ticket_b64);
-        var ticket_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(0, this.current_shared_key.sigBytes));
+        var ticket_hex = CryptoJS.enc.Base64.parse(ticket_b64).toString(CryptoJS.enc.Hex);
+        var ticket_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(0,16));
+        var challenge_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(16, 32));
+        var challenge_enc = CryptoJS.enc.Hex.parse(ticket_hex.substring(32));
         var ticket_dec = CryptoJS.DES.decrypt(
             {
                 ciphertext: challenge_enc
@@ -63,38 +79,39 @@ class WTVNetworkSecurity {
             ticket_key,
             {
                 mode: CryptoJS.mode.ECB,
-                padding: CryptoJS.pad.ZeroPadding
+                padding: CryptoJS.pad.NoPadding
             }
         );
-        this.ProcessChallenge(ticket_dec);
+        this.ProcessChallenge(ticket_dec.toString(CryptoJS.enc.Base64), challenge_key);
+        console.log(" * Decoded session from wtv-ticket");
     }
 
-    ProcessChallenge(wtv_challenge) {
+    ProcessChallenge(wtv_challenge, key = this.current_shared_key) {
         var challenge_raw = CryptoJS.enc.Base64.parse(wtv_challenge);
 
         if (challenge_raw.sigBytes > 8) {
             var challenge_raw_hex = challenge_raw.toString(CryptoJS.enc.Hex);
+            var challenge_id_hex = challenge_raw_hex.substring(0, (8 * 2));
             var challenge_enc_hex = challenge_raw_hex.substring((8*2));
             var challenge_enc = CryptoJS.enc.Hex.parse(challenge_enc_hex);
-
-
 
             var challenge_decrypted = CryptoJS.DES.decrypt(
                 {
                     ciphertext: challenge_enc
                 },
-                this.current_shared_key,
+                key,
                 {
                     mode: CryptoJS.mode.ECB,
-                    padding: CryptoJS.pad.ZeroPadding
+                    padding: CryptoJS.pad.NoPadding
                 }
             );
 
 
             var challenge_dec_hex = challenge_decrypted.toString(CryptoJS.enc.Hex);
             var challenge_md5_challenge = CryptoJS.MD5(CryptoJS.enc.Hex.parse(challenge_dec_hex.substring(0, (80 * 2))));
-
-            if (challenge_dec_hex.substring((80 * 2), (96 * 2)) == challenge_md5_challenge.toString(CryptoJS.enc.Hex)) {
+            var test = challenge_dec_hex.substring((80 * 2), (96 * 2));
+            var test2 = challenge_md5_challenge.toString(CryptoJS.enc.Hex);
+            if (test == test2) {
                 this.current_shared_key = CryptoJS.enc.Hex.parse(challenge_dec_hex.substring((72*2), (80*2)));
                 var challenge_echo = CryptoJS.enc.Hex.parse(challenge_dec_hex.substr(0, (40*2)));
 
@@ -102,15 +119,15 @@ class WTVNetworkSecurity {
                 this.session_key1 = CryptoJS.enc.Hex.parse(challenge_dec_hex.substring((40*2), (56*2)));
                 this.session_key2 = CryptoJS.enc.Hex.parse(challenge_dec_hex.substring((56*2), (72*2)));
 
-                var echo_encrypted = CryptoJS.DES.encrypt(CryptoJS.MD5(challenge_echo).concat(challenge_echo), this.current_shared_key, {
+                var echo_encrypted = CryptoJS.DES.encrypt(CryptoJS.MD5(challenge_echo).concat(challenge_echo).concat(CryptoJS.enc.Utf8.parse("\x08".repeat(8))), this.current_shared_key, {
                     mode: CryptoJS.mode.ECB,
                     padding: CryptoJS.pad.NoPadding
                 });
 
                 // Last bytes is just extra padding
-                var challenge_response = CryptoJS.enc.Hex.parse(challenge_raw_hex.substr(0, (8 * 2))).concat(echo_encrypted.ciphertext.concat(CryptoJS.enc.Utf8.parse("\x00".repeat(8))));
-
-
+                this.challenge_raw = challenge_raw;
+                this.challenge_key = this.current_shared_key;
+                var challenge_response = CryptoJS.enc.Hex.parse(challenge_raw_hex.substr(0, (8 * 2))).concat(echo_encrypted.ciphertext);                
                 return challenge_response;
             } else {
                 throw ("Couldn't solve challenge");
@@ -134,16 +151,19 @@ class WTVNetworkSecurity {
          */
 
 
-        var random_id_question_mark = CryptoJS.lib.WordArray.random(8);
+        var challenge_id = CryptoJS.lib.WordArray.random(8);
 
         var echo_me = CryptoJS.lib.WordArray.random(40);
         this.session_key1 = CryptoJS.lib.WordArray.random(16);
         this.session_key2 = CryptoJS.lib.WordArray.random(16);
         var new_shared_key = CryptoJS.lib.WordArray.random(8);
-        
-        var challenge_puzzle = echo_me.concat(this.session_key1.concat(this.session_key2.concat(new_shared_key)));
-        var challenge_secret = challenge_puzzle.concat(CryptoJS.MD5(challenge_puzzle).concat(CryptoJS.enc.Hex.parse("\x00".repeat(8))));
 
+        var session_key1 = this.DuplicateWordArray(this.session_key1);
+        var session_key2 = this.DuplicateWordArray(this.session_key2);
+
+        var challenge_puzzle = echo_me.concat(session_key1.concat(session_key2.concat(new_shared_key)));
+        var challenge_secret = challenge_puzzle.concat(CryptoJS.MD5(challenge_puzzle).concat(CryptoJS.enc.Hex.parse("\x08".repeat(8))));
+        
         // Shhhh!!
         var challenge_secreted = CryptoJS.DES.encrypt(challenge_secret, this.current_shared_key, {
             mode: CryptoJS.mode.ECB,
@@ -151,14 +171,11 @@ class WTVNetworkSecurity {
         });
        
 
-        var challenge = random_id_question_mark.concat(challenge_secreted.ciphertext);
+        var challenge = challenge_id.concat(challenge_secreted.ciphertext);
         var challenge_b64 = challenge.toString(CryptoJS.enc.Base64);
-
         // get the expected response for when client sends it
+        this.challenge_signed_key = this.current_shared_key;
         this.challenge_response = this.ProcessChallenge(challenge_b64);
-        this.challenge_key = this.current_shared_key;
-
-        this.current_shared_key = new_shared_key;
         return challenge_b64;
     }
 
@@ -196,59 +213,77 @@ class WTVNetworkSecurity {
         return new Uint8Array([].concat.apply([], result));
     }
 
-    SecureOn() {
+
+    SecureOn(rc4session = null) {
+        console.log("Generating RC4 sessions with wtv-incarnation: " + this.incarnation);
+       
         var buf = new Uint8Array([0xff & this.incarnation, 0xff & (this.incarnation >> 8), 0xff & (this.incarnation >> 16), 0xff & (this.incarnation >> 24)]);
-        endianness(buf, 2);
-        var md5_digest_key1 = CryptoJS.MD5(this.session_key1.concat(CryptoJS.lib.WordArray.create(buf).concat(this.session_key1)));
-
-        var next_incarnation = this.incarnation + 1;
-        buf = new Uint8Array([0xff & next_incarnation, 0xff & (next_incarnation >> 8), 0xff & (next_incarnation >> 16), 0xff & (next_incarnation >> 24)]);
-        endianness(buf, 2);
-        var md5_digest_key2 = CryptoJS.MD5(this.session_key2.concat(CryptoJS.lib.WordArray.create(buf).concat(this.session_key2)));
-
-
-        this.hRC4_Key1 = md5_digest_key1;
-        this.hRC4_Key2 = md5_digest_key2;
-    }
-
-    EncryptKey1(data) {
-        return Buffer.from(this.wordArrayToUint8Array(this.Encrypt(this.hRC4_Key1, CryptoJS.lib.WordArray.create(data)).ciphertext));
-    }
-
-    EncryptKey2(data) {
-        return Buffer.from(this.wordArrayToUint8Array(this.Encrypt(this.hRC4_Key2, CryptoJS.lib.WordArray.create(data)).ciphertext));
-    }
-
-    Encrypt(key, data) {
-        try {
-            if (key != null) {
-                return CryptoJS.RC4.encrypt(data, key, {
-                    mode: CryptoJS.mode.ECB,
-                    padding: CryptoJS.pad.NoPadding
-                });
-            }
-        } catch (e) {
-            throw ("Invalid RC4 encryption key: " + e.toString());
+        endianness(buf, 4);
+        this.hRC4_Key1 = CryptoJS.MD5(this.DuplicateWordArray(this.session_key1).concat(CryptoJS.lib.WordArray.create(buf).concat(this.DuplicateWordArray(this.session_key1))));
+        this.hRC4_Key2 = CryptoJS.MD5(this.DuplicateWordArray(this.session_key2).concat(CryptoJS.lib.WordArray.create(buf).concat(this.DuplicateWordArray(this.session_key2))));
+        switch (rc4session) {
+            case 0:
+                this.RC4Session[0] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)),'');
+                break;
+            case 1:
+                this.RC4Session[1] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)),'');
+                break;
+            case 2:
+                this.RC4Session[2] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)),'');
+                break;
+            case 3:
+                this.RC4Session[3] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)),'');
+                break;
+            default:
+                this.RC4Session[0] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)), '');
+                this.RC4Session[1] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)), '');
+                this.RC4Session[2] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)), '');
+                this.RC4Session[3] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)), '');
+                break;
         }
     }
 
-    DecryptKey1(data) {
-        return Buffer.from(this.wordArrayToUint8Array(this.Decrypt(this.hRC4_Key1, data)));
+
+    NewRC4Session(num) {
+        this.SecureOn(num);
     }
 
-    DecryptKey2(data) {
-        return Buffer.from(this.wordArrayToUint8Array(this.Decrypt(this.hRC4_Key2, data)));
-    }
-
-    Decrypt(key, data) {
-        try {
-            return CryptoJS.RC4.decrypt(data, key, {
-                mode: CryptoJS.mode.ECB,
-                padding: CryptoJS.pad.NoPadding
-            });
-        } catch (e) {
-            throw ("Invalid RC4 encryption key: " + e.toString());
+    Encrypt(keynum, data) {
+        var session_id;
+        switch (keynum) {
+            case 0:
+                session_id = 0;
+                break;
+            case 1:
+                session_id = 2
+                break;
+            default:
+                throw ("Invalid key option (0 or 1 only)");
+                break;
         }
+        if (!this.RC4Session[session_id]) {
+            this.NewRC4Session(session_id);
+        }
+        return this.RC4Session[session_id].update(Buffer.from(this.wordArrayToUint8Array(data)));
+    }
+
+    Decrypt(keynum, data) {
+        var session_id;
+        switch (keynum) {
+            case 0:
+                session_id = 1;
+                break;
+            case 1:
+                session_id = 3;
+                break;
+            default:
+                throw ("Invalid key option (0 or 1 only)");
+                break;
+        }
+        if (!this.RC4Session[session_id]) {
+            this.NewRC4Session(session_id);
+        }
+        return this.RC4Session[session_id].update(Buffer.from(this.wordArrayToUint8Array(data)));
     }
 
     Test() {

@@ -6,12 +6,13 @@ if (socket_session_data[socket.id].ssid != null && !sec_session[socket_session_d
 
 headers = `200 OK
 Connection: Close
-wtv-initial-key: ` + sec_session[socket_session_data[socket.id].ssid].challenge_key.toString(CryptoJS.enc.Base64) + `
-Content-Type: text/tellyscript
+wtv-initial-key: ` + issueWTVInitialKey(socket) + `
+Content-Type: text/html
 wtv-service: reset
-wtv-service: name=wtv-1800 host=` + pubip + ` port=1615 connections=1
-wtv-service: name=wtv-head-waiter host=` + pubip + ` port=1615 flags=0x04 flags=0x00000001 connections=1
-wtv-service: name=htv-update host=` + pubip + ` port=1615 flags=0x04
+wtv-service: name=wtv-* host=` + pubip + ` port=`+port+` flags=0x00000007
+wtv-service: name=wtv-head-waiter host=` + pubip + ` port=`+port+` flags=0x04 flags=0x00000001 connections=1
+wtv-service: name=wtv-flashrom host=` + pubip + ` port=`+port+` flags=0x00000040
+wtv-service: name=htv-update host=` + pubip + ` port=`+port+` flags=0x04
 wtv-boot-url: wtv-head-waiter:/login?
 wtv-visit: wtv-head-waiter:/login?
 wtv-client-time-zone: GMT -0000
@@ -19,12 +20,12 @@ wtv-client-time-dst-rule: GMT
 wtv-client-date: `+strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString()))+` GMT`;
 
 
+/*
 var romtype = socket_session_data[socket.id].romtype;
 
 switch (romtype) {
 	case "US-LC2-disk-0MB-8MB":
-		data = fs.readFileSync(__dirname + "/ServiceDeps/LC2/artemis_18006138199.tok").buffer;
-		//data = fs.readFileSync(__dirname + "/ServiceDeps/LC2/LC2.tok").buffer;
+		data = getFile("LC2/artemis_18004653537.tok",true);
 		break;
 		
 	default:
@@ -32,3 +33,5 @@ switch (romtype) {
 		break;
 }
 
+*/
+data='';

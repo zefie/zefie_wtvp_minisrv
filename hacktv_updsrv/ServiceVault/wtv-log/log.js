@@ -1,10 +1,8 @@
-console.log(initial_headers);
+// dummy page, we could handle the logs here.
 
 headers = `200 OK
 Connection: Keep-Alive
-Expires: `+strftime("%a, %d %b %Y %H:%M:%S", new Date((new Date().toUTCString()) + 10))+` GMT
-Content-length: 0
-Content-type: text/html`;
+Content-length: 0`;
 
 data = '';
 

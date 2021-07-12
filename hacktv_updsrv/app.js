@@ -7,7 +7,6 @@ const strftime = require('strftime');
 const net = require('net');
 const CryptoJS = require('crypto-js');
 const mime = require('mime-types');
-var str2ab = require('string-to-arraybuffer')
 var WTVNetworkSecurity = require('./wtvsec.js');
 
 var zdebug = true;
@@ -17,7 +16,13 @@ var pubip = "192.168.11.8";
 var port = 1615;
 
 var sec_session = new Array();
+var cookie_dat = new Array();
+var socket_buffer = new Array();
 var socket_session_data = new Array();
+
+var overrides = new Array();
+//overrides['initial_key'] = "CC5rWmRUE0o=";
+//overrides['challenge'] = "0kjyqIYAu0ziFBbSERN6DGaZ6S0fT+DBUCtpHCJ4lpuM7CbXdAm+x83BIDoJYztd1Z+5KFZ7ghmb3LJCT/6mhWUYkqqKOyfPRW8ZIdbICK/CV+Kxm8EUjRXZSk/97tsmFpH3hcCJ7C2TBw+TX38uQQ==";
 
 function getPublicIP() {
     var options = {
@@ -33,6 +38,39 @@ function getPublicIP() {
             return data;
         });
     });
+}
+
+function getFile(path, deps = false) {
+    var dir = null;
+    if (deps) dir = __dirname + "/ServiceDeps/";
+    else dir = __dirname + "/ServiceVault/";
+    if (fs.lstatSync(dir + path).isFile()) {
+        return fs.readFileSync(dir + path, {
+            encoding: null,
+            flags: 'r'
+        });
+    }
+    return null;
+}
+
+function issueWTVInitialKey(socket) {
+    if (overrides['initial_key']) {
+        sec_session[socket_session_data[socket.id].ssid].initial_shared_key = CryptoJS.enc.Base64.parse(overrides['initial_key']);
+        sec_session[socket_session_data[socket.id].ssid].current_shared_key = CryptoJS.enc.Base64.parse(overrides['initial_key']);
+        sec_session[socket_session_data[socket.id].ssid].challenge_key = CryptoJS.enc.Base64.parse(overrides['initial_key']);
+        return overrides['initial_key'];
+    } else {
+        return sec_session[socket_session_data[socket.id].ssid].challenge_key.toString(CryptoJS.enc.Base64);
+    }
+}
+
+function issueWTVChallenge(socket) {
+    if (overrides['challenge']) {
+        sec_session[socket_session_data[socket.id].ssid].challenge_response = sec_session[socket_session_data[socket.id].ssid].ProcessChallenge(overrides['challenge']);
+        return overrides['challenge'];
+    } else {
+        return sec_session[socket_session_data[socket.id].ssid].IssueChallenge();
+    }
 }
 
 function doErrorPage(code) {
@@ -62,6 +100,7 @@ function doErrorPage(code) {
 function processPath(socket, path, initial_headers = new Array(), query = new Array()) {
     var headers, data = null;
     var request_is_direct_file = false;
+    path = path.replace(/\\/g, "/");
     try {
         try {
             // try to see if the exact request exists
@@ -83,8 +122,17 @@ function processPath(socket, path, initial_headers = new Array(), query = new Ar
             // raw text format, entire payload expected (headers and content)
             console.log(" * Found " + path + ".txt to handle request (Raw TXT Mode)");
             var fdat = fs.readFileSync(path + ".txt").toString();
-            headers = fdat.split("\n\n")[0];
-            data = fdat.split("\n\n")[1];
+            if (fdat.indexOf("\n\n") > 0) {
+                var fdata = fdat.split("\n\n");
+                headers = fdata[0];
+                fdata.shift();
+                data = fdata.join("\n");
+            } else if (fdat.indexOf("\r\n\r\n") > 0) {
+                var fdata = fdat.split("\r\n\r\n");
+                headers = fdata[0].replace(/\r/g, "");
+                fdata.shift();
+                data = fdata.join("\r\n");
+            }
         } else if (fs.existsSync(path + ".js")) {
             // js scripting, process with vars, must set 'headers' and 'data' appropriately.
             // loaded script will have r/w access to any JavaScript vars this function does.
@@ -164,10 +212,14 @@ function processURL(socket, initial_headers) {
             if (ssid == null) {
                 ssid = initial_headers['wtv-client-serial-number'];
             }
+            var reqverb = "Request";
+            if (initial_headers['encrypted'] || initial_headers['secure']) {
+                reqverb = "Encrypted " + reqverb;
+            }
             if (ssid != null) {
-                console.log(" * Request for " + initial_headers['request_url'] + " from WebTV SSID " + ssid);
+                console.log(" * "+reqverb+" for " + initial_headers['request_url'] + " from WebTV SSID " + ssid);
             } else {
-                console.log(" * Request for " + initial_headers['request_url']);
+                console.log(" * "+reqverb+" for " + initial_headers['request_url']);
             }
             // assume webtv since there is a :/ in the GET
             var urlToPath = __dirname + "/ServiceVault/" + shortURL.split(':/')[0] + "/" + shortURL.split(':/')[1];
@@ -226,11 +278,22 @@ function processURL(socket, initial_headers) {
 
     // set wtv-encrypted and put it near the top of the headers (unknown if needed)
     if (socket_session_data[socket.id].secure == true) {
-        console.log(" * encrypting response to client ...")
+        var clen = null;
+        if (typeof data.length !== 'undefined') {
+            clen = data.length;
+        } else if (typeof data.byteLength !== 'undefined') {
+            clen = data.byteLength;
+        }
         headers_obj['wtv-encrypted'] = true;
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        var enc_data = sec_session[socket_session_data[socket.id].ssid].EncryptKey2(data);
-        var test = data;
+        if (clen > 0) {
+            console.log(" * Encrypting response to client ...")
+            if (typeof (data) === 'string') {
+                data = CryptoJS.enc.Utf8.parse(data);
+            }
+            var enc_data = sec_session[socket_session_data[socket.id].ssid].Encrypt(1,data);
+            data = enc_data;
+        }
     }
 
     headers = "";
@@ -252,7 +315,12 @@ function processURL(socket, initial_headers) {
         toClient = headers + "\n" + data;
         socket.write(toClient);
     } else if (typeof data == 'object') {
-        socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + "\r\n"), data)));
+        if (socket_session_data[socket.id].secure_headers == true) {
+            var enc_headers = sec_session[socket_session_data[socket.id].ssid].Encrypt(1,headers+"\n");
+            socket.write(new Uint8Array(concatArrayBuffer(enc_headers, data)));
+        } else {
+            socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + "\n"), data)));
+        }
     }
     if (headers_obj['Connection']) {
         if (headers_obj['Connection'].toLowerCase() == "close") {
@@ -297,28 +365,28 @@ function headersAreStandard(string) {
     // is not suffuicent. This checks for characters expected in unecrypted headers, and returns
     // true only if every character in the string matches the regex. Once we know the string is binary
     // we can better process it with the raw base64 data in processHeaders() below.
-    var test = /^([A-Za-z0-9\+\/\=\-\.\ \;\:\?\&\r\n\(\)\%\<\>\_]{8,})$/.test(string);
+    var test = /^([A-Za-z0-9\+\/\=\-\.\,\ \;\:\?\&\r\n\(\)\%\<\>\_]{8,})$/.test(string);
     if (zdebug) console.log("request is ascii: " + test);
-    if (zdebug) console.log("request as follows: " + string);
+    if (zdebug) console.log("request is SECURE ON: " + /^SECURE ON/.test(string));
     return test;
  }
 
-function processHeaders(socket, data_b64, returnHeadersBeforeSecure = false) {
+function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, encryptedRequest = false) {
     var url = "";
-    var data = CryptoJS.enc.Latin1.stringify(CryptoJS.enc.Base64.parse(data_b64));
+    var data = CryptoJS.enc.Latin1.stringify(CryptoJS.enc.Hex.parse(data_hex));
 
     var headers = new Array();
     if (typeof data === "string") {
         if (data.length > 1) {
+            data = data.split("\r\n\r\n")[0];
             if (headersAreStandard(data)) {
-                data = data.split("\r\n\r\n")[0];
                 data.split('\n').forEach(function (d) {
                     if (d.length > 0) {
                         if (/^SECURE ON/.test(d)) {
-                            console.log(data);
                             secure_mode = true;
                             headers['secure'] = true;
                             socket_session_data[socket.id].secure = true;
+                            socket_session_data[socket.id].secure_headers = true;
                         }
                         if (d.indexOf(":") > 0 && d.indexOf(":/") == -1) {
                             headers[d.split(':')[0]] = (d.split(':')[1]).replace("\r", "");
@@ -332,10 +400,25 @@ function processHeaders(socket, data_b64, returnHeadersBeforeSecure = false) {
                     }
                 });
             } else {
-                // failed the headersAreStandard test, so we think this is a binary blob
-                var encdata = CryptoJS.enc.Base64.parse(data_b64);
-                var decdata = sec_session[socket_session_data[socket.id].ssid].DecryptKey1(encdata);
-                var test = decdata;
+                if (!encryptedRequest) {
+                    // failed the headersAreStandard test, so we think this is a binary blob
+                    if (socket_session_data[socket.id].secure != true) {
+                        // first time so reroll sessions
+                        sec_session[socket_session_data[socket.id].ssid].SecureOn();
+                        socket_session_data[socket.id].secure = true;
+                    }                                        
+                    var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
+                    if (enc_data.sigBytes > 0) {
+                        var dec_data = CryptoJS.lib.WordArray.create(sec_session[socket_session_data[socket.id].ssid].Decrypt(0,enc_data));
+                        var dec_data_text = dec_data.toString(CryptoJS.enc.Latin1);
+                        var secure_headers = processHeaders(socket, dec_data.toString(CryptoJS.enc.Hex), true, true);
+                        headers['encrypted'] = true;
+                        console.log("Encrypted Request (Decrypted):", dec_data.toString(CryptoJS.enc.Latin1));
+                        Object.keys(secure_headers).forEach(function (k, v) {
+                            headers[k] = secure_headers[k];
+                        });
+                    }
+                }
             }
             if (headers['wtv-client-rom-type'] != null) {
                 socket_session_data[socket.id].romtype = headers['wtv-client-rom-type'];
@@ -354,16 +437,23 @@ function processHeaders(socket, data_b64, returnHeadersBeforeSecure = false) {
             }
 
             if (headers['secure'] === true) {
-                // assume we have an ssid if we are this far
-                sec_session[headers['wtv-client-serial-number']].SecureOn();
+                if (!sec_session[socket_session_data[socket.id].ssid]) {
+                    sec_session[socket_session_data[socket.id].ssid] = new WTVNetworkSecurity();
+                    sec_session[socket_session_data[socket.id].ssid].DecodeTicket(headers['wtv-ticket']);
+                    sec_session[socket_session_data[socket.id].ssid].ticket_b64 = headers['wtv-ticket'];
+                    sec_session[socket_session_data[socket.id].ssid].SecureOn();
+                }
                 if (!headers['request_url']) {
                     var header_length = data.length + 4;
-                    var enc_data = CryptoJS.enc.Hex.parse(CryptoJS.enc.Base64.parse(data_b64).toString(CryptoJS.enc.Hex).substring(header_length * 2));
-                    console.log(enc_data.toString(CryptoJS.enc.Hex));
+                    var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
-                        var dec_data = sec_session[socket_session_data[socket.id].ssid].DecryptKey1(enc_data);
-                        console.log(dec_data);
-                        console.log(headers);
+                        var dec_data = CryptoJS.lib.WordArray.create(sec_session[socket_session_data[socket.id].ssid].Decrypt(0,enc_data))
+                        //var dec_data_text = dec_data.toString(CryptoJS.enc.Latin1);
+                        var secure_headers = processHeaders(socket, dec_data.toString(CryptoJS.enc.Hex), true);
+                        console.log("Encrypted Request (Decrypted):", secure_headers.toString(CryptoJS.enc.Latin1));
+                        Object.keys(secure_headers).forEach(function (k,v) {
+                            headers[k] = secure_headers[k];
+                        });
                     }
                 }
             }
@@ -377,20 +467,31 @@ function processHeaders(socket, data_b64, returnHeadersBeforeSecure = false) {
 }
 
 var server = net.createServer(function (socket) {
-    socket.binaryType = 'arraybuffer';
     socket.id = Math.floor(Math.random() * 1000);
     socket_session_data[socket.id] = [];
-    socket.setEncoding('base64'); //set data encoding (either 'ascii', 'utf8', or 'base64')
+    socket.setEncoding('hex'); //set data encoding (either 'ascii', 'utf8', or 'base64')
     
-    socket.on('data', function (data_b64) {
-        processURL(this, processHeaders(this, data_b64));
+    socket.on('data', function (data_hex) {
+        socket.setTimeout(300);
+        if (socket_buffer[socket.id]) {
+            socket_buffer[socket.id].concat(CryptoJS.enc.Hex.parse(data_hex));
+        } else {
+            socket_buffer[socket.id] = CryptoJS.enc.Hex.parse(data_hex);
+        }       
+    });
+
+    socket.on('timeout', function () {
+        socket.setTimeout(0);
+        processURL(this, processHeaders(this, socket_buffer[socket.id].toString(CryptoJS.enc.Hex)));
+        socket_buffer[socket.id] = null;
     });
 
     socket.on('error', (err, socket) => {
         console.log('client socket error:', err);
     });
 
-    socket.on('end', function () {
+    socket.on('end', function () {        
+        socket_buffer[socket.id] = null;
         secure_mode = false;
         socket_session_data[socket.id] = null;
     });

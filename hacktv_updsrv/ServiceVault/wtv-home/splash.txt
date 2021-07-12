@@ -1,0 +1,24 @@
+200 OK
+Connection: Keep-Alive
+wtv-expire-all: htv-
+Content-type: text/html
+
+<html>
+<head>
+	<display nooptions nostatus skipback clearback fontsize=medium>
+    <meta
+        http-equiv=refresh
+        content="5; url=htv-update:/updatemenu"
+    >	
+</head>
+
+<body bgcolor="#000000" text="#449944">
+<bgsound src="file://ROM/Sounds/Splash.mid">
+<center>
+<img src="file://Disk/Browser/DiskFlash/HTMLs/hacktv.gif">
+<br>
+<spacer type=block height=98 width=21>
+<br>
+</center>
+</body>                                                                                                                                                                                                
+</html>                                                                                         

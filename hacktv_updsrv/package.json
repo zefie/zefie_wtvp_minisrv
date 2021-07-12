@@ -10,7 +10,6 @@
     "crypto-js": "^4.0.0",
     "endianness": "^8.0.2",
     "mime-types": "^2.1.31",
-    "strftime": "^0.10.0",
-    "string-to-arraybuffer": "^1.0.2"
+    "strftime": "^0.10.0"
   }
 }

@@ -1,0 +1,16 @@
+200 OK
+Connection: Keep-Alive
+wtv-expire-all: wtv-home:/splash
+Content-type: text/html
+
+<html>
+<head>
+<DISPLAY showwhencomplete noscroll>
+</head>
+<body bgcolor="black" link="gold" vlink="gold" alink="gold" text="gold">
+
+<a href="htv-update:/update">Check for HackTV Updates</a><br>
+<a href="wtv-home:/unlock">Unlock Full Client (Options, Goto, etc)</a><br>
+<a href="wtv-home:/splash">Splash test</a>
+</body>
+</html>
