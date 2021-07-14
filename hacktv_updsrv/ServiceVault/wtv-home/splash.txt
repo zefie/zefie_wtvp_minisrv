@@ -8,7 +8,7 @@ Content-type: text/html
 	<display nooptions nostatus skipback clearback fontsize=medium>
     <meta
         http-equiv=refresh
-        content="5; url=htv-update:/updatemenu"
+        content="5; url=wtv-home:/home?"
     >	
 </head>
 

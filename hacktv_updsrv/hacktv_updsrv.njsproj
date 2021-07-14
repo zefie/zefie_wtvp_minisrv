@@ -29,11 +29,40 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="app.js" />
+    <Content Include="services.json">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\htv-update\update.html" />
+    <Content Include="ServiceVault\wtv-home\home.js" />
+    <Content Include="ServiceVault\htv-update\updatesuccess.txt" />
+    <Content Include="ServiceVault\htv-update\upd\cSetup.html" />
+    <Content Include="ServiceVault\htv-update\upd\Games.html" />
+    <Content Include="ServiceVault\htv-update\upd\tricks.html" />
+    <Content Include="ServiceVault\htv-update\upd\update.txt" />
+    <Content Include="ServiceVault\htv-update\upd\updater.html" />
+    <Content Include="ServiceVault\wtv-1800\finish-prereg.js" />
+    <Content Include="ServiceVault\wtv-1800\preregister.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\finalize-security.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\login-stage-two.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\login.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\test.js" />
+    <Content Include="ServiceVault\wtv-home\splash.txt" />
+    <Content Include="ServiceVault\wtv-log\log.js" />
+    <Content Include="ServiceVault\wtv-log\phone-log.js" />
     <Content Include="wtvsec.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="package.json" />
     <Content Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ServiceVault\" />
+    <Folder Include="ServiceVault\htv-update\" />
+    <Folder Include="ServiceVault\htv-update\upd\" />
+    <Folder Include="ServiceVault\wtv-1800\" />
+    <Folder Include="ServiceVault\wtv-head-waiter\" />
+    <Folder Include="ServiceVault\wtv-home\" />
+    <Folder Include="ServiceVault\wtv-log\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
 </Project>

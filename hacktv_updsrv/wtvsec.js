@@ -3,6 +3,8 @@ const endianness = require('endianness');
 var crypto = require('crypto');
 
 class WTVNetworkSecurity {
+    //initial_shared_key = CryptoJS.lib.WordArray.random(8);
+    initial_shared_key_b64 = "CC5rWmRUE0o=";
     initial_shared_key = null;
     current_shared_key = null;
     challenge_key = null;
@@ -19,15 +21,13 @@ class WTVNetworkSecurity {
 
     zdebug = true;
 
-    constructor(wtv_initial_key = CryptoJS.lib.WordArray.random(8), wtv_incarnation = 1) {
-        var initial_key = wtv_initial_key;
-
+    constructor(wtv_incarnation = 1) {   
         this.zdebug = true;
+        this.initial_shared_key = CryptoJS.enc.Base64.parse(this.initial_shared_key_b64);
 
-        if (initial_key.sigBytes === 8) {
+        if (this.initial_shared_key.sigBytes === 8) {
             this.incarnation = wtv_incarnation;
-            this.initial_shared_key = initial_key;
-            this.current_shared_key = initial_key;
+            this.current_shared_key = this.initial_shared_key;
         } else {
             throw ("Invalid initial key length");
         }

@@ -18,6 +18,7 @@ Connection: Keep-Alive
 wtv-encrypted: true
 wtv-ticket: `+sec_session[socket_session_data[socket.id].ssid].ticket_b64+`
 wtv-expire-all: htv-
+wtv-home-url: wtv-home:/home?
 wtv-visit: wtv-home:/splash?
 Content-Type: text/html
 `;
