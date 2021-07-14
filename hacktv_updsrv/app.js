@@ -7,12 +7,15 @@ const strftime = require('strftime');
 const net = require('net');
 const CryptoJS = require('crypto-js');
 const mime = require('mime-types');
-var WTVNetworkSecurity = require('./wtvsec.js');
+const crc16 = require('node-crc16');
+var WTVSec = require('./wtvsec.js');
 
-var zdebug = true;
+var zdebug = false;
 
 var pubip = "192.168.11.8";
 var ports = [];
+
+var service_vault_dir = __dirname + "/ServiceVault";
 
 //pubip = getPublicIP();
 
@@ -36,6 +39,8 @@ var ssid_data = new Array();
 var sec_session = new Array();
 var socket_buffer = new Array();
 var socket_session_data = new Array();
+
+var script_processing_timeout = 10; // seconds
 
 var overrides = new Array();
 //overrides['initial_key'] = "CC5rWmRUE0o=";
@@ -108,8 +113,8 @@ function doErrorPage(code) {
     var headers, data = null;
     switch (code) {
         case 404:
-            data = "The resource you requested could not be found.";
-            headers = "HTTP/1.1 404 Not Found\r\n";
+            data = "The service could not find the requested page.";
+            headers = "404 "+data+"\r\n";
             headers += "Content-Type: text/html\r\n";
             break;
         case 400:
@@ -128,7 +133,15 @@ function doErrorPage(code) {
     return new Array(headers, data);
 }
 
-function processPath(socket, path, initial_headers = new Array(), query = new Array()) {
+function getConType(path) {
+    // custom contype for flashrom
+    if (path.indexOf("wtv-flashrom") && (path.substring(path.length - 4, path.length) == ".rom" || path.substring(path.length - 5, path.length) == ".brom")) {
+        return "binary/x-wtv-flashblock";
+    }
+    return mime.lookup(path);
+}
+
+async function processPath(socket, path, request_headers = new Array(), query = new Array(), service_name) {
     var headers, data = null;
     var request_is_direct_file = false;
     path = path.replace(/\\/g, "/");
@@ -145,32 +158,36 @@ function processPath(socket, path, initial_headers = new Array(), query = new Ar
         if (request_is_direct_file) {
             // file exists, read it and return it
             console.log(" * Found " + path + " to handle request (Direct File Mode) [Socket " + socket.id +"]");
-            var contype = mime.lookup(path);
+            var contype = getConType(path);
             data = fs.readFileSync(path).buffer;
             headers = "200 OK\n"
             headers += "Content-Type: " + contype;
         } else if (fs.existsSync(path + ".txt")) {
             // raw text format, entire payload expected (headers and content)
             console.log(" * Found " + path + ".txt to handle request (Raw TXT Mode) [Socket " + socket.id +"]");
-            var fdat = fs.readFileSync(path + ".txt").toString();
-            if (fdat.indexOf("\n\n") > 0) {
-                var fdata = fdat.split("\n\n");
-                headers = fdata[0];
-                fdata.shift();
-                data = fdata.join("\n");
-            } else if (fdat.indexOf("\r\n\r\n") > 0) {
-                var fdata = fdat.split("\r\n\r\n");
-                headers = fdata[0].replace(/\r/g, "");
-                fdata.shift();
-                data = fdata.join("\r\n");
+            var file_raw = fs.readFileSync(path + ".txt").toString();
+            if (file_raw.indexOf("\n\n") > 0) {
+                var file_raw_split = file_raw.split("\n\n");
+                headers = file_raw_split[0];
+                file_raw_split.shift();
+                data = file_raw_split.join("\n");
+            } else if (file_raw.indexOf("\r\n\r\n") > 0) {
+                var file_raw_split = file_raw.split("\r\n\r\n");
+                headers = file_raw_split[0].replace(/\r/g, "");
+                file_raw_split.shift();
+                data = file_raw_split.join("\r\n");
+            } else {
+                headers = fdat;
             }
         } else if (fs.existsSync(path + ".js")) {
             // js scripting, process with vars, must set 'headers' and 'data' appropriately.
             // loaded script will have r/w access to any JavaScript vars this function does.
             // any query args are in an array named 'query'
-            console.log(" * Found " + path + ".js to handle request (JS Interpreter mode) [Socket "+socket.id+"]");
-            var fdat = fs.readFileSync(path + ".js").toString();
-            eval(fdat);
+            console.log(" * Found " + path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
+            var service_dir = service_vault_dir.replace(/\\/g,"/") + "/" + service_name;
+            socket_session_data[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
+            var jscript_eval = fs.readFileSync(path + ".js").toString();
+            eval(jscript_eval);
         } else if (fs.existsSync(path + ".html")) {
             // Standard HTML with no headers, WTV Style
             console.log(" * Found " + path + ".html  to handle request (HTML Mode) [Socket " + socket.id +"]");
@@ -194,6 +211,8 @@ function processPath(socket, path, initial_headers = new Array(), query = new Ar
             var errpage = doErrorPage(400);
             headers = errpage[0];
             data = errpage[1];
+            console.log(" * Scripting or Data error: Headers were not defined. (headers,data) as follows:")
+            console.log(headers,data)
         }
         if (data === null) {
             data = '';
@@ -214,53 +233,56 @@ function processPath(socket, path, initial_headers = new Array(), query = new Ar
     return new Array(headers, data);
 }
 
-function processURL(socket, initial_headers) {
-    if (initial_headers === null) {
+async function processURL(socket, request_headers) {
+    if (request_headers === null) {
         return;
     }
     var shortURL, headers, data = "";
     var query = new Array();
-    if (initial_headers['request_url']) {
-        if (initial_headers['request_url'].indexOf('?') >= 0) {
-            shortURL = initial_headers['request_url'].split('?')[0];
-            var qraw = initial_headers['request_url'].split('?')[1];
+    if (request_headers['request_url']) {
+        if (request_headers['request_url'].indexOf('?') >= 0) {
+            shortURL = request_headers['request_url'].split('?')[0];
+            var qraw = request_headers['request_url'].split('?')[1];
             if (qraw.length > 0) {
                 qraw = qraw.split("&");
                 for (let i = 0; i < qraw.length; i++) {
-                    query[qraw[i].split("=")[0]] = qraw[i].split("=")[1];
+                    var k = qraw[i].split("=")[0];
+                    if (k) {
+                        query[k] = qraw[i].split("=")[1];
+                    }
                 }
-                if (zdebug) {
-                    console.log("URL Request has query arguments:")
-                    console.log(query);
-                }
+
+                console.log(" * Request query:", query);
             }
         } else {
-            shortURL = initial_headers['request_url'];
+            shortURL = request_headers['request_url'];
         }
 
         if (shortURL.indexOf(':/') >= 0) {
             var ssid = socket_session_data[socket.id].ssid;
             if (ssid == null) {
-                ssid = initial_headers['wtv-client-serial-number'];
+                ssid = request_headers['wtv-client-serial-number'];
             }
             var reqverb = "Request";
-            if (initial_headers['encrypted'] || initial_headers['secure']) {
+            if (request_headers['encrypted'] || request_headers['secure']) {
                 reqverb = "Encrypted " + reqverb;
             }
-            if (initial_headers['psuedo-encryption']) {
+            if (request_headers['psuedo-encryption']) {
                 reqverb = "Psuedo-encrypted " + reqverb;
             }
             if (ssid != null) {
-                console.log(" * "+reqverb+" for " + initial_headers['request_url'] + " from WebTV SSID " + ssid, 'on', socket.id);
+                console.log(" * "+reqverb+" for " + request_headers['request_url'] + " from WebTV SSID " + ssid, 'on', socket.id);
             } else {
-                console.log(" * "+reqverb+" for " + initial_headers['request_url'], 'on', socket.id);
+                console.log(" * "+reqverb+" for " + request_headers['request_url'], 'on', socket.id);
             }
             // assume webtv since there is a :/ in the GET
-            var urlToPath = __dirname + "/ServiceVault/" + shortURL.split(':/')[0] + "/" + shortURL.split(':/')[1];
-            if (zdebug) console.log(initial_headers);
-            var result = processPath(socket, urlToPath, initial_headers, query);
+            var service_name = shortURL.split(':/')[0];
+            var urlToPath = service_vault_dir.replace(/\\/g, "/") + "/" + service_name + "/" + shortURL.split(':/')[1];
+            console.log(request_headers);
+            var result = await processPath(socket, urlToPath, request_headers, query, service_name);
 
             if (result[0] == null) {
+                // error processing path
                 var errpage = doErrorPage(404);
                 headers = errpage[0];
                 data = errpage[1];
@@ -278,6 +300,7 @@ function processURL(socket, initial_headers) {
             }
         }
     } else {
+        // error reading headers (no request_url provided)
         var errpage = doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
@@ -315,7 +338,8 @@ function processURL(socket, initial_headers) {
         headers_obj = moveObjectElement('Connection','http_response', headers_obj);
     }
 
-    if (initial_headers['psuedo-encryption']) {
+    if (request_headers['psuedo-encryption'] || getSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption')) {
+        request_headers['psuedo-encryption'] = true;
         headers_obj['wtv-encrypted'] = true;
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
     }
@@ -411,20 +435,24 @@ function headersAreStandard(string, verbose) {
     // we can better process it with the raw base64 data in processHeaders() below.
     var test = /^([A-Za-z0-9\+\/\=\-\.\,\ \;\:\?\&\r\n\(\)\%\<\>\_]{8,})$/.test(string);
     if (verbose) {
-        if (zdebug) console.log("request is ascii: " + test);
-        if (zdebug) console.log("request is SECURE ON: " + /^SECURE ON/.test(string));
+        if (zdebug) console.log(" # Request is ascii: " + test);
+        if (zdebug) console.log(" # Request is SECURE ON: " + /^SECURE ON/.test(string));
     }
     return test;
  }
 
-function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, encryptedRequest = false) {
+async function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, encryptedRequest = false) {
     var url = "";
     var data = CryptoJS.enc.Latin1.stringify(CryptoJS.enc.Hex.parse(data_hex));
 
     var headers = new Array();
     if (typeof data === "string") {
         if (data.length > 1) {
-            data = data.split("\r\n\r\n")[0];
+            if (data.indexOf("\r\n\r\n") != -1) {
+                data = data.split("\r\n\r\n")[0];
+            } else {
+                data = data.split("\n\n")[0];
+            }
             if (headersAreStandard(data, (!returnHeadersBeforeSecure && !encryptedRequest))) {
                 data.split('\n').forEach(function (d) {
                     if (d.length > 0) {
@@ -444,29 +472,29 @@ function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, enc
                     }
                 });
             } else if (!returnHeadersBeforeSecure) {
+                // if its a POST request, assume its a binary blob and not encrypted (dangerous)
                 if (!encryptedRequest) {
-                    // failed the headersAreStandard test, so we think this is a binary blob
+                    // its not a POST and it 1failed the headersAreStandard test, so we think this is an encrypted blob
                     if (socket_session_data[socket.id].secure != true) {
                         // first time so reroll sessions
-                        sec_session[socket.id] = new WTVNetworkSecurity();
+                        sec_session[socket.id] = new WTVSec();
                         sec_session[socket.id].IssueChallenge();
-                        console.log(" [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id",socket.id);
+                        if (zdebug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id",socket.id);
                         sec_session[socket.id].SecureOn();
                         socket_session_data[socket.id].secure = true;
                     }                                        
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
                         var dec_data = CryptoJS.lib.WordArray.create(sec_session[socket.id].Decrypt(0,enc_data));
-                        var dec_data_text = dec_data.toString(CryptoJS.enc.Latin1);
-                        var secure_headers = processHeaders(socket, dec_data.toString(CryptoJS.enc.Hex), true, true);
+                        var secure_headers = await processHeaders(socket, dec_data.toString(CryptoJS.enc.Hex), true, true);
                         headers['encrypted'] = true;
-                        console.log("Encrypted Request (Decrypted):", dec_data.toString(CryptoJS.enc.Latin1),"on",socket.id);
                         Object.keys(secure_headers).forEach(function (k, v) {
                             headers[k] = secure_headers[k];
                         });
                     }
                 }
             }
+
             if (headers['wtv-client-serial-number'] != null) {
                 socket_session_data[socket.id].ssid = headers['wtv-client-serial-number'];
             }
@@ -484,13 +512,14 @@ function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, enc
             }
 
             if (returnHeadersBeforeSecure) {
+                headers = await checkForPostData(socket, headers, data, data_hex, returnHeadersBeforeSecure);
                 return headers;
             }
 
             if (headers['secure'] === true) {
                 if (!sec_session[socket.id]) {
-                    console.log("Starting new WTVNetworkSecurity instance on socket", socket.id);
-                    sec_session[socket.id] = new WTVNetworkSecurity();
+                    console.log(" * Starting new WTVSec instance on socket", socket.id);
+                    sec_session[socket.id] = new WTVSec();
                     sec_session[socket.id].DecodeTicket(headers['wtv-ticket']);
                     sec_session[socket.id].ticket_b64 = headers['wtv-ticket'];
                     if (getSessionData(socket_session_data[socket.id].ssid, 'incarnation')) {
@@ -500,7 +529,7 @@ function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, enc
                 }
                 if (socket_session_data[socket.id].secure != true) {
                     // first time so reroll sessions
-                    console.log(" [ SECURE ON BLOCK ("+socket.id+")]");
+                    if (zdebug) console.log(" # [ SECURE ON BLOCK ("+socket.id+")]");
                     socket_session_data[socket.id].secure = true;
                 }
                 if (!headers['request_url']) {
@@ -516,16 +545,18 @@ function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, enc
                     if (enc_data.sigBytes > 0) {
                         if (headersAreStandard(enc_data.toString(CryptoJS.enc.Latin1), (!returnHeadersBeforeSecure && !encryptedRequest))) {
                             // some builds (like our targeted 3833), send SECURE ON but then unencrypted headers
-                            console.log("Psuedo-encrypted Request (SECURE ON)", "on", socket.id);
+                            if (zdebug) console.log(" # Psuedo-encrypted Request (SECURE ON)", "on", socket.id);
                              // don't actually encrypt output
                             headers['psuedo-encryption'] = true;
+                            setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', true);
                             socket_session_data[socket.id].secure = false;
-                            var secure_headers = processHeaders(socket, enc_data.toString(CryptoJS.enc.Hex), true);
+                            var secure_headers = await processHeaders(socket, enc_data.toString(CryptoJS.enc.Hex), true);
                         } else {
                             // SECURE ON and detected encrypted data
+                            setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', false);
                             var dec_data = CryptoJS.lib.WordArray.create(sec_session[socket.id].Decrypt(0, enc_data))
-                            var secure_headers = processHeaders(socket, dec_data.toString(CryptoJS.enc.Hex), true);
-                            console.log("Encrypted Request (SECURE ON)", "on", socket.id);
+                            var secure_headers = await processHeaders(socket, dec_data.toString(CryptoJS.enc.Hex), true);
+                            if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
                         }
                         // Merge new headers into existing headers object
                         Object.keys(secure_headers).forEach(function (k, v) {
@@ -534,6 +565,7 @@ function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, enc
                     }
                 }
             }
+            headers = await checkForPostData(socket, headers, data, data_hex);
             return headers;
         } else {
             // socket error, terminate it.
@@ -543,9 +575,59 @@ function processHeaders(socket, data_hex, returnHeadersBeforeSecure = false, enc
     return null;
 }
 
+async function checkForPostData(socket, headers, data, data_hex) {
+    if (headers['request']) {
+        if (headers['request'].substring(0, 4) == "POST") {
+            if (data_hex.indexOf("0d0a0d0a") != -1) {
+                // \r\n\r\n
+                var header_length = data.length + 4;
+            } else if (data_hex.indexOf("0a0a") != -1) {
+                // \n\n
+                var header_length = data.length + 2;
+            }
+            if (socket_session_data[socket.id].secure == true) {
+                var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
+                if (enc_data.sigBytes > 0) {
+                    if (headersAreStandard(enc_data.toString(CryptoJS.enc.Latin1))) {
+                        // some builds (like our targeted 3833), send SECURE ON but then unencrypted headers
+                        if (zdebug) console.log(" # Psuedo-encrypted POST Content (SECURE ON)", "on", socket.id);
+                        // don't actually encrypt output
+                        headers['psuedo-encryption'] = true;
+                        setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', true);
+                        socket_session_data[socket.id].secure = false;
+                        headers['post_data'] = await processHeaders(socket, enc_data.toString(CryptoJS.enc.Hex), true);
+                    } else {
+                        // SECURE ON and detected encrypted data
+                        setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', false);
+                        headers['post_data'] = CryptoJS.lib.WordArray.create(sec_session[socket.id].Decrypt(0, enc_data))
+                        if (zdebug) console.log(" # Encrypted POST Content (SECURE ON)", "on", socket.id);
+                    }
+                }
+            } else {
+                if (zdebug) console.log(" # Unencrypted POST Content", "on", socket.id);
+                headers['post_data'] = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
+            }
+        }
+    }
+    return headers;
+}
 
-function handleSocket(socket) {
-    socket.id = Math.floor(Math.random() * 100000);
+async function cleanupSocket(socket) {
+    try {
+        console.log(" * Destroying old WTVSec instance on disconnected socket", socket.id);
+        delete socket_buffer[socket.id];
+        delete socket_session_data[socket.id];
+        delete sec_session[socket.id];
+        socket.end();
+    } catch (e) {
+        console.log(" # Could not clean up socket data for socket ID", socket.id, e);
+    }
+};
+
+
+async function handleSocket(socket) {
+    // create unique socket id with client address and port
+    socket.id = parseInt(crc16.checkSum(Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString("hex"),16);
     socket_session_data[socket.id] = [];
     socket.setEncoding('hex'); //set data encoding (either 'ascii', 'utf8', or 'base64')
     socket.on('data', function (data_hex) {
@@ -557,28 +639,26 @@ function handleSocket(socket) {
         }
     });
 
-    socket.on('timeout', function () {
+    socket.on('timeout', async function () {
         socket.setTimeout(0);
-        processURL(this, processHeaders(this, socket_buffer[socket.id].toString(CryptoJS.enc.Hex)));
+        var phead = await processHeaders(this, socket_buffer[socket.id].toString(CryptoJS.enc.Hex));
+        processURL(this, phead);
         socket_buffer[socket.id] = null;
     });
 
-    socket.on('error', (err, socket) => {
+    socket.on('error', (err) => {
         console.log(" * Client disconnected unexpectedly");
+        cleanupSocket(socket);
+
     });
 
     socket.on('end', function () {
-        console.log(" * Destroying old WTVNetworkSecurity instance on socket", socket.id);
-        delete socket_buffer[socket.id];
-        delete socket_session_data[socket.id];
-        delete sec_session[socket.id];
+        cleanupSocket(socket);
     });
 }
 
-var z_version = "0.5.1a";
-var z_title = "zefie's wtv minisrv v" + z_version;
+var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 console.log("**** Welcome to " + z_title + " ****");
-
 console.log(" *** Reading service configuration...");
 var services_configured = JSON.parse(fs.readFileSync(__dirname + "/services.json"));
 Object.keys(services_configured.services).forEach(function (k) {
@@ -605,7 +685,11 @@ Object.keys(services_configured.services).forEach(function (k) {
 
 var initstring = '';
 ports.sort();
-ports.forEach(function (v) {
+
+// de-duplicate ports in case user configured multiple services on same port
+const bind_ports = [...new Set(ports)]
+
+bind_ports.forEach(function (v) {
     try {
         var server = net.createServer(handleSocket);
         server.listen(v, '0.0.0.0');

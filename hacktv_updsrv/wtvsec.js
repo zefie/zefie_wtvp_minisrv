@@ -2,7 +2,7 @@ const CryptoJS = require('crypto-js');
 const endianness = require('endianness');
 var crypto = require('crypto');
 
-class WTVNetworkSecurity {
+class WTVSec {
     //initial_shared_key = CryptoJS.lib.WordArray.random(8);
     initial_shared_key_b64 = "CC5rWmRUE0o=";
     initial_shared_key = null;
@@ -19,7 +19,7 @@ class WTVNetworkSecurity {
     hRC4_Key2 = null;
     RC4Session = new Array();
 
-    zdebug = true;
+    zdebug = false;
 
     constructor(wtv_incarnation = 1) {   
         this.zdebug = true;
@@ -215,7 +215,7 @@ class WTVNetworkSecurity {
 
 
     SecureOn(rc4session = null) {
-        console.log("Generating RC4 sessions with wtv-incarnation: " + this.incarnation);
+        if (this.zdebug) console.log(" # Generating RC4 sessions with wtv-incarnation: " + this.incarnation);
        
         var buf = new Uint8Array([0xff & this.incarnation, 0xff & (this.incarnation >> 8), 0xff & (this.incarnation >> 16), 0xff & (this.incarnation >> 24)]);
         endianness(buf, 4);
@@ -297,4 +297,4 @@ class WTVNetworkSecurity {
     }
 }
 
-module.exports = WTVNetworkSecurity;
+module.exports = WTVSec;

@@ -1,0 +1,14 @@
+200 OK
+wtv-noback-all: wtv-
+wtv-expire-all: wtv-
+Content-type: text/html
+
+<html>
+<head>
+    <meta
+        http-equiv=refresh
+        content="0; url=client:showalert?message=Successfully%20expired%20service%20URL%20cache&buttonlabel1=Okay&buttonaction1=wtv-home%3A%2Fhome%3F"
+    >	
+<body bgcolor="black">
+</body>
+</html>

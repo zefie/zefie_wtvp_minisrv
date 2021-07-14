@@ -1,7 +1,7 @@
 if (socket_session_data[socket.id].ssid != null && !sec_session[socket_session_data[socket.id].ssid]) {
-	sec_session[socket_session_data[socket.id].ssid] = new WTVNetworkSecurity();
+	sec_session[socket_session_data[socket.id].ssid] = new WTVSec();
 	sec_session[socket_session_data[socket.id].ssid].IssueChallenge();
-	sec_session[socket_session_data[socket.id].ssid].set_incarnation(initial_headers['wtv-incarnation']);
+	sec_session[socket_session_data[socket.id].ssid].set_incarnation(request_headers['wtv-incarnation']);
 }
 
 var contype = "text/tellyscript";
@@ -20,9 +20,10 @@ Connection: Keep-Alive
 wtv-initial-key: ` + issueWTVInitialKey(socket) + `
 Content-Type: `+ contype + `
 wtv-service: reset
-`+getServiceString('wtv-star')+`
-`+getServiceString('wtv-head-waiter')+`
-`+getServiceString('wtv-flashrom')+`
+` + getServiceString('wtv-1800') + `
+` + getServiceString('wtv-star') + `
+` + getServiceString('wtv-head-waiter') + `
+` + getServiceString('wtv-flashrom') + `
 wtv-boot-url: wtv-1800:/preregister?relogin=true
 wtv-visit: wtv-head-waiter:/login?
 wtv-client-time-zone: GMT -0000

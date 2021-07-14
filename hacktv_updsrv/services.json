@@ -14,8 +14,9 @@
       "flags": "0x00000001",
       "connections": 1
     },
-    "htv-update": {
+    "wtv-update": {
       "port": 1619,
+      "flags": "0x04",
       "connections": 3
     },
     "wtv-log": {
@@ -27,7 +28,7 @@
       "flags": "0x00000010"
     },
     "wtv-tricks": {
-      "port": "1602",
+      "port": 1602,
       "flags": "0x00000004"
     },
     "wtv-flashrom": {

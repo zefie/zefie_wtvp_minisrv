@@ -1,2 +1,2 @@
-var wtvtest = new WTVNetworkSecurity();
+var wtvtest = new WTVSec();
 wtvtest.Test();

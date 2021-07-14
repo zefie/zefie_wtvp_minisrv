@@ -3,15 +3,15 @@ var gourl;
 
 if (socket_session_data[socket.id].ssid !== null) {
 	if (sec_session[socket_session_data[socket.id].ssid].ticket_b64 == null) {
-		if (initial_headers['wtv-ticket']) {
-			if (initial_headers['wtv-ticket'].length > 8) {
-				sec_session[socket_session_data[socket.id].ssid].DecodeTicket(initial_headers['wtv-ticket']);
-				sec_session[socket_session_data[socket.id].ssid].ticket_b64 = initial_headers['wtv-ticket'];
+		if (request_headers['wtv-ticket']) {
+			if (request_headers['wtv-ticket'].length > 8) {
+				sec_session[socket_session_data[socket.id].ssid].DecodeTicket(request_headers['wtv-ticket']);
+				sec_session[socket_session_data[socket.id].ssid].ticket_b64 = request_headers['wtv-ticket'];
 				//socket_session_data[socket.id].secure = true;
 			}
 		} else {
 			challenge_response = sec_session[socket_session_data[socket.id].ssid].challenge_response;
-			var client_challenge_response = initial_headers['wtv-challenge-response'] || null;
+			var client_challenge_response = request_headers['wtv-challenge-response'] || null;
 			if (challenge_response && client_challenge_response) {		
 				//if (challenge_response.toString(CryptoJS.enc.Base64).substring(0,85) == client_challenge_response.substring(0,85)) {
 				if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {

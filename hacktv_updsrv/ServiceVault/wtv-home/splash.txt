@@ -4,8 +4,9 @@ wtv-expire-all: htv-
 Content-type: text/html
 
 <html>
+<title>Engaging zefie...</title>
 <head>
-	<display nooptions nostatus skipback clearback fontsize=medium>
+	<display nooptions showwhencomplete nostatus skipback clearback fontsize=medium>
     <meta
         http-equiv=refresh
         content="5; url=wtv-home:/home?"
@@ -15,7 +16,7 @@ Content-type: text/html
 <body bgcolor="#000000" text="#449944">
 <bgsound src="file://ROM/Sounds/Splash.mid">
 <center>
-<img src="file://Disk/Browser/DiskFlash/HTMLs/hacktv.gif">
+<img src="wtv-star:/images/HackTVLogo.gif">
 <br>
 <spacer type=block height=98 width=21>
 <br>

@@ -2,10 +2,10 @@
 <head>
         <meta
                 http-equiv=refresh
-                content="0;url=client:Fetch?source=htv-update:/upd?diskmap=update&root=file://Disk/Browser/&group=hacktv"
+                content="0;url=client:Fetch?group=Browser&source=wtv-update:/sync%3Fdiskmap%3Dhtvupdate&message=Downloading%20updates..."
         >		
-        <display downloadsuccess="client:ShowAlert?message=HackTV%20Update%20was%20successful%21&buttonlabel2=Go%20to%20HackTV&action2=file%3A%2F%2FDisk%2FBrowser%2FGames%2FGames.html&buttonlabel1=Okay&buttonaction1=client:goback&image=file://disk/browser/Games/hacktv2.gif&noback=true" downloadfail="client:ShowAlert?message=HackTV%20Update%20failed...&buttonlabel1=Okay...&buttonaction1=client:goback&image=file://disk/browser/Games/hacktv2.gif&noback=true">
-        <title>Retrieving Files</title>
+        <display downloadsuccess="client:ShowAlert?message=HackTV%20Update%20was%20successful%21&buttonlabel2=Go%20to%20HackTV&action2=wtv-tricks:/go-offline%3Ftitle%3DHackTV%20Home&buttonlabel1=Okay&buttonaction1=client:goback&image=file://disk/browser/Games/hacktv2.gif&noback=true" downloadfail="client:ShowAlert?message=HackTV%20Update%20failed...&buttonlabel1=Okay...&buttonaction1=client:goback&image=file://disk/browser/Games/hacktv2.gif&noback=true">
+        <title>HackTV Updater</title>
 </head>
 <body bgcolor=#0 text=#42CC55 fontsize=large hspace=0 vspace=0>
 <table cellspacing=0 cellpadding=0>
@@ -18,7 +18,7 @@
                         <font color=D6DFD0 size=+2><blackface><shadow>
                                 <spacer type=block width=1 height=4>
                                 <br>
-                                        Retrieving Files
+                                        Download HackTV Updates
                                 </shadow>
                                 </blackface>
                         </font>
@@ -31,7 +31,7 @@
                 <td colspan=2>
                 <td>
                         <font size=+1>
-                               Your HackTV Box is downloading updates from zefie's server.
+                               Your HackTV Unit is downloading updates.
                                 <p>This may take a while.
                         </font>
         <tr>
@@ -40,7 +40,7 @@
                         <br><br>
                         <font color=white>
                         <progressindicator name="downloadprogress"
-                           message="Checking for updates..."
+                           message="Preparing..."
                            height=40 width=250>
                         </font>
 </table>

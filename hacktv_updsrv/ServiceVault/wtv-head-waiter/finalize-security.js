@@ -2,10 +2,10 @@ var challenge_response, challenge_header = '';
 var gourl;
 
 if (socket_session_data[socket.id].ssid !== null) {
-	if (initial_headers['wtv-ticket']) {
-		if (initial_headers['wtv-ticket'].length > 8) {
-			DecodeTicket(initial_headers['wtv-ticket']);
-			sec_session[socket_session_data[socket.id].ssid].ticket_b64 = initial_headers['wtv-ticket'];
+	if (request_headers['wtv-ticket']) {
+		if (request_headers['wtv-ticket'].length > 8) {
+			DecodeTicket(request_headers['wtv-ticket']);
+			sec_session[socket_session_data[socket.id].ssid].ticket_b64 = request_headers['wtv-ticket'];
 			//socket_session_data[socket.id].secure == true;
 		}
 	} else if (sec_session[socket_session_data[socket.id].ssid].ticket_b64 == null) {
