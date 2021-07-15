@@ -1,22 +1,32 @@
 var challenge_response, challenge_header = '';
 var gourl;
 
+if (socket_session_data[socket.id].ssid != null && !getSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login')) {
+	var wtvsec_login = new WTVSec();
+	wtvsec_login = new WTVSec();
+	wtvsec_login.IssueChallenge();
+	wtvsec_login.set_incarnation(request_headers['wtv-incarnation']);
+	setSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login', wtvsec_login)
+} else {
+	var wtvsec_login = getSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login')
+}
+
 if (socket_session_data[socket.id].ssid !== null) {
-	if (sec_session[socket_session_data[socket.id].ssid].ticket_b64 == null) {
+	if (wtvsec_login.ticket_b64 == null) {
 		if (request_headers['wtv-ticket']) {
 			if (request_headers['wtv-ticket'].length > 8) {
-				sec_session[socket_session_data[socket.id].ssid].DecodeTicket(request_headers['wtv-ticket']);
-				sec_session[socket_session_data[socket.id].ssid].ticket_b64 = request_headers['wtv-ticket'];
+				wtvsec_login.DecodeTicket(request_headers['wtv-ticket']);
+				wtvsec_login.ticket_b64 = request_headers['wtv-ticket'];
 				//socket_session_data[socket.id].secure = true;
 			}
 		} else {
-			challenge_response = sec_session[socket_session_data[socket.id].ssid].challenge_response;
+			challenge_response = wtvsec_login.challenge_response;
 			var client_challenge_response = request_headers['wtv-challenge-response'] || null;
 			if (challenge_response && client_challenge_response) {		
 				//if (challenge_response.toString(CryptoJS.enc.Base64).substring(0,85) == client_challenge_response.substring(0,85)) {
 				if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
 					console.log(" * wtv-challenge-response success for "+socket_session_data[socket.id].ssid);
-					sec_session[socket_session_data[socket.id].ssid].PrepareTicket();
+					wtvsec_login.PrepareTicket();
 					//socket_session_data[socket.id].secure = true;
 				} else {
 					console.log(" * wtv-challenge-response FAILED for " + socket_session_data[socket.id].ssid);
@@ -56,7 +66,7 @@ wtv-visit: client:closeallpanels
 wtv-expire-all: client:closeallpanels
 wtv-offline-user-list: `+offline_user_list+`
 wtv-bypass-proxy: true
-wtv-ticket: `+ sec_session[socket_session_data[socket.id].ssid].ticket_b64 + `
+wtv-ticket: `+ wtvsec_login.ticket_b64 + `
 wtv-messagewatch-checktimeoffset: off
 wtv-input-timeout: 14400
 wtv-connection-timeout: 90
@@ -71,6 +81,8 @@ wtv-noback-all: wtv-
 wtv-service: reset
 `+ getServiceString('all') + `
 wtv-boot-url: wtv-1800:/preregister?relogin=true
+wtv-ssl-certs-download-url: wtv-head-waiter:/ssl-cert.der
+wtv-ssl-certs-checksum: 473926DC1B11F635A6B920953FDCDE6A
 wtv-user-name: `+ nickname + `
 wtv-human-name: `+ nickname + `
 wtv-irc-nick: `+ nickname + `

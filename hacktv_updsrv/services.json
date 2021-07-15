@@ -42,6 +42,10 @@
       "port": 1656,
       "flags": "0x04",
       "connections": 3
+    },
+    "http": {
+      "port": 1650,
+      "connections": 3
     }
   }
 }
