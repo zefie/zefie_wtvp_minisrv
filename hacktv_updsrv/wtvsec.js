@@ -264,7 +264,12 @@ class WTVSec {
         if (!this.RC4Session[session_id]) {
             this.NewRC4Session(session_id);
         }
-        return this.RC4Session[session_id].update(Buffer.from(this.wordArrayToUint8Array(data)));
+        if (data.words) {
+            data = new Buffer.from(this.wordArrayToUint8Array(data));
+        } else if (data.constructor === ArrayBuffer) {
+            data = new Buffer.from(data);
+        }
+        return this.RC4Session[session_id].update(data);
     }
 
     Decrypt(keynum, data) {
@@ -283,7 +288,12 @@ class WTVSec {
         if (!this.RC4Session[session_id]) {
             this.NewRC4Session(session_id);
         }
-        return this.RC4Session[session_id].update(Buffer.from(this.wordArrayToUint8Array(data)));
+        if (data.words) {
+            data = new Buffer.from(this.wordArrayToUint8Array(data));
+        } else if (data.constructor === ArrayBuffer) {
+            data = new Buffer.from(data);
+        }
+        return this.RC4Session[session_id].update(data);
     }
 
     Test() {

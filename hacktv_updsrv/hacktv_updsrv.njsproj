@@ -36,11 +36,11 @@
     <Content Include="ServiceVault\wtv-flashrom\get-lc2-page.js" />
     <Content Include="ServiceVault\wtv-flashrom\lc2-download-failed.html" />
     <Content Include="ServiceVault\wtv-flashrom\lc2-download-failed.js" />
-    <Content Include="ServiceVault\wtv-flashrom\willie.js" />
+    <Content Include="ServiceVault\wtv-flashrom\willie.async.js" />
     <Content Include="ServiceVault\wtv-star\images\HackTVLogo.gif" />
     <Content Include="ServiceVault\wtv-star\images\HackTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-star\images\WebTVLogoJewel.gif" />
-    <Content Include="ServiceVault\wtv-tricks\blastcache.txt" />
+    <Content Include="ServiceVault\wtv-tricks\blastcache.js" />
     <Content Include="ServiceVault\wtv-tricks\go-offline.js" />
     <Content Include="ServiceVault\wtv-update\content\diskmaps\htvupdate.txt" />
     <Content Include="ServiceVault\wtv-update\content\htvupdate\Games\cSetup.html" />

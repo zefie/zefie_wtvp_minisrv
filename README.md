@@ -8,9 +8,12 @@ This open source server is in alpha status. Use at your own risk.
 - Can encrypt and decrypt SECURE ON and arbitrary encrypted data
 - Can handle psuedo encryption (box sends SECURE ON but does not encrypt)
 - Can handle client "relogin" and "reconnect" events
+- Can now use `.async.js` files with asynchronous requests
+- Can handle more than one box at a time
 
 ### Current issues:
-- Probably can't handle more than one box at a time
+- May not run on non-development Windows machines (VS2019 with node and python)
+- Breaks when two different boxes have the same SSID (spoofing, won't fix (production did it too))
 - Power cycling box and re-connecting via ConnectSetup may invalidate encryption until server is restarted
 - wtv-update:/update does not yet function as intended
 
@@ -23,10 +26,12 @@ This open source server is in alpha status. Use at your own risk.
 - (probably not) url tokenizer
 
 ### How To Use:
-- Install [node.js](https://nodejs.org/en/download/)
+- Install [node.js](https://nodejs.org/en/download/). Be sure to say `Yes` when asked about `Chocolatey`.
+- If you have trouble running it on Windows, try a Linux machine, Windows may need a full development enviroment or extra steps.
 - Download a snapshot (either of master, or of any commit/branch/relase/tag etc)
 - Extract zip somewhere and enter that directory with a command prompt
-- Run `npm install`
+- Enter `hacktv_updsrv` subdirectory
+- Verify you are in the same directory as `app.js`, then tun `npm install`
 - Check any configuration (services.json)
 - Run `node app.js`
 - Test with a WebTV Viewer or connect with a real box
