@@ -1,6 +1,9 @@
 var content_dir = service_dir + '/content/';
 var diskmap_dir = content_dir + '/diskmaps/';
 
+if (initial_headers['post_data']) {
+    console.log(initial_headers['post_data'].toString('CryptoJS.enc.Latin1'))
+}
 
 if (query['diskmap']) {
     if (fs.lstatSync(diskmap_dir + query['diskmap'] + ".txt")) {

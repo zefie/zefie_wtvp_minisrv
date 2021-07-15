@@ -37,6 +37,11 @@
     "wtv-flashrom": {
       "port": 1618,
       "flags": "0x00000040"
+    },
+    "wtv-music": {
+      "port": 1656,
+      "flags": "0x04",
+      "connections": 3
     }
   }
 }

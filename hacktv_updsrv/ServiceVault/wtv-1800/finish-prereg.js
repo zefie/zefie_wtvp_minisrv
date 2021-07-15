@@ -6,8 +6,7 @@ if (socket_session_data[socket.id].ssid != null && !sec_session[socket_session_d
 
 var contype = "text/tellyscript";
 
-// skip telly for now
-var notelly = true;
+var skip_tellyscript = false;
 
 // if relogin, skip tellyscript
 if (query['relogin']) {
@@ -31,16 +30,17 @@ wtv-client-time-dst-rule: GMT
 wtv-client-date: `+strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString()))+` GMT`;
 
 // if relogin, skip tellyscript
-if (query['relogin'] == false || notelly == false) {
+var romtype = null;
+if (!query['relogin'] && skip_tellyscript == false) {
 	var romtype = getSessionData(socket_session_data[socket.id].ssid, 'wtv-client-rom-type');
+}
 
-	switch (romtype) {
-		case "US-LC2-disk-0MB-8MB":
-			data = getFile("LC2/LC2_OISP_5555732_56k.tok", true);
-			break;
+switch (romtype) {
+	case "US-LC2-disk-0MB-8MB":
+		data = getFile("LC2/LC2_OISP_5555732_56k.tok", true);
+		break;
 
-		default:
-			data = '';
-			break;
-	}
+	default:
+		data = '';
+		break;
 }

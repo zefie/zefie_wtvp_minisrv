@@ -10,7 +10,7 @@ const mime = require('mime-types');
 const crc16 = require('node-crc16');
 var WTVSec = require('./wtvsec.js');
 
-var zdebug = false;
+var zdebug = true;
 
 var ports = [];
 
@@ -140,7 +140,7 @@ async function processPath(socket, path, request_headers = new Array(), query = 
             // file exists, read it and return it
             console.log(" * Found " + path + " to handle request (Direct File Mode) [Socket " + socket.id +"]");
             var contype = getConType(path);
-            data = fs.readFileSync(path).buffer;
+            data = new Uint8Array(fs.readFileSync(path)).buffer;
             headers = "200 OK\n"
             headers += "Content-Type: " + contype;
         } else if (fs.existsSync(path + ".txt")) {
@@ -203,13 +203,6 @@ async function processPath(socket, path, request_headers = new Array(), query = 
         headers = errpage[0];
         data = errpage[1] + "<br><br>The interpreter said:<br><pre>" + e.toString() + "</pre>";
         console.log(e);
-    }
-    if (headers.toLowerCase().indexOf("content-length") === -1) {
-        if (typeof data.length !== 'undefined') {
-            headers += "\nContent-Length: " + data.length;
-        } else if (typeof data.byteLength !== 'undefined') {
-            headers += "\nContent-Length: " + data.byteLength;
-        }
     }
     return new Array(headers, data);
 }
@@ -284,7 +277,8 @@ async function processURL(socket, request_headers) {
         // error reading headers (no request_url provided)
         var errpage = doErrorPage(400);
         headers = errpage[0];
-        data = errpage[1];
+        data = errpage[1]
+        socket_session_data[socket.id].close_me = true;
     }
 
     // headers to object
@@ -337,11 +331,23 @@ async function processURL(socket, request_headers) {
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
         if (clen > 0) {
             console.log(" * Encrypting response to client ...")
+            var data_type = typeof (data);
             if (typeof (data) === 'string') {
                 data = CryptoJS.enc.Utf8.parse(data);
             }
+            if (data.constructor === ArrayBuffer) {
+                data = CryptoJS.lib.WordArray.create(data);
+            }
             var enc_data = sec_session[socket.id].Encrypt(1,data);
             data = enc_data;
+        }
+    }
+
+    if (!headers_obj["Content-length"] && !headers_obj["Content-length"]) {
+        if (typeof data.length !== 'undefined') {
+            headers_obj['Content-Length'] = data.length;
+        } else if (typeof data.byteLength !== 'undefined') {
+            headers_obj['Content-Length'] = data.byteLength;
         }
     }
 
@@ -624,13 +630,12 @@ async function handleSocket(socket) {
         socket.setTimeout(0);
         var phead = await processHeaders(this, socket_buffer[socket.id].toString(CryptoJS.enc.Hex));
         processURL(this, phead);
+        if (socket_session_data[socket.id].close_me) socket.end();
         socket_buffer[socket.id] = null;
     });
 
     socket.on('error', (err) => {
-        console.log(" * Client disconnected unexpectedly");
-        cleanupSocket(socket);
-
+        socket.end();
     });
 
     socket.on('end', function () {
