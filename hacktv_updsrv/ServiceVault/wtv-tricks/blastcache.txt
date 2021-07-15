@@ -7,8 +7,11 @@ Content-type: text/html
 <head>
     <meta
         http-equiv=refresh
-        content="0; url=client:showalert?message=Successfully%20expired%20service%20URL%20cache&buttonlabel1=Okay&buttonaction1=wtv-home%3A%2Fhome%3F"
+        content="1; url=wtv-home:/home?"
     >	
-<body bgcolor="black">
+<body bgcolor="black" text="gold" link="gold" vlink="gold" alink="gold">
+Successfully expired service URL cache<br>
+Any previously cached pages should be reloaded from the network.<br><br>
+<a href="wtv-home:/home">Go Home</a>
 </body>
 </html>

@@ -12,12 +12,9 @@ var WTVSec = require('./wtvsec.js');
 
 var zdebug = false;
 
-var pubip = "192.168.11.8";
 var ports = [];
 
 var service_vault_dir = __dirname + "/ServiceVault";
-
-//pubip = getPublicIP();
 
 function getServiceString(service) {
     if (service === "all") {
@@ -58,22 +55,6 @@ function setSessionData(ssid, key, value) {
     ssid_data[ssid][key] = value;
 }
 
-
-function getPublicIP() {
-    var options = {
-        host: 'www.planeptune.org',
-        path: '/ip.php'
-    }
-    var request = https.get(options, function (res) {
-        var data = '';
-        res.on('data', function (chunk) {
-            data += chunk;
-        });
-        res.on('end', function () {
-            return data;
-        });
-    });
-}
 
 function getFile(path, deps = false) {
     var dir = null;
@@ -660,11 +641,16 @@ async function handleSocket(socket) {
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 console.log("**** Welcome to " + z_title + " ****");
 console.log(" *** Reading service configuration...");
-var services_configured = JSON.parse(fs.readFileSync(__dirname + "/services.json"));
+try {
+    var services_configured = JSON.parse(fs.readFileSync(__dirname + "/services.json"));
+} catch (e) {
+    throw("ERROR: Could not read services.json", e);
+}
+var service_ip = services_configured.config.service_ip;
 Object.keys(services_configured.services).forEach(function (k) {
     services_configured.services[k].name = k;
     if (!services_configured.services[k].host) {
-        services_configured.services[k].host = pubip;
+        services_configured.services[k].host = service_ip;
     }
     if (services_configured.services[k].port) {
         ports.push(services_configured.services[k].port);
@@ -700,5 +686,5 @@ bind_ports.forEach(function (v) {
 });
 initstring = initstring.substring(0, initstring.length - 2);
 
-console.log(" * Started server on ports " + initstring + "... Public IP is " + pubip);
+console.log(" * Started server on ports " + initstring + "... Service IP is " + service_ip);
 

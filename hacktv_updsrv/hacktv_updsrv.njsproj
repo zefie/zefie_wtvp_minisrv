@@ -42,8 +42,7 @@
     <Content Include="ServiceVault\wtv-star\images\WebTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-tricks\blastcache.txt" />
     <Content Include="ServiceVault\wtv-tricks\go-offline.js" />
-    <Content Include="ServiceVault\wtv-update\content\diskmaps\htvupdate-g1.txt" />
-    <Content Include="ServiceVault\wtv-update\content\diskmaps\htvupdate-m1.txt" />
+    <Content Include="ServiceVault\wtv-update\content\diskmaps\htvupdate.txt" />
     <Content Include="ServiceVault\wtv-update\content\htvupdate\Games\cSetup.html" />
     <Content Include="ServiceVault\wtv-update\content\htvupdate\Games\Games.html" />
     <Content Include="ServiceVault\wtv-update\content\htvupdate\MattMan\Tricks\tricks.html" />
@@ -58,14 +57,12 @@
     <Content Include="ServiceVault\wtv-head-waiter\finalize-security.js" />
     <Content Include="ServiceVault\wtv-head-waiter\login-stage-two.js" />
     <Content Include="ServiceVault\wtv-head-waiter\login.js" />
-    <Content Include="ServiceVault\wtv-head-waiter\test.js" />
     <Content Include="ServiceVault\wtv-home\splash.txt" />
     <Content Include="ServiceVault\wtv-log\log.js" />
     <Content Include="wtvsec.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="package.json" />
-    <Content Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ServiceVault\" />

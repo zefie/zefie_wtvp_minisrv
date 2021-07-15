@@ -4,7 +4,7 @@ var crypto = require('crypto');
 
 class WTVSec {
     //initial_shared_key = CryptoJS.lib.WordArray.random(8);
-    initial_shared_key_b64 = "CC5rWmRUE0o=";
+    initial_shared_key_b64 = "CC5rWmRUE0o="; // You can change this but it doesn't mean much for security. Just make sure its static. 8 bytes base64 encoded.
     initial_shared_key = null;
     current_shared_key = null;
     challenge_key = null;
