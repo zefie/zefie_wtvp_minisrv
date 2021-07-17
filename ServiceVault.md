@@ -1,4 +1,4 @@
-## Brief ServiceVault Explaination
+## Brief ServiceVault Explanation
 
 The server will look for a subdirectory under the running directory, called `ServiceVault` (might be user-configurable in the future).
 
