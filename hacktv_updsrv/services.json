@@ -1,6 +1,7 @@
 {
   "config": {
-    "service_ip": "192.168.11.8"
+    "service_ip": "192.168.11.8",
+    "service_name": "HackTV"
   },
   "services": {
     "wtv-1800": {
