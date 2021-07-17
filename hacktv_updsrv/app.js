@@ -284,7 +284,7 @@ async function doHTTPProxy(socket, request_headers) {
 
     var request_data = new Array();
     request_data['method'] = request_headers['request'].split(' ')[0];
-    var request_url_split = request_headers['request_url'].split('/');
+    var request_url_split = request_headers['request'].split(' ')[1].split('/');
     request_data['host'] = request_url_split[2];
     if (request_data['host'].indexOf(':') > 0) {
         request_data['port'] = request_data['host'].split(':')[1];
@@ -320,10 +320,10 @@ async function doHTTPProxy(socket, request_headers) {
             options.headers['Host'] = request_data['host'];
         }
         const req = proxy_agent.request(options, function (res) {
-            var data = '';
+            var data = [];
 
             res.on('data', d => {
-                data += d;
+                data.push(d);
             })
 
             res.on('error', function (err) {
@@ -331,6 +331,8 @@ async function doHTTPProxy(socket, request_headers) {
             });
 
             res.on('end', function () {
+                var data_hex = Buffer.concat(data).toString('hex');
+
                 console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers['request']}`)
                 var headers = new Array();
                 headers['http_response'] = res.statusCode + " " + res.statusMessage;
@@ -344,9 +346,9 @@ async function doHTTPProxy(socket, request_headers) {
                 //if (res.headers['content-length']) headers['Content-Length'] = res.headers['content-length'];
                 if (res.headers['vary']) headers['Vary'] = res.headers['vary'];
                 if (res.headers['location']) headers['Location'] = res.headers['location'];
-                if (data.substring(0, 4) == "\r\n\r\n") data = data.substring(4);
-                if (data.substring(0, 2) == "\n\n") data = data.substring(2);
-                sendToClient(socket, headers, data);
+                if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
+                if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
+                sendToClient(socket, headers, Buffer.from(data_hex,'hex'));
             });
         }).on('error', function (err) {
             var errpage, headers, data = null;
