@@ -76,23 +76,23 @@ function getFileExt(path) {
     return path.reverse().split(".")[0].reverse();
 }
 
-function doErrorPage(code) {
+function doErrorPage(code, data = null) {
     var headers, data = null;
     switch (code) {
         case 404:
-            data = "The service could not find the requested page.";
+            if (data === null) data = "The service could not find the requested page.";
             headers = "404 "+data+"\r\n";
             headers += "Content-Type: text/html\r\n";
             break;
         case 400:
-            data = "An internal server error has occured.";
+            if (data === null) data = "An internal server error has occured.";
             headers = "400 HackTV ran into a technical problem.\r\n";
             headers += "Content-Type: text/html\r\n";
             break;
         default:
             // what we send when we did not detect a wtv-url.
             // e.g. when a pc browser connects
-            data = "Hello, stranger!";
+            if (data === null) data = "Hello, stranger!";
             headers = "HTTP/1.1 200 OK\r\n";
             headers += "Content-Type: text/html\r\n";
             break;
@@ -258,7 +258,7 @@ async function processURL(socket, request_headers) {
             var urlToPath = service_vault_dir.replace(/\\/g, "/") + "/" + service_name + "/" + shortURL.split(':/')[1];
             console.log(" * Incoming headers on socket ID", socket.id, request_headers);
             processPath(socket, urlToPath, request_headers, query, service_name);
-        } else if (shortURL.indexOf('http://') >= 0) {
+        } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) {
             doHTTPProxy(socket, request_headers);
         } else {
             // error reading headers (no request_url provided)
@@ -271,8 +271,93 @@ async function processURL(socket, request_headers) {
     }
 }
 
-async function doHTTPProxy(socket, headers_obj) {
-    console.log(socket.id, headers_obj);
+async function doHTTPProxy(socket, request_headers) {
+    console.log(socket.id, request_headers);
+    var request_type = request_headers['request'].indexOf('https://') ? 'http' : 'https'
+    switch (request_type) {
+        case "https":
+            var proxy_agent = https;
+            break;
+        case "http":
+            var proxy_agent = http;
+            break;
+    }
+
+    var request_data = new Array();
+    request_data['method'] = request_headers['request'].split(' ')[0];
+    var request_url_split = request_headers['request_url'].split('/');
+    request_data['host'] = request_url_split[2];
+    if (request_data['host'].indexOf(':') > 0) {
+        request_data['port'] = request_data['host'].split(':')[1];
+        request_data['host'] = request_data['host'].split(':')[0];
+    } else {
+        if (request_type === 'https') request_data['port'] = 443;
+        else request_data['port'] = 80;
+    }
+    for (var i = 0; i < 3; i++) request_url_split.shift();
+    request_data['path'] = "/" + request_url_split.join('/');
+
+    if (request_data['method'] && request_data['host'] && request_data['path']) {
+
+        var options = {
+            host: request_data['host'],
+            port: request_data['port'],
+            path: request_data['path'],
+            method: request_data['method'],
+            headers: {
+                "User-Agent": request_headers['User-Agent'] || "WebTV"
+            }
+        }
+
+        if (request_headers['post_data']) {
+            if (request_headers['Content-type']) options.headers['Content-type'] = request_headers['Content-type'];
+            if (request_headers['Content-length']) options.headers['Content-length'] = request_headers['Content-length'];
+        }
+
+        if (services_configured.services[request_type].use_external_proxy && services_configured.services[request_type].external_proxy_port) {
+            options.host = services_configured.services[request_type].external_proxy_host;
+            options.port = services_configured.services[request_type].external_proxy_port;
+            options.path = request_headers['request'].split(' ')[1];
+            options.headers['Host'] = request_data['host'];
+        }
+        const req = proxy_agent.request(options, function (res) {
+            var data = '';
+
+            res.on('data', d => {
+                data += d;
+            })
+
+            res.on('error', function (err) {
+                console.log(" * Unhandled Proxy Request Error:", err);
+            });
+
+            res.on('end', function () {
+                console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers['request']}`)
+                var headers = new Array();
+                headers['http_response'] = res.statusCode + " " + res.statusMessage;
+                headers['wtv-connection-close'] = false;
+                if (res.headers['server']) headers['Server'] = res.headers['server'];
+                if (res.headers['connection']) headers['Connection'] = res.headers['connection'] == "close" ? "Keep-Alive" : "Close";
+                if (res.headers['date']) headers['Date'] = res.headers['date'];
+                if (res.headers['content-type']) headers['Content-type'] = res.headers['content-type'];
+                if (res.headers['cookie']) headers['Cookie'] = res.headers['cookie'];
+                // content-length is best auto-calculated
+                //if (res.headers['content-length']) headers['Content-Length'] = res.headers['content-length'];
+                if (res.headers['vary']) headers['Vary'] = res.headers['vary'];
+                if (res.headers['location']) headers['Location'] = res.headers['location'];
+                if (data.substring(0, 4) == "\r\n\r\n") data = data.substring(4);
+                if (data.substring(0, 2) == "\n\n") data = data.substring(2);
+                sendToClient(socket, headers, data);
+            });
+        });
+        if (request_headers['post_data']) {
+            req.write(Buffer.from(request_headers['post_data'].toString(CryptoJS.enc.Hex), 'hex'), function () {
+                req.end();
+            });
+        } else {
+            req.end();
+        }
+    }
 }
 
 async function headerStringToObj(headers, response = false) {
@@ -378,7 +463,7 @@ async function sendToClient(socket, headers_obj, data) {
     socket_session_data[socket.id].buffer = null;
     if (socket_session_data[socket.id].close_me) socket.end();
     if (headers_obj['Connection']) {
-        if (headers_obj['Connection'].toLowerCase() == "close") {
+        if (headers_obj['Connection'].toLowerCase() == "close" && !headers['wtv-connection-close'] == "false") {
             socket.destroy();
         }
     }
@@ -482,7 +567,7 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
             }
 
             if (returnHeadersBeforeSecure) {
-                headers = await checkForPostData(socket, headers, data, data_hex, returnHeadersBeforeSecure);
+                headers = await checkForPostData(socket, headers, data, data_hex);
                 return headers;
             }
 
@@ -535,7 +620,7 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                     }
                 }
             }
-            headers = await checkForPostData(socket, headers, data);
+            headers = await checkForPostData(socket, headers, data, data_hex);
             if (!headers['request_url']) {
                 // still no url, likely lost encryption stream, tell client to relog
                 socket_session_data[socket.id].secure = false;                
@@ -559,7 +644,7 @@ Content-type: text/html`;
     }
 }
 
-async function checkForPostData(socket, headers, data) {
+async function checkForPostData(socket, headers, data, data_hex) {
     if (headers['request']) {
         if (headers['request'].substring(0, 4) == "POST") {
             if (data_hex.indexOf("0d0a0d0a") != -1) {
@@ -625,9 +710,10 @@ async function handleSocket(socket) {
     });
 
     socket.on('timeout', async function () {
-        socket.setTimeout(0);
         // start the async chain
-        processRequest(this, socket_session_data[socket.id].buffer.toString(CryptoJS.enc.Hex));
+        if (socket_session_data[socket.id].buffer) {
+            processRequest(this, socket_session_data[socket.id].buffer.toString(CryptoJS.enc.Hex));
+        }
     });
 
     socket.on('error', (err) => {

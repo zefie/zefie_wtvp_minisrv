@@ -10,6 +10,7 @@ This open source server is in alpha status. Use at your own risk.
 - Can handle client "relogin" and "reconnect" events
 - Can now use `.async.js` files with asynchronous requests
 - Can handle more than one box at a time
+- Support for HTTP Proxy (direct, or enhanced with an external proxy such as [WebOne](https://github.com/atauenis/webone))
 
 ### Current issues:
 - May not run on non-development Windows machines (VS2019 with node and python)
