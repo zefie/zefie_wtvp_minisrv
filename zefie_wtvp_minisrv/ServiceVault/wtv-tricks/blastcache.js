@@ -5,8 +5,8 @@ Content-type: text/html`
 
 var visit_url = null;
 
-if (request_headers['Referer']) visit_url = request_headers['Referer'];
-else if (query['return_to']) visit_url = query['return_to'];
+if (request_headers.Referer) visit_url = request_headers.Referer;
+else if (request_headers.query.return_to) visit_url = request_headers.query.return_to;
 else visit_url = "client:goback";
 
 data = `<html>

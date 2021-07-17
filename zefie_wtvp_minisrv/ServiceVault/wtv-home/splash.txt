@@ -1,6 +1,7 @@
 200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-
+wtv-expire-all: http
 Content-type: text/html
 
 <html>

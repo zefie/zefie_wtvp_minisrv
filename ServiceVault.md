@@ -16,14 +16,13 @@ Let us use the URL `wtv-1800:/preregister` as an example. This is what the serve
   - TXT file match (*Raw TXT Mode*)
   - Service parses and sends AS-IS.
   - You are expected to define headers
-- `./ServiceVault/wtv-1800/preregister.async.js` \[ [Example](zefie_wtvp_minisrv/ServiceVault/wtv-flashrom/willie.async.js) \]
-  - Asynchronous JS match (*Async JS Interpreter mode*)
-  - Executes the JavaScript in asynchronous mode.
-  - You are expected to call `sendToClient(socket,headers,data)` yourself, `socket` is already defined by the time your script runs, so you can just pass it through.
 - `./ServiceVault/wtv-1800/preregister.js` \[ [Example](zefie_wtvp_minisrv/ServiceVault/wtv-home/home.js) \]
   - Synchronous JS match (*JS Interpreter mode*)
   - Executes the JavaScript in synchronous mode.
   - You are expected to define `headers` and `data` before the end of your script.
+  - Access Asynchronous mode by setting `request_is_async = true;`
+  - Client request headers are available as an Array in variable `request_headers`, query arguments are also an Array, in `request_headers.query`
+  - In Asynchronous mode, you are expected to call `sendToClient(socket,headers,data)` yourself, `socket` is already defined by the time your script runs, so you can just pass it through.
 - `./ServiceVault/wtv-1800/preregister.html` \[ [Example](zefie_wtvp_minisrv/ServiceVault/wtv-home/zefie.html) \]
   - HTML match (*HTML mode*)
   - Like Direct File Mode, but you don't need to append `.html`.

@@ -1,0 +1,306 @@
+<html>
+<head>
+<title>
+WebTV MIDI Music
+</title>
+<display switchtowebmode transition=none>
+</head>
+<body bgcolor="#171726" text="#82A9D9" link="#9DEFFF" vlink="#597DAA" alink="#9DEFFF" hspace=0 vspace=0 fontsize="small" logo="webtv.gif" address="WebTV MIDI Music" onLoad="doWait()">
+<embed src="Shre.mid" loop="true" autostart="true" hidden="true" name="bgmusic"></embed>
+
+<script>
+
+// All JavaScript within (C) 2006 Zefie Hosting
+// Do not duplicate without permission ~ rkuchiki@gmail.com
+
+function doWait() {
+	playeron = document.bgmusic.isPlaying();
+	if (playeron == true) {
+		len = document.bgmusic.getPlayLength();
+		cur = document.bgmusic.getPosition();
+		percent = (cur / len) * 100;
+		//document.bgmprog.setMessage(" ");
+		//document.bgmprog.setPercentDone(percent)
+		//document.bgmprog.setAllowReverseProgress(true)
+		document.bgmstat.title.value = "Music Position:";
+		document.bgmstat.time.value = secsToMins(cur/1000);
+		waittimer = setTimeout("doWait()",500);
+	}
+	else {
+		//document.bgmprog.setMessage("");
+		//document.bgmprog.setPercentDone(0)
+		document.bgmstat.time.value = "";
+		document.bgmstat.title.value = ""
+		waittimer = setTimeout("doWait()",1000);
+	}
+}
+
+function secsToMins(theValue) {
+    var theMin = Math.floor(theValue / 60);
+    var theSec = Math.floor(theValue % 60);
+    if (theSec < 10)
+      theSec = "0" + theSec;
+    return(theMin + ":" + theSec);
+}
+
+</script>
+
+<sidebar width="115" border="0">
+<table border=0 cellspacing=0 cellpadding=0>
+<tr>
+<td width=120 height=75 valign=middle align=center bgcolor="3B3A4D" colspan=3>
+<a href="client:goback">
+<img src="hacktv4.gif" border="0">
+</a>
+<tr>
+<td width=5>
+<tr>
+<td bgcolor=#4A525A height=2 width=104 colspan=3>
+<tr>
+<td width=10 height=26>
+<td width=106 valign=middle>
+
+<table cellspacing=0 cellpadding=0 href="stop.wav?wtv-title=Stopping Music..."  active>
+<tr>
+<td height=1>
+<tr>
+<td><shadow><font sizerange=medium color=#E6CD4A>Stop Music</font></shadow>
+</table>
+<tr>
+<td width=5>
+<tr>
+<td bgcolor=#4A525A height=2 width=104 colspan=3>
+</td>
+</tr>
+</table>
+<td>
+<!--br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<audioscope bgcolor="#171726" leftcolor="#9DEFFF" rightcolor="#597DAA" gain=-1 width="244" height="20"></audioscope>-->
+</td>
+</sidebar>
+
+
+
+
+
+<table cellspacing=0 cellpadding=0 border=0>
+<tr>
+<td width=444 height=75 valign=middle align=left bgcolor="3B3A4D" colspan="2">
+<font color="D6DFD0" size="+3">
+<blackface>
+<shadow>
+<br>
+&nbsp; WebTV MIDI Music
+</shadow>
+</blackface>
+</font>
+<form name="bgmstat">
+ &nbsp;
+<font size="-1" color="D6DFD0">
+<input type="text" name="title" border="0" disabled usestyle bgcolor="#3B3A4D" text="#82A9D9" size="12">
+<audioscope bgcolor="#171726" leftcolor="#9DEFFF" rightcolor="#597DAA" gain=-1 width="244" height="12"></audioscope>
+<input type="text" name="time" border="0" disabled usestyle bgcolor="#3B3A4D" text="#82A9D9" size="8" align="right">
+</font>
+</form>
+</td>
+</tr>
+<tr>
+<td height=2 bgcolor=#4A525A colspan="2"></td>
+</tr>
+<tr>
+<td width=2 bgcolor=#4A525A></td>
+<td width=442 valign=top align=left>
+<table cellpadding="3">
+<tr>
+<td>
+<noframes>
+<font color="red" size="+1">WebTV JavaScript Bug!!! Press and hold CMD-R for 3 seconds</font><br>
+</noframes>
+<center>
+<TABLE BORDER=0 CELLPADDING=1 width=480>
+   <TR>
+      <TD  ALIGN=CENTER>
+         <A HREF="Bogged.mid">Bogged.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Jazzin.mid">Jazzin.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Saunter.mid">Saunter.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Bogged2.mid">Bogged2.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Jimi.mid">Jimi.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="ShadowMe.mid">ShadowMe.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Brasilia.mid">Brasilia.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="JiveJava.mid">JiveJava.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Shre.mid" selected>Shre.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Busy.mid">Busy.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="JustBlue.mid">JustBlue.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="SlowDay.mid">SlowDay.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="CantWait.mid">CantWait.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="LizLarry.mid">LizLarry.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="SoGrand.mid">SoGrand.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Catamran.mid">Catamran.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Midterm.mid">Midterm.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="StarDanc.mid">StarDanc.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="ComeInn.mid">ComeInn.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Missin.mid">Missin.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Stubborn.mid">Stubborn.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="CoolShad.mid">CoolShad.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Moorea.mid">Moorea.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Surge.mid">Surge.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Dancing.mid">Dancing.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="MoveOver.mid">MoveOver.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Swang.mid">Swang.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="DarkGame.mid">DarkGame.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="NiteFunk.mid">NiteFunk.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="SwingSet.mid">SwingSet.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="DeerXing.mid">DeerXing.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="OnBoogie.mid">OnBoogie.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="TastyWav.mid">TastyWav.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Downtown.mid">Downtown.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="OnFire.mid">OnFire.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="TheGirl.mid">TheGirl.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Fever.mid">Fever.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="ParkIt.mid">ParkIt.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Theme.mid">Theme.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Flutey.mid">Flutey.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="ParkWalk.mid">ParkWalk.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Think.mid">Think.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Flutter.mid">Flutter.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="PCH.mid">PCH.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Travel.mid">Travel.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Georgy.mid">Georgy.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="PianoJz1.mid">PianoJz1.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Tumbling.mid">Tumbling.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="GetBy.mid">GetBy.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="PianoJz2.mid">PianoJz2.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Under.mid">Under.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Glasses.mid">Glasses.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Prezo.mid">Prezo.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Upping.mid">Upping.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Harry.mid">Harry.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Prussian.mid">Prussian.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Wind1.mid">Wind1.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Herbie.mid">Herbie.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Pundit.mid">Pundit.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Xess.mid">Xess.mid</A>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="HomeAgn.mid">HomeAgn.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="RickPunk.mid">RickPunk.mid</A>
+      </TD><TD ALIGN=CENTER>
+	           <A HREF="mattman.mid">MattMan69.mid</A>
+      </TD><TD>
+         <P>
+      </TD></TR>
+   <TR>
+      <TD ALIGN=CENTER>
+         <A HREF="Huffin.mid">Huffin.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <A HREF="Road.mid">Road.mid</A>
+      </TD><TD ALIGN=CENTER>
+         <P>
+      </TD></TR>
+</TABLE></P>
+</font>
+</td>
+</tr>
+</table>
+
+</body>
+</html>
