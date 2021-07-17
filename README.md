@@ -1,38 +1,45 @@
 # wtv minisrv node.js
 
-The ***wtv minisrv***, or "***hacktv_updsrv***" project is a node.js project that provides a mini WebTV Server, with wtv-encryption support for advanced level box access.
-
+The ***wtv minisrv***, or "***zefie_wtvp_minisrv***" project is a node.js project that provides a mini WebTV Server, aiming for full WTVP (WebTV Protocol) support.
 This open source server is in alpha status. Use at your own risk.
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 ### Current status:
-- Can encrypt and decrypt SECURE ON and arbitrary encrypted data
-- Can handle psuedo encryption (box sends SECURE ON but does not encrypt)
+- Supports most known WebTV service encryption scenarios, for full trusted box access
 - Can handle client "relogin" and "reconnect" events
-- Can now use `.async.js` files with asynchronous requests
-- Can handle more than one box at a time
+- Suports `.async.js` service files with asynchronous requests
+- Supports multiple simultaneous users
+- WebTV-compatible HTTP Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
 
 ### Current issues:
-- May not run on non-development Windows machines (VS2019 with node and python)
-- Breaks when two different boxes have the same SSID (spoofing, won't fix (production did it too))
+- May not run on non-development Windows machines (VS2019 with nodejs and python)
 - Power cycling box and re-connecting via ConnectSetup may invalidate encryption until server is restarted
 - wtv-update:/update does not yet function as intended
+- wtv-flashrom features do not yet function as intended
+- HTTPS Proxying untested, likely needs SSL spoofing with self-signed solution
+
+### Won't fix:
+- wtv-encryption stream breaks when two different sessions have the same SSID (eg spoofing, won't fix (production did it too))
+- No intentions to support user accounts, registration, or any form of database system
 
 ### Feature Todo:
-- Test and enable flashrom flashing functionality (at least for LC2 and higher)
+- ~~(maybe) implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)~~ ***Done***
+- ~~(maybe) enable "internet mode" (let user outside of minisrv)~~ ***Done***
+- Flashrom flashing functionality (at least for LC2 and higher)
+- SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)
 - (maybe) Proper wtv-star (generic service outage page) support (maybe useful for allowing a unit to multiple sub-minisrvs).
-- (maybe) implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)
-- (maybe) enable "internet mode" (let user outside of minisrv)
 - (maybe) wtvchat stuff
-- (probably not) url tokenizer
+- (probably not) url tokenizer (eg wtv-token-blabla, was mostly to secure service URLs from unintended access, which this server does not aim to do)
 
 ### How To Use:
 - Install [node.js](https://nodejs.org/en/download/). Be sure to say `Yes` when asked about `Chocolatey`.
 - If you have trouble running it on Windows, try a Linux machine, Windows may need a full development enviroment or extra steps.
 - Download a snapshot (either of master, or of any commit/branch/relase/tag etc)
 - Extract zip somewhere and enter that directory with a command prompt
-- Enter `hacktv_updsrv` subdirectory
-- Verify you are in the same directory as `app.js`, then tun `npm install`
-- Check any configuration (services.json)
+- Enter `zefie_wtvp_minisrv` subdirectory
+- Verify you are in the same directory as `app.js`, then run `npm install`
+- Check any configuration, and modify to your liking. Especally `service_ip` (config can be found in `services.json`)
 - Run `node app.js`
 - Test with a WebTV Viewer or connect with a real box
 - To connect with a real box, you will need to open ports in your firewall and have a way to connect your WebTV (and preferably reroute 10.0.0.1 to the server)

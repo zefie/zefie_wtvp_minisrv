@@ -1,10 +1,11 @@
 {
   "config": {
-    "service_ip": "192.168.11.8"
+    "service_ip": "192.168.11.8",
+    "service_name": "HackTV"
   },
   "services": {
-
     "wtv-1800": {
+      "host": null,
       "port": 1615,
       "connections": 1
     },
@@ -45,7 +46,11 @@
     },
     "http": {
       "port": 1650,
-      "connections": 3
+      "connections": 3,
+      "use_external_proxy": false,
+      "external_proxy_host": null,
+      "external_proxy_port": 8080
+
     }
   }
 }

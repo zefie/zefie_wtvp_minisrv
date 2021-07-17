@@ -38,14 +38,12 @@ data += `width=250 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 selected>
 </form>
 
 <h4>zefie's server only</h4>
-<a href="wtv-music:/content/index.html">Music Collection</a><br>
-<a href="wtv-music:/midi/index.html">Matt Test</a><br>
+<a href="wtv-home:/zefie">zefie's stuff and things</a>
 
 <h4>Test Stuff (probably broken)</h4>
 <a href="wtv-update:/update?">HackTV Updater Test</a><br>
 <a href="wtv-flashrom:/willie">Ultra Willies</a><br>
 <a href="client:showalert?message=If%20you%20choose%20to%20disconnect%20and%20return%20to%20HackTV%20home%2C%20you%20may%20not%20be%20able%20to%20reconnect%20to%20the%20update%20server%20until%20you%20power%20cycle%20your%20box.%3Cbr%3E%3Cbr%3EAre%20you%20sure%20you%20would%20like%20to%20go%20offline%3F&buttonlabel1=No&buttonaction1=client:donothing&buttonlabel2=Yes&buttonaction2=wtv-tricks%3A%2Fgo-offline%3Ftitle%3DHackTV%2520Home">Disconnect and go to HackTV Home</a><br>
-<!-- <a href="buttonaction2=wtv-home:/unlock">Unlock Full Client (Options, Goto, etc)</a><br> -->
 
 </body>
 </html>`

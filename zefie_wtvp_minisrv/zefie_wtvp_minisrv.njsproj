@@ -2,7 +2,7 @@
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">14.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
-    <Name>hacktv_updsrv</Name>
+    <Name>zefie_wtvp_minisrv</Name>
     <RootNamespace>hacktv_updsrv</RootNamespace>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
@@ -10,7 +10,8 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>31b77d0c-f03d-43a7-bf7f-fad7174728bf</ProjectGuid>
-    <ProjectHome>.</ProjectHome>
+    <ProjectHome>
+    </ProjectHome>
     <StartupFile>app.js</StartupFile>
     <StartWebBrowser>False</StartWebBrowser>
     <SearchPath>
@@ -34,12 +35,21 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-flashrom\get-lc2-page.js" />
+    <Content Include="ServiceVault\wtv-flashrom\lc2-download-complete.js" />
     <Content Include="ServiceVault\wtv-flashrom\lc2-download-failed.html" />
-    <Content Include="ServiceVault\wtv-flashrom\lc2-download-failed.js" />
+    <Content Include="ServiceVault\wtv-flashrom\ROMCache\MSNLogo.gif" />
+    <Content Include="ServiceVault\wtv-flashrom\ROMCache\S40H1.gif" />
+    <Content Include="ServiceVault\wtv-flashrom\ROMCache\Shadow.gif" />
+    <Content Include="ServiceVault\wtv-flashrom\ROMCache\Spacer.gif" />
+    <Content Include="ServiceVault\wtv-flashrom\ROMCache\up-arrows.swf" />
+    <Content Include="ServiceVault\wtv-flashrom\ROMCache\WebTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-flashrom\willie.async.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\ssl-cert.der" />
+    <Content Include="ServiceVault\wtv-home\zefie.html" />
     <Content Include="ServiceVault\wtv-star\images\HackTVLogo.gif" />
     <Content Include="ServiceVault\wtv-star\images\HackTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-star\images\WebTVLogoJewel.gif" />
+    <Content Include="ServiceVault\wtv-tricks\access.js" />
     <Content Include="ServiceVault\wtv-tricks\blastcache.js" />
     <Content Include="ServiceVault\wtv-tricks\go-offline.js" />
     <Content Include="ServiceVault\wtv-update\content\diskmaps\htvupdate.txt" />
@@ -67,6 +77,7 @@
   <ItemGroup>
     <Folder Include="ServiceVault\" />
     <Folder Include="ServiceVault\wtv-flashrom\" />
+    <Folder Include="ServiceVault\wtv-flashrom\ROMCache\" />
     <Folder Include="ServiceVault\wtv-star\" />
     <Folder Include="ServiceVault\wtv-star\images\" />
     <Folder Include="ServiceVault\wtv-tricks\" />
