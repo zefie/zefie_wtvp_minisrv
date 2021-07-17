@@ -9,6 +9,7 @@ ServiceLogPost/*_*
 # Large files not pertaining to the service code
 ServiceVault/wtv-flashrom/content/*
 ServiceVault/wtv-music/content/*
+ServiceVault/wtv-music/midi/*
 
 # User-specific files
 *.rsuser

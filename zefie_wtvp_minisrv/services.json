@@ -1,7 +1,10 @@
 {
   "config": {
     "service_ip": "192.168.11.8",
-    "service_name": "HackTV"
+    "service_name": "HackTV",
+    "send_tellyscripts": false,
+    "hide_ssid_in_logs": true,
+    "verbosity": 2
   },
   "services": {
     "wtv-1800": {
@@ -25,7 +28,8 @@
     },
     "wtv-log": {
       "port": 1609,
-      "connections": 1
+      "connections": 1,
+      "write_logs_to_disk":  true
     },
     "wtv-home": {
       "port": 1612,
@@ -37,7 +41,8 @@
     },
     "wtv-flashrom": {
       "port": 1618,
-      "flags": "0x00000040"
+      "flags": "0x00000040",
+      "use_zefie_server":  true
     },
     "wtv-music": {
       "port": 1656,

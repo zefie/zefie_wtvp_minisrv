@@ -11,12 +11,13 @@ This open source server is in alpha status. Use at your own risk.
 - Suports `.async.js` service files with asynchronous requests
 - Supports multiple simultaneous users
 - WebTV-compatible HTTP Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
+- wtv-flashrom for LC2 and newer boxes (bf0app unsupported, need test unit)
+- Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
 
 ### Current issues:
 - May not run on non-development Windows machines (VS2019 with nodejs and python)
 - Power cycling box and re-connecting via ConnectSetup may invalidate encryption until server is restarted
 - wtv-update:/update does not yet function as intended
-- wtv-flashrom features do not yet function as intended
 - HTTPS Proxying untested, likely needs SSL spoofing with self-signed solution
 
 ### Won't fix:
@@ -26,7 +27,8 @@ This open source server is in alpha status. Use at your own risk.
 ### Feature Todo:
 - ~~(maybe) implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)~~ ***Done***
 - ~~(maybe) enable "internet mode" (let user outside of minisrv)~~ ***Done***
-- Flashrom flashing functionality (at least for LC2 and higher)
+- ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done***
+- Flashrom flashing for bf0app old classic (need donor unit)
 - SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)
 - (maybe) Proper wtv-star (generic service outage page) support (maybe useful for allowing a unit to multiple sub-minisrvs).
 - (maybe) wtvchat stuff

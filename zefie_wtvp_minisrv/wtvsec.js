@@ -18,11 +18,10 @@ class WTVSec {
     hRC4_Key1 = null;
     hRC4_Key2 = null;
     RC4Session = new Array();
-
     zdebug = false;
 
-    constructor(wtv_incarnation = 1) {   
-        this.zdebug = true;
+    constructor(wtv_incarnation = 1, zdebug = false) {   
+        this.zdebug = zdebug;
         this.initial_shared_key = CryptoJS.enc.Base64.parse(this.initial_shared_key_b64);
 
         if (this.initial_shared_key.sigBytes === 8) {
@@ -294,16 +293,6 @@ class WTVSec {
             data = new Buffer.from(data);
         }
         return this.RC4Session[session_id].update(data);
-    }
-
-    Test() {
-        console.log("TEST RUN");
-        console.log("Test python challenge");
-        this.current_shared_key = CryptoJS.enc.Base64.parse("CC5rWmRUE0o=");
-        var current_challenge = "0kjyqIYAu0ziFBbSERN6DGaZ6S0fT+DBUCtpHCJ4lpuM7CbXdAm+x83BIDoJYztd1Z+5KFZ7ghmb3LJCT/6mhWUYkqqKOyfPRW8ZIdbICK/CV+Kxm8EUjRXZSk/97tsmFpH3hcCJ7C2TBw+TX38uQQ==";
-        var expected_result = "0kjyqIYAu0zI5QrLhSuEUFgKkoVSxI3zBlUMfhnIYoMy0ExfIX4s/mHvILseDFx+17trk7YO+xG9D2qSY6v9XVUS1OP1m8ee";
-        console.log("Expected: " + expected_result);
-        console.log("Got: " + this.ProcessChallenge(current_challenge));
     }
 }
 

@@ -9,8 +9,8 @@ wtv-service: reset
 // HackTV Homepage is default
 var url="file://Disk/Browser/Games/Games.html"; 
 
-if (query['url']) {
-	url = query['url'];
+if (request_headers.query.url) {
+	url = request_headers.query.url;
 }
 
 data = `<html>
@@ -33,8 +33,8 @@ if (window.location) {
 </script>
 <br><br>
 `
-if (query['title']) {
-	data += "Going offline and loading "+decodeURI(query['title'])+", please wait!";
+if (request_headers.query.title) {
+	data += "Going offline and loading " + decodeURI(request_headers.query.title)+", please wait!";
 } else {
 	data += "Please wait a moment.";
 }

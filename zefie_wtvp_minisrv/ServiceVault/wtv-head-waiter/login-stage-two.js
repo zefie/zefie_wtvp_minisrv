@@ -2,10 +2,9 @@ var challenge_response, challenge_header = '';
 var gourl;
 
 if (socket_session_data[socket.id].ssid != null && !getSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login')) {
-	var wtvsec_login = new WTVSec();
-	wtvsec_login = new WTVSec();
+	var wtvsec_login = new WTVSec(1,zdebug);
 	wtvsec_login.IssueChallenge();
-	wtvsec_login.set_incarnation(request_headers['wtv-incarnation']);
+	wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 	setSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login', wtvsec_login)
 } else {
 	var wtvsec_login = getSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login')
@@ -13,23 +12,23 @@ if (socket_session_data[socket.id].ssid != null && !getSessionData(socket_sessio
 
 if (socket_session_data[socket.id].ssid !== null) {
 	if (wtvsec_login.ticket_b64 == null) {
-		if (request_headers['wtv-ticket']) {
-			if (request_headers['wtv-ticket'].length > 8) {
-				wtvsec_login.DecodeTicket(request_headers['wtv-ticket']);
-				wtvsec_login.ticket_b64 = request_headers['wtv-ticket'];
+		if (request_headers["wtv-ticket"]) {
+			if (request_headers["wtv-ticket"].length > 8) {
+				wtvsec_login.DecodeTicket(request_headers["wtv-ticket"]);
+				wtvsec_login.ticket_b64 = request_headers["wtv-ticket"];
 				//socket_session_data[socket.id].secure = true;
 			}
 		} else {
 			challenge_response = wtvsec_login.challenge_response;
-			var client_challenge_response = request_headers['wtv-challenge-response'] || null;
+			var client_challenge_response = request_headers["wtv-challenge-response"] || null;
 			if (challenge_response && client_challenge_response) {		
 				//if (challenge_response.toString(CryptoJS.enc.Base64).substring(0,85) == client_challenge_response.substring(0,85)) {
 				if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
-					console.log(" * wtv-challenge-response success for "+socket_session_data[socket.id].ssid);
+					console.log(" * wtv-challenge-response success for " + processSSID(socket_session_data[socket.id].ssid));
 					wtvsec_login.PrepareTicket();
 					//socket_session_data[socket.id].secure = true;
 				} else {
-					console.log(" * wtv-challenge-response FAILED for " + socket_session_data[socket.id].ssid);
+					console.log(" * wtv-challenge-response FAILED for " + processSSID(socket_session_data[socket.id].ssid));
 					if (zdebug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
 					if (zdebug) console.log("Response Received:", client_challenge_response)
 					gourl = "wtv-head-waiter:/login?reissue_challenge=true";
@@ -54,7 +53,7 @@ else {
 	var nickname = 'HackTVUsr_' + namerand;
 	var userid = '1'+ Math.floor(Math.random() * 1000000000000000000);
 	var offline_user_list = CryptoJS.enc.Latin1.parse("<user-list>\n\t<user userid=\"" + userid + " user-name=\"" + nickname + "\" first-name=\"HackTV\" last-name=\"User \"" + namerand + "\" password=\"\" mail-enabled=\"true\" />\n</user-list>").toString(CryptoJS.enc.Base64);
-
+	data = '';
 	headers = `200 OK
 Connection: Keep-Alive
 wtv-encrypted: true
@@ -80,10 +79,10 @@ wtv-messenger-enable: 0
 wtv-noback-all: wtv-
 wtv-service: reset
 `+ getServiceString('all') + `
-wtv-boot-url: wtv-1800:/preregister?relogin=true
-wtv-ssl-certs-download-url: wtv-head-waiter:/ssl-cert.der
-wtv-ssl-certs-checksum: 473926DC1B11F635A6B920953FDCDE6A
-wtv-user-name: `+ nickname + `
+wtv-boot-url: wtv-1800:/preregister?relogin=true`
+//wtv-ssl-certs-download-url: wtv-head-waiter:/ssl-cert.der
+//wtv-ssl-certs-checksum: 473926DC1B11F635A6B920953FDCDE6A
+	headers += `wtv-user-name: `+ nickname + `
 wtv-human-name: `+ nickname + `
 wtv-irc-nick: `+ nickname + `
 wtv-home-url: wtv-home:/home?

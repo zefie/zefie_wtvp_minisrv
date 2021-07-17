@@ -13,7 +13,7 @@ if (getSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encrypt
 data =`<html>
 <head>
 <title>Home for minisrv</title>
-<DISPLAY showwhencomplete options showoptions noscroll>
+<DISPLAY NoLogo NoStatus hideoptions noscroll>
 </head>
 <body bgcolor="black" link="gold" vlink="gold" alink="gold" text="gold">
 <script>
@@ -24,26 +24,26 @@ function go() {
 <h2>Welcome to `+ z_title + `</h2>
 <h3>Encryption Status: `+cryptstatus+`</h3>`
 data += `<h4>Working stuff</h4>
-<a href="client:relog">client:relog (direct)</a><br>
-<a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a><br>
 <form name=access onsubmit="go()">
-<input name=url `;
+<ul>
+<li><a href="client:relog">client:relog (direct)</a></li>
+<li><a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
+<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a></li>
+<li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
+<li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>
+<li><input name=url `;
 
-if (query['url']) {
-	data += "value='"+unescape(query['url'])+"'";
+if (request_headers.query.url) {
+	data += "value='" + unescape(request_headers.query.url)+"'";
 }
 
 data += `width=250 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 selected>
-<input type=submit value="Access URL" borderstyle="ButtonBorder2.bif">
-</form>
+<input type=submit value="Access URL">
+</form></li>
+</ul>
 
-<h4>zefie's server only</h4>
+<h4>Developer Playground</h4>
 <a href="wtv-home:/zefie">zefie's stuff and things</a>
-
-<h4>Test Stuff (probably broken)</h4>
-<a href="wtv-update:/update?">HackTV Updater Test</a><br>
-<a href="wtv-flashrom:/willie">Ultra Willies</a><br>
-<a href="client:showalert?message=If%20you%20choose%20to%20disconnect%20and%20return%20to%20HackTV%20home%2C%20you%20may%20not%20be%20able%20to%20reconnect%20to%20the%20update%20server%20until%20you%20power%20cycle%20your%20box.%3Cbr%3E%3Cbr%3EAre%20you%20sure%20you%20would%20like%20to%20go%20offline%3F&buttonlabel1=No&buttonaction1=client:donothing&buttonlabel2=Yes&buttonaction2=wtv-tricks%3A%2Fgo-offline%3Ftitle%3DHackTV%2520Home">Disconnect and go to HackTV Home</a><br>
 
 </body>
 </html>`

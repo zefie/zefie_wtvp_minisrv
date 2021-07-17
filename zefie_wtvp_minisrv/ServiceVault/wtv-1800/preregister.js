@@ -1,8 +1,8 @@
 var gourl = "wtv-1800:/finish-prereg?";
-if (query['relogin']) gourl += "relogin=true";
+if (request_headers.query.relogin) gourl += "relogin=true";
 
 
-if (request_headers['wtv-ticket']) {
+if (request_headers["wtv-ticket"]) {
 	gourl = "wtv-head-waiter:/login-stage-two?";
 }
 
