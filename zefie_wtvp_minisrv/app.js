@@ -7,7 +7,7 @@ const strftime = require('strftime');
 const net = require('net');
 const CryptoJS = require('crypto-js');
 const mime = require('mime-types');
-const crc16 = require('node-crc16');
+const { crc16 } = require('easy-crc');
 var WTVSec = require('./wtvsec.js');
 
 var zdebug = true;
@@ -709,7 +709,8 @@ async function cleanupSocket(socket) {
 
 async function handleSocket(socket) {
     // create unique socket id with client address and port
-    socket.id = parseInt(crc16.checkSum(Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString("hex"), 16);
+
+    socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
     socket_session_data[socket.id] = [];
     socket.setEncoding('hex'); //set data encoding (either 'ascii', 'utf8', or 'base64')
     socket.on('data', function (data_hex) {
