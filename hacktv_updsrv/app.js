@@ -77,22 +77,21 @@ function getFileExt(path) {
 }
 
 function doErrorPage(code, data = null) {
-    var headers, data = null;
+    var headers = null;
     switch (code) {
         case 404:
             if (data === null) data = "The service could not find the requested page.";
-            headers = "404 "+data+"\r\n";
+            headers = "404 " + data + "\r\n";
             headers += "Content-Type: text/html\r\n";
             break;
         case 400:
-            if (data === null) data = "An internal server error has occured.";
-            headers = "400 HackTV ran into a technical problem.\r\n";
+            if (data === null) data = "HackTV ran into a technical problem.";
+            headers = "400 " + data + "\r\n";
             headers += "Content-Type: text/html\r\n";
             break;
         default:
             // what we send when we did not detect a wtv-url.
             // e.g. when a pc browser connects
-            if (data === null) data = "Hello, stranger!";
             headers = "HTTP/1.1 200 OK\r\n";
             headers += "Content-Type: text/html\r\n";
             break;
@@ -349,7 +348,18 @@ async function doHTTPProxy(socket, request_headers) {
                 if (data.substring(0, 2) == "\n\n") data = data.substring(2);
                 sendToClient(socket, headers, data);
             });
-        });
+        }).on('error', function (err) {
+            var errpage, headers, data = null;
+            if (err.code == "ENOTFOUND") {
+                errpage = doErrorPage(400,`The publisher ${err.hostname} is unknown.`);
+            } else {
+                console.log(" * Unhandled Proxy Request Error:", err);
+                errpage = doErrorPage(400);
+            }
+            headers = errpage[0];
+            data = errpage[1];
+            sendToClient(socket, headers, data);
+        });;
         if (request_headers['post_data']) {
             req.write(Buffer.from(request_headers['post_data'].toString(CryptoJS.enc.Hex), 'hex'), function () {
                 req.end();
