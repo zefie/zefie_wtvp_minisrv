@@ -8,15 +8,13 @@ This open source server is in alpha status. Use at your own risk.
 ### Current status:
 - Supports most known WebTV service encryption scenarios, for full trusted box access
 - Can handle client "relogin" and "reconnect" events
-- Suports `.async.js` service files with asynchronous requests
+- Suports `.js` service files with synchronous or asynchronous requests
 - Supports multiple simultaneous users
 - WebTV-compatible HTTP Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
 - wtv-flashrom for LC2 and newer boxes (bf0app unsupported, need test unit)
 - Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
 
 ### Current issues:
-- May not run on non-development Windows machines (VS2019 with nodejs and python)
-- Power cycling box and re-connecting via ConnectSetup may invalidate encryption until server is restarted
 - wtv-update:/update does not yet function as intended
 - HTTPS Proxying untested, likely needs SSL spoofing with self-signed solution
 
@@ -45,3 +43,4 @@ This open source server is in alpha status. Use at your own risk.
 - Run `node app.js`
 - Test with a WebTV Viewer or connect with a real box
 - To connect with a real box, you will need to open ports in your firewall and have a way to connect your WebTV (and preferably reroute 10.0.0.1 to the server)
+- See [ServiceVault.md](ServiceVault.md) for a brief introduction to how the service files work
