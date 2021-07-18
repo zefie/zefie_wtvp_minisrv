@@ -819,13 +819,13 @@ if (services_configured.config.verbosity) {
             zdebug = true;
             zquiet = true;
             zshowheaders = true;
-            console.log(" * Console Verbosity level 2 (verbose with headers)")
+            console.log(" * Console Verbosity level 3 (verbose with headers)")
             break;
         default:
             zdebug = true;
             zquiet = false;
             zshowheaders = true;
-            console.log(" * Console Verbosity level 3 (debug verbosity)")
+            console.log(" * Console Verbosity level 4 (debug verbosity)")
             break;
     }
 }
