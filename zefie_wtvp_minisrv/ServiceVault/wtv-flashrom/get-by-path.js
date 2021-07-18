@@ -6,7 +6,7 @@ headers = "200 OK\n"
 if (request_headers.query.raw) {
 	if ((/\.brom$/).test(request_path)) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 	else headers += "Content-Type: binary/x-wtv-flashblock";
-	if (services_configured.services[service_name].use_zefie_server) {
+	if (minisrv_config.services[service_name].use_zefie_server) {
 		// get flashrom files from archive.midnightchannel.net
 		var options = {
 			host: "archive.midnightchannel.net",

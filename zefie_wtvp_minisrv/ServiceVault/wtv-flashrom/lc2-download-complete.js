@@ -58,7 +58,7 @@ Updating complete
 <td colspan=9 width=100 height=258 valign=top align=left>
 <font size=+1>
 The update is complete.<br>
-<p><font size=+1>Choose <b>Connect Now</b> if you<br>want to connect to ${services_configured.config.service_name}.
+<p><font size=+1>Choose <b>Connect Now</b> if you<br>want to connect to ${minisrv_config.config.service_name}.
 	<p><font size=+1>Press the <b>power</b> button to switch<br>off your unit.
 </font>
 <tr>

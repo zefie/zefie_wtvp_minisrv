@@ -10,7 +10,7 @@ if (!request_headers.query.path) {
 	data = errpage[1];
 } else {
 	var request_path = unescape(request_headers.query.path);
-	if (services_configured.services[service_name].use_zefie_server) {
+	if (minisrv_config.services[service_name].use_zefie_server) {
 		// read first 256 bytes of flashrom file from archive.midnightchannel.net
 		// to get `flashrom_message` and `numparts` if missing
 		var options = {

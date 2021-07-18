@@ -1,6 +1,6 @@
 {
   "config": {
-    "service_ip": "192.168.11.8",
+    "service_ip": "0.0.0.0",
     "service_name": "HackTV",
     "send_tellyscripts": false,
     "hide_ssid_in_logs": true,
@@ -29,7 +29,7 @@
     "wtv-log": {
       "port": 1609,
       "connections": 1,
-      "write_logs_to_disk":  true
+      "write_logs_to_disk":  false
     },
     "wtv-home": {
       "port": 1612,
