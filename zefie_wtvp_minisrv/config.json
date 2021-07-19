@@ -1,9 +1,12 @@
 {
   "config": {
     "service_ip": "0.0.0.0",
+    "ServiceVault": "ServiceVault",
+    "UserServiceVault": "UserServiceVault",
     "service_name": "HackTV",
     "send_tellyscripts": false,
     "hide_ssid_in_logs": true,
+    "socket_timeout":  350,
     "verbosity": 2
   },
   "services": {

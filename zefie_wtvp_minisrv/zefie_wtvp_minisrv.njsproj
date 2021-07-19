@@ -183,14 +183,13 @@
     <Content Include="ServiceVault\wtv-tricks\info.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\content\diskmaps\htvupdate.txt" />
-    <Content Include="ServiceVault\wtv-update\content\htvupdate\Games\cSetup.html" />
-    <Content Include="ServiceVault\wtv-update\content\htvupdate\Games\Games.html" />
-    <Content Include="ServiceVault\wtv-update\content\htvupdate\MattMan\Tricks\tricks.html" />
+    <Content Include="ServiceVault\wtv-update\content\diskmaps\DealerDemo.json">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-update\sync.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\update.html" />
+    <Content Include="ServiceVault\wtv-update\DealerDemo.html" />
     <Content Include="ServiceVault\wtv-home\home.js" />
     <Content Include="ServiceVault\wtv-update\updatesuccess.txt" />
     <Content Include="ServiceVault\wtv-1800\finish-prereg.js" />
@@ -227,10 +226,6 @@
     <Folder Include="ServiceVault\wtv-log\" />
     <Folder Include="ServiceVault\wtv-update\content\" />
     <Folder Include="ServiceVault\wtv-update\content\diskmaps\" />
-    <Folder Include="ServiceVault\wtv-update\content\htvupdate\" />
-    <Folder Include="ServiceVault\wtv-update\content\htvupdate\Games\" />
-    <Folder Include="ServiceVault\wtv-update\content\htvupdate\MattMan\" />
-    <Folder Include="ServiceVault\wtv-update\content\htvupdate\MattMan\Tricks\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
 </Project>

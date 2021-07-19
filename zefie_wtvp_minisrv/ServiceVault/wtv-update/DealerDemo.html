@@ -2,23 +2,23 @@
 <head>
         <meta
                 http-equiv=refresh
-                content="0;url=client:Fetch?group=Browser&source=wtv-update:/sync%3Fdiskmap%3Dhtvupdate&message=Downloading%20updates..."
+                    content="0;url=client:Fetch?group=DealerDemo&source=wtv-update:/sync%3Fdiskmap%3DDealerDemo&message=Retrieving%20Files..."
         >		
-        <display downloadsuccess="client:ShowAlert?message=HackTV%20Update%20was%20successful%21&buttonlabel2=Go%20to%20HackTV&action2=wtv-tricks:/go-offline%3Ftitle%3DHackTV%20Home&buttonlabel1=Okay&buttonaction1=client:goback&image=file://disk/browser/Games/hacktv2.gif&noback=true" downloadfail="client:ShowAlert?message=HackTV%20Update%20failed...&buttonlabel1=Okay...&buttonaction1=client:goback&image=file://disk/browser/Games/hacktv2.gif&noback=true">
-        <title>HackTV Updater</title>
+        <display downloadsuccess="client:goback" downloadfail="client:ShowAlert?message=Download%20failed...&buttonlabel1=Okay...&buttonaction1=client:goback&noback=true">
+            <title>Retrieving Files</title>
 </head>
 <body bgcolor=#0 text=#42CC55 fontsize=large hspace=0 vspace=0>
 <table cellspacing=0 cellpadding=0>
         <tr>
                 <td width=104 height=74 valign=middle align=center bgcolor=3B3A4D>
-                        <img src="file://Disk/Browser/Games/hacktv4.gif" width=86 height=64>
+                        <img src="wtv-star:/images/WebTVLogoJewel.gif" width=86 height=64>
                 <td width=20 valign=top align=left bgcolor=3B3A4D>
                         <spacer>
                 <td colspan=2 width=436 valign=middle align=left bgcolor=3B3A4D>
                         <font color=D6DFD0 size=+2><blackface><shadow>
                                 <spacer type=block width=1 height=4>
                                 <br>
-                                        Download HackTV Updates
+                                        Retrieving Files
                                 </shadow>
                                 </blackface>
                         </font>
@@ -30,17 +30,17 @@
         <tr>
                 <td colspan=2>
                 <td>
-                        <font size=+1>
-                               Your HackTV Unit is downloading updates.
-                                <p>This may take a while.
-                        </font>
+                    <font size=+1>
+                        Your Internet terminal is retrieving some files.
+                        <p>This may take a while.
+                    </font>
         <tr>
                 <td colspan=2>
                 <td>
                         <br><br>
                         <font color=white>
                         <progressindicator name="downloadprogress"
-                           message="Preparing..."
+                           message="Retrieving Files..."
                            height=40 width=250>
                         </font>
 </table>
