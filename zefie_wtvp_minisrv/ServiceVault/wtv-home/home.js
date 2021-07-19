@@ -22,8 +22,8 @@ function go() {
 }
 </script>
 <h2>Welcome to `+ z_title + `</h2>
-<h3>Encryption Status: `+cryptstatus+`</h3>`
-data += `<h4>Working stuff</h4>
+<h3>Encryption Status: `+cryptstatus+`</h3>
+Connection Speed: &rate;
 <form name=access onsubmit="go()">
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
@@ -43,11 +43,6 @@ data += `width=250  height=10 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 select
 </form></li>
 </ul>`
 
-try {
-	if (fs.lstatSync(service_dir + "/home.zefie.html")) {
-		data += fs.readFileSync(service_dir + "/home.zefie.html", { 'encoding': 'utf8' });
-	}
-} catch (e) {
-	// silent
+if (fs.existsSync(service_vaults[0].path + "/" + service_name + "/home.zefie.html")) {
+	data += fs.readFileSync(service_vaults[0].path + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });
 }
-data += "</body>\n</html>";

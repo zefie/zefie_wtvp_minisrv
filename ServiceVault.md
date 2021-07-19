@@ -1,8 +1,15 @@
 ## Brief ServiceVault Explanation
 
-The server will look for a subdirectory under the running directory, called `ServiceVault` (might be user-configurable in the future).
+The server will scan configured ServiceVaults in order of priority and look for files within them.
 
-Within that directory, it looks for a subdirectory named after the wtv-service URL requested.
+Currently only 2 Service Vaults are supported, the `User Server Vault` and the `Service Vault`.
+
+The paths to the Service Vaults are user configurable in `user_config.json` or `config.json`
+
+The `User Service Vault` has priority, and files found in that Service Vault will be loaded, even if the
+file exists in the `Service Vault`.
+
+Within the Service Vaults, the server looks for a subdirectory named after the wtv-service URL requested.
 
 The server will then look for files in sequential order when requesting a URL, stopping at the first match.
 
