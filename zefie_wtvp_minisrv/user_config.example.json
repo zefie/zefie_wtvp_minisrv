@@ -1,0 +1,24 @@
+{
+	"config": {
+		"service_ip": "192.168.11.8",
+		"service_name": "MyWebTV",
+		"send_tellyscripts": true,
+		"hide_ssid_in_logs": true,
+		"verbosity": 0
+	},
+	"services": {
+		"wtv-log": {
+			"write_logs_to_disk": true
+		},
+		"wtv-some-custom-service": {
+			"port": 1609,
+			"connections": 1
+		},
+		"wtv-tricks": {
+			"port": 1702
+		},
+		"wtv-music": {
+			"disabled": true
+		}
+	}
+}

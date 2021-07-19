@@ -31,9 +31,7 @@
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="app.js" />
-    <Content Include="services.json">
-      <SubType>Code</SubType>
-    </Content>
+    <Content Include="config.json" />
     <Content Include="ServiceVault\wtv-flashrom\get-by-path.js">
       <SubType>Code</SubType>
     </Content>
@@ -200,6 +198,8 @@
     <Content Include="ServiceVault\wtv-head-waiter\login.js" />
     <Content Include="ServiceVault\wtv-home\splash.txt" />
     <Content Include="ServiceVault\wtv-log\log.js" />
+    <Content Include="user_config.example.json" />
+    <Content Include="user_config.json" />
     <Content Include="wtvsec.js">
       <SubType>Code</SubType>
     </Content>

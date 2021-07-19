@@ -25,15 +25,15 @@ String.prototype.reverse = function () {
 function getServiceString(service) {
     if (service === "all") {
         var out = "";
-        Object.keys(services_configured.services).forEach(function (k) {
-            out += services_configured.services[k].toString() + "\n";
+        Object.keys(minisrv_config.services).forEach(function (k) {
+            out += minisrv_config.services[k].toString() + "\n";
         });
         return out;
     } else {
-        if (!services_configured.services[service]) {
+        if (!minisrv_config.services[service]) {
             throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
         } else {
-            return services_configured.services[service].toString();
+            return minisrv_config.services[service].toString();
         }
     }
 }
@@ -195,7 +195,7 @@ async function processPath(socket, path, request_headers = new Array(), service_
 }
 
 function processSSID(obj) {
-    if (services_configured.config.hide_ssid_in_logs) {
+    if (minisrv_config.config.hide_ssid_in_logs) {
         if (typeof (obj) == "string") {
             if (obj.substr(0, 8) == "MSTVSIMU") {
                 return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
@@ -319,9 +319,9 @@ async function doHTTPProxy(socket, request_headers) {
             if (request_headers["Content-length"]) options.headers["Content-length"] = request_headers["Content-length"];
         }
 
-        if (services_configured.services[request_type].use_external_proxy && services_configured.services[request_type].external_proxy_port) {
-            options.host = services_configured.services[request_type].external_proxy_host;
-            options.port = services_configured.services[request_type].external_proxy_port;
+        if (minisrv_config.services[request_type].use_external_proxy && minisrv_config.services[request_type].external_proxy_port) {
+            options.host = minisrv_config.services[request_type].external_proxy_host;
+            options.port = minisrv_config.services[request_type].external_proxy_port;
             options.path = request_headers.request.split(' ')[1];
             options.headers.Host = request_data.host;
         }
@@ -757,25 +757,68 @@ async function handleSocket(socket) {
     });
 }
 
+function integrateConfig(main, user) {
+    Object.keys(user).forEach(function (k) {
+        if (typeof (user[k]) == 'object') {
+            // new entry
+            if (!main[k]) main[k] = new Array();
+
+            // go down the rabbit hole
+            main[k] = integrateConfig(main[k], user[k]);
+        } else {
+            // update main config
+            main[k] = user[k];
+        }
+    });
+    return main;
+}
+
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 console.log("**** Welcome to " + z_title + " ****");
-console.log(" *** Reading service configuration...");
+console.log(" *** Reading global configuration...");
 try {
-    var services_configured = JSON.parse(fs.readFileSync(__dirname + "/services.json"));
+    var minisrv_config = JSON.parse(fs.readFileSync(__dirname + "/config.json"));
 } catch (e) {
-    throw("ERROR: Could not read services.json", e);
+    throw ("ERROR: Could not read config.json", e);
 }
-var service_ip = services_configured.config.service_ip;
-Object.keys(services_configured.services).forEach(function (k) {
-    services_configured.services[k].name = k;
-    if (!services_configured.services[k].host) {
-        services_configured.services[k].host = service_ip;
+try {
+    if (fs.lstatSync(__dirname + "/user_config.json")) {
+        console.log(" *** Reading user configuration...");
+        try {
+            var minisrv_user_config = JSON.parse(fs.readFileSync(__dirname + "/user_config.json")); 
+        } catch (e) {
+            console.log("ERROR: Could not read user_config.json", e);
+            var throw_me = true;
+        }
+        // file exists and we read and parsed it, but the variable is undefined
+        // Likely a syntax parser error that did not trip the exception check above
+        try {
+            minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
+        } catch (e) {
+            console.log("ERROR: Could not read user_config.json", e);
+        }
     }
-    if (services_configured.services[k].port && !services_configured.services[k].nobind) {
-        ports.push(services_configured.services[k].port);
+} catch (e) {
+    if (zdebug) console.log(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+}
+
+if (throw_me) {
+    throw ("An error has occured while reading the configuration files.");
+}
+
+var service_ip = minisrv_config.config.service_ip;
+Object.keys(minisrv_config.services).forEach(function (k) {
+    if (minisrv_config.services[k].disabled) return;
+
+    minisrv_config.services[k].name = k;
+    if (!minisrv_config.services[k].host) {
+        minisrv_config.services[k].host = service_ip;
+    }
+    if (minisrv_config.services[k].port && !minisrv_config.services[k].nobind) {
+        ports.push(minisrv_config.services[k].port);
     }
 
-    services_configured.services[k].toString = function () {
+    minisrv_config.services[k].toString = function () {
         var outstr = "wtv-service: name=" + this.name + " host=" + this.host + " port=" + this.port;
         if (this.flags) outstr += " flags=" + this.flags;
         if (this.connections) outstr += " flags=" + this.connections;
@@ -786,17 +829,17 @@ Object.keys(services_configured.services).forEach(function (k) {
         }
         return outstr;
     }
-    console.log(" * Configured Service", k, "on Port", services_configured.services[k].port, "- Host", services_configured.services[k].host, "- Bind Port:", !services_configured.services[k].nobind);
+    console.log(" * Configured Service", k, "on Port", minisrv_config.services[k].port, "- Host", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind);
 })
-if (services_configured.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in the console for security");
+if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in the console for security");
 
 // defaults
 var zdebug = false;
 var zquiet = true; // will squash zdebug even if its true
 var zshowheaders = false;
 
-if (services_configured.config.verbosity) {
-    switch (services_configured.config.verbosity) {
+if (minisrv_config.config.verbosity) {
+    switch (minisrv_config.config.verbosity) {
         case 0:
             zdebug = false;
             zquiet = true;

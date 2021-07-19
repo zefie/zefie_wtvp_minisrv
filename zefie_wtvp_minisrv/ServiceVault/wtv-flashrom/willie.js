@@ -12,7 +12,7 @@ for (const [key, value] of Object.entries(request_headers.query)) {
 	proxy_query += "&" + key + "=" + value;
 }
 
-if (!services_configured.services[service_name].use_zefie_server) {
+if (!minisrv_config.services[service_name].use_zefie_server) {
 	proxy_query += "&minisrv_local_mode=true";
 }
 

@@ -16,7 +16,7 @@ if (request_headers.query.relogin) { // skip tellyscript
 
 // if relogin, skip tellyscript
 var romtype, file_path = null;
-if (!request_headers.query.relogin && services_configured.config.send_tellyscripts) {
+if (!request_headers.query.relogin && minisrv_config.config.send_tellyscripts) {
 	var romtype = getSessionData(socket_session_data[socket.id].ssid, 'wtv-client-rom-type');
 }
 
