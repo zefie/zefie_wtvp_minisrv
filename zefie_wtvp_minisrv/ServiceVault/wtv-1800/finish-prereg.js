@@ -1,3 +1,4 @@
+/*
 if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
 	var wtvsec_login = new WTVSec();
 	wtvsec_login.IssueChallenge();
@@ -5,6 +6,13 @@ if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
 	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
 } else if (socket.ssid != null) {
 	var wtvsec_login = ssid_sessions[socket.ssid].get("wtvsec_login");
+}
+*/
+if (socket.ssid != null) {
+	var wtvsec_login = new WTVSec();
+	wtvsec_login.IssueChallenge();
+	wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
+	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
 }
 
 if (wtvsec_login) {
