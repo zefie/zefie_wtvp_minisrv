@@ -238,7 +238,7 @@ async function processURL(socket, request_headers) {
                 }
             }
         } else {
-            shortURL = request_headers.request_url;
+            shortURL = unescape(request_headers.request_url);
         }
 
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
@@ -277,7 +277,7 @@ async function processURL(socket, request_headers) {
 }
 
 async function doHTTPProxy(socket, request_headers) {
-    if (zshowheaders) console.log("HTTP Proxy: Client Request Headers on socket ID", socket.id, (await processSSID(request_headers));
+    if (zshowheaders) console.log("HTTP Proxy: Client Request Headers on socket ID", socket.id, (await processSSID(request_headers)));
     var request_type = request_headers.request.indexOf('https://') ? 'http' : 'https'
     switch (request_type) {
         case "https":
@@ -459,7 +459,7 @@ async function sendToClient(socket, headers_obj, data) {
 
 
     // header object to string
-    if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await processSSID(headers_obj));
+    if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await processSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
         if (k == "http_response") {
             headers += headers_obj[k] + "\r\n";
