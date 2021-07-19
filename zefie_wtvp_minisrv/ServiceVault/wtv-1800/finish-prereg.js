@@ -24,7 +24,8 @@ if (wtvsec_login) {
 	switch (romtype) {
 		case "US-LC2-disk-0MB-8MB":
 			prereg_contype = "text/tellyscript";
-			var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OISP_5555732_56k.tok";
+			if (ssid_sessions[socket.ssid].get("wtv-open-access")) var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OISP_5555732_56k.tok";
+			else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199_56k.tok";
 			break;
 
 		default:

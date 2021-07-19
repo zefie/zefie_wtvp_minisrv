@@ -28,8 +28,9 @@ data += `<h4>Working stuff</h4>
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
 <li><a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
-<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a></li>
+<li><a href="wtv-flashrom:/willie">Ultra Willies</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
+<li><a href="wtv-update:/DealerDemo">Download old MSNTV DealerDemo</a></li>
 <li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>
 <li><input name=url `;
 
@@ -37,13 +38,16 @@ if (request_headers.query.url) {
 	data += "value='" + unescape(request_headers.query.url)+"'";
 }
 
-data += `width=250 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 selected>
+data += `width=250  height=10 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 selected>
 <input type=submit value="Access URL">
 </form></li>
-</ul>
+</ul>`
 
-<h4>Developer Playground</h4>
-<a href="wtv-home:/zefie">zefie's stuff and things</a>
-
-</body>
-</html>`
+try {
+	if (fs.lstatSync(service_dir + "/home.zefie.html")) {
+		data += fs.readFileSync(service_dir + "/home.zefie.html", { 'encoding': 'utf8' });
+	}
+} catch (e) {
+	// silent
+}
+data += "</body>\n</html>";

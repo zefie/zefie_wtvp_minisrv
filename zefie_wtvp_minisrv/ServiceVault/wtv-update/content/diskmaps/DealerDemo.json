@@ -1,0 +1,70 @@
+{
+  "DealerDemo": {
+    "display": "Updating the retail demo",
+    "base": "file://Disk/Demo/",
+    "location": "content/DealerDemo/",
+    "partition_size": 54525952,
+    "files": [
+      {
+        "file": "file://Disk/Demo/allyouneed.html"
+      },
+      {
+        "file": "file://Disk/Demo/allyouneed.swf"
+      },
+      {
+        "file": "file://Disk/Demo/attractloop.swf"
+      },
+      {
+        "file": "file://Disk/Demo/communicate.html"
+      },
+      {
+        "file": "file://Disk/Demo/communicate.swf"
+      },
+      {
+        "file": "file://Disk/Demo/images/buttonsplus_all.gif"
+      },
+      {
+        "file": "file://Disk/Demo/images/buttonsplus_comm.gif"
+      },
+      {
+        "file": "file://Disk/Demo/images/buttonsplus_interactive.gif"
+      },
+      {
+        "file": "file://Disk/Demo/images/buttonsplus_internet.gif"
+      },
+      {
+        "file": "file://Disk/Demo/images/buttonsplus_try.gif"
+      },
+      {
+        "file": "file://Disk/Demo/images/spacer.gif"
+      },
+      {
+        "file": "file://Disk/Demo/index.html"
+      },
+      {
+        "file": "file://Disk/Demo/interactive.html"
+      },
+      {
+        "file": "file://Disk/Demo/interactive.swf"
+      },
+      {
+        "file": "file://Disk/Demo/internet.html"
+      },
+      {
+        "file": "file://Disk/Demo/internet.swf"
+      },
+      {
+        "file": "file://Disk/Demo/mainmenu.html"
+      },
+      {
+        "file": "file://Disk/Demo/mainmenu.swf"
+      },
+      {
+        "file": "file://Disk/Demo/trymsntv.html"
+      },
+      {
+        "file": "file://Disk/Demo/trymsntv.swf"
+      }
+    ]
+  }
+}
