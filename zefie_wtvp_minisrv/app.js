@@ -93,7 +93,7 @@ function getConType(path) {
     return mime.lookup(path);
 }
 
-async function processPath(socket, path, request_headers = new Array(), query = new Array(), service_name) {
+async function processPath(socket, path, request_headers = new Array(), service_name) {
     var headers, data = null;
     var request_is_direct_file = false;
     var request_is_async = false;
@@ -262,7 +262,7 @@ async function processURL(socket, request_headers) {
             var service_name = shortURL.split(':/')[0];
             var urlToPath = service_vault_dir.replace(/\\/g, "/") + "/" + service_name + "/" + shortURL.split(':/')[1];
             if (zshowheaders) console.log(" * Incoming headers on socket ID", socket.id, (await processSSID(request_headers)));
-            processPath(socket, urlToPath, request_headers, request_headers.query, service_name);
+            processPath(socket, urlToPath, request_headers, service_name);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) {
             doHTTPProxy(socket, request_headers);
         } else {
@@ -277,7 +277,7 @@ async function processURL(socket, request_headers) {
 }
 
 async function doHTTPProxy(socket, request_headers) {
-    if (zshowheaders) console.log("HTTP Proxy: Client Request Headers on socket ID",socket.id, request_headers);
+    if (zshowheaders) console.log("HTTP Proxy: Client Request Headers on socket ID", socket.id, (await processSSID(request_headers));
     var request_type = request_headers.request.indexOf('https://') ? 'http' : 'https'
     switch (request_type) {
         case "https":
@@ -459,7 +459,7 @@ async function sendToClient(socket, headers_obj, data) {
 
 
     // header object to string
-    if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, headers_obj);
+    if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await processSSID(headers_obj));
     Object.keys(headers_obj).forEach(function (k) {
         if (k == "http_response") {
             headers += headers_obj[k] + "\r\n";
