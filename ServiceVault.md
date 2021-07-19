@@ -4,7 +4,7 @@ The server will scan configured ServiceVaults in order of priority and look for 
 
 Currently only 2 Service Vaults are supported, the `User Server Vault` and the `Service Vault`.
 
-The paths to the Service Vaults are user configurable in user_config.json or config.json
+The paths to the Service Vaults are user configurable in `user_config.json` or `config.json`
 
 The `User Service Vault` has priority, and files found in that Service Vault will be loaded, even if the
 file exists in the `Service Vault`.
