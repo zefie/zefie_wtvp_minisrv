@@ -40,10 +40,13 @@ if (request_headers.query.url) {
 data += `width=250 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 selected>
 <input type=submit value="Access URL">
 </form></li>
-</ul>
+</ul>`
 
-<h4>Developer Playground</h4>
-<a href="wtv-home:/zefie">zefie's stuff and things</a>
-
-</body>
-</html>`
+try {
+	if (fs.lstatSync(service_dir + "/home.zefie.html")) {
+		data += fs.readFileSync(service_dir + "/home.zefie.html", { 'encoding': 'utf8' });
+	}
+} catch (e) {
+	// silent
+}
+data += "</body>\n</html>";
