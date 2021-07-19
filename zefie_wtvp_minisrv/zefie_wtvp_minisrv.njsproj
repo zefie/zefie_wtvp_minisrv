@@ -181,6 +181,9 @@
     <Content Include="ServiceVault\wtv-tricks\access.js" />
     <Content Include="ServiceVault\wtv-tricks\blastcache.js" />
     <Content Include="ServiceVault\wtv-tricks\go-offline.js" />
+    <Content Include="ServiceVault\wtv-tricks\info.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-update\content\diskmaps\htvupdate.txt" />
     <Content Include="ServiceVault\wtv-update\content\htvupdate\Games\cSetup.html" />
     <Content Include="ServiceVault\wtv-update\content\htvupdate\Games\Games.html" />
@@ -198,6 +201,9 @@
     <Content Include="ServiceVault\wtv-head-waiter\login.js" />
     <Content Include="ServiceVault\wtv-home\splash.txt" />
     <Content Include="ServiceVault\wtv-log\log.js" />
+    <Content Include="session_data.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="user_config.example.json" />
     <Content Include="user_config.json" />
     <Content Include="wtvsec.js">

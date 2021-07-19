@@ -1,22 +1,22 @@
 var challenge_response, challenge_header = '';
 var gourl;
 
-if (socket_session_data[socket.id].ssid != null && !getSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login')) {
+if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
 	var wtvsec_login = new WTVSec(1,zdebug);
 	wtvsec_login.IssueChallenge();
 	wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
-	setSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login', wtvsec_login)
+	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
 } else {
-	var wtvsec_login = getSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login')
+	var wtvsec_login = ssid_sessions[socket.ssid].get("wtvsec_login");
 }
 
-if (socket_session_data[socket.id].ssid !== null) {
+if (socket.ssid !== null) {
 	if (wtvsec_login.ticket_b64 == null) {
 		if (request_headers["wtv-ticket"]) {
 			if (request_headers["wtv-ticket"].length > 8) {
 				wtvsec_login.DecodeTicket(request_headers["wtv-ticket"]);
 				wtvsec_login.ticket_b64 = request_headers["wtv-ticket"];
-				//socket_session_data[socket.id].secure = true;
+				//socket_sessions[socket.id].secure = true;
 			}
 		} else {
 			challenge_response = wtvsec_login.challenge_response;
@@ -24,11 +24,11 @@ if (socket_session_data[socket.id].ssid !== null) {
 			if (challenge_response && client_challenge_response) {		
 				//if (challenge_response.toString(CryptoJS.enc.Base64).substring(0,85) == client_challenge_response.substring(0,85)) {
 				if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
-					console.log(" * wtv-challenge-response success for " + processSSID(socket_session_data[socket.id].ssid));
+					console.log(" * wtv-challenge-response success for " + processSSID(socket.ssid));
 					wtvsec_login.PrepareTicket();
-					//socket_session_data[socket.id].secure = true;
+					//socket_sessions[socket.id].secure = true;
 				} else {
-					console.log(" * wtv-challenge-response FAILED for " + processSSID(socket_session_data[socket.id].ssid));
+					console.log(" * wtv-challenge-response FAILED for " + processSSID(socket.ssid));
 					if (zdebug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
 					if (zdebug) console.log("Response Received:", client_challenge_response)
 					gourl = "wtv-head-waiter:/login?reissue_challenge=true";

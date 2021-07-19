@@ -1,7 +1,7 @@
 var challenge_response, challenge_header = '';
 
-if (socket_session_data[socket.id].ssid !== null) {
-	var wtvsec_login = getSessionData(socket_session_data[socket.id].ssid, 'wtvsec_login');
+if (socket.ssid !== null) {
+	var wtvsec_login = ssid_sessions[socket.ssid].get("wtvsec_login");
 	if (request_headers["wtv-ticket"]) {
 		if (wtvsec_login.ticket_b64 == null) {
 			if (request_headers["wtv-ticket"].length > 8) {
@@ -15,7 +15,7 @@ if (socket_session_data[socket.id].ssid !== null) {
 			var client_challenge_response = request_headers["wtv-challenge-response"] || null;
 			if (challenge_response && client_challenge_response) {
 				if (challenge_response.toString(CryptoJS.enc.Base64).substring(0, 85) == client_challenge_response.substring(0, 85)) {
-					console.log(" * wtv-challenge-response success for " + socket_session_data[socket.id].ssid);
+					console.log(" * wtv-challenge-response success for " + socket.ssid);
 					wtvsec_login.PrepareTicket();
 				} else {
 					challenge_header = "wtv-challenge: " + wtvsec_login.IssueChallenge();

@@ -9,6 +9,7 @@ const CryptoJS = require('crypto-js');
 const mime = require('mime-types');
 const { crc16 } = require('easy-crc');
 var WTVSec = require('./wtvsec.js');
+var ClientSessionData = require('./session_data.js');
 
 var ports = [];
 
@@ -20,6 +21,7 @@ String.prototype.reverse = function () {
     var joinArray = reverseArray.join(""); 
     return joinArray;
 }
+
 
 
 function getServiceString(service) {
@@ -38,23 +40,11 @@ function getServiceString(service) {
     }
 }
 
-var ssid_data = new Array();
+var ssid_sessions = new Array();
 var socket_buffer = new Array();
-var socket_session_data = new Array();
+var socket_sessions = new Array();
 
 var script_processing_timeout = 10; // seconds
-
-function getSessionData(ssid, key = null) {
-    if (typeof (ssid_data[ssid]) === 'undefined') return null;
-    if (key == null) return ssid_data[ssid];
-    else if (ssid_data[ssid][key]) return ssid_data[ssid][key];
-    else return null;
-}
-
-function setSessionData(ssid, key, value) {
-    if (typeof (ssid_data[ssid]) === 'undefined') ssid_data[ssid] = new Array();
-    ssid_data[ssid][key] = value;
-}
 
 function getFileExt(path) {
     return path.reverse().split(".")[0].reverse();
@@ -150,7 +140,7 @@ async function processPath(socket, path, request_headers = new Array(), service_
             if (!zquiet) console.log(" * Found " + path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
             // expose var service_dir for script path to the root of the wtv-service
             var service_dir = service_vault_dir.replace(/\\/g, "/") + "/" + service_name;
-            socket_session_data[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
+            socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
             var jscript_eval = fs.readFileSync(path + ".js").toString();
             eval(jscript_eval);
             if (request_is_async && !zquiet) console.log(" * Script requested Asynchronous mode");
@@ -242,7 +232,7 @@ async function processURL(socket, request_headers) {
         }
 
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
-            var ssid = socket_session_data[socket.id].ssid;
+            var ssid = socket.ssid;
             if (ssid == null) {
                 ssid = request_headers["wtv-client-serial-number"];
             }
@@ -270,7 +260,7 @@ async function processURL(socket, request_headers) {
             var errpage = doErrorPage(400);
             headers = errpage[0];
             data = errpage[1]
-            socket_session_data[socket.id].close_me = true;
+            socket_sessions[socket.id].close_me = true;
             sendToClient(socket, headers, data);
         }
     }
@@ -385,7 +375,7 @@ async function headerStringToObj(headers, response = false) {
     headers_obj_pre.forEach(function (d) {
         if (/^SECURE ON/.test(d) && !response) {
             headers_obj.secure = true;
-            //socket_session_data[socket.id].secure_headers = true;
+            //socket_sessions[socket.id].secure_headers = true;
         } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response) {
             headers_obj.http_response = d.replace("\r", "");
         } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
@@ -424,7 +414,7 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // encrypt if needed
-    if (socket_session_data[socket.id].secure == true) {
+    if (socket_sessions[socket.id].secure == true) {
         var clen = null;
         if (typeof data.length !== 'undefined') {
             clen = data.length;
@@ -433,9 +423,9 @@ async function sendToClient(socket, headers_obj, data) {
         }
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (clen > 0 && socket_session_data[socket.id].wtvsec) {
+        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
             if (!zquiet) console.log(" * Encrypting response to client ...")
-            var enc_data = socket_session_data[socket.id].wtvsec.Encrypt(1, data);
+            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             data = enc_data;
         }
     }
@@ -481,18 +471,18 @@ async function sendToClient(socket, headers_obj, data) {
         socket.write(toClient);
     } else if (typeof data == 'object') {
         if (zquiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
-        if (socket_session_data[socket.id].secure_headers == true) {
+        if (socket_sessions[socket.id].secure_headers == true) {
             // encrypt headers
             if (zquiet)verbosity_mod += " with encrypted headers";
-            var enc_headers = socket_session_data[socket.id].wtvsec.Encrypt(1, headers + "\n");
+            var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + "\n");
             socket.write(new Uint8Array(concatArrayBuffer(enc_headers, data)));
         } else {
             socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + "\n"), data)));
         }
         if (zquiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.http_response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-Length'], "bytes)");
     }
-    socket_session_data[socket.id].buffer = null;
-    if (socket_session_data[socket.id].close_me) socket.end();
+    socket_sessions[socket.id].buffer = null;
+    if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
         if (headers_obj["Connection"].toLowerCase() == "close" && !headers["wtv-connection-close"] == "false") {
             socket.destroy();
@@ -556,17 +546,17 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                 // if its a POST request, assume its a binary blob and not encrypted (dangerous)
                 if (!encryptedRequest) {
                     // its not a POST and it 1failed the headersAreStandard test, so we think this is an encrypted blob
-                    if (socket_session_data[socket.id].secure != true) {
+                    if (socket_sessions[socket.id].secure != true) {
                         // first time so reroll sessions
                         if (zdebug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
-                        socket_session_data[socket.id].wtvsec = new WTVSec(1,zdebug);
-                        socket_session_data[socket.id].wtvsec.IssueChallenge();
-                        socket_session_data[socket.id].wtvsec.SecureOn();
-                        socket_session_data[socket.id].secure = true;
+                        socket_sessions[socket.id].wtvsec = new WTVSec(1,zdebug);
+                        socket_sessions[socket.id].wtvsec.IssueChallenge();
+                        socket_sessions[socket.id].wtvsec.SecureOn();
+                        socket_sessions[socket.id].secure = true;
                     }
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
-                        var dec_data = CryptoJS.lib.WordArray.create(socket_session_data[socket.id].wtvsec.Decrypt(0, enc_data));
+                        var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
                         var secure_headers = await processRequest(socket, dec_data.toString(CryptoJS.enc.Hex), true, true);
                         headers.encrypted = true;
                         Object.keys(secure_headers).forEach(function (k, v) {
@@ -577,19 +567,24 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
             }
 
             if (headers["wtv-client-serial-number"] != null) {
-                socket_session_data[socket.id].ssid = headers["wtv-client-serial-number"];
-            }
-            if (headers["wtv-client-rom-type"] != null) {
-                if (socket_session_data[socket.id].ssid) {
-                    setSessionData(socket_session_data[socket.id].ssid, "wtv-client-rom-type", headers["wtv-client-rom-type"]);
+                socket.ssid = headers["wtv-client-serial-number"];
+                if (!ssid_sessions[socket.ssid]) {
+                    ssid_sessions[socket.ssid] = new ClientSessionData();
                 }
             }
-            if (headers["wtv-incarnation"] != null) {
-                if (socket_session_data[socket.id].wtvsec) {
-                    socket_session_data[socket.id].wtvsec.set_incarnation(headers["wtv-incarnation"]);
-                } else {
-                    setSessionData(socket_session_data[socket.id].ssid, "incarnation", headers["wtv-incarnation"])
-                }
+
+
+            // log all client wtv- headers to the SessionData for that SSID
+            // this way we can pull up client info such as wtv-client-rom-type or wtv-system-sysconfig
+            if (socket.ssid) {
+                Object.keys(headers).forEach(function (k) {
+                    if (k.substr(0, 4) === "wtv-") {
+                        if (k === "wtv-incarnation" && socket_sessions[socket.id].wtvsec) {
+                            socket_sessions[socket.id].wtvsec.set_incarnation(headers[k]);
+                        }
+                        ssid_sessions[socket.ssid].set(k, headers[k]);
+                    }
+                });
             }
 
             if (returnHeadersBeforeSecure) {
@@ -598,21 +593,21 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
             }
 
             if (headers.secure === true) {
-                if (!socket_session_data[socket.id].wtvsec) {
+                if (!socket_sessions[socket.id].wtvsec) {
                     if (!zquiet) console.log(" * Starting new WTVSec instance on socket", socket.id);
-                    if (getSessionData(socket_session_data[socket.id].ssid, "incarnation")) {
-                        socket_session_data[socket.id].wtvsec = new WTVSec(getSessionData(socket_session_data[socket.id].ssid, "incarnation"), zdebug);
+                    if (ssid_sessions[socket.ssid].get("wtv-incarnation")) {
+                        socket_sessions[socket.id].wtvsec = new WTVSec(ssid_sessions[socket.ssid].get("wtv-incarnation"), zdebug);
                     } else {
-                        socket_session_data[socket.id].wtvsec = new WTVSec(1, zdebug);
+                        socket_sessions[socket.id].wtvsec = new WTVSec(1, zdebug);
                     }
-                    socket_session_data[socket.id].wtvsec.DecodeTicket(headers["wtv-ticket"]);
-                    socket_session_data[socket.id].wtvsec.ticket_b64 = headers["wtv-ticket"];
-                    socket_session_data[socket.id].wtvsec.SecureOn();
+                    socket_sessions[socket.id].wtvsec.DecodeTicket(headers["wtv-ticket"]);
+                    socket_sessions[socket.id].wtvsec.ticket_b64 = headers["wtv-ticket"];
+                    socket_sessions[socket.id].wtvsec.SecureOn();
                 }
-                if (socket_session_data[socket.id].secure != true) {
+                if (socket_sessions[socket.id].secure != true) {
                     // first time so reroll sessions
                     if (zdebug) console.log(" # [ SECURE ON BLOCK (" + socket.id + ")]");
-                    socket_session_data[socket.id].secure = true;
+                    socket_sessions[socket.id].secure = true;
                 }
                 if (!headers.request_url) {
 
@@ -630,15 +625,23 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                             if (zdebug) console.log(" # Psuedo-encrypted Request (SECURE ON)", "on", socket.id);
                             // don't actually encrypt output
                             headers.psuedo_encryption = true;
-                            setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', true);
-                            socket_session_data[socket.id].secure = false;
+                            ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", true);
+                            socket_sessions[socket.id].secure = false;
                             var secure_headers = await processRequest(socket, enc_data.toString(CryptoJS.enc.Hex), true);
                         } else {
                             // SECURE ON and detected encrypted data
-                            setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', false);
-                            var dec_data = CryptoJS.lib.WordArray.create(socket_session_data[socket.id].wtvsec.Decrypt(0, enc_data))
+                            ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", false);
+                            var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
                             var secure_headers = await processRequest(socket, dec_data.toString(CryptoJS.enc.Hex), true);
-                            if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
+                            if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id, secure_headers);
+                            if (!secure_headers.request) {
+                                socket_sessions[socket.id].secure = false;
+                                var errpage = doErrorPage(499, "Security Stream Busted");
+                                headers = errpage[0];
+                                data = errpage[1];
+                                sendToClient(socket, headers, data);
+                                return;
+                            }
                         }
                         // Merge new headers into existing headers object
                         Object.keys(secure_headers).forEach(function (k, v) {
@@ -651,7 +654,7 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
             if (!headers.request_url) {
                 // still no url, likely lost encryption stream, tell client to relog
 /*
-                socket_session_data[socket.id].secure = false;                
+                socket_sessions[socket.id].secure = false;                
                 headers = `300 OK
 Connection: Keep-Alive
 Expires: Wed, 09 Oct 1991 22:00:00 GMT
@@ -662,8 +665,8 @@ wtv-visit: client:relog
 Content-type: text/html`;
                 data = '';
                 */
-                delete socket_session_data[socket.id].wtvsec;
-                socket_session_data[socket.id].close_me = true;
+                delete socket_sessions[socket.id].wtvsec;
+                socket_sessions[socket.id].close_me = true;
                 sendToClient(socket, headers, data);
             } else {
                 processURL(socket, headers);
@@ -685,27 +688,27 @@ async function checkForPostData(socket, headers, data, data_hex) {
                 // \n\n
                 var header_length = data.length + 2;
             }
-            if (socket_session_data[socket.id].secure == true) {
-                var enc_data = CryptoJS.enc.Hex.parse(socket_session_data[socket.id].buffer.toString(CryptoJS.enc.Hex).substring(header_length * 2));
+            if (socket_sessions[socket.id].secure == true) {
+                var enc_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].buffer.toString(CryptoJS.enc.Hex).substring(header_length * 2));
                 if (enc_data.sigBytes > 0) {
                     if (headersAreStandard(enc_data.toString(CryptoJS.enc.Latin1))) {
                         // some builds (like our targeted 3833), send SECURE ON but then unencrypted headers
                         if (zdebug) console.log(" # Psuedo-encrypted POST Content (SECURE ON)", "on", socket.id);
                         // don't actually encrypt output
                         headers.psuedo_encryption = true;
-                        setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', true);
-                        socket_session_data[socket.id].secure = false;
+                        ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", true);
+                        socket_sessions[socket.id].secure = false;
                         headers.post_data = await processRequest(socket, enc_data.toString(CryptoJS.enc.Hex), true);
                     } else {
                         // SECURE ON and detected encrypted data
-                        setSessionData(socket_session_data[socket.id].ssid, 'box-does-psuedo-encryption', false);
-                        headers.post_data = CryptoJS.lib.WordArray.create(socket_session_data[socket.id].wtvsec.Decrypt(0, enc_data))
+                        ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", false);
+                        headers.post_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
                         if (zdebug) console.log(" # Encrypted POST Content (SECURE ON)", "on", socket.id);
                     }
                 }
             } else {
                 if (zdebug) console.log(" # Unencrypted POST Content", "on", socket.id);
-                headers.post_data = CryptoJS.enc.Hex.parse(socket_session_data[socket.id].buffer.toString(CryptoJS.enc.Hex).substring(header_length * 2));
+                headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].buffer.toString(CryptoJS.enc.Hex).substring(header_length * 2));
             }
         }
     }
@@ -715,10 +718,10 @@ async function checkForPostData(socket, headers, data, data_hex) {
 async function cleanupSocket(socket) {
     try {
         if (!zquiet) console.log(" * Destroying old WTVSec instance on disconnected socket", socket.id);
-        delete socket_session_data[socket.id].buffer;
+        delete socket_sessions[socket.id].buffer;
 
-        delete socket_session_data[socket.id].wtvsec;
-        delete socket_session_data[socket.id];
+        delete socket_sessions[socket.id].wtvsec;
+        delete socket_sessions[socket.id];
         socket.end();
     } catch (e) {
         console.log(" # Could not clean up socket data for socket ID", socket.id, e);
@@ -730,21 +733,21 @@ async function handleSocket(socket) {
     // create unique socket id with client address and port
 
     socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
-    socket_session_data[socket.id] = [];
+    socket_sessions[socket.id] = [];
     socket.setEncoding('hex'); //set data encoding (either 'ascii', 'utf8', or 'base64')
     socket.on('data', function (data_hex) {
         socket.setTimeout(300);
-        if (socket_session_data[socket.id].buffer) {
-            socket_session_data[socket.id].buffer.concat(CryptoJS.enc.Hex.parse(data_hex));
+        if (socket_sessions[socket.id].buffer) {
+            socket_sessions[socket.id].buffer.concat(CryptoJS.enc.Hex.parse(data_hex));
         } else {
-            socket_session_data[socket.id].buffer = CryptoJS.enc.Hex.parse(data_hex);
+            socket_sessions[socket.id].buffer = CryptoJS.enc.Hex.parse(data_hex);
         }
     });
 
     socket.on('timeout', async function () {
         // start the async chain
-        if (socket_session_data[socket.id].buffer) {
-            processRequest(this, socket_session_data[socket.id].buffer.toString(CryptoJS.enc.Hex));
+        if (socket_sessions[socket.id].buffer) {
+            processRequest(this, socket_sessions[socket.id].buffer.toString(CryptoJS.enc.Hex));
         }
     });
 

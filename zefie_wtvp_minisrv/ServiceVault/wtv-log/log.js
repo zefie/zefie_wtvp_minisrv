@@ -9,7 +9,7 @@ Content-length: 0`;
 
     data = '';
     var fullpath = __dirname + "/ServiceLogPost/" + Math.floor(new Date().getTime() / 1000) + "_" + request_headers.query.type;
-    if (socket_session_data[socket.id].ssid) fullpath += "_" + socket_session_data[socket.id].ssid;
+    if (socket.ssid) fullpath += "_" + socket.ssid;
     fullpath += ".txt";
 
     fullpath = fullpath.replace(/\\/g, "/");
@@ -23,7 +23,7 @@ Content-length: 0`;
     logdata_outstring_hex += request_headers.post_data.toString(CryptoJS.enc.Hex);
     if (minisrv_config.services[service_name].write_logs_to_disk) {
         fs.writeFile(fullpath, logdata_outstring_hex, "Hex", function () {
-            if (!zquiet) console.log(" * Wrote POST log data from", processSSID(socket_session_data[socket.id].ssid), "for", socket.id);
+            if (!zquiet) console.log(" * Wrote POST log data from", processSSID(socket.ssid), "for", socket.id);
             sendToClient(socket, headers, data);
         });
     } else {
@@ -43,7 +43,7 @@ Content-length: 0`;
     var logdata_outstring_hex = Buffer.from(logdata_outstring, 'utf8').toString('hex');
     if (minisrv_config.services[service_name].write_logs_to_disk) {
         fs.writeFile(fullpath, logdata_outstring_hex, "Hex", function () {
-            if (!zquiet) console.log(" * Wrote GET log data from", processSSID(socket_session_data[socket.id].ssid), "for", socket.id);
+            if (!zquiet) console.log(" * Wrote GET log data from", processSSID(socket.ssid), "for", socket.id);
             sendToClient(socket, headers, data);
         });
     } else {
