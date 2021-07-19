@@ -13,9 +13,9 @@ This open source server is in alpha status. Use at your own risk.
 - WebTV-compatible HTTP Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
 - wtv-flashrom for LC2 and newer boxes (bf0app unsupported, need test unit)
 - Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
+- wtv-update:/sync for Download-o-Rama style file downloading
 
 ### Current issues:
-- wtv-update:/update does not yet function as intended
 - HTTPS Proxying untested, likely needs SSL spoofing with self-signed solution
 
 ### Won't fix:
@@ -28,6 +28,7 @@ This open source server is in alpha status. Use at your own risk.
 - ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done***
 - Flashrom flashing for bf0app old classic (need donor unit)
 - SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)
+- wtv-lzpf support
 - (maybe) Proper wtv-star (generic service outage page) support (maybe useful for allowing a unit to multiple sub-minisrvs).
 - (maybe) wtvchat stuff
 - (probably not) url tokenizer (eg wtv-token-blabla, was mostly to secure service URLs from unintended access, which this server does not aim to do)
