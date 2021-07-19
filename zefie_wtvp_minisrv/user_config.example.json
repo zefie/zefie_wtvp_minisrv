@@ -15,7 +15,9 @@
 			"connections": 1
 		},
 		"wtv-tricks": {
-			"port": 1702
+			"service_ip": "192.168.11.8",
+			"port": 1702,
+			"nobind": true
 		},
 		"wtv-music": {
 			"disabled": true
