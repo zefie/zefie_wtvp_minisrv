@@ -615,7 +615,7 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                 }
                 if (socket_sessions[socket.id].secure != true) {
                     // first time so reroll sessions
-                    if (zdebug) console.log(" # [ SECURE ON BLOCK (" + socket.id + ")]");
+                    if (zdebug) console.log(" # [ SECURE ON BLOCK (" + socket.id + ") ]");
                     socket_sessions[socket.id].secure = true;
                 }
                 if (!headers.request_url) {
@@ -642,7 +642,8 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                             ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", false);
                             var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
                             var secure_headers = await processRequest(socket, dec_data.toString(CryptoJS.enc.Hex), true);
-                            if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id, secure_headers);
+                            if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
+                            if (zshowheaders) console.log(secure_headers);
                             if (!secure_headers.request) {
                                 socket_sessions[socket.id].secure = false;
                                 var errpage = doErrorPage(400);
