@@ -75,10 +75,10 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
             post_data_current_file = post_data[k];
         }
         if (post_data[k].indexOf(":") > 0) {
-            var post_data_line = post_data[k].split(":")
+            var post_data_line = post_data[k].split(": ")
             var post_data_line_name = post_data_line[0];
             post_data_line.shift();
-            var post_data_line_data = post_data_line.join(":");
+            var post_data_line_data = post_data_line.join(": ");
 
             if (!post_data_fileinfo[post_data_filecount]) post_data_fileinfo[post_data_filecount] = new Array();
 
@@ -90,8 +90,6 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
             else {
                 post_data_fileinfo[post_data_filecount][post_data_line_name] = post_data_line_data;
             }
-
-
         } else {
             post_data_filecount++;
             post_data_current_file = post_data_current_directory + post_data[k];
@@ -108,8 +106,10 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
             post_match_file = service_vaults[g].path + "/" + service_name + "/" + diskmap_group_data.files[k].location;
             if (!fs.existsSync(post_match_file)) post_match_file = null;
         });
+
         var post_match_file_lstat = fs.lstatSync(post_match_file);
-        var post_match_result = post_data_fileinfo.find(el => el["file"] === diskmap_group_data.files[k].file) || false;
+        var post_match_result = post_data_fileinfo.find(el => el.file === diskmap_group_data.files[k].file) || null;
+
         var post_match_file_data = new Buffer.from(fs.readFileSync(post_match_file, {
             encoding: null,
             flags: 'r'
@@ -121,7 +121,7 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
 
         if (post_match_result) {
             // md5s match, so client doesn't need file
-            if (diskmap_group_data.files[k]['wtv-checksum'] == post_match_result["wtv-checksum"]) return;
+            if (diskmap_group_data.files[k]['wtv-checksum'].toLowerCase() == post_match_result["wtv-checksum"]) return;
             else wtv_download_list.push(diskmap_group_data.files[k]);
         } else {
             wtv_download_list.push(diskmap_group_data.files[k]);
@@ -150,13 +150,13 @@ if (request_headers.query.diskmap && request_headers.query.group && request_head
                 }
                 data = '';
                 diskmap_data = diskmap_data[request_headers.query.group];
-                /*if (!diskmap_data.display) {               
+                if (!diskmap_data.display) {               
                     Object.keys(diskmap_data).forEach(function (k) {
                         if (diskmap_data[k]) data += processGroup(request_headers.query.group,diskmap_data[k],k);
                     });
-                } else { */
-                data = processGroup(request_headers.query.group, diskmap_data);
-                //}
+                } else {
+                    data = processGroup(request_headers.query.group, diskmap_data);
+                }
 
                 headers = "200 OK\nContent-Type: wtv/download-list";
             } catch (e) {
@@ -172,5 +172,10 @@ if (request_headers.query.diskmap && request_headers.query.group && request_head
         data = errpage[1];
         console.log("wtv-update:/sync error", "could not find diskmap");
     }
+} else {
+    var errpage = doErrorPage(400);
+    headers = errpage[0];
+    data = errpage[1];
+    if (zdebug) console.log("wtv-update:/sync error", "missing query arguments");
 }
 

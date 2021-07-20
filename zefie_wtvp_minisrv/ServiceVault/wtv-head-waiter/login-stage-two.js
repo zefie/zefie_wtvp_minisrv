@@ -24,11 +24,11 @@ if (socket.ssid !== null) {
 			if (challenge_response && client_challenge_response) {		
 				//if (challenge_response.toString(CryptoJS.enc.Base64).substring(0,85) == client_challenge_response.substring(0,85)) {
 				if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
-					console.log(" * wtv-challenge-response success for " + processSSID(socket.ssid));
+					console.log(" * wtv-challenge-response success for " + filterSSID(socket.ssid));
 					wtvsec_login.PrepareTicket();
 					//socket_sessions[socket.id].secure = true;
 				} else {
-					console.log(" * wtv-challenge-response FAILED for " + processSSID(socket.ssid));
+					console.log(" * wtv-challenge-response FAILED for " + filterSSID(socket.ssid));
 					if (zdebug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
 					if (zdebug) console.log("Response Received:", client_challenge_response)
 					gourl = "wtv-head-waiter:/login?reissue_challenge=true";
@@ -63,7 +63,7 @@ wtv-country: US
 wtv-language-header: en-US,en
 wtv-visit: client:closeallpanels
 wtv-expire-all: client:closeallpanels
-wtv-offline-user-list: `+offline_user_list+`
+wtv-offline-user-list: `+ offline_user_list + `
 wtv-bypass-proxy: true
 wtv-ticket: `+ wtvsec_login.ticket_b64 + `
 wtv-messagewatch-checktimeoffset: off
@@ -72,14 +72,15 @@ wtv-connection-timeout: 90
 wtv-fader-timeout: 900
 wtv-ssl-log-url: wtv-log:/log
 wtv-smartcard-inserted-message: Contacting service
-user-id: `+userid+`
+user-id: `+ userid + `
 wtv-transition-override: off
 wtv-allow-dsc: true
 wtv-messenger-enable: 0
 wtv-noback-all: wtv-
 wtv-service: reset
 `+ getServiceString('all') + `
-wtv-boot-url: wtv-1800:/preregister?relogin=true`
+wtv-boot-url: wtv-1800:/preregister?relogin=true
+`;
 //wtv-ssl-certs-download-url: wtv-head-waiter:/ssl-cert.der
 //wtv-ssl-certs-checksum: 473926DC1B11F635A6B920953FDCDE6A
 	headers += `wtv-user-name: `+ nickname + `

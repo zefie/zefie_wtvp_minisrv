@@ -10,13 +10,14 @@ This open source server is in alpha status. Use at your own risk.
 - Can handle client "relogin" and "reconnect" events
 - Suports `.js` service files with synchronous or asynchronous requests
 - Supports multiple simultaneous users
-- WebTV-compatible HTTP Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
+- WebTV-compatible HTTP(S) Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
 - wtv-flashrom for LC2 and newer boxes (bf0app unsupported, need test unit)
 - Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
 - wtv-update:/sync for Download-o-Rama style file downloading
 
 ### Current issues:
-- HTTPS Proxying untested, likely needs SSL spoofing with self-signed solution
+- Occasionally, in certain circumstances, a specific SSID may be unable to reconnect to the server until the server is restarted
+- Mis-configuring wtv-update:/sync DiskMaps may cause units to delete contents of partitions (need more info)
 
 ### Won't fix:
 - wtv-encryption stream breaks when two different sessions have the same SSID (eg spoofing, won't fix (production did it too))

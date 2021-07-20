@@ -32,7 +32,7 @@
     "wtv-log": {
       "port": 1609,
       "connections": 1,
-      "write_logs_to_disk":  false
+      "write_logs_to_disk": false
     },
     "wtv-home": {
       "port": 1612,
@@ -45,7 +45,7 @@
     "wtv-flashrom": {
       "port": 1618,
       "flags": "0x00000040",
-      "use_zefie_server":  true
+      "use_zefie_server": true
     },
     "wtv-music": {
       "port": 1656,
@@ -55,10 +55,18 @@
     "http": {
       "port": 1650,
       "connections": 3,
-      "use_external_proxy": false,
-      "external_proxy_host": null,
-      "external_proxy_port": 8080
-
+      "use_external_proxy": true,
+      "external_proxy_is_socks": true,
+      "external_proxy_host": "127.0.0.1",
+      "external_proxy_port": 1080
+    },
+    "https": {
+      "port": 1650,
+      "connections": 3,
+      "use_external_proxy": true,
+      "external_proxy_is_socks": true,
+      "external_proxy_host": "127.0.0.1",
+      "external_proxy_port": 1080
     }
   }
 }
