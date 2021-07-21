@@ -8,9 +8,8 @@ ServiceLogPost/*_*
 
 # Large files not pertaining to the service code
 UserServiceVault/*-*
-ServiceVault/wtv-flashrom/content/*
-ServiceVault/wtv-music/content/*
-ServiceVault/wtv-music/midi/*
+package-lock.json
+
 
 # User-specific files
 *.rsuser
