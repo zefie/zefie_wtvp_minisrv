@@ -789,10 +789,9 @@ async function handleSocket(socket) {
 
 function integrateConfig(main, user) {
     Object.keys(user).forEach(function (k) {
-        if (typeof (user[k]) == 'object') {
+        if (typeof (user[k]) == 'object' && user[k] != null) {
             // new entry
             if (!main[k]) main[k] = new Array();
-
             // go down the rabbit hole
             main[k] = integrateConfig(main[k], user[k]);
         } else {
@@ -819,33 +818,36 @@ function returnAbsolsutePath(path) {
 
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 console.log("**** Welcome to " + z_title + " ****");
-var read_config = false;
-
-if (fs.existsSync(__dirname + "/user_config.json")) {
-    try {
-        var minisrv_config = JSON.parse(fs.readFileSync(__dirname + "/user_config.json"));
-        console.log(" *** Reading user configuration...");
-        read_config = true;
-    }
-    catch (e) {
-        console.log("Error reading user_config.json, failling back to global config", e);
-    }
+console.log(" *** Reading global configuration...");
+try {
+    var minisrv_config = JSON.parse(fs.readFileSync(__dirname + "/config.json"));
+} catch (e) {
+    throw ("ERROR: Could not read config.json", e);
 }
-
-if (fs.existsSync(__dirname + "/config.json") && !read_config) {
-    try {
-        console.log(" *** Reading global configuration...");
-        var minisrv_config = JSON.parse(fs.readFileSync(__dirname + "/config.json"));
-        read_config = true;
-    } catch (e) {
-        console.log ("ERROR: Could not read config.json", e);
-    }
-}
-
 var service_vaults = new Array();
 
+try {
+    if (fs.lstatSync(__dirname + "/user_config.json")) {
+        console.log(" *** Reading user configuration...");
+        try {
+            var minisrv_user_config = JSON.parse(fs.readFileSync(__dirname + "/user_config.json")); 
+        } catch (e) {
+            console.log("ERROR: Could not read user_config.json", e);
+            var throw_me = true;
+        }
+        // file exists and we read and parsed it, but the variable is undefined
+        // Likely a syntax parser error that did not trip the exception check above
+        try {
+            minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
+        } catch (e) {
+            console.log("ERROR: Could not read user_config.json", e);
+        }
+    }
+} catch (e) {
+    if (zdebug) console.log(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+}
 
-if (!read_config) {
+if (throw_me) {
     throw ("An error has occured while reading the configuration files.");
 }
 
