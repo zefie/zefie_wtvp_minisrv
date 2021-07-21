@@ -1,17 +1,21 @@
 if (socket.ssid != null) {
-	if (ssid_sessions[socket.ssid].get("wtvsec_login")) ssid_sessions[socket.ssid].delete("wtvsec_login");
-	var wtvsec_login = new WTVSec();
-	wtvsec_login.IssueChallenge();
-	wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
-	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
+	if (!ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+		ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec();
+		ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
+		ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
+	}
+} else {
+	var errpage = doErrorCode(400);
+	headers = errpage[0];
+	data = errpage[1];
 }
 
-if (wtvsec_login) {
+if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
 
 	// if relogin, skip tellyscript
 	if (request_headers.query.relogin) { // skip tellyscript
-		wtvsec_login.ticket_b64 = null; // clear old ticket
+		ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = null; // clear old ticket
 	}
 
 	// if relogin, skip tellyscript
@@ -34,7 +38,7 @@ if (wtvsec_login) {
 
 	headers = `200 OK
 Connection: Keep-Alive
-wtv-initial-key: ` + wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + `
+wtv-initial-key: ` + ssid_sessions[socket.ssid].data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + `
 Content-Type: `+ prereg_contype + `
 wtv-service: reset
 ` + getServiceString('wtv-1800') + `

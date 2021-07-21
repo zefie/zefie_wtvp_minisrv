@@ -4,13 +4,30 @@
 // - handle failures
 request_is_async = true;
 
+function doLocalFlashROM() {
+	fs.readFile(flashrom_file_path, null, function (err, data) {
+		try {
+			var data_128 = new Buffer.alloc(128);
+			data.copy(data_128, 0, 0, 128);
+			var flashrom_message = new Buffer.from(data_128.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
+			processLC2DownloadPage(request_headers.query.path, flashrom_message, (request_headers.query.numparts || null));
+		} catch (e) {
+			var errpage = doErrorPage(404, "The service could not find the requested ROM.")
+			headers = errpage[0];
+			data = errpage[1];
+			sendToClient(socket, headers, data);
+		}
+	});
+}
+
 if (!request_headers.query.path) {
 	var errpage = doErrorPage(400);
 	headers = errpage[0];
 	data = errpage[1];
 } else {
 	var request_path = unescape(request_headers.query.path);
-	if (minisrv_config.services[service_name].use_zefie_server) {
+	var flashrom_file_path = service_dir + '/' + request_path;
+	if (minisrv_config.services[service_name].use_zefie_server && !fs.existsSync(flashrom_file_path)) {
 		// read first 256 bytes of flashrom file from archive.midnightchannel.net
 		// to get `flashrom_message` and `numparts` if missing
 		var options = {
@@ -60,21 +77,8 @@ if (!request_headers.query.path) {
 		});
 		req.end();
 	} else {
-		// use local flashrom files
-		var flashrom_file_path = service_dir + '/' + request_path;
-		fs.readFile(flashrom_file_path, null, function (err, data) {
-			try {
-				var data_128 = new Buffer.alloc(128);
-				data.copy(data_128, 0, 0, 128);
-				var flashrom_message = new Buffer.from(data_128.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
-				processLC2DownloadPage(request_headers.query.path, flashrom_message, (request_headers.query.numparts || null));
-			} catch (e) {
-				var errpage = doErrorPage(404, "The service could not find the requested ROM.")
-				headers = errpage[0];
-				data = errpage[1];
-				sendToClient(socket, headers, data);
-			}
-		});
+		// use local flashrom files		
+		doLocalFlashROM(flashrom_file_path);
 	}
 }
 
@@ -195,7 +199,10 @@ ${flashrom_message}
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
-<td colspan=9 width=416 valign=top align=left>
+<td colspan=9 width=416 valign=top align=right>
+<form action="client:gohome">
+<input type="submit" value="Cancel Update" text="#CCCCCC" borderimage="file://ROM/Borders/ButtonBorder2.bif">
+</form>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td width=306 valign=top align=left>
