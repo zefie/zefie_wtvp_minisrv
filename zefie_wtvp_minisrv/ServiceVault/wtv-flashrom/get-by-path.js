@@ -26,8 +26,13 @@ function doLocalFlashROM(flashrom_file_path) {
 if (request_headers.query.raw) {
 	if ((/\.brom$/).test(request_path)) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 	else headers += "Content-Type: binary/x-wtv-flashblock";
-	var flashrom_file_path = service_dir + '/' + request_path;
-	if (minisrv_config.services[service_name].use_zefie_server && !fs.existsSync(flashrom_file_path)) {
+	var flashrom_file_path = null;
+	Object.keys(service_vaults).forEach(function (g) {
+		if (flashrom_file_path != null) return;
+		flashrom_file_path = service_vaults[g].path + "/" + service_name + "/" + request_path;
+		if (!fs.existsSync(flashrom_file_path)) flashrom_file_path = null;
+	});
+	if (minisrv_config.services[service_name].use_zefie_server && !flashrom_file_path) {
 		// get flashrom files from archive.midnightchannel.net
 		var options = {
 			host: "archive.midnightchannel.net",

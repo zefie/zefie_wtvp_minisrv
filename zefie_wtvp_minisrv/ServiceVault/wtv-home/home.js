@@ -14,7 +14,7 @@ if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 data =`<html>
 <head>
 <title>Home for minisrv</title>
-<DISPLAY NoLogo NoStatus hideoptions noscroll>
+<DISPLAY NoLogo hideoptions noscroll>
 </head>
 <body bgcolor="black" link="gold" vlink="gold" alink="gold" text="gold">
 <script>
@@ -31,7 +31,7 @@ Connection Speed: &rate;
 <li><a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
 <li><a href="wtv-flashrom:/willie">Ultra Willies</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
-<li><a href="wtv-update:/DealerDemo">Download old MSNTV DealerDemo</a></li>
+<li>Old MSNTV DealerDemo: <a href="wtv-update:/DealerDemo">Download</a> ~ <a href="file://Disk/Demo/index.html">Access (after Download)</a></li>
 <li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>
 <li><input name=url `;
 

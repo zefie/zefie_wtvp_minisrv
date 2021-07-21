@@ -5,7 +5,8 @@ if (socket.ssid != null) {
 		ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 	}
 } else {
-	var errpage = doErrorCode(400);
+	console.log(" * Something bad happened (we don't know the client ssid???)");
+	var errpage = doErrorCode(400)
 	headers = errpage[0];
 	data = errpage[1];
 }
@@ -63,8 +64,7 @@ wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCS
 		});
 	}
 } else {
-	console.log(" * Something bad happened (we don't know the client ssid???)");
-	var errpage = doErrorCode(400)
+	var errpage = doErrorCode(400);
 	headers = errpage[0];
 	data = errpage[1];
 }

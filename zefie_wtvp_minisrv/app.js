@@ -596,9 +596,9 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                 socket.ssid = headers["wtv-client-serial-number"];
                 if (!ssid_sessions[socket.ssid]) {
                     ssid_sessions[socket.ssid] = new ClientSessionData();
-                    ssid_sessions[socket.ssid].sockets = new Array();
-                    ssid_sessions[socket.ssid].sockets.push(socket.id);
                 }
+                if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Array();
+                ssid_sessions[socket.ssid].data_store.sockets.push(socket.id);
             }
 
 
@@ -750,19 +750,20 @@ async function checkForPostData(socket, headers, data, data_hex) {
 }
 
 async function cleanupSocket(socket) {
-    try {
-        if (!zquiet) console.log(" * Destroying old WTVSec instance on disconnected socket", socket.id);
-        delete socket_sessions[socket.id].buffer;
-        delete socket_sessions[socket.id].wtvsec;
-        delete socket_sessions[socket.id];
+    try {        
+        if (socket_sessions[socket.id]) {
+            if (!zquiet) console.log(" * Cleaning up disconnected socket", socket.id);
+            delete socket_sessions[socket.id];
+        }
         if (socket.ssid) {
-            if (ssid_sessions[socket.ssid].sockets.findIndex(element => element = socket.id) != -1) {
-                ssid_sessions[socket.ssid].sockets.splice(ssid_sessions[socket.ssid].sockets.findIndex(element => element = socket.id));
+            var socket_array_index = ssid_sessions[socket.ssid].data_store.sockets.findIndex(element => element = socket.id);
+            if (socket_array_index != -1) {
+                ssid_sessions[socket.ssid].data_store.sockets.splice(socket_array_index,1);
             }
-            var fuckyou = ssid_sessions[socket.ssid].sockets;
-            if (ssid_sessions[socket.ssid].sockets.length === 0 && ssid_sessions[socket.ssid].get("wtvsec_login")) {
+
+            if (ssid_sessions[socket.ssid].data_store.sockets.length === 0 && ssid_sessions[socket.ssid].data_store.wtvsec_login) {
                 // if last socket for SSID disconnected, destroy login session
-                if (!zquiet) console.log(" * Last socket from WebTV SSID", filterSSID(socket.ssid),"disconnected, destroying initial WTVSec instance");
+                if (!zquiet) console.log(" * Last socket from WebTV SSID", filterSSID(socket.ssid),"disconnected, cleaning up primary WTVSec instance for this SSID");
                 ssid_sessions[socket.ssid].delete("wtvsec_login");
             }
         }
@@ -776,7 +777,7 @@ async function cleanupSocket(socket) {
 async function handleSocket(socket) {
     // create unique socket id with client address and port
     socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
-    socket_sessions[socket.id] = [];
+    socket_sessions[socket.id] = [];    
     socket.setEncoding('hex'); //set data encoding (Text: 'ascii', 'utf8' ~ Binary: 'hex', 'base64' (do not trust 'binary' encoding))
 
     // NOTE: As it stands we use a 'timeout' to start processing data when we have not recieved any data
@@ -811,6 +812,11 @@ async function handleSocket(socket) {
     });
 
     socket.on('end', function () {
+        // Attempt to clean up all of our WTVSec instances
+        cleanupSocket(socket);
+    });
+
+    socket.on('close', function () {
         // Attempt to clean up all of our WTVSec instances
         cleanupSocket(socket);
     });
