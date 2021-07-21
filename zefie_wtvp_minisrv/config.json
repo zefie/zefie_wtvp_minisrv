@@ -55,16 +55,16 @@
     "http": {
       "port": 1650,
       "connections": 3,
-      "use_external_proxy": true,
-      "external_proxy_is_socks": true,
+      "use_external_proxy": false,
+      "external_proxy_is_socks": false,
       "external_proxy_host": "127.0.0.1",
       "external_proxy_port": 1080
     },
     "https": {
       "port": 1650,
       "connections": 3,
-      "use_external_proxy": true,
-      "external_proxy_is_socks": true,
+      "use_external_proxy": false,
+      "external_proxy_is_socks": false,
       "external_proxy_host": "127.0.0.1",
       "external_proxy_port": 1080
     }

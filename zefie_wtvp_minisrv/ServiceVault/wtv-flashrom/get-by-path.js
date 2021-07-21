@@ -3,10 +3,31 @@ request_is_async = true;
 var request_path = unescape(request_headers.query.path);
 headers = "200 OK\n"
 
+function doLocalFlashROM(flashrom_file_path) {
+	// use local flashrom files;
+	try {
+		fs.readFile(flashrom_file_path, null, function (err, data) {
+			if (err) {
+				errpage = doErrorPage(400)
+				headers = errpage[0];
+				data = err.toString();
+			}
+			sendToClient(socket, headers, data);
+		});
+	} catch (e) {
+		var errpage = doErrorPage(404, "The service could not find the requested ROM.")
+		headers = errpage[0];
+		data = errpage[1];
+		sendToClient(socket, headers, data);
+	}
+}
+
+
 if (request_headers.query.raw) {
 	if ((/\.brom$/).test(request_path)) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 	else headers += "Content-Type: binary/x-wtv-flashblock";
-	if (minisrv_config.services[service_name].use_zefie_server) {
+	var flashrom_file_path = service_dir + '/' + request_path;
+	if (minisrv_config.services[service_name].use_zefie_server && !fs.existsSync(flashrom_file_path)) {
 		// get flashrom files from archive.midnightchannel.net
 		var options = {
 			host: "archive.midnightchannel.net",
@@ -40,23 +61,7 @@ if (request_headers.query.raw) {
 		});
 		req.end();
 	} else {
-		// use local flashrom files);
-		var flashrom_file_path = service_dir + '/' + request_path;
-		try {
-			fs.readFile(flashrom_file_path, null, function (err, data) {
-				if (err) {
-					errpage = doErrorPage(400)
-					headers = errpage[0];
-					data = err.toString();
-				}
-				sendToClient(socket, headers, data);
-			});
-		} catch (e) {
-			var errpage = doErrorPage(404, "The service could not find the requested ROM.")
-			headers = errpage[0];
-			data = errpage[1];
-			sendToClient(socket, headers, data);
-		}
+		doLocalFlashROM(flashrom_file_path);
 	}
 } else {
 	// no support for bf0app yet, but here we send the client to initiate-lc2-download

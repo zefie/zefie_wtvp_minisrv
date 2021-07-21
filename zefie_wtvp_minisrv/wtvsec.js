@@ -51,14 +51,13 @@ class WTVSec {
         // store last challenge response in ticket
         var ticket_data = this.challenge_raw;
         try {
-            var ticket_data_enc = CryptoJS.DES.encrypt(ticket_data, this.current_shared_key, {
+            var ticket_data_enc = CryptoJS.DES.encrypt(ticket_data, this.initial_shared_key, {
                 mode: CryptoJS.mode.ECB,
                 padding: CryptoJS.pad.NoPadding
             });
             // create a copy of WordArray since concat modifies the original
-            var current_shared_key = this.DuplicateWordArray(this.current_shared_key);
             var challenge_signed_key = this.DuplicateWordArray(this.challenge_signed_key);
-            this.ticket_b64 = current_shared_key.concat(challenge_signed_key.concat(ticket_data_enc.ciphertext)).toString(CryptoJS.enc.Base64);
+            this.ticket_b64 = challenge_signed_key.concat(ticket_data_enc.ciphertext).toString(CryptoJS.enc.Base64);
         } catch (e) {
             console.log("Error encrypting ticket: " + e.toString());
             return null;
@@ -68,14 +67,13 @@ class WTVSec {
 
     DecodeTicket(ticket_b64) {
         var ticket_hex = CryptoJS.enc.Base64.parse(ticket_b64).toString(CryptoJS.enc.Hex);
-        var ticket_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(0,16));
-        var challenge_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(16, 32));
-        var challenge_enc = CryptoJS.enc.Hex.parse(ticket_hex.substring(32));
+        var challenge_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(0, 16));
+        var challenge_enc = CryptoJS.enc.Hex.parse(ticket_hex.substring(16));
         var ticket_dec = CryptoJS.DES.decrypt(
             {
                 ciphertext: challenge_enc
             },
-            ticket_key,
+            this.initial_shared_key,
             {
                 mode: CryptoJS.mode.ECB,
                 padding: CryptoJS.pad.NoPadding

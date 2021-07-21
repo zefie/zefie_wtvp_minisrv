@@ -202,7 +202,6 @@
     <Content Include="session_data.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="user_config.example.json" />
     <Content Include="user_config.json" />
     <Content Include="wtvsec.js">
       <SubType>Code</SubType>

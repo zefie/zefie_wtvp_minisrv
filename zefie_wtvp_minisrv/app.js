@@ -453,6 +453,17 @@ async function sendToClient(socket, headers_obj, data) {
         headers_obj["Content-Length"] = data.byteLength;
     }
 
+    if (ssid_sessions[socket.ssid]) {
+        if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64) {
+                if (ssid_sessions[socket.ssid].data_store.update_ticket) {
+                    headers_obj["wtv-ticket"] = ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64;
+                    headers_obj = moveObjectElement("wtv-ticket", "Connection", headers_obj);
+                    ssid_sessions[socket.ssid].data_store.update_ticket = false;
+                }
+            }
+        }
+    }
 
     // header object to string
     if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
@@ -602,6 +613,24 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                         ssid_sessions[socket.ssid].set(k, headers[k]);
                     }
                 });
+            }
+
+            if (ssid_sessions[socket.ssid]) {
+                if (headers["wtv-ticket"]) {
+                    if (!ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+                        ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec();
+                        ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
+                        ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
+                        ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
+                        ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
+                    } else {
+                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"]) {
+                            if (zdebug) console.log(" # New ticket from client");
+                            ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
+                            ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
+                        }
+                    }
+                }
             }
 
             if (returnHeadersBeforeSecure) {
@@ -789,10 +818,9 @@ async function handleSocket(socket) {
 
 function integrateConfig(main, user) {
     Object.keys(user).forEach(function (k) {
-        if (typeof (user[k]) == 'object') {
+        if (typeof (user[k]) == 'object' && user[k] != null) {
             // new entry
             if (!main[k]) main[k] = new Array();
-
             // go down the rabbit hole
             main[k] = integrateConfig(main[k], user[k]);
         } else {

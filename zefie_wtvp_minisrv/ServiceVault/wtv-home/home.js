@@ -1,6 +1,7 @@
 headers =`200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-home:/splash
+wtv-expire-all: wtv-flashrom:
 Content-type: text/html`
 
 if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {

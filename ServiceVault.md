@@ -30,7 +30,7 @@ Let us use the URL `wtv-1800:/preregister` as an example. This is what the serve
   - Access Asynchronous mode by setting `request_is_async = true;`
   - Client request headers are available as an Array in variable `request_headers`, query arguments are also an Array, in `request_headers.query`
   - In Asynchronous mode, you are expected to call `sendToClient(socket,headers,data)` yourself, `socket` is already defined by the time your script runs, so you can just pass it through.
-- `./ServiceVault/wtv-1800/preregister.html` \[ [Example](zefie_wtvp_minisrv/ServiceVault/wtv-home/zefie.html) \]
+- `./ServiceVault/wtv-1800/preregister.html` \[ [Example](zefie_wtvp_minisrv/ServiceVault/wtv-music/demo/index.html) \]
   - HTML match (*HTML mode*)
   - Like Direct File Mode, but you don't need to append `.html`.
   - You do not need to do anything special with this format.
