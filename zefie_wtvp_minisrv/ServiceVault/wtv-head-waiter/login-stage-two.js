@@ -101,7 +101,15 @@ wtv-log-url: wtv-log:/log
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
 wtv-offline-mail-enable: false
-wtv-name-server: 8.8.8.8
-wtv-visit: wtv-home:/splash?
+wtv-name-server: 8.8.8.8`
+
+	gourl = "wtv-home:/splash?";
+	// Offer Minibrowser Home or Willies
+	if (ssid_sessions[socket.ssid].get("wtv-need-upgrade") && minisrv_config.services['wtv-flashrom'].use_zefie_server) {
+		gourl = "client:showalert?message=" + escape("Would you like to go to " + minisrv_config.config.service_name + " home, or directly to Ultra Willies?") + "&buttonlabel1=" + escape(minisrv_config.config.service_name + " Home") + "&buttonaction1=" + escape("wtv-home:/splash?") + "&buttonlabel2=Ultra%20Willies&buttonaction2=" + escape("wtv-flashrom:/willie") + "&image=" + escape(minisrv_config.config.service_logo);
+    }
+
+	headers += `
+wtv-visit: ${gourl}
 Content-Type: text/html`;
 }
