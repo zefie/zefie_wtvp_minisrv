@@ -103,7 +103,7 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
         var post_match_file = null;
         Object.keys(service_vaults).forEach(function (g) {
             if (post_match_file != null) return;
-            post_match_file = service_vaults[g].path + "/" + service_name + "/" + diskmap_group_data.files[k].location;
+            post_match_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
             if (!fs.existsSync(post_match_file)) post_match_file = null;
         });
 
@@ -136,7 +136,7 @@ if (request_headers.query.diskmap && request_headers.query.group && request_head
     var diskmap_json_file = null;
     Object.keys(service_vaults).forEach(function (g) {
         if (diskmap_json_file != null) return;
-        diskmap_json_file = service_vaults[g].path + "/" + service_name + "/" + diskmap_dir + request_headers.query.diskmap + ".json";
+        diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + request_headers.query.diskmap + ".json";
         if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
     });
 

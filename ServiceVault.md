@@ -1,13 +1,16 @@
 ## Brief ServiceVault Explanation
 
+In `user_config.json`, or `config.json`, under the `config` section:
+```
+		"ServiceVaults": [
+			"UserServiceVault",
+			"ServiceVault"
+		],
+```
+
+The `ServiceVaults` entry is an array of Service Vaults to check, in order of priority (topmost = check first). If the path is not absolute, the the server will look in the current directory (of `app.js`). An absolute path can be specified in Linux (`/home/zefie/ServiceVault`) or Windows (`C:\\Users\\zefie\\ServiceVault` or `C:/Users/zefie/ServiceVault`) format.
+
 The server will scan configured ServiceVaults in order of priority and look for files within them.
-
-Currently only 2 Service Vaults are supported, the `User Server Vault` and the `Service Vault`.
-
-The paths to the Service Vaults are user configurable in `user_config.json` or `config.json`
-
-The `User Service Vault` has priority, and files found in that Service Vault will be loaded, even if the
-file exists in the `Service Vault`.
 
 Within the Service Vaults, the server looks for a subdirectory named after the wtv-service URL requested.
 

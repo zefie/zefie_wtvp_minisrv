@@ -50,9 +50,9 @@ Content-type: text/html`;
 }
 else {
 	var namerand = Math.floor(Math.random() * 100000);
-	var nickname = 'HackTVUsr_' + namerand;
+	var nickname = minisrv_config.config.service_name+'_Usr_' + namerand;
 	var userid = '1'+ Math.floor(Math.random() * 1000000000000000000);
-	var offline_user_list = CryptoJS.enc.Latin1.parse("<user-list>\n\t<user userid=\"" + userid + " user-name=\"" + nickname + "\" first-name=\"HackTV\" last-name=\"User \"" + namerand + "\" password=\"\" mail-enabled=\"true\" />\n</user-list>").toString(CryptoJS.enc.Base64);
+	var offline_user_list = CryptoJS.enc.Latin1.parse("<user-list>\n\t<user userid=\"" + userid + " user-name=\"" + nickname + "\" first-name=\"" + minisrv_config.config.service_name + "User \" last-name=\\" + namerand + "\" password=\"\" mail-enabled=\"true\" />\n</user-list>").toString(CryptoJS.enc.Base64);
 	data = '';
 	headers = `200 OK
 Connection: Keep-Alive

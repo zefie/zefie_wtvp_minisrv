@@ -89,14 +89,14 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     try {
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
-            service_vault_file_path = service_vault_dir.path + "/" + service_path.replace(/\\/g, "/");
+            service_vault_file_path = service_vault_dir + "/" + service_path.replace(/\\/g, "/");
 
 
             if (fs.existsSync(service_vault_file_path)) {
                 // file exists, read it and return it
                 service_vault_found = true;
                 request_is_async = true;
-                if (!zquiet) console.log(" * Found " + service_vault_file_path + " in " + service_vault_dir.name +" to handle request (Direct File Mode) [Socket " + socket.id + "]");
+                if (!zquiet) console.log(" * Found " + service_vault_file_path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
                 var contype = getConType(service_vault_file_path);
                 headers = "200 OK\n"
                 headers += "Content-Type: " + contype;
@@ -106,7 +106,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
             } else if (fs.existsSync(service_vault_file_path + ".txt")) {
                 // raw text format, entire payload expected (headers and content)
                 service_vault_found = true;
-                if (!zquiet) console.log(" * Found " + service_vault_file_path + ".txt in " + service_vault_dir.name +" to handle request (Raw TXT Mode) [Socket " + socket.id + "]");
+                if (!zquiet) console.log(" * Found " + service_vault_file_path + ".txt to handle request (Raw TXT Mode) [Socket " + socket.id + "]");
                 request_is_async = true;
                 fs.readFile(service_vault_file_path + ".txt", 'Utf-8', function (err, file_raw) {
                     if (file_raw.indexOf("\n\n") > 0) {
@@ -137,9 +137,9 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 // In Asynchronous mode, you are expected to call sendToClient(socket,headers,data) by the end of your script
                 // `socket` is already defined and should be passed-through.
                 service_vault_found = true;
-                if (!zquiet) console.log(" * Found " + service_vault_file_path + ".js in " + service_vault_dir.name + " to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
+                if (!zquiet) console.log(" * Found " + service_vault_file_path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
                 // expose var service_dir for script path to the root of the wtv-service
-                var service_dir = service_vault_dir.path.replace(/\\/g, "/") + "/" + service_name;
+                var service_dir = service_vault_dir.replace(/\\/g, "/") + "/" + service_name;
                 socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
                 var jscript_eval = fs.readFileSync(service_vault_file_path + ".js").toString();
                 eval(jscript_eval);
@@ -148,7 +148,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
             else if (fs.existsSync(service_vault_file_path + ".html")) {
                 // Standard HTML with no headers, WTV Style
                 service_vault_found = true;
-                if (!zquiet) console.log(" * Found " + service_vault_file_path + ".html in " + service_vault_dir.name +" to handle request (HTML Mode) [Socket " + socket.id + "]");
+                if (!zquiet) console.log(" * Found " + service_vault_file_path + ".html to handle request (HTML Mode) [Socket " + socket.id + "]");
                 request_is_async = true;
                 headers = "200 OK\n"
                 headers += "Content-Type: text/html"
@@ -186,7 +186,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 }
 
 function filterSSID(obj) {
-    if (minisrv_config.config.hide_ssid_in_logs) {
+    if (minisrv_config.config.hide_ssid_in_logs === true) {
         if (typeof (obj) == "string") {
             if (obj.substr(0, 8) == "MSTVSIMU") {
                 return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
@@ -598,7 +598,86 @@ async function processRequest(socket, data_hex, returnHeadersBeforeSecure = fals
                     ssid_sessions[socket.ssid] = new ClientSessionData();
                 }
                 if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Array();
-                ssid_sessions[socket.ssid].data_store.sockets.push(socket.id);
+                ssid_sessions[socket.ssid].data_store.sockets.push(socket.id);                
+            }
+
+            var ip2long = function (ip) {
+                var components;
+
+                if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
+                    var iplong = 0;
+                    var power = 1;
+                    for (var i = 4; i >= 1; i -= 1) {
+                        iplong += power * parseInt(components[i]);
+                        power *= 256;
+                    }
+                    return iplong;
+                }
+                else return -1;
+            };
+
+            var isInSubnet = function (ip, subnet) {
+                var mask, base_ip, long_ip = ip2long(ip);
+                if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip2long(mask[1])) >= 0)) {
+                    var freedom = Math.pow(2, 32 - parseInt(mask[2]));
+                    return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+                }
+                else return false;
+            };
+
+            var rejectSSIDConnection = function (ssid, blacklist) {
+                if (blacklist) console.log(" * Request from SSID", filterSSID(ssid), "(" + socket.remoteAddr + "), but that SSID is in the blacklist, rejecting.");                    
+                else console.log(" * Request from SSID", filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
+                
+                var errpage = doErrorPage(401, "Access to this service is denied.");
+                headers = errpage[0];
+                data = errpage[1];
+                socket_sessions[socket.id].close_me = true;
+            }
+
+            var checkSSIDIPWhitelist = function (ssid, blacklist) {
+                var ssid_access_list_ip_override = false;
+                if (minisrv_config.config.ssid_ip_allow_list) {
+                    if (minisrv_config.config.ssid_ip_allow_list[socket.ssid]) {
+                        Object.keys(minisrv_config.config.ssid_ip_allow_list[socket.ssid]).forEach(function (k) {
+                            if (minisrv_config.config.ssid_ip_allow_list[socket.ssid][k].indexOf('/') > 0) {
+                                if (isInSubnet(socket.remoteAddress, minisrv_config.config.ssid_ip_allow_list[socket.ssid][k])) {
+                                    // remoteAddr is in allowed subnet
+                                    ssid_access_list_ip_override = true;
+                                }
+                            } else {
+                                if (socket.remoteAddress == minisrv_config.config.ssid_ip_allow_list[socket.ssid][k]) {
+                                    // remoteAddr directly matches IP
+                                    ssid_access_list_ip_override = true;
+                                }
+                            }
+                        });
+                        if (!ssid_access_list_ip_override) rejectSSIDConnection(socket.ssid, blacklist);
+                    } else {
+                        rejectSSIDConnection(socket.ssid, blacklist);
+                    }
+                } else {
+                    rejectSSIDConnection(socket.ssid, blacklist);
+                }
+                if (ssid_access_list_ip_override && zdebug) console.log(" * Request from disallowed SSID", filterSSID(ssid), "was allowed due to IP address whitelist");
+            }
+
+            // process whitelist first
+            if (socket.ssid && minisrv_config.config.ssid_allow_list) {
+                var ssid_is_in_whitelist = minisrv_config.config.ssid_allow_list.findIndex(element => element == socket.ssid);
+                if (ssid_is_in_whitelist == -1) {
+                    // no whitelist match, but lets see if the remoteAddress is allowed
+                    checkSSIDIPWhitelist(socket.ssid, false);
+                }
+            }
+
+            // now check blacklist
+            if (socket.ssid && minisrv_config.config.ssid_block_list) {
+                var ssid_is_in_blacklist = minisrv_config.config.ssid_block_list.findIndex(element => element == socket.ssid);
+                if (ssid_is_in_blacklist != -1) {
+                    // blacklist match, but lets see if the remoteAddress is allowed
+                    checkSSIDIPWhitelist(socket.ssid, true);
+                }
             }
 
 
@@ -756,7 +835,7 @@ async function cleanupSocket(socket) {
             delete socket_sessions[socket.id];
         }
         if (socket.ssid) {
-            var socket_array_index = ssid_sessions[socket.ssid].data_store.sockets.findIndex(element => element = socket.id);
+            var socket_array_index = ssid_sessions[socket.ssid].data_store.sockets.findIndex(element => element == socket.id);
             if (socket_array_index != -1) {
                 ssid_sessions[socket.ssid].data_store.sockets.splice(socket_array_index,1);
             }
@@ -849,6 +928,19 @@ function returnAbsolsutePath(path) {
 }
 
 
+function getGitRevision() {
+    try {
+        const rev = fs.readFileSync(__dirname.replace(/\\/g, "/") + '/../.git/HEAD').toString().trim();
+        if (rev.indexOf(':') === -1) {
+            return rev;
+        } else {
+            return fs.readFileSync(__dirname.replace(/\\/g, "/") + '/../.git/' + rev.substring(5)).toString().trim();
+        }
+    } catch (e) {
+        return null;
+    }
+}
+
 // SERVER START
 
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
@@ -886,11 +978,15 @@ if (throw_me) {
     throw ("An error has occured while reading the configuration files.");
 }
 
-if (minisrv_config.config.UserServiceVault) service_vaults.push({ "path": returnAbsolsutePath(minisrv_config.config.UserServiceVault), "name": "User Service Vault" });
-service_vaults.push({ "path": returnAbsolsutePath(minisrv_config.config.ServiceVault), "name": "Service Vault" });
-Object.keys(service_vaults).forEach(function (k) {
-    console.log(" * Using", service_vaults[k].name, "at", service_vaults[k].path);
-});
+if (minisrv_config.config.ServiceVaults) {
+    Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
+        var service_vault = returnAbsolsutePath(minisrv_config.config.ServiceVaults[k]);
+        service_vaults.push(service_vault);
+        console.log(" * Configured Service Vault at", service_vault, "with priority",(parseInt(k)+1));
+    })
+} else {
+    throw ("ERROR: No Service Vaults defined!");
+}
 
 var service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
@@ -917,7 +1013,13 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     }
     console.log(" * Configured Service", k, "on Port", minisrv_config.services[k].port, "- Host", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind);
 })
-if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in the console for security");
+if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
+else console.log(" * Full SSIDs will be shown in console logs");
+
+if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/images/" + minisrv_config.config.service_logo;
+if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/images/" + minisrv_config.config.service_splash_logo;
+
+minisrv_config.version = require('./package.json').version;
 
 // defaults
 var zdebug = false;
@@ -964,17 +1066,19 @@ ports.sort();
 
 // de-duplicate ports in case user configured multiple services on same port
 const bind_ports = [...new Set(ports)]
-
+if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 bind_ports.forEach(function (v) {
     try {
         var server = net.createServer(handleSocket);
-        server.listen(v, '0.0.0.0');
+        server.listen(v, minisrv_config.config.bind_ip);
         initstring += v + ", ";
     } catch (e) {
-        throw ("Could not bind to port", v, e.toString());
+        throw ("Could not bind to port", v, "on", minisrv_config.config.bind_ip, e.toString());
     }
 });
 initstring = initstring.substring(0, initstring.length - 2);
 
-console.log(" * Started server on ports " + initstring + "... Service IP is " + service_ip);
+console.log(" * Started server on ports " + initstring + "...")
+var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
+console.log(" * Listening on", listening_ip_string,"~","Service IP:", service_ip);
 

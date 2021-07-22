@@ -1,12 +1,36 @@
 {
 	"config": {
-		"service_ip": "192.168.11.8",
-		"service_name": "MyWebTV",
-		"send_tellyscripts": true,
+		"service_ip": "192.168.1.8",
+		"service_name": "WebTV",
+		"service_logo": "WebTVLogoJewel.gif",
+		"service_splash_logo": "file://ROM/images/SplashLogo1.gif",
+		"ServiceVaults": [
+			"UserServiceVault",
+			"ServiceVault",
+			"C:\\users\\zefie\\webtv\\ServiceVault",
+			"C:/Users/zefie/webtv/ServiceVault2",
+			"/home/zefie/webtv/ServiceVault"
+		],
+		"ssid_block_list": [
+			"8100000000000000",
+			"8100000000000010"
+		],
+		"ssid_ip_allow_list": {
+			"8100000000000000": [
+				"192.168.1.0/24",
+				"127.0.0.1"
+			]
+		},
 		"hide_ssid_in_logs": true,
-		"verbosity": 0
+		"verbosity": 2
 	},
 	"services": {
+		"wtv-1800": {
+			"send_tellyscripts": true,
+			"send_tellyscript_ssid_whitelist": [
+				"8100000000000000"
+			]
+		},
 		"wtv-log": {
 			"write_logs_to_disk": true
 		},
@@ -15,7 +39,7 @@
 			"connections": 1
 		},
 		"wtv-tricks": {
-			"service_ip": "192.168.11.8",
+			"service_ip": "192.168.1.8",
 			"port": 1702,
 			"nobind": true
 		},

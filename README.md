@@ -16,7 +16,7 @@ This open source server is in alpha status. Use at your own risk.
 - wtv-update:/sync for Download-o-Rama style file downloading
 
 ### Current issues:
-- Occasionally, in certain circumstances, a specific SSID may be unable to reconnect to the server until the server is restarted
+- ~~Occasionally, in certain circumstances, a specific SSID may be unable to reconnect to the server until the server is restarted~~ *Hopefully fixed in [v0.9.3](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.3)*
 - Mis-configuring wtv-update:/sync DiskMaps may cause units to delete contents of partitions (need more info)
 
 ### Won't fix:
@@ -24,25 +24,23 @@ This open source server is in alpha status. Use at your own risk.
 - No intentions to support user accounts, registration, or any form of database system
 
 ### Feature Todo:
-- ~~(maybe) implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)~~ ***Done***
-- ~~(maybe) enable "internet mode" (let user outside of minisrv)~~ ***Done***
-- ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done***
+- ~~Implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)~~ ***Done [v0.7.1](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.7.1)***
+- ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done [v0.8.0](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.8.0)***
+- ~~SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)~~ ***Done [v0.9.4](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.4)***
 - Flashrom flashing for bf0app old classic (need donor unit)
-- SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)
 - wtv-lzpf support
-- (maybe) Proper wtv-star (generic service outage page) support (maybe useful for allowing a unit to multiple sub-minisrvs).
 - (maybe) wtvchat stuff
-- (probably not) url tokenizer (eg wtv-token-blabla, was mostly to secure service URLs from unintended access, which this server does not aim to do)
 
 ### How To Use:
 - Install [node.js](https://nodejs.org/en/download/). Be sure to say `Yes` when asked about `Chocolatey`.
-- If you have trouble running it on Windows, try a Linux machine, Windows may need a full development enviroment or extra steps.
 - Download a snapshot (either of master, or of any commit/branch/relase/tag etc)
 - Extract zip somewhere and enter that directory with a command prompt
 - Enter `zefie_wtvp_minisrv` subdirectory
 - Verify you are in the same directory as `app.js`, then run `npm install`
-- Check any configuration, and modify to your liking. Especally `service_ip` (config can be found in `services.json`)
+- Check any configuration. Create your override `user_config.json`. Especally `service_ip`. See [user_config_README.md](user_config_README.md) and [user_config.example.json](zefie_wtvp_minisrv/user_config.example.json) for more information.
+  - **Note:** The intended use is for all custom config to be in `user_config.json` and any custom service files to go in `UserServiceVault`.  If you do not care about potential issues with future `git pull`, and will manually add new upstream `config.json` entries, you could use the standard `ServiceVault` and `config.json`
 - Run `node app.js`
+- If you have trouble running it on Windows, try a Linux machine, Windows may need a full development enviroment or extra steps.
 - Test with a WebTV Viewer or connect with a real box
 - To connect with a real box, you will need to open ports in your firewall and have a way to connect your WebTV (and preferably reroute 10.0.0.1 to the server)
 - See [ServiceVault.md](ServiceVault.md) for a brief introduction to how the service files work

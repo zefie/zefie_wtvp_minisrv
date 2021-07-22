@@ -1,19 +1,22 @@
 {
   "config": {
     "service_ip": "0.0.0.0",
-    "ServiceVault": "ServiceVault",
-    "UserServiceVault": "UserServiceVault",
-    "service_name": "HackTV",
-    "send_tellyscripts": false,
+    "ServiceVaults": [
+      "UserServiceVault",
+      "ServiceVault"
+    ],
+    "service_name": "MSNTV",
+    "service_logo": "MSNLogo.gif",
+    "service_splash_logo": "splash_logo_msn.gif",
     "hide_ssid_in_logs": true,
-    "socket_timeout":  350,
+    "socket_timeout": 350,
     "verbosity": 2
   },
   "services": {
     "wtv-1800": {
-      "host": null,
       "port": 1615,
-      "connections": 1
+      "connections": 1,
+      "send_tellyscripts": false
     },
     "wtv-star": {
       "port": 1603,

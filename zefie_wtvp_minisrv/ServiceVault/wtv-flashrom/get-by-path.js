@@ -29,7 +29,7 @@ if (request_headers.query.raw) {
 	var flashrom_file_path = null;
 	Object.keys(service_vaults).forEach(function (g) {
 		if (flashrom_file_path != null) return;
-		flashrom_file_path = service_vaults[g].path + "/" + service_name + "/" + request_path;
+		flashrom_file_path = service_vaults[g] + "/" + service_name + "/" + request_path;
 		if (!fs.existsSync(flashrom_file_path)) flashrom_file_path = null;
 	});
 	if (minisrv_config.services[service_name].use_zefie_server && !flashrom_file_path) {
