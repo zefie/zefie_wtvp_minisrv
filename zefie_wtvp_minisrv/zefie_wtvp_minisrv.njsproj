@@ -189,7 +189,7 @@
     <Content Include="ServiceVault\wtv-update\sync.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\DealerDemo.html" />
+    <Content Include="ServiceVault\wtv-update\DealerDemo.js" />
     <Content Include="ServiceVault\wtv-home\home.js" />
     <Content Include="ServiceVault\wtv-update\updatesuccess.txt" />
     <Content Include="ServiceVault\wtv-1800\finish-prereg.js" />
@@ -197,11 +197,12 @@
     <Content Include="ServiceVault\wtv-head-waiter\finalize-security.js" />
     <Content Include="ServiceVault\wtv-head-waiter\login-stage-two.js" />
     <Content Include="ServiceVault\wtv-head-waiter\login.js" />
-    <Content Include="ServiceVault\wtv-home\splash.txt" />
+    <Content Include="ServiceVault\wtv-home\splash.js" />
     <Content Include="ServiceVault\wtv-log\log.js" />
     <Content Include="session_data.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="user_config.example.json" />
     <Content Include="user_config.json" />
     <Content Include="wtvsec.js">
       <SubType>Code</SubType>

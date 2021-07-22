@@ -14,21 +14,29 @@ if (socket.ssid != null) {
 if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
 
-	// if relogin, skip tellyscript
-	if (request_headers.query.relogin) { // skip tellyscript
+	if (request_headers.query.relogin) { // relogin
 		ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = null; // clear old ticket
 	}
 
-	// if relogin, skip tellyscript
+	// if relogin and wtv-script-id != 0, skip tellyscript
 	var romtype, file_path = null;
-	if (!request_headers.query.relogin && minisrv_config.config.send_tellyscripts) {
-		var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+	var send_tellyscript = true;
+	var wtv_script_id = parseInt(ssid_sessions[socket.ssid].get("wtv-script-id"));
+	if (request_headers.query.relogin && wtv_script_id != 0) send_tellyscript = false;
+	if (send_tellyscript && minisrv_config.services[service_name].send_tellyscripts) {
+		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
+			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)
+			if (send_telly_to_ssid) romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+		} else {
+			romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+		}
 	}
 
 	switch (romtype) {
 		case "US-LC2-disk-0MB-8MB":
 			prereg_contype = "text/tellyscript";
-			if (ssid_sessions[socket.ssid].get("wtv-open-access")) var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OISP_5555732_56k.tok";
+			// if wtv-open-access: true then client expects OpenISP
+			if (ssid_sessions[socket.ssid].get("wtv-open-access") == "true") var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OISP_5555732_56k.tok";
 			else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199_56k.tok";
 			break;
 

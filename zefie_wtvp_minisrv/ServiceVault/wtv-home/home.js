@@ -44,6 +44,6 @@ data += `width=250  height=10 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 select
 </form></li>
 </ul>`
 
-if (fs.existsSync(service_vaults[0].path + "/" + service_name + "/home.zefie.html")) {
-	data += fs.readFileSync(service_vaults[0].path + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });
+if (fs.existsSync(service_vaults[0] + "/" + service_name + "/home.zefie.html")) {
+	data += fs.readFileSync(service_vaults[0] + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });
 }

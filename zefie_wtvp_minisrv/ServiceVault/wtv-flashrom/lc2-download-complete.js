@@ -23,7 +23,7 @@ hspace=0 vspace=0 fontsize="large">
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td width=104 height=74 valign=middle align=center bgcolor="3B3A4D">
-<img src="wtv-flashrom:/ROMCache/HackTVLogoJewel.gif" width=87 height=67>
+<img src="`+ minisrv_config.config.service_logo +`" width=87 height=67>
 <td width=20 valign=top align=left bgcolor="3B3A4D">
 <img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=1>
 <td colspan=10 width=436 valign=middle align=left bgcolor="3B3A4D">
