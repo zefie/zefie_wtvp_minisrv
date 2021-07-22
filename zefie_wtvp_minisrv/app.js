@@ -844,6 +844,9 @@ async function cleanupSocket(socket) {
                 // if last socket for SSID disconnected, destroy login session
                 if (!zquiet) console.log(" * Last socket from WebTV SSID", filterSSID(socket.ssid),"disconnected, cleaning up primary WTVSec instance for this SSID");
                 ssid_sessions[socket.ssid].delete("wtvsec_login");
+                if (ssid_sessions[socket.ssid].get("wtv-needs-upgrade")) {
+                    ssid_sessions[socket.ssid].delete("wtv-needs-upgrade");
+                }
             }
         }
         socket.end();
@@ -887,7 +890,7 @@ async function handleSocket(socket) {
     });
 
     socket.on('error', (err) => {
-        socket.end();
+        cleanupSocket(socket);
     });
 
     socket.on('end', function () {
