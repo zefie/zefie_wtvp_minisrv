@@ -123,7 +123,7 @@ hspace=0 vspace=0 fontsize="large">
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td width=104 height=74 valign=middle align=center bgcolor="3B3A4D">
-<img src="`+ minisrv_config.config.service_logo +`" width=87 height=67>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
 <td width=20 valign=top align=left bgcolor="3B3A4D">
 <img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=1>
 <td colspan=10 width=436 valign=middle align=left bgcolor="3B3A4D">
@@ -206,9 +206,6 @@ ${flashrom_message}
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
 <td colspan=9 width=416 valign=top align=right>
-<form action="client:gohome">
-<input type="submit" value="Cancel Update" text="#CCCCCC" borderimage="file://ROM/Borders/ButtonBorder2.bif">
-</form>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td width=306 valign=top align=left>

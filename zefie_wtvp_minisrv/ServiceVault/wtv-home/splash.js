@@ -15,7 +15,7 @@ data = `<html>
 <center>
 <spacer type=block height=88 width=21>
 <img src="file://ROM/Images/spacer.gif" height=4><br>
-<img src="`+ minisrv_config.config.service_splash_logo + `">
+<img src="${minisrv_config.config.service_splash_logo}">
 <br><br><br>
 <p><br>
 <p><br>
@@ -23,7 +23,7 @@ data = `<html>
 <tr><td width=150>
 Mini service
 <tr><td>
-zefie minisrv v`+ minisrv_config.version;
+zefie minisrv v${minisrv_config.version}`;
 if (getGitRevision()) {
     data += ` (git ` + getGitRevision().substring(0,8) + `)`;
 }
