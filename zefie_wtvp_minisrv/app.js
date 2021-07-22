@@ -354,9 +354,9 @@ async function doHTTPProxy(socket, request_headers) {
             });
         }).on('error', function (err) {
             var errpage, headers, data = null;
-            if (err.code == "ENOTFOUND") {
-                errpage = doErrorPage(400,`The publisher ${err.hostname} is unknown.`);
-            } else {
+            if (err.code == "ENOTFOUND") errpage = doErrorPage(400, `The publisher ${request_data.host} is unknown.`);
+            else if (err.message.indexOf("HostUnreachable") > 0) errpage = doErrorPage(400, `The publisher ${request_data.host} could not be reached.`);
+            else {
                 console.log(" * Unhandled Proxy Request Error:", err);
                 errpage = doErrorPage(400);
             }
