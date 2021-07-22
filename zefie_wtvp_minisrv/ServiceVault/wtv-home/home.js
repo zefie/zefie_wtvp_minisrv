@@ -23,26 +23,31 @@ function go() {
 }
 </script>
 <h2>Welcome to `+ z_title + `</h2>
-<h3>Encryption Status: `+cryptstatus+`</h3>
-Connection Speed: &rate;
+<b>Encryption Status</b>: ${cryptstatus}<br>
+<b>Connection Speed</b>: &rate;
+<p>
 <form name=access onsubmit="go()">
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
 <li><a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
-<li><a href="wtv-flashrom:/willie">Ultra Willies</a></li>
+<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
+<li><a href="client:diskhax">DiskHax</a> - <a href="client:vfathax">VFatHax</a></li>
 <li>Old MSNTV DealerDemo: <a href="wtv-update:/DealerDemo">Download</a> ~ <a href="file://Disk/Demo/index.html">Access (after Download)</a></li>
-<li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>
-<li><input name=url `;
+<li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>`
+if (ssid_sessions[socket.ssid].get('wtv-needs-upgrade') != 'true') {
+	data += `<li><input name=url `;
 
-if (request_headers.query.url) {
-	data += "value='" + unescape(request_headers.query.url)+"'";
+	if (request_headers.query.url) {
+		data += "value='" + unescape(request_headers.query.url) + "'";
+	}
+
+	data += `width=250  height=10 bgcolor=#444444 text=#ffdd33 cursor=#cc9933>
+<input type=submit value="Access URL">
+</form>`
 }
 
-data += `width=250  height=10 bgcolor=#444444 text=#ffdd33 cursor=#cc9933 selected>
-<input type=submit value="Access URL">
-</form></li>
-</ul>`
+data += "</li >\n</ul>";
 
 if (fs.existsSync(service_vaults[0] + "/" + service_name + "/home.zefie.html")) {
 	data += fs.readFileSync(service_vaults[0] + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });

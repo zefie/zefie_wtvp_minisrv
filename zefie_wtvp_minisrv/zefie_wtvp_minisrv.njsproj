@@ -32,6 +32,7 @@
     <Content Include=".gitignore" />
     <Content Include="app.js" />
     <Content Include="config.json" />
+    <Content Include="ServiceVault\wtv-chat\MakeChatPage.js" />
     <Content Include="ServiceVault\wtv-flashrom\get-by-path.js">
       <SubType>Code</SubType>
     </Content>
@@ -174,9 +175,11 @@
     <Content Include="ServiceVault\wtv-music\demo\midi\Wind1.mid" />
     <Content Include="ServiceVault\wtv-music\demo\midi\Xess.mid" />
     <Content Include="ServiceVault\wtv-music\demo\music.jpg" />
-    <Content Include="ServiceVault\wtv-star\images\HackTVLogo.gif" />
-    <Content Include="ServiceVault\wtv-star\images\HackTVLogoJewel.gif" />
-    <Content Include="ServiceVault\wtv-star\images\WebTVLogoJewel.gif" />
+    <Content Include="ServiceVault\wtv-setup\get.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-star\ROMCache\HackTVLogoJewel.gif" />
+    <Content Include="ServiceVault\wtv-star\ROMCache\WebTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-tricks\access.js" />
     <Content Include="ServiceVault\wtv-tricks\blastcache.js" />
     <Content Include="ServiceVault\wtv-tricks\go-offline.js" />
@@ -211,13 +214,15 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ServiceVault\" />
+    <Folder Include="ServiceVault\wtv-chat\" />
     <Folder Include="ServiceVault\wtv-flashrom\" />
     <Folder Include="ServiceVault\wtv-flashrom\ROMCache\" />
     <Folder Include="ServiceVault\wtv-music\" />
     <Folder Include="ServiceVault\wtv-music\demo\" />
     <Folder Include="ServiceVault\wtv-music\demo\midi\" />
+    <Folder Include="ServiceVault\wtv-setup\" />
     <Folder Include="ServiceVault\wtv-star\" />
-    <Folder Include="ServiceVault\wtv-star\images\" />
+    <Folder Include="ServiceVault\wtv-star\ROMCache\" />
     <Folder Include="ServiceVault\wtv-tricks\" />
     <Folder Include="ServiceVault\wtv-update\" />
     <Folder Include="ServiceVault\wtv-1800\" />
