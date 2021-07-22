@@ -413,6 +413,9 @@ async function sendToClient(socket, headers_obj, data) {
         headers_obj = headerStringToObj(headers_obj, true);
     }
 
+    var wtv_connection_close = headers_obj["wtv-connection-close"];
+    if (typeof(headers_obj["wtv-connection-close"]) != 'undefined') delete headers_obj["wtv-connection-close"];
+
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
         headers_obj.Connection = "Keep-Alive";
@@ -501,7 +504,7 @@ async function sendToClient(socket, headers_obj, data) {
     socket_sessions[socket.id].buffer = null;
     if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
-        if (headers_obj["Connection"].toLowerCase() == "close" && !headers["wtv-connection-close"] == "false") {
+        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
             socket.destroy();
         }
     }
