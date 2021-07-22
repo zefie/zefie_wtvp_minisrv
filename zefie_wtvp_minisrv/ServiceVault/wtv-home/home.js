@@ -14,7 +14,7 @@ if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 data =`<html>
 <head>
 <title>Home for minisrv</title>
-<DISPLAY NoLogo NoStatus hideoptions noscroll>
+<DISPLAY NoLogo hideoptions noscroll>
 </head>
 <body bgcolor="black" link="gold" vlink="gold" alink="gold" text="gold">
 <script>
