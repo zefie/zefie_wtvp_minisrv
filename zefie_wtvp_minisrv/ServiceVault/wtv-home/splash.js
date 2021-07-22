@@ -2,7 +2,7 @@ headers = `200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-
 wtv-expire-all: http
-Content-type: text/html`
+Content-Type: text/html`
 
 data = `<html>
 <head>
@@ -25,12 +25,11 @@ Mini service
 <tr><td>
 zefie minisrv v${minisrv_config.version}`;
 if (getGitRevision()) {
-    data += ` (git ` + getGitRevision().substring(0,8) + `)`;
+    data += " (git " + getGitRevision().substring(0, 8) + ")";
 }
 data += `
 <tr><td>&rate;
 </table>
 </center>
 </body>
-</html>
-`;
+</html>`;
