@@ -344,8 +344,6 @@ async function doHTTPProxy(socket, request_headers) {
                 if (res.headers.date) headers.Date = res.headers.date;
                 if (res.headers["content-type"]) headers["Content-type"] = res.headers["content-type"];
                 if (res.headers.cookie) headers.Cookie = res.headers.cookie;
-                // content-length is best auto-calculated
-                //if (res.headers["content-length"]) headers["Content-Length"] = res.headers["content-length"];
                 if (res.headers.vary) headers.Vary = res.headers.vary;
                 if (res.headers.location) headers.Location = res.headers.location;
                 if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
@@ -1023,8 +1021,8 @@ Object.keys(minisrv_config.services).forEach(function (k) {
 if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
 else console.log(" * Full SSIDs will be shown in console logs");
 
-if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/images/" + minisrv_config.config.service_logo;
-if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/images/" + minisrv_config.config.service_splash_logo;
+if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
 
 minisrv_config.version = require('./package.json').version;
 

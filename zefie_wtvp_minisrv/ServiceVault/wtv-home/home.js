@@ -31,6 +31,7 @@ Connection Speed: &rate;
 <li><a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
 <li><a href="wtv-flashrom:/willie">Ultra Willies</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
+<li><a href="wtv-chat:/MakeChatPage?host=chat.irchat.tv&port=6667&channel=webtv">IRC Chat Test</a>
 <li>Old MSNTV DealerDemo: <a href="wtv-update:/DealerDemo">Download</a> ~ <a href="file://Disk/Demo/index.html">Access (after Download)</a></li>
 <li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>
 <li><input name=url `;

@@ -1,18 +1,17 @@
 // write posted log data to disk. should be decrypted by this point (if it was encrypted) if the crypto stream didn't break
 
 request_is_async = true;
+data = '';
+var fullpath = __dirname + "/ServiceLogPost/" + Math.floor(new Date().getTime() / 1000) + "_" + request_headers.query.type;
+if (socket.ssid) fullpath += "_" + socket.ssid;
+fullpath += ".txt";
+
+fullpath = fullpath.replace(/\\/g, "/");
 
 if (request_headers.post_data) {
     headers = `200 OK
 Connection: Keep-Alive
 Content-length: 0`;
-
-    data = '';
-    var fullpath = __dirname + "/ServiceLogPost/" + Math.floor(new Date().getTime() / 1000) + "_" + request_headers.query.type;
-    if (socket.ssid) fullpath += "_" + socket.ssid;
-    fullpath += ".txt";
-
-    fullpath = fullpath.replace(/\\/g, "/");
 
     var logdata_outstring = '';
     Object.keys(request_headers.query).forEach(function (k) {
@@ -35,7 +34,6 @@ Content-length: 0`;
 Connection: Keep-Alive
 Content-length: 0`;
 
-    data = '';
     var logdata_outstring = '';
     Object.keys(request_headers.query).forEach(function (k) {
         logdata_outstring += k + "=" + unescape(request_headers.query[k].toString()) + "\r\n";

@@ -170,12 +170,12 @@ if (request_headers.query.diskmap && request_headers.query.group && request_head
         var errpage = doErrorPage(404,"The requested DiskMap does not exist.");
         headers = errpage[0];
         data = errpage[1];
-        console.log("wtv-update:/sync error", "could not find diskmap");
+        if (zdebug) console.log(" # wtv-update:/sync error", "could not find diskmap");
     }
 } else {
     var errpage = doErrorPage(400);
     headers = errpage[0];
     data = errpage[1];
-    if (zdebug) console.log("wtv-update:/sync error", "missing query arguments");
+    if (zdebug) console.log(" # wtv-update:/sync error", "missing query arguments");
 }
 

@@ -55,6 +55,16 @@
       "flags": "0x04",
       "connections": 3
     },
+    "wtv-setup": {
+      "port": 1613,
+      "flags": "0x00000010",
+      "connections": 3
+    },
+    "wtv-chat": {
+      "port": 1630,
+      "connections": 3,
+      "flags": "0x00000010"
+    },
     "http": {
       "port": 1650,
       "connections": 3,
