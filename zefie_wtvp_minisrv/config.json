@@ -9,7 +9,7 @@
     "service_logo": "MSNLogo.gif",
     "service_splash_logo": "splash_logo_msn.gif",
     "hide_ssid_in_logs": true,
-    "socket_timeout": 350,
+    "post_percentages": [ 0, 25, 50, 100],
     "verbosity": 2
   },
   "services": {

@@ -83,7 +83,7 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
             if (!post_data_fileinfo[post_data_filecount]) post_data_fileinfo[post_data_filecount] = new Array();
 
             if (post_data_line_name == "Last-modified") {
-                post_data_fileinfo[post_data_filecount][post_data_line_name] = (Date.parse(post_data_line_data) / 1000);
+                post_data_fileinfo[post_data_filecount][post_data_line_name] = (new Date(new Date(Date.parse(post_data_line_data)).toUTCString()) / 1000);
             } else if (post_data_line_name == "Content-length") {
                 post_data_fileinfo[post_data_filecount][post_data_line_name] = parseInt(post_data_line_data);
             }
@@ -107,14 +107,17 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
             if (!fs.existsSync(post_match_file)) post_match_file = null;
         });
 
-        var post_match_file_lstat = fs.lstatSync(post_match_file);
-        var post_match_result = post_data_fileinfo.find(el => el.file === diskmap_group_data.files[k].file) || null;
+        var file_in_postdata = function (post_file) {
+            return post_file.file === diskmap_group_data.files[k].file
+        }
 
+        var post_match_file_lstat = fs.lstatSync(post_match_file);
+        var post_match_result = post_data_fileinfo.find(file_in_postdata) || null;
         var post_match_file_data = new Buffer.from(fs.readFileSync(post_match_file, {
             encoding: null,
             flags: 'r'
         }));
-        diskmap_group_data.files[k]["Last-modified"] = (post_match_file_lstat.mtime / 1000);
+        diskmap_group_data.files[k]["Last-modified"] = (new Date(new Date(post_match_file_lstat.mtime).toUTCString()) / 1000);
         diskmap_group_data.files[k]["Content-length"] = post_match_file_lstat.size;
         diskmap_group_data.files[k]["wtv-checksum"] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(post_match_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
         if (!diskmap_group_data.files[k].display) diskmap_group_data.files[k].display = diskmap_group_data.display;
@@ -122,6 +125,9 @@ function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgrou
         if (post_match_result) {
             // md5s match, so client doesn't need file
             if (diskmap_group_data.files[k]['wtv-checksum'].toLowerCase() == post_match_result["wtv-checksum"]) return;
+            // last modified is equal to or newer than the last update, and file size match, so assume same file and client does not need it
+            else if ((post_match_result["Last-modified"] >= diskmap_group_data.files[k]["Last-modified"]) && (post_match_result["Content-length"] == diskmap_group_data.files[k]["Content-length"])) return;
+            // otherwise send to client
             else wtv_download_list.push(diskmap_group_data.files[k]);
         } else {
             wtv_download_list.push(diskmap_group_data.files[k]);
