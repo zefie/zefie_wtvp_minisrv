@@ -35,7 +35,7 @@ function go() {
 <li><a href="client:diskhax">DiskHax</a> - <a href="client:vfathax">VFatHax</a></li>
 <li>Old MSNTV DealerDemo: <a href="wtv-update:/DealerDemo">Download</a> ~ <a href="file://Disk/Demo/index.html">Access (after Download)</a></li>
 <li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>`
-if (ssid_sessions[socket.ssid].get('wtv-needs-upgrade') != 'true') {
+if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true') {
 	data += `<li><input name=url `;
 
 	if (request_headers.query.url) {
