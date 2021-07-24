@@ -1,4 +1,13 @@
-class ClientSessionData {
+class WTVClientSessionData {
+
+    /***********************************\
+    |* Special Thanks to:              *|
+    |*                         No one  *|
+    |* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  *|
+    |*   There is literally nothing    *|
+    |*    special about this class     *|
+    \***********************************/
+
     data_store = null;
 
     constructor() {
@@ -25,4 +34,4 @@ class ClientSessionData {
 }
 
 
-module.exports = ClientSessionData;
+module.exports = WTVClientSessionData;

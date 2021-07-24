@@ -2,9 +2,21 @@ const CryptoJS = require('crypto-js');
 const endianness = require('endianness');
 var crypto = require('crypto');
 
+/***********************************\
+|* Special Thanks to:              *|
+|*           eMac (Eric MacDonald) *|
+|* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  *|
+|*  For the encryption/decryption  *|
+|*     information and process     *|
+\***********************************/
+
 class WTVSec {
-    //initial_shared_key = CryptoJS.lib.WordArray.random(8);
-    initial_shared_key_b64 = "CC5rWmRUE0o="; // You can change this but it doesn't mean much for security. Just make sure its static. 8 bytes base64 encoded.
+    // Initial Shared Key, in Base64 Format
+    // You can change this but it doesn't mean much for security. Just make sure its static. 8 bytes base64 encoded.
+    // If you intend to link multiple minisrv's together, they must all share the same Initial Shared Key.
+
+    initial_shared_key_b64 = "CC5rWmRUE0o=";
+
     initial_shared_key = null;
     current_shared_key = null;
     challenge_key = null;
