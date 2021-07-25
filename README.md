@@ -44,3 +44,9 @@ This open source server is in alpha status. Use at your own risk.
 - Test with a WebTV Viewer or connect with a real box
 - To connect with a real box, you will need to open ports in your firewall and have a way to connect your WebTV (and preferably reroute 10.0.0.1 to the server)
 - See [ServiceVault.md](ServiceVault.md) for a brief introduction to how the service files work
+
+### How to Support the Project
+- [Report Bugs](https://github.com/zefie/zefie_wtvp_minisrv/issues)
+- [Add a Feature and send a Pull Request](https://github.com/zefie/zefie_wtvp_minisrv/pulls)
+- Write and submit better documentation than I created (see Pull Request above)
+- [Support financially on Patreon](https://www.patreon.com/zefie)

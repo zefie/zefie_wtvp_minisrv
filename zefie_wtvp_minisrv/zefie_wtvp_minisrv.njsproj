@@ -202,12 +202,16 @@
     <Content Include="ServiceVault\wtv-head-waiter\login.js" />
     <Content Include="ServiceVault\wtv-home\splash.js" />
     <Content Include="ServiceVault\wtv-log\log.js" />
-    <Content Include="session_data.js">
+    <Content Include="test.js" />
+    <Content Include="WTVClientSessionData.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="user_config.example.json" />
     <Content Include="user_config.json" />
-    <Content Include="wtvsec.js">
+    <Content Include="WTVClientCapabilities.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="WTVSec.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="package.json" />

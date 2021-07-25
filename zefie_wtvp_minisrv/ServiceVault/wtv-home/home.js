@@ -28,11 +28,10 @@ function go() {
 <p>
 <form name=access onsubmit="go()">
 <ul>
-<li><a href="client:relog">client:relog (direct)</a></li>
-<li><a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
-<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a></li>
+<li><a href="client:relog">client:relog (direct)</a> ~ <a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
+<li><a href="client:diskhax">DiskHax</a> ~ <a href="client:vfathax">VFatHax</a></li>
+<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/info">Tricks Info</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
-<li><a href="client:diskhax">DiskHax</a> - <a href="client:vfathax">VFatHax</a></li>
 <li>Old MSNTV DealerDemo: <a href="wtv-update:/DealerDemo">Download</a> ~ <a href="file://Disk/Demo/index.html">Access (after Download)</a></li>
 <li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>`
 if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true') {
