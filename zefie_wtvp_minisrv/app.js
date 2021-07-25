@@ -9,6 +9,7 @@ const net = require('net');
 const CryptoJS = require('crypto-js');
 const mime = require('mime-types');
 const { crc16 } = require('easy-crc');
+const process = require('process');
 var WTVSec = require('./WTVSec.js');
 var WTVClientCapabilities = require('./WTVClientCapabilities.js');
 var WTVClientSessionData = require('./WTVClientSessionData.js');
@@ -71,6 +72,7 @@ function doErrorPage(code, data = null) {
             headers += "Content-Type: text/html\r\n";
             break;
     }
+    console.error("doErrorPage Called:", code, data);
     return new Array(headers, data);
 }
 
@@ -166,11 +168,11 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         var errpage = doErrorPage(400);
         headers = errpage[0];
         data = errpage[1] + "<br><br>The interpreter said:<br><pre>" + e.toString() + "</pre>";
-        console.log(" * Scripting error:",e);
+        console.error(" * Scripting error:",e);
     }
     if (!request_is_async) {
         if (!service_vault_found) {
-            console.log(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, ""));
+            console.error(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, ""));
             var errpage = doErrorPage(404);
             headers = errpage[0];
             data = errpage[1];
@@ -179,8 +181,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
             var errpage = doErrorPage(400);
             headers = errpage[0];
             data = errpage[1];
-            console.log(" * Scripting or Data error: Headers were not defined. (headers,data) as follows:")
-            console.log(socket.id, headers, data)
+            console.error(" * Scripting or Data error: Headers were not defined. (headers,data) as follows:")
+            console.error(socket.id, headers, data)
         }
         if (data === null) {
             data = '';
@@ -215,6 +217,7 @@ function filterSSID(obj) {
 
 function makeSafePath(base, target) {
     target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
+    if (path.sep != "/") target = target.replace(/\//g, path.sep);
     var targetPath = path.posix.normalize(target)
     return base + path.sep + targetPath;
 }
@@ -729,7 +732,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                  if (!ssid_sessions[socket.ssid]) {
                     ssid_sessions[socket.ssid] = new WTVClientSessionData();
                 }
-                if (!ssid_sessions[socket.ssid].data_store.capabilities) ssid_sessions[socket.ssid].data_store.capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
+                if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
             }
 
 
@@ -1058,7 +1061,7 @@ async function cleanupSocket(socket) {
         }
         socket.end();
     } catch (e) {
-        console.log(" # Could not clean up socket data for socket ID", socket.id, e);
+        console.error(" # Could not clean up socket data for socket ID", socket.id, e);
     }
 }
 
@@ -1068,7 +1071,7 @@ async function handleSocket(socket) {
     socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
     socket_sessions[socket.id] = [];
     socket.setEncoding('hex'); //set data encoding (Text: 'ascii', 'utf8' ~ Binary: 'hex', 'base64' (do not trust 'binary' encoding))
-    socket.setTimeout(600000);
+    socket.setTimeout(10800000); // 3 hours
     socket.on('data', function (data_hex) {
         if (!socket_sessions[socket.id].secure && !socket_sessions[socket.id].expecting_post_data) {
             // buffer unencrypted data until we see the classic double-newline, or get blank
@@ -1120,7 +1123,7 @@ function integrateConfig(main, user) {
     return main;
 }
 
-function returnAbsolsutePath(check_path) {
+function returnAbsolutePath(check_path) {
     if (check_path.substring(0, 1) != path.sep && check_path.substring(1, 1) != ":") {
         // non-absolute path, so use current directory as base
         check_path = (__dirname + path.sep + check_path);
@@ -1170,7 +1173,7 @@ try {
         try {
             var minisrv_user_config = JSON.parse(fs.readFileSync(__dirname + "/user_config.json")); 
         } catch (e) {
-            console.log("ERROR: Could not read user_config.json", e);
+            console.error("ERROR: Could not read user_config.json", e);
             var throw_me = true;
         }
         // file exists and we read and parsed it, but the variable is undefined
@@ -1178,11 +1181,11 @@ try {
         try {
             minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
         } catch (e) {
-            console.log("ERROR: Could not read user_config.json", e);
+            console.error("ERROR: Could not read user_config.json", e);
         }
     }
 } catch (e) {
-    if (zdebug) console.log(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+    if (zdebug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
 }
 
 if (throw_me) {
@@ -1191,7 +1194,7 @@ if (throw_me) {
 
 if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
-        var service_vault = returnAbsolsutePath(minisrv_config.config.ServiceVaults[k]);
+        var service_vault = returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
         service_vaults.push(service_vault);
         console.log(" * Configured Service Vault at", service_vault, "with priority",(parseInt(k)+1));
     })
@@ -1231,6 +1234,19 @@ if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config
 if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
 
 minisrv_config.version = require('./package.json').version;
+if (minisrv_config.config.error_log_file) {
+    var error_log_stream = fs.createWriteStream(returnAbsolutePath(minisrv_config.config.error_log_file), { flags: 'a' });
+    var process_stderr = process.stderr.write;
+    var writeError = function() {
+        process_stderr.apply(process.stderr, arguments);
+        if (error_log_stream) error_log_stream.write.apply(error_log_stream, arguments);
+    }
+    process.stderr.write = writeError
+}
+
+process.on('uncaughtException', function (err) {
+    console.error((err && err.stack) ? err.stack : err);
+});
 
 // defaults
 var zdebug = false;
@@ -1288,6 +1304,8 @@ bind_ports.forEach(function (v) {
     }
 });
 initstring = initstring.substring(0, initstring.length - 2);
+
+
 
 console.log(" * Started server on ports " + initstring + "...")
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";

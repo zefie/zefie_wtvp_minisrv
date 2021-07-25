@@ -1,22 +1,19 @@
+var irc_nick = "";
 headers = "200 OK";
 if (request_headers.query.nick) headers += "\n" + ssid_sessions[socket.ssid].setIRCNick(request_headers.query.nick);
+else if (!ssid_sessions[socket.ssid].get("wtv-irc-nick")) ssid_sessions[socket.ssid].setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).substring(0, 16);
 headers += "\nContent-Type: text/html";
 
-if (request_headers.query.host && request_headers.query.port && request_headers.query.channel) {
-    data = `<html>
-<display address="${request_headers.query.host}, port ${request_headers.query.port}, room ${request_headers.query.channel}">
-<wtvchat
-host="${request_headers.query.host}"
-port="${request_headers.query.port}"
-channel="#${request_headers.query.channel}"
-bgcolor="#101C1E"
->
+var irc_nick = ssid_sessions[socket.ssid].get("wtv-irc-nick");
+
+data = `<html>
 <head>
 <title>
-${request_headers.query.channel}
+Chat Home (Testing)
 </title>
 </head>
 <body bgcolor="#101C1E" text="#A2ACB5" link="#CFC382" vlink="#E1EOE3" fontsize="medium" vspace=0 hspace=0>
+<display noscroll>
 <sidebar width=109>
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -39,40 +36,33 @@ ${request_headers.query.channel}
 <tr>
 <td width=10 height=26>
 <td width=89 valign=middle>
-<table cellspacing=0 cellpadding=0 href="javascript:void(window.open('newChatChannel.panel'))" >
+<table cellspacing=0 cellpadding=0 href="client:relog" >
 <tr>
 <td height=1>
 <tr>
-<td><shadow><font sizerange=medium color=#E1EOE3>Create</font></shadow>
+<td><shadow><font sizerange=medium color=#E1EOE3>Relogin</font></shadow>
 </table>
 <td width=5>
 <tr>	<td bgcolor=#2E3A54 height=2 width=104 colspan=3>
 <tr>
 <td width=10 height=26>
 <td width=89 valign=middle>
-<table cellspacing=0 cellpadding=0 href="client:ListChannelUsers" >
+<table cellspacing=0 cellpadding=0 href="wtv-home:/home" >
 <tr>
 <td height=1>
 <tr>
-<td><shadow><font sizerange=medium color=#E1EOE3>People</font></shadow>
+<td><shadow><font sizerange=medium color=#E1EOE3>Home</font></shadow>
 </table>
 <td width=5>
 <tr>	<td bgcolor=#2E3A54 height=2 width=104 colspan=3>
 <tr>
 <td width=10 height=26>
 <td width=89 valign=middle>
-<table cellspacing=0 cellpadding=0 href="client:OpenChatWhisperPanel" >
-<tr>
-<td height=1>
-<tr>
-<td><shadow><font sizerange=medium color=#E1EOE3>Whisper</font></shadow>
-</table>
-<td width=5>
-<tr>	<td bgcolor=#2E3A54 height=2 width=104 colspan=3>
 </table>
 <td width=5 bgcolor=#2E3A54>
 </table>
 </sidebar>
+
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td width=451 colspan=2 align=center bgcolor=#2E3A54>
@@ -97,58 +87,58 @@ ${request_headers.query.channel}
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td width=366 valign=middle>&nbsp;&nbsp;
-<blackface><font color=#D6D6D6>	${request_headers.query.channel}
+<blackface><font color=#D6D6D6>
 </font></blackface><td>
 <table cellspacing=0 cellpadding=0 border=0 bgcolor=#3C4652 gradcolor=#2E3A54 gradangle=90>
 <tr>
-<td><img src="wtv-chat:/images/widget.gif" width=16 height=16>
-<td width=3>
-<td width=84>
-<spacer type=vertical size=1><br>
-<a href="wtv-chat:/home"><font size=-1 color=#E7CE4A><b> Home</b></font></a>
+<td width=21>
+<td width=400>
+<td width=34>
 </table>
 </table>
 </table>
 <spacer type=vertical size=12>	<table cellspacing=0 cellpadding=0>
 <tr>
 <td colspan=3 height=12>
-<spacer type=vertical size=12>	<tr>
+<spacer type=vertical size=22>	<tr>
 <td abswidth=14>
-<td>
-<wtvchattranscript height=250 width=100%>
-<td abswidth=20>
+<td abswidth=400>
+<form action="wtv-chat:/MakeChatPage" method="get">
+<table>
 <tr>
-<td height=10>
+<td abswidth="120">Server:</td>
+<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle type="text" name="host" value="${request_headers.query.host || "chat.irchat.tv"}"></td>
+</tr>
+
 <tr>
-<td>
-<td colspan=2 height=2>
-<spacer>
+<td>Port:</td>
+<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle type="text" name="port" value="${request_headers.query.port || 6667}"></td>
+</tr>
+
 <tr>
-<td height=1>
+<td>Channel:</td>
+<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle type="text" name="channel" value="${request_headers.query.channel || "WebTV"}"></td>
+</tr>
 <tr>
-<td>
-<td colspan=2 height=2>
-<spacer>
+<td>IRC Nick<sup>*</sup>:</td>
+<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle maxlength=16 type="text" name="nick" value="${irc_nick}"></td>
+</tr>
 <tr>
-<td height=6>
+<td colspan="2" align="right">
+<input type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Connect" usestyle width=100>
+</td>
+</tr>
 </table>
-<table cellspacing=0 cellpadding=0 width=100%>
-<tr>
-<form action="client:ChatAddMessage" ONSUBMIT="this.chatinput.focus()">
-<td abswidth=14>
-<td>
-<input id="chatinput" name="message" type="text" value="" size=32 bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional selected autoactivate nohighlight>
-<td align=right>
-<font color=e7ce4a><shadow>
-<input type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Send" usestyle width=80>
+<br>
+
+<small><sup>*</sup>Note: Once you are connected to the IRC Server, you cannot change your nickname until you disconnect. 
+What triggers the WebTV to disconnect from the chat server is not yet known, 
+it does maintain a connection to the IRC server, but leaves the channel, when you leave the chat page. 
+The connection times out after some time. Only then will any future attempts to change your name work.</small>
+
 <td abswidth=9>
 </form>
 <tr> <TD HEIGHT=8>
 </table>
 </body>
 </html>`;
-} else {
-    var errpage = doErrorPage("400 Chat requires host, port and channel arguments. Do not use the # on channels.");
-    headers = errpage[0];
-    data = errpage[1];
-}
