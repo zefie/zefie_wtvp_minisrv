@@ -215,6 +215,7 @@ function filterSSID(obj) {
 
 function makeSafePath(base, target) {
     target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
+    if (path.sep != "/") target = target.replace(/\//g, path.sep);
     var targetPath = path.posix.normalize(target)
     return base + path.sep + targetPath;
 }
