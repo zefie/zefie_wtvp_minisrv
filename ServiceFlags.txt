@@ -1,0 +1,16 @@
+wtv service flags:
+DontEncryptRequests		(Do not encrypt requests from client -> server)
+UseHTTP					(Instead of WTVP)
+WideOpen				(Allow untrusted links to this service)
+UseServiceCookies		(Pass service cookie to this service)
+NoMeter					(Dont meter this service)
+
+0x00000001 = DontEncryptRequests
+0x00000002 = UseHTTP (untested)
+0x00000004 = WideOpen
+0x00000007 = DontEncryptRequests + WideOpen + UseHTTP 
+0x00000010 = UseServiceCookies
+0x00000040 = NoMeter
+
+Note:
+Service Cookies and Metering are not implemented in minisrv.

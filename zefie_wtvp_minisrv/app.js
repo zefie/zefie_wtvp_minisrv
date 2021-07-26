@@ -196,6 +196,8 @@ function filterSSID(obj) {
         if (typeof (obj) == "string") {
             if (obj.substr(0, 8) == "MSTVSIMU") {
                 return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
+            } else if (obj.substr(0, 5) == "1SEGA") {
+                return obj.substr(0, 6) + ('*').repeat(6) + obj.substr(13);
             } else {
                 return obj.substr(0, 6) + ('*').repeat(9);
             }
@@ -204,6 +206,8 @@ function filterSSID(obj) {
                 var ssid = obj["wtv-client-serial-number"];
                 if (ssid.substr(0, 8) == "MSTVSIMU") {
                     obj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
+                } else if (ssid.substr(0, 5) == "1SEGA") {
+                    obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
                 } else {
                     obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
                 }
@@ -490,9 +494,9 @@ async function sendToClient(socket, headers_obj, data) {
         } else {
             if (k.indexOf('_') >= 0) {
                 var j = k.split('_')[0];
-                headers += j + ": " + headers_obj[k] + "\n";
+                headers += j + ": " + headers_obj[k] + "\r\n";
             } else {
-                headers += k + ": " + headers_obj[k] + "\n";
+                headers += k + ": " + headers_obj[k] + "\r\n";
             }
         }
     });
@@ -501,17 +505,17 @@ async function sendToClient(socket, headers_obj, data) {
     // send to client
     var toClient = null;
     if (typeof data == 'string') {
-        toClient = headers + "\n" + data;
+        toClient = headers + "\r\n" + data;
         socket.write(toClient);
     } else if (typeof data == 'object') {
         if (zquiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
         if (socket_sessions[socket.id].secure_headers == true) {
             // encrypt headers
             if (zquiet)verbosity_mod += " with encrypted headers";
-            var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + "\n");
+            var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + "\r\n");
             socket.write(new Uint8Array(concatArrayBuffer(enc_headers, data)));
         } else {
-            socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + "\n"), data)));
+            socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + "\r\n"), data)));
         }
         if (zquiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.http_response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-Length'], "bytes)");
     }
@@ -1217,11 +1221,11 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     minisrv_config.services[k].toString = function () {
         var outstr = "wtv-service: name=" + this.name + " host=" + this.host + " port=" + this.port;
         if (this.flags) outstr += " flags=" + this.flags;
-        if (this.connections) outstr += " flags=" + this.connections;
+        if (this.connections) outstr += " connections=" + this.connections;
         if (k == "wtv-star") {
             outstr += "\nwtv-service: name=wtv-* host=" + this.host + " port=" + this.port;
             if (this.flags) outstr += " flags=" + this.flags;
-            if (this.connections) outstr += " flags=" + this.connections;
+            if (this.connections) outstr += " connections=" + this.connections;
         }
         return outstr;
     }

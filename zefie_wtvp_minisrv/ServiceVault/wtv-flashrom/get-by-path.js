@@ -22,8 +22,9 @@ function doLocalFlashROM(flashrom_file_path) {
 	}
 }
 
+var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 
-if (request_headers.query.raw) {
+if (request_headers.query.raw || romtype == "bf0app") {
 	if ((/\.brom$/).test(request_path)) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 	else headers += "Content-Type: binary/x-wtv-flashblock";
 	var flashrom_file_path = null;
