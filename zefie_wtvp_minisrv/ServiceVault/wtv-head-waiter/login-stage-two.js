@@ -47,8 +47,8 @@ Content-type: text/html`;
 }
 else {
 	var namerand = Math.floor(Math.random() * 100000);
-	var nickname = (minisrv_config.config.service_name + '_' + namerand).substring(0, 16);
-	var userid = '1'+ Math.floor(Math.random() * 1000000000000000000);
+	var nickname = (minisrv_config.config.service_name + '_' + namerand)
+	var userid = '1' + Math.floor(Math.random() * 1000000000000000000);
 	var offline_user_list = CryptoJS.enc.Latin1.parse("<user-list>\n\t<user userid=\"" + userid + " user-name=\"" + nickname + "\" first-name=\"" + minisrv_config.config.service_name + "User \" last-name=\\" + namerand + "\" password=\"\" mail-enabled=\"true\" />\n</user-list>").toString(CryptoJS.enc.Base64);
 	data = '';
 	headers = `200 OK
@@ -77,9 +77,8 @@ wtv-noback-all: wtv-
 wtv-service: reset
 `+ getServiceString('all') + `
 wtv-boot-url: wtv-1800:/preregister?relogin=true
-wtv-user-name: ${nickname}
 wtv-human-name: ${nickname}
-wtv-irc-nick: ${nickname}
+${ssid_sessions[socket.ssid].setIRCNick(nickname)}
 wtv-home-url: wtv-home:/home?
 wtv-domain: wtv.zefie.com
 wtv-inactive-timeout: 0

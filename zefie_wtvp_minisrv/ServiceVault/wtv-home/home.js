@@ -32,6 +32,9 @@ function go() {
 <li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/info">Tricks Info</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
 `;
+if (ssid_sessions[socket.ssid].hasCap("client-can-do-chat")) {
+	data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
+}
 if (ssid_sessions[socket.ssid].hasCap("client-has-disk")) {
 	// only show disk stuff if client has disk
 	data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";

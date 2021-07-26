@@ -32,6 +32,11 @@
     <Content Include=".gitignore" />
     <Content Include="app.js" />
     <Content Include="config.json" />
+    <Content Include="ServiceVault\wtv-chat\home.js" />
+    <Content Include="ServiceVault\wtv-chat\images\htv_chat.gif" />
+    <Content Include="ServiceVault\wtv-chat\images\htv_chat.jpg" />
+    <Content Include="ServiceVault\wtv-chat\images\top_corner_dark.jpg" />
+    <Content Include="ServiceVault\wtv-chat\images\widget.gif" />
     <Content Include="ServiceVault\wtv-chat\MakeChatPage.js" />
     <Content Include="ServiceVault\wtv-flashrom\get-by-path.js">
       <SubType>Code</SubType>
@@ -219,6 +224,7 @@
   <ItemGroup>
     <Folder Include="ServiceVault\" />
     <Folder Include="ServiceVault\wtv-chat\" />
+    <Folder Include="ServiceVault\wtv-chat\images\" />
     <Folder Include="ServiceVault\wtv-flashrom\" />
     <Folder Include="ServiceVault\wtv-flashrom\ROMCache\" />
     <Folder Include="ServiceVault\wtv-music\" />
