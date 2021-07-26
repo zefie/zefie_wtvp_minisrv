@@ -730,7 +730,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                  if (!ssid_sessions[socket.ssid]) {
                     ssid_sessions[socket.ssid] = new WTVClientSessionData();
                 }
-                if (!ssid_sessions[socket.ssid].data_store.capabilities) ssid_sessions[socket.ssid].data_store.capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
+                if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
             }
 
 

@@ -11,7 +11,7 @@ if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 }
 
 
-data =`<html>
+data = `<html>
 <head>
 <title>Home for minisrv</title>
 <DISPLAY NoLogo hideoptions noscroll>
@@ -29,12 +29,22 @@ function go() {
 <form name=access onsubmit="go()">
 <ul>
 <li><a href="client:relog">client:relog (direct)</a> ~ <a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
-<li><a href="client:diskhax">DiskHax</a> ~ <a href="client:vfathax">VFatHax</a></li>
 <li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/info">Tricks Info</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
-<li>Old MSNTV DealerDemo: <a href="wtv-update:/DealerDemo">Download</a> ~ <a href="file://Disk/Demo/index.html">Access (after Download)</a></li>
-<li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>`
-if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true') {
+`;
+if (ssid_sessions[socket.ssid].hasCap("client-has-disk")) {
+	// only show disk stuff if client has disk
+	data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
+	if (ssid_sessions[socket.ssid].hasCap("client-can-do-macromedia-flash2")) {
+		// only show demo if client can do flash2
+		data += "<li>Old MSNTV DealerDemo: <a href=\"wtv-update:/DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\"> Access (after Download)</a></li>\n";
+	}
+}
+
+data += `<li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>`
+
+if (ssid_sessions[socket.ssid].hasCap("client-can-do-javascript")) {
+	// URL access form requires javascript, hide if client does not support
 	data += `<li><input name=url `;
 
 	if (request_headers.query.url) {
@@ -43,7 +53,7 @@ if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true') {
 
 	data += `width=250  height=10 bgcolor=#444444 text=#ffdd33 cursor=#cc9933>
 <input type=submit value="Access URL">
-</form>`
+</form>`;
 }
 
 data += "</li >\n</ul>";

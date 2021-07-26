@@ -9,9 +9,17 @@ class WTVClientSessionData {
     \***********************************/
 
     data_store = null;
+    capabilities = null;
 
     constructor() {
         this.data_store = new Array();
+    }
+
+    hasCap(cap) {
+        if (this.capabilities) {
+            return this.capabilities[cap] || false;
+        }
+        return false;
     }
 
     get(key = null) {
