@@ -10,7 +10,8 @@
     "service_splash_logo": "splash_logo_msn.gif",
     "hide_ssid_in_logs": true,
     "post_percentages": [ 0, 25, 50, 100],
-    "verbosity": 2
+    "verbosity": 2,
+    "error_log_file": "errors.log"
   },
   "services": {
     "wtv-1800": {
