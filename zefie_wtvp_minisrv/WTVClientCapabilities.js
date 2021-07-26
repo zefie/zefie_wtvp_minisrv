@@ -118,9 +118,8 @@ class WTVClientCapabilities {
             // convert wtv_capability_flags to binary string, reverse the string, and split into array containing each character;
             var bitfield = hex2bin(wtv_capability_flags).reverse().split("");
 
-            // only add to the capabilities array if the result is true
             var add = function (flag_name, flag) {
-                if (flag) capabilities[flag_name] = flag;
+                capabilities[flag_name] = flag;
             }
 
             // process bitfield and set capabilities
