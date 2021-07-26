@@ -2,8 +2,8 @@
 var client_caps = null;
 
 if (socket.ssid != null) {
-	if (ssid_sessions[socket.ssid].data_store.capabilities) {
-		client_caps = ssid_sessions[socket.ssid].data_store.capabilities;
+	if (ssid_sessions[socket.ssid].capabilities) {
+		client_caps = ssid_sessions[socket.ssid].capabilities;
 	}
 }
 if (client_caps) {
