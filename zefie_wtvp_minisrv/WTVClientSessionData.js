@@ -22,6 +22,11 @@ class WTVClientSessionData {
         return false;
     }
 
+    isMiniBrowser() {
+        if (this.data_store['wtv-need-upgrade'] || this.data_store['wtv-used-8675309']) return true;
+        return false;
+    }
+
     get(key = null) {
         if (typeof (this.data_store) === 'undefined') return null;
         else if (key === null) return this.data_store;
