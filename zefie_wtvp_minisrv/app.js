@@ -196,6 +196,8 @@ function filterSSID(obj) {
         if (typeof (obj) == "string") {
             if (obj.substr(0, 8) == "MSTVSIMU") {
                 return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
+            } else if (obj.substr(0, 5) == "1SEGA") {
+                return obj.substr(0, 6) + ('*').repeat(6) + obj.substr(13);
             } else {
                 return obj.substr(0, 6) + ('*').repeat(9);
             }
@@ -204,6 +206,8 @@ function filterSSID(obj) {
                 var ssid = obj["wtv-client-serial-number"];
                 if (ssid.substr(0, 8) == "MSTVSIMU") {
                     obj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
+                } else if (ssid.substr(0, 5) == "1SEGA") {
+                    obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
                 } else {
                     obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
                 }
