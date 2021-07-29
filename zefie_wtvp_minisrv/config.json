@@ -17,6 +17,7 @@
     "wtv-1800": {
       "port": 1615,
       "connections": 1,
+      "flags": "0x00000004",
       "send_tellyscripts": false
     },
     "wtv-star": {
@@ -25,12 +26,10 @@
     },
     "wtv-head-waiter": {
       "port": 1601,
-      "flags": "0x00000001",
       "connections": 1
     },
     "wtv-update": {
-      "port": 1619,
-      "flags": "0x04",
+      "port": 1635,
       "connections": 3
     },
     "wtv-log": {
@@ -39,8 +38,7 @@
       "write_logs_to_disk": false
     },
     "wtv-home": {
-      "port": 1612,
-      "flags": "0x00000010"
+      "port": 1612
     },
     "wtv-tricks": {
       "port": 1602,
@@ -53,7 +51,6 @@
     },
     "wtv-music": {
       "port": 1656,
-      "flags": "0x04",
       "connections": 3
     },
     "wtv-setup": {
@@ -63,8 +60,7 @@
     },
     "wtv-chat": {
       "port": 1630,
-      "connections": 3,
-      "flags": "0x00000010"
+      "connections": 3
     },
     "http": {
       "port": 1650,

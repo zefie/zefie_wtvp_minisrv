@@ -200,7 +200,6 @@
     <Content Include="ServiceVault\wtv-update\DealerDemo.js" />
     <Content Include="ServiceVault\wtv-home\home.js" />
     <Content Include="ServiceVault\wtv-update\updatesuccess.txt" />
-    <Content Include="ServiceVault\wtv-1800\finish-prereg.js" />
     <Content Include="ServiceVault\wtv-1800\preregister.js" />
     <Content Include="ServiceVault\wtv-head-waiter\finalize-security.js" />
     <Content Include="ServiceVault\wtv-head-waiter\login-stage-two.js" />
