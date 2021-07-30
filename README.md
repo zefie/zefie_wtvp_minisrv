@@ -11,12 +11,12 @@ This open source server is in alpha status. Use at your own risk.
 - Suports `.js` service files with synchronous or asynchronous requests
 - Supports multiple simultaneous users
 - WebTV-compatible HTTP(S) Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
-- wtv-flashrom for LC2 and newer boxes (bf0app unsupported, need test unit)
+- Flashrom flashing support for all known units (including bf0app 'Old Classic')
 - Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
-- wtv-update:/sync for Download-o-Rama style file downloading
+- `wtv-update:/sync` for Download-o-Rama style file downloading
 
 ### Current issues:
-- ~~Occasionally, in certain circumstances, a specific SSID may be unable to reconnect to the server until the server is restarted~~ *Hopefully fixed in [v0.9.3](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.3)*
+- Satellite Receiver units reportedly cannot surf with http or https proxy.
 - Mis-configuring wtv-update:/sync DiskMaps may cause units to delete contents of partitions (need more info)
 
 ### Won't fix:
@@ -24,12 +24,12 @@ This open source server is in alpha status. Use at your own risk.
 - No intentions to support user accounts, registration, or any form of database system
 
 ### Feature Todo:
-- ~~Implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)~~ ***Done [v0.7.1](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.7.1)***
-- ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done [v0.8.0](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.8.0)***
-- ~~SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)~~ ***Done [v0.9.4](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.4)***
-- Flashrom flashing for bf0app old classic (need donor unit)
 - wtv-lzpf support
-- (maybe) wtvchat stuff
+- TellyScript generation and/or manipulation (needed for Name Server configuration)
+- ~~Flashrom flashing for bf0app old classic~~ ***Done [v0.9.9](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.9)***
+- ~~SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)~~ ***Done [v0.9.4](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.4)***
+- ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done [v0.8.0](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.8.0)***
+- ~~Implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)~~ ***Done [v0.7.1](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.7.1)***
 
 ### How To Use:
 - Install [node.js](https://nodejs.org/en/download/). Be sure to say `Yes` when asked about `Chocolatey`.

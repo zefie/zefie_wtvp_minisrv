@@ -32,12 +32,17 @@
     <Content Include=".gitignore" />
     <Content Include="app.js" />
     <Content Include="config.json" />
+    <Content Include="ServiceVault\wtv-1800\noflash.js" />
+    <Content Include="ServiceVault\wtv-1800\offer-open-isp-suggest.js" />
     <Content Include="ServiceVault\wtv-chat\home.js" />
     <Content Include="ServiceVault\wtv-chat\images\htv_chat.gif" />
     <Content Include="ServiceVault\wtv-chat\images\htv_chat.jpg" />
     <Content Include="ServiceVault\wtv-chat\images\top_corner_dark.jpg" />
     <Content Include="ServiceVault\wtv-chat\images\widget.gif" />
     <Content Include="ServiceVault\wtv-chat\MakeChatPage.js" />
+    <Content Include="ServiceVault\wtv-flashrom\current-noflash.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-flashrom\get-by-path.js">
       <SubType>Code</SubType>
     </Content>
@@ -47,6 +52,7 @@
     </Content>
     <Content Include="ServiceVault\wtv-flashrom\lc2-download-complete.js" />
     <Content Include="ServiceVault\wtv-flashrom\lc2-download-failed.js" />
+    <Content Include="ServiceVault\wtv-flashrom\noflash.js" />
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\HackTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\MSNLogo.gif" />
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\S40H1.gif" />

@@ -89,7 +89,8 @@ if (!request_headers.query.path) {
 }
 
 async function processLC2DownloadPage(path, flashrom_message, numparts = null) {
-	if (numparts != null) var flashrom_numparts = parseInt(numparts);
+	var flashrom_numparts = null;
+	if (numparts != null) flashrom_numparts = parseInt(numparts);
 	if (!flashrom_numparts) flashrom_numparts = flashrom_message.substring(flashrom_message.length - 4).replace(/\D/g, '');
 	var ind = new Array();
 	ind[0] = (path.indexOf("part") + 4);

@@ -31,19 +31,19 @@ if (!String.prototype.reverse) {
     }
 }
 
-function getServiceString(service) {
+function getServiceString(service, overrides = null) {
     // used externally by service scripts
     if (service === "all") {
         var out = "";
         Object.keys(minisrv_config.services).forEach(function (k) {
-            out += minisrv_config.services[k].toString() + "\n";
+            out += minisrv_config.services[k].toString(overrides) + "\n";
         });
         return out;
     } else {
         if (!minisrv_config.services[service]) {
             throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
         } else {
-            return minisrv_config.services[service].toString();
+            return minisrv_config.services[service].toString(overrides);
         }
     }
 }
@@ -469,9 +469,9 @@ async function sendToClient(socket, headers_obj, data) {
 
     // calculate content length
     if (typeof data.length !== 'undefined') {
-        headers_obj["Content-Length"] = data.length;
+        headers_obj["Content-length"] = data.length;
     } else if (typeof data.byteLength !== 'undefined') {
-        headers_obj["Content-Length"] = data.byteLength;
+        headers_obj["Content-length"] = data.byteLength;
     }
 
     if (ssid_sessions[socket.ssid]) {
@@ -486,17 +486,23 @@ async function sendToClient(socket, headers_obj, data) {
         }
     }
 
+    var end_of_line = "\n";
+    if (!headers_obj['minisrv-use-carriage-return'] || headers_obj['minisrv-use-carriage-return'] != "false") end_of_line = "\r\n";
+    if (headers_obj['minisrv-use-carriage-return']) delete headers_obj['minisrv-use-carriage-return'];
+
+    if (end_of_line == "\n" && zdebug) console.log(" * Script requested to send headers without carriage return (bf0app hack)");
+
     // header object to string
     if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
         if (k == "http_response") {
-            headers += headers_obj[k] + "\r\n";
+            headers += headers_obj[k] + end_of_line;
         } else {
             if (k.indexOf('_') >= 0) {
                 var j = k.split('_')[0];
-                headers += j + ": " + headers_obj[k] + "\r\n";
+                headers += j + ": " + headers_obj[k] + end_of_line;
             } else {
-                headers += k + ": " + headers_obj[k] + "\r\n";
+                headers += k + ": " + headers_obj[k] + end_of_line;
             }
         }
     });
@@ -505,17 +511,17 @@ async function sendToClient(socket, headers_obj, data) {
     // send to client
     var toClient = null;
     if (typeof data == 'string') {
-        toClient = headers + "\r\n" + data;
+        toClient = headers + end_of_line + data;
         socket.write(toClient);
     } else if (typeof data == 'object') {
         if (zquiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
         if (socket_sessions[socket.id].secure_headers == true) {
             // encrypt headers
             if (zquiet)verbosity_mod += " with encrypted headers";
-            var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + "\r\n");
+            var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + end_of_line);
             socket.write(new Uint8Array(concatArrayBuffer(enc_headers, data)));
         } else {
-            socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + "\r\n"), data)));
+            socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
         }
         if (zquiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.http_response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-Length'], "bytes)");
     }
@@ -1217,15 +1223,26 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     if (minisrv_config.services[k].port && !minisrv_config.services[k].nobind) {
         ports.push(minisrv_config.services[k].port);
     }
-
-    minisrv_config.services[k].toString = function () {
-        var outstr = "wtv-service: name=" + this.name + " host=" + this.host + " port=" + this.port;
-        if (this.flags) outstr += " flags=" + this.flags;
-        if (this.connections) outstr += " connections=" + this.connections;
+    // minisrv_config service toString
+    minisrv_config.services[k].toString = function (overrides) {
+        var self = this;
+        if (overrides != null) {
+            if (typeof (overrides) == 'object') {
+                Object.keys(overrides).forEach(function (k) {
+                    self[k] = overrides[k];
+                });
+            }
+        }
+        if ((k == "wtv-star" && self.no_star_word != true) || k != "wtv-star") {
+            var outstr = "wtv-service: name=" + self.name + " host=" + self.host + " port=" + self.port;
+            if (self.flags) outstr += " flags=" + self.flags;
+            if (self.connections) outstr += " connections=" + self.connections;
+        }
         if (k == "wtv-star") {
-            outstr += "\nwtv-service: name=wtv-* host=" + this.host + " port=" + this.port;
-            if (this.flags) outstr += " flags=" + this.flags;
-            if (this.connections) outstr += " connections=" + this.connections;
+            outstr += "\nwtv-service: name=wtv-* host=" + self.host + " port=" + self.port;
+            if (self.flags) outstr += " flags=" + self.flags;
+            if (self.connections) outstr += " connections=" + self.connections;
+            if (self['no_star_word']) delete self['no_star_word'];
         }
         return outstr;
     }
