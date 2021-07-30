@@ -46,7 +46,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var send_tellyscripts = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin);
 	var wtv_script_id = parseInt(ssid_sessions[socket.ssid].get("wtv-script-id"));
 	var	bootrom = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version");
-	if (request_headers.query.relogin && wtv_script_id != 0) send_tellyscript = false;
+	if (request_headers.query.relogin && wtv_script_id != 0) send_tellyscripts = false;
 	if (send_tellyscripts) {
 		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
 			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)
@@ -132,7 +132,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		request_is_async = true;
 		fs.readFile(file_path, null, function (err, file_read_data) {
 			if (err) {
-				var errmsg = doErrorCode(400);
+				var errmsg = doErrorPage(400);
 				headers = errmsg[0];
 				file_read_data = errmsg[1] + "\n" + err.toString();
 			}
@@ -140,7 +140,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		});
 	}
 } else {
-	var errpage = doErrorCode(400);
+	var errpage = doErrorPage(400);
 	headers = errpage[0];
 	data = errpage[1];
 }
