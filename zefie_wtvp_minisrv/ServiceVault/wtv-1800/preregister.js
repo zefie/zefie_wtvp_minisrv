@@ -1,6 +1,5 @@
 var gourl = "wtv-head-waiter:/login?";
 if (request_headers.query.relogin) gourl += "relogin=true";
-var send_initial_key = true;
 
 if (socket.ssid) {
     if (ssid_sessions[socket.ssid].data_store) {
@@ -103,30 +102,37 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		// assume old classic in flash mode, override user setting and send tellyscript
 		// because it is required to proceed in flash mode
 		prereg_contype = "text/tellyscript";
-		var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_production_braindead.tok";
-		bf0app_update = true;
+		var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/BF0APP/bf0app_boot_uncompressed.tok";
+		var bf0app_update = true;
+		ssid_sessions[socket.ssid].set("bf0app_update", bf0app_update);
 	}
 	
 	if (request_headers["wtv-ticket"]) {
 		gourl = "wtv-head-waiter:/login-stage-two?relogin=true";
-		send_initial_key = false;
 	}	
 
 	headers = "200 OK\n"
+	if (bf0app_update) headers += "minisrv-use-carriage-return: false\n";
 	headers += "Connection: Keep-Alive\n";
-	if (send_initial_key) headers += "wtv-initial-key: " + ssid_sessions[socket.ssid].data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
+	headers += "wtv-initial-key: " + ssid_sessions[socket.ssid].data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
 	headers += "Content-Type: " + prereg_contype + "\n";
 	headers += "wtv-service: reset\n";
-	headers += getServiceString('wtv-1800') + "\n";
-	headers += getServiceString('wtv-star') + "\n";
-	if (!bf0app_update) headers += getServiceString('wtv-head-waiter') + "\n";
+	if (!bf0app_update) headers += getServiceString('wtv-1800') + "\n";
+
+	if (bf0app_update) headers += getServiceString('wtv-head-waiter', { "flags": "0x00000001" }) + "\n";
+	else headers += getServiceString('wtv-head-waiter') + "\n";
+
+	if (bf0app_update) headers += getServiceString('wtv-star', { "no_star_word": true }) + "\n";
+	else headers += getServiceString('wtv-star') + "\n";
+	
 	headers += getServiceString('wtv-flashrom') + "\n";
-	if (!bf0app_update) headers += "wtv-boot-url: wtv-1800:/preregister?relogin=true\n"
+	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
+	else headers += "wtv-boot-url: wtv-1800:/preregister?relogin=true\n";
+	headers += "wtv-visit: " + gourl + "\n";
 	if (!bf0app_update) headers += "wtv-open-isp-disabled: false\n";
-	if (!bf0app_update) headers += "wtv-visit: "+gourl+"\n";
-	if (!bf0app_update) headers += "wtv-client-time-zone: GMT -0000\n";
-	if (!bf0app_update) headers += "wtv-client-time-dst-rule: GMT\n"
-	if (!bf0app_update) headers += "wtv-client-date: " + strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + " GMT";
+	headers += "wtv-client-time-zone: GMT -0000\n";
+	headers += "wtv-client-time-dst-rule: GMT\n"
+	headers += "wtv-client-date: " + strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + " GMT";
 
 	if (file_path) {
 		request_is_async = true;

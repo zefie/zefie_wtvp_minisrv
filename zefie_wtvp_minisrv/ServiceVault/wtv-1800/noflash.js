@@ -12,11 +12,12 @@ if (wtvsec_login) {
 
 headers = `200 OK
 Connection: Keep-Alive
+minisrv-use-carriage-return: false
 wtv-initial-key: ` + wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + `
 Content-Type: text/tellyscript
 wtv-service: reset
 ` + getServiceString('wtv-head-waiter') + `
-` + getServiceString('wtv-star') + `
+` + getServiceString('wtv-star', { "no_star_word": true }) + `
 ` + getServiceString('wtv-flashrom') + `
 wtv-boot-url: wtv-head-waiter:/login?
 wtv-visit: wtv-head-waiter:/login?
@@ -24,22 +25,16 @@ wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: GMT
 wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + ` GMT`;
 
-	var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_production_braindead";
-	//var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OISP_5555732_56k.tok";
+	var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/BF0APP/bf0app_boot_uncompressed.tok";
 
 	if (file_path) {
 		request_is_async = true;
 		fs.readFile(file_path, null, function (err, file_read_data) {
 			if (err) {
-
 				headers=`500 Some error occurred...`
 			}
 			sendToClient(socket, headers, file_read_data);
 		});
-
-
-
-
 	}
 } else {
 	console.log(" * Something bad happened (we don't know the client ssid???)");
