@@ -1225,7 +1225,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     }
     // minisrv_config service toString
     minisrv_config.services[k].toString = function (overrides) {
-        var self = this;
+        var self = Object.assign({}, this);
         if (overrides != null) {
             if (typeof (overrides) == 'object') {
                 Object.keys(overrides).forEach(function (k) {
@@ -1242,7 +1242,6 @@ Object.keys(minisrv_config.services).forEach(function (k) {
             outstr += "\nwtv-service: name=wtv-* host=" + self.host + " port=" + self.port;
             if (self.flags) outstr += " flags=" + self.flags;
             if (self.connections) outstr += " connections=" + self.connections;
-            if (self['no_star_word']) delete self['no_star_word'];
         }
         return outstr;
     }
