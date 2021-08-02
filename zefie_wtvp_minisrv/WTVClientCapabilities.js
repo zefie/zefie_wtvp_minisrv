@@ -128,7 +128,11 @@ class WTVClientCapabilities {
                 var bitfield_result = (bitfield[k] == "1")
 
                 // set flags based on position of bit
-                add(capabilities_table[k][0], bitfield_result);
+                try {
+                    add(capabilities_table[k][0], bitfield_result);
+                } catch (ex) {
+                    console.error(" * Unknown configuration bit", k);
+                }
             });
 
             this.capabilities = capabilities;
