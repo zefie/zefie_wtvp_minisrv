@@ -24,7 +24,7 @@ function go() {
 	location.href=document.access.url.value;
 }
 </script>
-<h2>Welcome to `+ z_title + `</h2>
+<h3>Welcome to `+ z_title + `</h3>
 <b>Encryption Status</b>: ${cryptstatus}<br>
 <b>Connection Speed</b>: &rate;
 <p>

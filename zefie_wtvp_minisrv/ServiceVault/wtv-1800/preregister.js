@@ -1,5 +1,6 @@
 var gourl = "wtv-head-waiter:/login?";
 if (request_headers.query.relogin) gourl += "relogin=true";
+if (request_headers.query.reconnect) gourl += "reconnect=true";
 
 if (socket.ssid) {
     if (ssid_sessions[socket.ssid].data_store) {
@@ -46,7 +47,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var send_tellyscripts = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin);
 	var wtv_script_id = parseInt(ssid_sessions[socket.ssid].get("wtv-script-id"));
 	var	bootrom = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version");
-	if (request_headers.query.relogin && wtv_script_id != 0) send_tellyscripts = false;
+	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscripts = false;
 	if (send_tellyscripts) {
 		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
 			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)
@@ -101,9 +102,13 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		ssid_sessions[socket.ssid].set("bf0app_update", bf0app_update);
 	}
 	
-	if (request_headers["wtv-ticket"]) {
+	if (request_headers["wtv-ticket"] && !request_headers.query.reconnect) {
 		gourl = "wtv-head-waiter:/login-stage-two?relogin=true";
-	}	
+	}
+
+	if (request_headers.query.reconnect) {
+		gourl = null;
+    }
 
 
 	if (!file_path != null && !zquiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
@@ -125,7 +130,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else headers += "wtv-boot-url: wtv-1800:/preregister?relogin=true\n";
-	headers += "wtv-visit: " + gourl + "\n";
+	if (gourl != null) headers += "wtv-visit: " + gourl + "\n";
 	if (!bf0app_update && ssid_sessions[socket.ssid].get("wtv-open-access")) headers += "wtv-open-isp-disabled: false\n";
 	headers += "wtv-client-time-zone: GMT -0000\n";
 	headers += "wtv-client-time-dst-rule: GMT\n"

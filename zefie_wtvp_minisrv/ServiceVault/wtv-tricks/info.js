@@ -77,6 +77,10 @@ Content-Type: text/html`
 		<td width=10>
 		<td valign=top>${socket.remoteAddress}
 <tr>
+		<td valign=top align=right><shadow>Service IP number:</shadow>
+		<td width=10>
+		<td valign=top>${service_ip}
+<tr>
 		<td height=20>
 <tr>
 		<td valign=top align=right><shadow>ROM type:</shadow>

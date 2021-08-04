@@ -14,6 +14,20 @@ var WTVSec = require('./WTVSec.js');
 var WTVClientCapabilities = require('./WTVClientCapabilities.js');
 var WTVClientSessionData = require('./WTVClientSessionData.js');
 
+process
+    .on('SIGTERM', shutdown('SIGTERM'))
+    .on('SIGINT', shutdown('SIGINT'))
+    .on('uncaughtException', shutdown('uncaughtException'));
+
+
+function shutdown(signal) {
+    return (err) => {
+        console.log("Received signal", signal);
+        if (err) console.error(err.stack || err);
+        process.exit(err ? 1 : 0);
+    };
+}
+
 // Where we store our session information
 var ssid_sessions = new Array();
 var socket_sessions = new Array();
@@ -285,7 +299,7 @@ async function processURL(socket, request_headers) {
 }
 
 async function doHTTPProxy(socket, request_headers) {
-    var request_type = (request_headers.request_url.substring(0,5) == 'https') ? 'https' : 'http'
+    var request_type = (request_headers.request_url.substring(0, 5) == "https") ? "https" : "http";
     if (zshowheaders) console.log(request_type.toUpperCase() +" Proxy: Client Request Headers on socket ID", socket.id, (await filterSSID(request_headers)));
     switch (request_type) {
         case "https":
@@ -304,7 +318,7 @@ async function doHTTPProxy(socket, request_headers) {
         request_data.port = request_data.host.split(':')[1];
         request_data.host = request_data.host.split(':')[0];
     } else {
-        if (request_type === 'https') request_data.port = 443;
+        if (request_type === "https") request_data.port = 443;
         else request_data.port = 80;
     }
     for (var i = 0; i < 3; i++) request_url_split.shift();
@@ -332,10 +346,11 @@ async function doHTTPProxy(socket, request_headers) {
                 var ProxyAgent = require('proxy-agent');
                 options.agent = new ProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
             } else {
+                var proxy_agent = http;
                 options.host = minisrv_config.services[request_type].external_proxy_host;
                 options.port = minisrv_config.services[request_type].external_proxy_port;
                 options.path = request_headers.request.split(' ')[1];
-                options.headers.Host = request_data.host;
+                options.headers.Host = request_data.host + ":" + request_data.port;
             }
         }
         const req = proxy_agent.request(options, function (res) {
@@ -579,7 +594,7 @@ function headersAreStandard(string, verbose = false) {
     // in unencrypted headers, and returns true only if every character in the string matches
     // the regex. Once we know the string is binary, we can better process it with the
     // raw base64 or hex data in processRequest() below.
-    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_]{8,})$/.test(string);
+    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~]{8,})$/.test(string);
 }
 
 async function processRequest(socket, data_hex, skipSecure = false, encryptedRequest = false) {

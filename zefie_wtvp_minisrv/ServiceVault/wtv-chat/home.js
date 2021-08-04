@@ -107,25 +107,25 @@ Chat Home (Testing)
 <table>
 <tr>
 <td abswidth="120">Server:</td>
-<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle type="text" name="host" value="${request_headers.query.host || "chat.irchat.tv"}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || "chat.irchat.tv"}"></td>
 </tr>
 
 <tr>
 <td>Port:</td>
-<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle type="text" name="port" value="${request_headers.query.port || 6667}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="port" value="${request_headers.query.port || 6667}"></td>
 </tr>
 
 <tr>
 <td>Channel:</td>
-<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle type="text" name="channel" value="${request_headers.query.channel || "WebTV"}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="channel" value="${request_headers.query.channel || "WebTV"}"></td>
 </tr>
 <tr>
 <td>IRC Nick<sup>*</sup>:</td>
-<td><input width="240" bgcolor=262626 text=ffc342 cursor=cc9933 font=proportional usestyle maxlength=16 type="text" name="nick" value="${irc_nick}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional maxlength=16 type="text" name="nick" value="${irc_nick}"></td>
 </tr>
 <tr>
 <td colspan="2" align="right">
-<input type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Connect" usestyle width=100>
+<input type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Connect" text=D6D6D6 width=100>
 </td>
 </tr>
 </table>

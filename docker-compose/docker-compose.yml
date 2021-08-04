@@ -1,0 +1,22 @@
+version: '3'
+services:
+   webone:
+    build: ./webone
+    restart: unless-stopped
+    stop_signal: SIGKILL
+    volumes:
+     - /home/zefie/docker/wtvminisrv/webone.conf:/etc/webone.conf:ro
+     - /home/zefie/docker/wtvminisrv/webone.conf.d/:/etc/webone.conf.d/:ro
+
+   minisrv:
+    build: ./minisrv
+    restart: unless-stopped
+    links:
+     - webone
+    ports:
+     - "1600-1699:1600-1699"
+    volumes:
+     - /home/zefie/docker/wtvminisrv/user_config.json:/opt/minisrv/zefie_wtvp_minisrv/user_config.json:ro
+     - /home/zefie/docker/wtvminisrv/UserServiceVault:/opt/minisrv/zefie_wtvp_minisrv/UserServiceVault
+
+
