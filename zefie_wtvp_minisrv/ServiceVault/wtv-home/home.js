@@ -4,6 +4,8 @@ wtv-expire-all: wtv-home:/splash
 wtv-expire-all: wtv-flashrom:
 Content-type: text/html`
 
+if (request_headers.query.url) headers += "\nwtv-visit: " + unescape(request_headers.query.url);
+
 if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 	var cryptstatus = "<a href='client:showalert?message=Your%20WebTV%20Unit%20sent%20us%20a%20request%20for%20SECURE%20ON%2C%20but%20did%20not%20encrypt%20any%20data%2C%20nor%20will%20accept%20it.%20However%2C%20we%20send%20the%20wtv-encryption%20flag%20to%20roll%20with%20it%2C%20enabling%20%27psuedo-encryption%27.%20Nothing%20is%20encrypted%2C%20but%20the%20box%20trusts%20us.%20This%20will%20probably%20go%20away%20if%20you%20reload%20or%20change%20pages.&buttonaction1=client:donothing&buttonlabel1=Oh%2C%20okay...'>Psuedo-encrypted</a>";
 } else {

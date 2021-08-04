@@ -63,6 +63,10 @@
       "port": 1630,
       "connections": 3
     },
+    "wtv-cookie": {
+      "port": 1619,
+      "connections": 1
+    },
     "http": {
       "port": 1650,
       "connections": 3,
