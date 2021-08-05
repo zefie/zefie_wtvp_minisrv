@@ -1,5 +1,9 @@
 var challenge_response, challenge_header = '';
 
+var gourl = "wtv-head-waiter:/login-stage-two?";
+if (request_headers.query.relogin) gourl += "relogin=true";
+if (request_headers.query.reconnect) gourl += "reconnect=true";
+
 if (socket.ssid !== null) {
 	var wtvsec_login = ssid_sessions[socket.ssid].get("wtvsec_login");
 	if (request_headers["wtv-ticket"]) {
@@ -56,10 +60,10 @@ Expires: Wed, 09 Oct 1991 22:00:00 GMT
 wtv-expire-all: wtv-head-waiter:
 `+ getServiceString('wtv-log') + `
 wtv-log-url: wtv-log:/log
-`+ challenge_header + `
+${challenge_header}
 wtv-relogin-url: wtv-1800:/preregister?relogin=true
 wtv-reconnect-url: wtv-1800:/preregister?reconnect=true
-wtv-visit: wtv-head-waiter:/login-stage-two?
+wtv-visit: ${gourl}
 Content-type: text/html`;
 	data = '';
 } else {

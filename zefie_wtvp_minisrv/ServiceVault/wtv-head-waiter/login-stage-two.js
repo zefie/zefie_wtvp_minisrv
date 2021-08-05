@@ -96,7 +96,7 @@ wtv-wink-deferrer-retries: 3
 wtv-offline-mail-enable: false
 wtv-name-server: 8.8.8.8
 `;
-	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true') {
+	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect) {
 		headers += "wtv-settings-url: wtv-setup:/get\n";
 	}
 	headers += `wtv-visit: wtv-home:/splash?
