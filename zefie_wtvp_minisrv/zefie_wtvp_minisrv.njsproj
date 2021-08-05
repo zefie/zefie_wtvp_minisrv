@@ -221,6 +221,9 @@
     <Content Include="WTVClientCapabilities.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="WTVFlashrom.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="WTVSec.js">
       <SubType>Code</SubType>
     </Content>
