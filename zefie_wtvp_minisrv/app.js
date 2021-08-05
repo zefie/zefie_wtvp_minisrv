@@ -14,6 +14,20 @@ var WTVSec = require('./WTVSec.js');
 var WTVClientCapabilities = require('./WTVClientCapabilities.js');
 var WTVClientSessionData = require('./WTVClientSessionData.js');
 
+process
+    .on('SIGTERM', shutdown('SIGTERM'))
+    .on('SIGINT', shutdown('SIGINT'))
+    .on('uncaughtException', shutdown('uncaughtException'));
+
+
+function shutdown(signal) {
+    return (err) => {
+        console.log("Received signal", signal);
+        if (err) console.error(err.stack || err);
+        process.exit(err ? 1 : 0);
+    };
+}
+
 // Where we store our session information
 var ssid_sessions = new Array();
 var socket_sessions = new Array();
