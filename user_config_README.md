@@ -6,10 +6,13 @@
 ### `config` section
 Some values are available that are not defined in `config.json` by default. I will attempt to cover them here.
 ```
+		"service_name": "CoolTV",
+		"service_owner": "CoolDude",
 		"service_logo": "WebTVLogoJewel.gif",
 		"service_splash_logo": "file://ROM/images/SplashLogo1.gif"
 ```
-You can set the image to be loaded in the top left in place of the WebTV or MSN logo, as well as the main Splash image shown on login.
+You can set the service name and service owner, which will be used across the service when referencing itself.
+You can set the image to be loaded in the top left in place of the WebTV or HackTV logo, as well as the main Splash image shown on login.
 If an absolute path (`wtv-url:/`, `file://` url, or `http(s)://` url) is not passed, the server will search for the specified filename in `wtv-star/images` of any Service Vault. You'll want to keep the filesizes low.
 ```
 		"post_debug": true

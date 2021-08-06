@@ -8,7 +8,7 @@ data = `<html>
 <head>
 <display hideoptions nostatus showwhencomplete skipback clearback fontsize=medium>
 <title>Engaging zefie...</title>
-<meta http-equiv=Refresh content="4; url=wtv-home:/home?">
+<meta http-equiv=Refresh content="4; url=wtv-register:/register?">
 </head>
 <body bgcolor="#000000" text="#449944">
 <bgsound src="file://ROM/Sounds/Splash.mid">

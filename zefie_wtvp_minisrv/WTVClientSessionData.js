@@ -1,19 +1,201 @@
 class WTVClientSessionData {
 
-    /***********************************\
-    |* Special Thanks to:              *|
-    |*                         No one  *|
-    |* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  *|
-    |*   There is literally nothing    *|
-    |*    special about this class     *|
-    \***********************************/
-
+    fs = require('fs');
+    path = require('path');
+    ssid = null;
     data_store = null;
+    session_store = null;
+    login_security = null;
     capabilities = null;
+    session_storage = "";
+    hide_ssid_in_logs = true;
 
-    constructor() {
-        this.data_store = new Array();
+    filterSSID(obj) {
+        if (this.hide_ssid_in_logs === true) {
+            if (typeof (obj) == "string") {
+                if (obj.substr(0, 8) == "MSTVSIMU") {
+                    return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
+                } else if (obj.substr(0, 5) == "1SEGA") {
+                    return obj.substr(0, 6) + ('*').repeat(6) + obj.substr(13);
+                } else {
+                    return obj.substr(0, 6) + ('*').repeat(9);
+                }
+            } else {
+                if (obj["wtv-client-serial-number"]) {
+                    var ssid = obj["wtv-client-serial-number"];
+                    if (ssid.substr(0, 8) == "MSTVSIMU") {
+                        obj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
+                    } else if (ssid.substr(0, 5) == "1SEGA") {
+                        obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
+                    } else {
+                        obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
+                    }
+                }
+                return obj;
+            }
+        } else {
+            return obj;
+        }
     }
+
+    constructor(hide_ssid_in_logs, session_storage_directory) {
+        if (hide_ssid_in_logs) this.hide_ssid_in_logs = hide_ssid_in_logs;
+        if (!session_storage_directory) session_storage_directory = __dirname + "/SessionStore";
+        this.session_storage = session_storage_directory;
+        this.data_store = new Array();
+        this.session_store = {};
+    }
+
+    getUTCTime(offset = 0) {
+        return new Date((new Date).getTime() + offset).toUTCString();
+    }
+
+    countCookies() {
+        return Object.keys(this.session_store.cookies).length || 0;
+    }
+
+    resetCookies() {
+        this.session_store.cookies = {};
+        // webtv likes to have at least one cookie in the list, set a dummy cookie for zefie's site expiring in 1 year.
+        this.addCookie("wtv.zefie.com", "/", this.getUTCTime(365 * 86400000), "cookie_type=chocolatechip");
+    }
+
+    addCookie(domain, path = null, expires = null, data = null) {
+        if (!this.checkCookies()) this.resetCookies();
+        if (!domain) return false;
+        else if (typeof (domain) == 'object') {
+            // accept array as first argument
+            if (domain.domain && domain.path && domain.expires && domain.data) var cookie_data = domain;
+            else return false;
+        } else {
+            if (path && expires && data) {
+                var cookie_data = new Array();
+                cookie_data['cookie'] = unescape(data);
+                cookie_data['expires'] = unescape(expires);
+                cookie_data['path'] = unescape(path);
+                cookie_data['domain'] = unescape(domain);
+            } else {
+                return false;
+            }
+        }        
+        this.session_store.cookies[this.countCookies()] = Object.assign({}, cookie_data);
+        this.storeSessionData();
+        return true;
+    }
+
+    getCookie(domain, path) {
+        if (!this.checkCookies()) this.resetCookies();
+        var self = this;
+        var result = false;
+        Object.keys(this.session_store['cookies']).forEach(function (k) {
+            if (result != false) return;
+            if (self.session_store['cookies'][k].domain == domain &&
+                self.session_store['cookies'][k].path == path) {
+
+                var current_epoch_utc = Math.floor(Date.toUTCString().getTime() / 1000);
+                var cookie_expires_epoch_utc = Math.floor(Date.Parse(self.session_store['cookies'][k].expires).toUTCString().getTime());
+                if (cookie_expires_epoch_utc <= current_epoch_utc) self.deleteCookie(self.session_store['cookies'][k]);
+                else result = self.session_store['cookies'][k];
+            }
+        });
+        return result;
+    }
+
+    getCookieString(domain, path) {
+        var cookie_data = this.getCookie(domain, path);
+        var outstring = "";
+        Object.keys(cookie_data).forEach(function (k) {
+            outstring += k + "=" + escape(cookie_data[k]) + "&";
+        });
+        return outstring.substring(0, outstring.length - 1);
+    }
+
+    deleteCookie(domain, path = null) {
+        var result = false;
+        if (!this.checkCookies()) {
+            this.resetCookies();
+            return true;
+        }
+        if (!domain) return false;
+        else if (typeof (domain) == 'object') {
+            // accept array as first argument
+            if (domain.domain && domain.path) {
+                path = domain.path;
+                domain = domain.domain;
+            }
+        } else if (!path) {
+            return false;
+        }
+
+        var self = this;
+        Object.keys(this.session_store['cookies']).forEach(function (k) {
+            if (self.session_store['cookies'][k].domain == domain && self.session_store['cookies'][k].path == path) {
+                delete self.session_store['cookies'][k];
+                self.storeSessionData();
+                result = true;
+            }
+        });
+
+        return result;
+    }
+
+    checkCookies() {
+        if (!this.session_store.cookies) return false;
+        else if (this.session_store.cookies == []) return false;
+        return true;
+    }
+
+    listCookies() {
+        if (!this.checkCookies()) this.resetCookies();
+        var outstring = "";
+        var self = this;
+        Object.keys(this.session_store.cookies).forEach(function (k) {
+            outstring += self.session_store.cookies[k].domain + "\0" + self.session_store.cookies[k].path + "\0";
+        });
+        return outstring;
+    }
+
+    loadSessionData() {
+        try {
+            if (this.fs.lstatSync(this.session_storage + this.path.sep + this.ssid + ".json")) {
+                var session_data_file = this.fs.readFileSync(this.session_storage + this.path.sep + this.ssid + ".json", 'Utf8');
+                var session_data = JSON.parse(session_data_file);
+                this.session_store = session_data;
+                return true;
+            }
+        } catch (e) {
+            // Don't log error 'file not found', it just means the client isn't registered yet
+            if (e.code != "ENOENT") console.error(" # Error loading session data for", this.filterSSID(this.ssid), e);
+            return false;
+        }
+    }
+
+    saveSessionData() {
+        if (!this.session_store.registered) {
+            var temp_store = this.session_store;
+            this.loadSessionData();
+            this.session_store = Object.assign(this.session_store, temp_store);
+        }
+        try {
+            var store_data = JSON.stringify(this.session_store);
+            this.fs.writeFileSync(this.session_storage + this.path.sep + this.ssid + ".json", store_data, "Utf8");
+            return true;
+        } catch (e) {            
+            console.error(" # Error saving session data for", this.filterSSID(this.ssid), e);
+            return false;
+        }
+    }
+
+    retrieveSessionData() {
+        // alias
+        this.loadSessionData();
+    }
+
+    storeSessionData() {
+        // alias
+        return this.saveSessionData();
+    }
+
 
     hasCap(cap) {
         if (this.capabilities) {
@@ -43,6 +225,7 @@ class WTVClientSessionData {
         // returns headers to send to client, while storing the new data in our session data.
         this.data_store['wtv-user-name'] = nick;
         this.data_store['wtv-irc-nick'] = nick;
+        this.session_store.subscriber_irc_nick = nick;
         return "wtv-irc-nick: " + nick + "\nwtv-user-nick: " + nick;
     }
 
@@ -50,6 +233,34 @@ class WTVClientSessionData {
         if (this.data_store['wtv-need-upgrade'] || this.data_store['wtv-used-8675309']) return true;
         return false;
     }
+
+    currentConnections() {
+        if (this.data_store) {
+            if (this.data_store.sockets) {
+                return this.data_store.sockets.size;
+            }
+        }
+        return 0;
+    }
+
+    getSessionData(key = null) {
+        if (typeof (this.data_store) === 'session_store') return null;
+        else if (key === null) return this.data_store;
+        else if (this.session_store[key]) return this.session_store[key];
+        else return null;
+    }
+
+    setSessionData(key, value) {
+        if (key === null) throw ("ClientSessionData.set(): invalid key provided");
+        if (typeof (this.session_store) === 'undefined') this.session_store = new Array();
+        this.session_store[key] = value;
+    }
+
+    deleteSessionData(key) {
+        if (key === null) throw ("ClientSessionData.delete(): invalid key provided");
+        delete this.session_store[key];
+    }
+
 
     get(key = null) {
         if (typeof (this.data_store) === 'undefined') return null;

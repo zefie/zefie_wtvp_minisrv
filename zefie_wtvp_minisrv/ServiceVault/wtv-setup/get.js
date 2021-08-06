@@ -1,4 +1,9 @@
 headers = `200 OK
+wtv-backgroundmusic-load-playlist: wtv-music:/get-playlist
+wtv-printer-model: -1,-1
+wtv-printer-pen: 0,0,1,0
+wtv-printer-setup: 0,0,1,0
+wtv-language-header: en-US,en
 Content-Type: text/html`
 
 var settings_obj = new Array();

@@ -46,12 +46,18 @@ if (!String.prototype.reverse) {
     }
 }
 
-function getServiceString(service, overrides = null) {
+function getServiceString(service, overrides = {}) {
     // used externally by service scripts
     if (service === "all") {
         var out = "";
         Object.keys(minisrv_config.services).forEach(function (k) {
-            out += minisrv_config.services[k].toString(overrides) + "\n";
+            if (overrides.exceptions) {
+                    Object.keys(overrides.exceptions).forEach(function (j) {
+                        if (k != overrides.exceptions[j]) out += minisrv_config.services[k].toString(overrides) + "\n";
+                    });
+            } else {
+                out += minisrv_config.services[k].toString(overrides) + "\n";
+            }
         });
         return out;
     } else {
@@ -264,6 +270,30 @@ async function processURL(socket, request_headers) {
             shortURL = unescape(request_headers.request_url);
         }
 
+        if (request_headers.post_data) {
+            if (headersAreStandard(request_headers.post_data.toString(CryptoJS.enc.Utf8))) {
+                if (request_headers.post_data.toString(CryptoJS.enc.Utf8).indexOf('=')) {
+                    if (request_headers.post_data.toString(CryptoJS.enc.Utf8).indexOf('&')) {
+                        var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8).split('&');
+                        if (qraw.length > 0) {
+                            for (let i = 0; i < qraw.length; i++) {
+                                var k = qraw[i].split("=")[0];
+                                if (k) {
+                                    request_headers.query[k] = qraw[i].split("=")[1];
+                                }
+                            }
+                        }
+                    } else {
+                        var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8);
+                        var k = qraw[i].split("=")[0];
+                        if (k) {
+                            request_headers.query[k] = qraw[i].split("=")[1];
+                        }
+                    }
+                }
+            }
+        }
+
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
             var ssid = socket.ssid;
             if (ssid == null) {
@@ -369,16 +399,21 @@ async function doHTTPProxy(socket, request_headers) {
                 var data_hex = Buffer.concat(data).toString('hex');
 
                 console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers.request}`)
-                var headers = new Array();
-                headers.http_response = res.statusCode + " " + res.statusMessage;
-                headers["wtv-connection-close"] = false;
-                if (res.headers.server) headers.Server = res.headers.server;
-                if (res.headers.connection) headers.Connection = res.headers.connection == "close" ? "Keep-Alive" : "Close";
-                if (res.headers.date) headers.Date = res.headers.date;
-                if (res.headers["content-type"]) headers["Content-type"] = res.headers["content-type"];
-                if (res.headers.cookie) headers.Cookie = res.headers.cookie;
-                if (res.headers.vary) headers.Vary = res.headers.vary;
-                if (res.headers.location) headers.Location = res.headers.location;
+                res.headers.http_response = res.statusCode + " " + res.statusMessage;
+                res.headers["wtv-connection-close"] = false;
+                // header pass-through whitelist, case insensitive comparsion to server, however, you should
+                // specify the header case as you intend for the client
+                var headers = stripHeaders(res.headers, [
+                    'Server',
+                    'Connection',
+                    'Date',
+                    'Content-Type',
+                    'Content-length',
+                    'Cookie',
+                    'Location',
+                    'Accept-Ranges',
+                    'Last-Modified'
+                ]);
                 if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
                 if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
                 sendToClient(socket, headers, Buffer.from(data_hex,'hex'));
@@ -403,6 +438,30 @@ async function doHTTPProxy(socket, request_headers) {
             req.end();
         }
     }
+}
+
+function stripHeaders(headers_obj, whitelist) {
+    var whitelisted_headers = new Array();
+    var out_headers = new Array();
+    out_headers.http_response = headers_obj.http_response;
+    out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
+
+    // compare regardless of case
+    Object.keys(whitelist).forEach(function (k) {
+        Object.keys(headers_obj).forEach(function (j) {
+            if (whitelist[k].toLowerCase() == j.toLowerCase()) whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
+        });
+    });
+
+    // restore original header order
+    Object.keys(headers_obj).forEach(function (k) {
+        if (whitelisted_headers[k.toLowerCase()]) {
+            if (whitelisted_headers[k.toLowerCase()][1] == k) out_headers[whitelisted_headers[k.toLowerCase()][0]] = whitelisted_headers[k.toLowerCase()][2];
+        }
+    });
+
+    // return
+    return out_headers;
 }
 
 function headerStringToObj(headers, response = false) {
@@ -438,6 +497,8 @@ function headerStringToObj(headers, response = false) {
 
 async function sendToClient(socket, headers_obj, data, compress_data = false) {
     var headers = "";
+    var wni_style_content_length = false;
+    var compress_data = false;
     if (typeof (data) === 'undefined') data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -448,7 +509,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         return;
     }
     var wtv_connection_close = headers_obj["wtv-connection-close"];
-    if (typeof(headers_obj["wtv-connection-close"]) != 'undefined') delete headers_obj["wtv-connection-close"];
+    if (typeof (headers_obj["wtv-connection-close"]) != 'undefined') delete headers_obj["wtv-connection-close"];
 
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
@@ -456,55 +517,86 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         headers_obj = moveObjectElement('Connection', 'http_response', headers_obj);
     }
 
-    var clen = 0;
-    if (typeof data.length !== 'undefined') {
-        clen = data.length;
-    } else if (typeof data.byteLength !== 'undefined') {
-        clen = data.byteLength;
+    if (headers_obj['minisrv-already-compressed'] && wni_style_content_length) {
+        content_length = headers_obj["Content-length"];
+    } else {
+        var content_length = 0;
+        if (typeof data.length !== 'undefined') {
+            content_length = data.length;
+        } else if (typeof data.byteLength !== 'undefined') {
+            content_length = data.byteLength;
+        }
     }
 
-    // If wtv-lzpf is in the header then force compression
-    if (headers_obj["wtv-lzpf"]) {
-        compress_data = true;
+
+    // fix captialization of Content-Type header. May be unnecessary.
+    if (headers_obj["Content-type"]) {
+        headers_obj["Content-Type"] = headers_obj["Content-type"];
+        delete headers_obj["Content-type"];
     }
 
-    // compress if needed
-    if (compress_data && clen > 0) {
-        headers_obj["wtv-lzpf"] = "0";
-
-        var lzpf = new WTVLzpf();
-        data = lzpf.Compress(data);
+    /*
+    // check if client reports it supports compressed data
+    if (ssid_sessions[socket.ssid].capabilities) {
+        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
+            // if the client reports it supports compression, check the Content-Type
+            // of the file we are sending to see if its worth compressing
+            compress_data = shouldWeCompress(headers_obj["Content-Type"]);
+        }
     }
+    */
+
+    // compress if needed, and if not already compressed
+    if (compress_data && content_length > 0 && !headers_obj['minisrv-already-compressed']) {
+        if (zdebug) console.log(" # Uncompressed data length:", content_length);
+        headers_obj["wtv-lzpf"] = 0;
+        var wtvcomp = new WTVLzpf();
+        // we expect the compressed data to be smaller or at most equal to the source size
+        // so we set our initial buffer size to the source size
+        var compressed_data = new Buffer.alloc(content_length);
+        wtvcomp.on('data', (data, length, offset, complete) => {
+            // put data received into buffer
+            data.copy(compressed_data, offset, 0, length);
+            if (complete !== false) {
+                if (zdebug) console.log(" # Compressed data length:", complete);
+                // now that we have all of the compressed data, copy it to a new buffer
+                // of the correct length, and clean up the original buffer.
+                data = new Buffer.alloc(complete);
+                compressed_data.copy(data, 0, 0, compressed_data.byteLength);
+                compressed_data, wtvcomp = null;
+                // internal header to tell ourselves to not compress again
+                headers_obj['minisrv-already-compressed'] = true;
+                if (wni_style_content_length) headers_obj["Content-length"] = content_length;
+                sendToClient(socket, headers_obj, data);
+            }            
+        });
+        wtvcomp.Compress(data);
+        return;
+    }
+
+    // clean up internal header for compression
+    if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];
+
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
+        if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
             if (!zquiet) console.log(" * Encrypting response to client ...")
             var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             data = enc_data;
         }
     }
 
-    // fix captialization
-    if (headers_obj["Content-length"]) {
-        delete headers_obj["Content-length"];
-    }
-
-    if (headers_obj["Content-type"]) {
-        headers_obj["Content-Type"] = headers_obj["Content-type"];
-        delete headers_obj["Content-type"];
-    }
-
     // calculate content length
+    // make sure we are using our Content-length and not one set in a script.
+    if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
+    if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
+
     // On the WNI server this is the length before compression but we're using the length after compression.
     // It matches the HTTP spec anyway so leaving.
-    if (typeof data.length !== 'undefined') {
-        headers_obj["Content-length"] = data.length;
-    } else if (typeof data.byteLength !== 'undefined') {
-        headers_obj["Content-length"] = data.byteLength;
-    }
+    headers_obj["Content-length"] = content_length;
 
     if (ssid_sessions[socket.ssid]) {
         if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
@@ -518,13 +610,15 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         }
     }
 
+    // internal header to determine EOL type. bf0app upgrader does not like \r, while the rest of the WebTV world does.
+    // set header 'minisrv-use-carriage-return' to true to disable \r for this specific transfer.
     var end_of_line = "\n";
     if (!headers_obj['minisrv-use-carriage-return'] || headers_obj['minisrv-use-carriage-return'] != "false") end_of_line = "\r\n";
     if (headers_obj['minisrv-use-carriage-return']) delete headers_obj['minisrv-use-carriage-return'];
 
     if (end_of_line == "\n" && zdebug) console.log(" * Script requested to send headers without carriage return (bf0app hack)");
 
-    // header object to string
+    // convert header object back to string
     if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
         if (k == "http_response") {
@@ -569,10 +663,23 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
     
     if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
-        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
+        if (headers_obj["Connection"].toLowerCase() == "close" || wtv_connection_close == "true") {
             socket.destroy();
         }
     }
+}
+
+function shouldWeCompress(content_type) {
+    if (typeof (content_type) != 'undefined') {
+        if ((content_type.match(/^text\//) && content_type != "text/tellyscript") ||
+            content_type.match(/^application\/(x-?)javascript$/) ||
+            content_type.match(/^audio\/(x-)?midi/) ||
+            content_type.match(/^audio\/(x-)?wav/) ||
+            content_type == "application/json") {
+            return true;
+        }
+    }
+    return false;
 }
 
 function concatArrayBuffer(buffer1, buffer2) {
@@ -611,7 +718,12 @@ function headersAreStandard(string, verbose = false) {
     // in unencrypted headers, and returns true only if every character in the string matches
     // the regex. Once we know the string is binary, we can better process it with the
     // raw base64 or hex data in processRequest() below.
-    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*]{8,})$/.test(string);
+    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*\@\#\\]{8,})$/.test(string);
+}
+
+function filterSSID(ssid) {
+    var WTVCSD = new WTVClientSessionData(minisrv_config.config.hide_ssid_in_logs);
+    return WTVCSD.filterSSID(ssid);
 }
 
 async function processRequest(socket, data_hex, skipSecure = false, encryptedRequest = false) {
@@ -683,9 +795,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             if (headers["wtv-client-serial-number"] != null) {
                 socket.ssid = headers["wtv-client-serial-number"];
                 if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData();
+                    ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config.config.hide_ssid_in_logs);
                 }
                 if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
+                ssid_sessions[socket.ssid].ssid = socket.ssid;
                 ssid_sessions[socket.ssid].data_store.sockets.add(socket);
             }
 
@@ -771,8 +884,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             // Passed Security
 
             if (headers["wtv-capability-flags"] != null) {
-                 if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData();
+                if (!ssid_sessions[socket.ssid]) {
+                    ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config.config.hide_ssid_in_logs);
                 }
                 if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
             }
@@ -1091,14 +1204,22 @@ async function cleanupSocket(socket) {
         if (socket.ssid) {
             ssid_sessions[socket.ssid].data_store.sockets.delete(socket);
 
-            if (ssid_sessions[socket.ssid].data_store.sockets.size === 0 && ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-                // if last socket for SSID disconnected, destroy login session
-                if (!zquiet) console.log(" * Last socket from WebTV SSID", filterSSID(socket.ssid),"disconnected, cleaning up primary WTVSec instance for this SSID");
-                ssid_sessions[socket.ssid].delete("wtvsec_login");
-
+            if (ssid_sessions[socket.ssid].currentConnections() === 0) {
                 // clean up possible minibrowser session data
                 if (ssid_sessions[socket.ssid].get("wtv-needs-upgrade")) ssid_sessions[socket.ssid].delete("wtv-needs-upgrade");
                 if (ssid_sessions[socket.ssid].get("wtv-used-8675309")) ssid_sessions[socket.ssid].delete("wtv-used-8675309");
+
+                // set timer to destroy entirety of session data if client does not return in X time
+                var timeout = 180000; // timeout is in milliseconds, default 180000 (3 min) .. be sure to allow time for dialup reconnections
+
+                if (!ssid_sessions[socket.ssid].data_store.socket_check) {
+                    ssid_sessions[socket.ssid].data_store.socket_check = setTimeout(function (ssid) {
+                        if (ssid_sessions[ssid].currentConnections() === 0) {
+                            if (!zquiet) console.log(" * WebTV SSID", filterSSID(ssid), " has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
+                            delete ssid_sessions[ssid];
+                        }
+                    }, timeout, socket.ssid);
+                }
             }
         }
         socket.end();
@@ -1199,7 +1320,7 @@ if (git_commit) {
 console.log("**** Welcome to " + z_title + " ****");
 console.log(" *** Reading global configuration...");
 try {
-    var minisrv_config = JSON.parse(fs.readFileSync(__dirname + "/config.json"));
+    var minisrv_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "config.json"));
     if (git_commit) {
         minisrv_config.config.git_commit = git_commit;
         delete this.git_commit;
@@ -1207,13 +1328,12 @@ try {
 } catch (e) {
     throw ("ERROR: Could not read config.json", e);
 }
-var service_vaults = new Array();
 
 try {
     if (fs.lstatSync(__dirname + "/user_config.json")) {
         console.log(" *** Reading user configuration...");
         try {
-            var minisrv_user_config = JSON.parse(fs.readFileSync(__dirname + "/user_config.json")); 
+            var minisrv_user_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "user_config.json"));
         } catch (e) {
             console.error("ERROR: Could not read user_config.json", e);
             var throw_me = true;
@@ -1234,6 +1354,7 @@ if (throw_me) {
     throw ("An error has occured while reading the configuration files.");
 }
 
+var service_vaults = new Array();
 if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
         var service_vault = returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
@@ -1242,6 +1363,13 @@ if (minisrv_config.config.ServiceVaults) {
     })
 } else {
     throw ("ERROR: No Service Vaults defined!");
+}
+
+if (minisrv_config.config.SessionStore) {
+    var SessionStore = returnAbsolutePath(minisrv_config.config.SessionStore);
+    console.log(" * Configured Session Storage at", SessionStore);
+} else {
+    throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
 }
 
 var service_ip = minisrv_config.config.service_ip;
@@ -1261,7 +1389,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         if (overrides != null) {
             if (typeof (overrides) == 'object') {
                 Object.keys(overrides).forEach(function (k) {
-                    self[k] = overrides[k];
+                    if (k != "exceptions") self[k] = overrides[k];
                 });
             }
         }
