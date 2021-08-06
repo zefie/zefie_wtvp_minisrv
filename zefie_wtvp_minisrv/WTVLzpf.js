@@ -12,8 +12,9 @@ class WTVLzpf {
 
     current_length = 0
     current_literal = 0
+    compressed_offset = 0
     flag_table = new Uint16Array(0x1000)
-    compressed_data = []
+    compressed_data = null;
 
     nomatchEncode = [
         [0x0000, 0x10], [0x0001, 0x10], [0x0002, 0x10], 
@@ -274,8 +275,9 @@ class WTVLzpf {
     clear() {
         this.current_length = 0;
         this.current_literal = 0;
+        this.compressed_offset = 0;
         this.flag_table.fill(0xFFFF, 0, 0x1000);
-        this.compressed_data = [];
+        this.compressed_data = null;
     }
 
     /**
@@ -294,7 +296,7 @@ class WTVLzpf {
 
         while (this.current_length > 7) {
             //console.log("add", this.current_literal >>> 0, code >>> 0, byte, type)
-            this.compressed_data.push((this.current_literal >>> 0x18) & 0xFF);
+            this.compressed_offset = this.compressed_data.writeUInt8((this.current_literal >>> 0x18) & 0xFF, this.compressed_offset);
 
             this.current_length -= 8;
             this.current_literal = (this.current_literal << 8) & 0xFFFFFFFF;
@@ -312,12 +314,19 @@ class WTVLzpf {
         this.clear();
 
         if (uncompressed_data.words) {
-            uncompressed_data = new Buffer.from(this.wordArrayToUint8Array(uncompressed_data));
-        } else {
+            // if its a wordArray convert it to a Buffer
+
+            // Barrow function from WTVSec class
+            const WTVSec = require("./WTVSec.js");
+            var wtvsec = new WTVSec();
+            uncompressed_data = new Buffer.from(wtvsec.wordArrayToUint8Array(uncompressed_data));
+        } else if (!uncompressed_data.byteLength) {
+            // otherwise if its not already a Buffer, convert it to one
             uncompressed_data = new Buffer.from(uncompressed_data);
         }
 
-        var uncompressed_len = uncompressed_data.length;
+        var uncompressed_len = uncompressed_data.byteLength;
+        this.compressed_data = new Buffer.alloc(uncompressed_len);
 
         var i = 0;
         var sum = 0;
@@ -403,10 +412,14 @@ class WTVLzpf {
         this.EncodeLiteral(0x08, (sum << 0x18) & 0xFFFFFFFF);
 
         // End
-        this.compressed_data.push(this.current_literal >>> 0x18);
-        this.compressed_data.push(0x20);
+        this.compressed_offset = this.compressed_data.writeUInt8(this.current_literal >>> 0x18, this.compressed_offset);
+        this.compressed_offset = this.compressed_data.writeUInt8(0x20, this.compressed_offset);
 
-        return new Buffer.from(this.compressed_data);
+        var output_buffer = new Buffer.alloc(this.compressed_offset);
+        this.compressed_data.copy(output_buffer, 0, 0, this.compressed_offset)
+        this.compressed_data = null;
+
+        return output_buffer;
     }
 }
 

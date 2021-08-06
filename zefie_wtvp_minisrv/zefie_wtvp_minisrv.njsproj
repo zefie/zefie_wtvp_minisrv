@@ -186,7 +186,10 @@
     <Content Include="ServiceVault\wtv-music\demo\midi\Wind1.mid" />
     <Content Include="ServiceVault\wtv-music\demo\midi\Xess.mid" />
     <Content Include="ServiceVault\wtv-music\demo\music.jpg" />
-    <Content Include="ServiceVault\wtv-setup\get.js">
+    <Content Include="ServiceVault\wtv-music\get-playlist.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\get-settings.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-star\ROMCache\HackTVLogoJewel.gif" />

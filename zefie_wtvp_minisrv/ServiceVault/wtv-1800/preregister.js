@@ -18,16 +18,17 @@ if (socket.ssid) {
             if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", filterSSID(socket.ssid));
         }
     }
-    if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+	if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+		if (zdebug) console.log(" # Recreating primary WTVSec login instance for", filterSSID(socket.ssid));
         delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
     }
 
 	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec();
 	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
+	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
 } else {
 	console.log(" * Something bad happened (we don't know the client ssid???)");
-	var errpage = doErrorCode(400)
+	var errpage = doErrorPage(400)
 	headers = errpage[0];
 	data = errpage[1];
 }

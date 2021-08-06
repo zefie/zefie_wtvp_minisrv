@@ -448,7 +448,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         return;
     }
     var wtv_connection_close = headers_obj["wtv-connection-close"];
-    if (typeof(headers_obj["wtv-connection-close"]) != 'undefined') delete headers_obj["wtv-connection-close"];
+    if (typeof (headers_obj["wtv-connection-close"]) != 'undefined') delete headers_obj["wtv-connection-close"];
 
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
@@ -468,12 +468,27 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         compress_data = true;
     }
 
+    // fix captialization
+    if (headers_obj["Content-type"]) {
+        headers_obj["Content-Type"] = headers_obj["Content-type"];
+        delete headers_obj["Content-type"];
+    }
+
+
+    // if box can do compression, see if its worth enabling
+    if (ssid_sessions[socket.ssid].capabilities) {
+        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
+            compress_data = shouldWeCompress(headers_obj["Content-Type"]);
+        }
+    }
+
     // compress if needed
     if (compress_data && clen > 0) {
-        headers_obj["wtv-lzpf"] = "0";
-
-        var lzpf = new WTVLzpf();
-        data = lzpf.Compress(data);
+        headers_obj["wtv-lzpf"] = 0;
+        var wtvcomp = new WTVLzpf();
+        var uncomp_data = data;
+        data = wtvcomp.Compress(uncomp_data);
+        uncomp_data, wtvcomp = null;
     }
 
     // encrypt if needed
@@ -487,17 +502,11 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         }
     }
 
-    // fix captialization
-    if (headers_obj["Content-length"]) {
-        delete headers_obj["Content-length"];
-    }
-
-    if (headers_obj["Content-type"]) {
-        headers_obj["Content-Type"] = headers_obj["Content-type"];
-        delete headers_obj["Content-type"];
-    }
-
     // calculate content length
+    // make sure we are using our Content-length and not one set in a script.
+    if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
+    if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
+
     // On the WNI server this is the length before compression but we're using the length after compression.
     // It matches the HTTP spec anyway so leaving.
     if (typeof data.length !== 'undefined') {
@@ -573,6 +582,19 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
             socket.destroy();
         }
     }
+}
+
+function shouldWeCompress(content_type) {
+    if (typeof (content_type) != 'undefined') {
+        if ((content_type.match(/^text\//) && content_type != "text/tellyscript") ||
+            content_type.match(/^application\/(x-?)javascript$/) ||
+            content_type.match(/^audio\/(x-)?midi/) ||
+            content_type.match(/^audio\/(x-)?wav/) ||
+            content_type == "application/json") {
+            return true;
+        }
+    }
+    return false;
 }
 
 function concatArrayBuffer(buffer1, buffer2) {
@@ -1091,14 +1113,22 @@ async function cleanupSocket(socket) {
         if (socket.ssid) {
             ssid_sessions[socket.ssid].data_store.sockets.delete(socket);
 
-            if (ssid_sessions[socket.ssid].data_store.sockets.size === 0 && ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-                // if last socket for SSID disconnected, destroy login session
-                if (!zquiet) console.log(" * Last socket from WebTV SSID", filterSSID(socket.ssid),"disconnected, cleaning up primary WTVSec instance for this SSID");
-                ssid_sessions[socket.ssid].delete("wtvsec_login");
-
+            if (ssid_sessions[socket.ssid].currentConnections() === 0) {
                 // clean up possible minibrowser session data
                 if (ssid_sessions[socket.ssid].get("wtv-needs-upgrade")) ssid_sessions[socket.ssid].delete("wtv-needs-upgrade");
                 if (ssid_sessions[socket.ssid].get("wtv-used-8675309")) ssid_sessions[socket.ssid].delete("wtv-used-8675309");
+
+                // set timer to destroy entirety of session data if client does not return in X time
+                var timeout = 180000; // timeout is in milliseconds, default 180000 (3 min) .. be sure to allow time for dialup reconnections
+
+                if (!ssid_sessions[socket.ssid].data_store.socket_check) {
+                    ssid_sessions[socket.ssid].data_store.socket_check = setTimeout(function (ssid) {
+                        if (ssid_sessions[ssid].currentConnections() === 0) {
+                            if (!zquiet) console.log(" * WebTV SSID", filterSSID(ssid), " has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
+                            delete ssid_sessions[ssid];
+                        }
+                    }, timeout, socket.ssid);
+                }
             }
         }
         socket.end();

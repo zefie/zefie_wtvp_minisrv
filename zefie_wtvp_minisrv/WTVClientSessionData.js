@@ -51,6 +51,15 @@ class WTVClientSessionData {
         return false;
     }
 
+    currentConnections() {
+        if (this.data_store) {
+            if (this.data_store.sockets) {
+                return this.data_store.sockets.size;
+            }
+        }
+        return 0;
+    }
+
     get(key = null) {
         if (typeof (this.data_store) === 'undefined') return null;
         else if (key === null) return this.data_store;

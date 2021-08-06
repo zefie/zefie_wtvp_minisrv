@@ -79,7 +79,11 @@ wtv-service: reset
 wtv-boot-url: wtv-1800:/preregister?relogin=true
 wtv-human-name: ${nickname}
 ${ssid_sessions[socket.ssid].setIRCNick(nickname)}
-wtv-home-url: wtv-home:/home?
+wtv-home-url: wtv-home:/home?`
+	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect) {
+		headers += "\nwtv-settings-url: wtv-setup:/get-settings";
+	}
+headers += `
 wtv-domain: wtv.zefie.com
 wtv-inactive-timeout: 0
 wtv-connection-timeout: 90
@@ -94,11 +98,6 @@ wtv-log-url: wtv-log:/log
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
 wtv-offline-mail-enable: false
-wtv-name-server: 8.8.8.8
-`;
-	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect) {
-		headers += "wtv-settings-url: wtv-setup:/get\n";
-	}
-	headers += `wtv-visit: wtv-home:/splash?
+wtv-visit: wtv-home:/splash?
 Content-Type: text/html`;
 }
