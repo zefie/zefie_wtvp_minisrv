@@ -463,6 +463,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         clen = data.byteLength;
     }
 
+
     // If wtv-lzpf is in the header then force compression
     if (headers_obj["wtv-lzpf"]) {
         compress_data = true;
@@ -483,13 +484,27 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
     }
 
     // compress if needed
-    if (compress_data && clen > 0) {
+    if (compress_data && clen > 0 && !headers_obj['minisrv-already-compressed']) {
+        if (zdebug) console.log(" # Uncompressed data length:", clen);
         headers_obj["wtv-lzpf"] = 0;
         var wtvcomp = new WTVLzpf();
-        var uncomp_data = data;
-        data = wtvcomp.Compress(uncomp_data);
-        uncomp_data, wtvcomp = null;
+        var compressed_data = new Buffer.alloc(clen);
+        wtvcomp.on('data', (data, length, offset, complete) => {
+            data.copy(compressed_data, offset, 0, length);
+            if (complete !== false) {
+                data = new Buffer.alloc(complete);
+                compressed_data.copy(data, 0, 0, compressed_data.byteLength);
+                compressed_data, wtvcomp = null;
+                headers_obj['minisrv-already-compressed'] = true;
+                sendToClient(socket, headers_obj, data);
+            }            
+        });
+        wtvcomp.Compress(data);
+        return;
     }
+
+    if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];
+
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
