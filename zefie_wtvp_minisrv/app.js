@@ -456,6 +456,13 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         headers_obj = moveObjectElement('Connection', 'http_response', headers_obj);
     }
 
+    var clen = 0;
+    if (typeof data.length !== 'undefined') {
+        clen = data.length;
+    } else if (typeof data.byteLength !== 'undefined') {
+        clen = data.byteLength;
+    }
+
     // If wtv-lzpf is in the header then force compression
     if (headers_obj["wtv-lzpf"]) {
         compress_data = true;
@@ -471,12 +478,6 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
-        var clen = null;
-        if (typeof data.length !== 'undefined') {
-            clen = data.length;
-        } else if (typeof data.byteLength !== 'undefined') {
-            clen = data.byteLength;
-        }
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
         if (clen > 0 && socket_sessions[socket.id].wtvsec) {
