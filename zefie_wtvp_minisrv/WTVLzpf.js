@@ -306,7 +306,7 @@ class WTVLzpf {
      *
      * @param uncompressed_data {String} data to compress
      *
-     * @returns {Uint8Array} Lzpf compression data
+     * @returns {Buffer} Lzpf compression data
      */
     Compress(uncompressed_data) {
         this.clear();
