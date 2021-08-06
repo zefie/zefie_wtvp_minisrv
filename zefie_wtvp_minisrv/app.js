@@ -11,6 +11,7 @@ const mime = require('mime-types');
 const { crc16 } = require('easy-crc');
 const process = require('process');
 var WTVSec = require('./WTVSec.js');
+var WTVLzpf = require('./WTVLzpf.js');
 var WTVClientCapabilities = require('./WTVClientCapabilities.js');
 var WTVClientSessionData = require('./WTVClientSessionData.js');
 
@@ -435,7 +436,7 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-async function sendToClient(socket, headers_obj, data) {
+async function sendToClient(socket, headers_obj, data, compress_data = false) {
     var headers = "";
     if (typeof (data) === 'undefined') data = '';
     if (typeof (headers_obj) === 'string') {
@@ -453,6 +454,19 @@ async function sendToClient(socket, headers_obj, data) {
     if (!headers_obj.Connection) {
         headers_obj.Connection = "Keep-Alive";
         headers_obj = moveObjectElement('Connection', 'http_response', headers_obj);
+    }
+
+    // If wtv-lzpf is in the header then force compression
+    if (headers_obj["wtv-lzpf"]) {
+        compress_data = true;
+    }
+
+    // compress if needed
+    if (compress_data && clen > 0) {
+        headers_obj["wtv-lzpf"] = "0";
+
+        var lzpf = new WTVLzpf();
+        data = lzpf.Compress(data);
     }
 
     // encrypt if needed
@@ -483,6 +497,8 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // calculate content length
+    // On the WNI server this is the length before compression but we're using the length after compression.
+    // It matches the HTTP spec anyway so leaving.
     if (typeof data.length !== 'undefined') {
         headers_obj["Content-length"] = data.length;
     } else if (typeof data.byteLength !== 'undefined') {
