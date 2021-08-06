@@ -122,6 +122,7 @@ class WTVClientCapabilities {
                 capabilities[flag_name] = flag;
             }
 
+            var i = 0;
             // process bitfield and set capabilities
             Object.keys(bitfield).forEach(function (k) {
                 // Convert binary to boolean, 0 to false, 1 to true
@@ -131,7 +132,9 @@ class WTVClientCapabilities {
                 try {
                     add(capabilities_table[k][0], bitfield_result);
                 } catch (ex) {
-                    console.error(" * Unknown configuration bit", k);
+                    add('unknown-capability-' + i, bitfield_result);
+                    i++;
+                    //console.error(" * Unknown configuration bit", k, "with value", bitfield_result);
                 }
             });
 

@@ -3,8 +3,10 @@ request_is_async = true;
 
 var bf0app_update = false;
 var request_path = unescape(request_headers.query.path);
+var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+var bootver = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version")
 
-if (ssid_sessions[socket.ssid].get("wtv-client-rom-type") == "bf0app" && ssid_sessions[socket.ssid].get("wtv-client-bootrom-version") == "105") {
+if ((romtype == "bf0app" || !romtype) && (bootver == "105" || !bootver)) {
 	// assume old classic in flash mode, override user setting and send tellyscript
 	// because it is required to proceed in flash mode
 	bf0app_update = true;

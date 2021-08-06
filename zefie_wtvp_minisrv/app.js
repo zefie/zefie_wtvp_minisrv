@@ -594,7 +594,7 @@ function headersAreStandard(string, verbose = false) {
     // in unencrypted headers, and returns true only if every character in the string matches
     // the regex. Once we know the string is binary, we can better process it with the
     // raw base64 or hex data in processRequest() below.
-    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~]{8,})$/.test(string);
+    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*]{8,})$/.test(string);
 }
 
 async function processRequest(socket, data_hex, skipSecure = false, encryptedRequest = false) {
