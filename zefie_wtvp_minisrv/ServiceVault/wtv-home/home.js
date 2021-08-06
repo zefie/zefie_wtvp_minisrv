@@ -15,7 +15,7 @@ if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 
 data = `<html>
 <head>
-<title>Home for minisrv</title>
+<title>Home for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "minisrv"}</title>
 <DISPLAY NoLogo hideoptions noscroll>
 </head>
 <body bgcolor="black" link="gold" vlink="gold" alink="gold" text="gold">
@@ -24,14 +24,14 @@ function go() {
 	location.href=document.access.url.value;
 }
 </script>
-<h3>Welcome to `+ z_title + `</h3>
+<h4>Welcome to `+ z_title + `</h4>
 <b>Encryption Status</b>: ${cryptstatus}<br>
 <b>Connection Speed</b>: &rate;
 <p>
 <form name=access onsubmit="go()">
 <ul>
-<li><a href="client:relog">client:relog (direct)</a> ~ <a href="wtv-tricks:/blastcache?return_to=wtv-home:/home">Clear Cache</a></li>
-<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/info">Tricks Info</a></li>
+<li><a href="client:relog">client:relog (direct)</a></li>
+<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
 <li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
 `;
 if (ssid_sessions[socket.ssid].hasCap("client-can-do-chat")) {

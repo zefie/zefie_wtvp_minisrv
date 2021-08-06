@@ -1,7 +1,6 @@
 
 const WTVFlashrom = require("./WTVFlashrom.js");
 var wtvflashrom;
-var flashrom_info;
 request_is_async = true;
 
 if (!request_headers.query.path) {
@@ -12,19 +11,18 @@ if (!request_headers.query.path) {
 	var wtvflashrom = new WTVFlashrom(service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server);
 	var request_path = unescape(request_headers.query.path);
 
-	// read 512 bytes of rom
-	flashrom_info = wtvflashrom.getFlashRom(request_path, function (data, headers = null) {
+	// read flashrom header info into array using WTVFlashrom class	
+	wtvflashrom.getFlashromMeta(request_path, function (data) {
 		processLC2DownloadPage(request_headers.query.path, data, (request_headers.query.numparts || null));
-	}, 512);
+	});
 }
 
 async function processLC2DownloadPage(path, flashrom_info, numparts = null) {
-	var flashrom_numparts = null;
-	if (numparts != null) flashrom_numparts = parseInt(numparts);
-	if (!flashrom_numparts) flashrom_numparts = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
+	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
+	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
 
 	if (!flashrom_info.is_last_part) {
-		flashrom_info.next_rompath = flashrom_info.next_rompath.replace("get-by-path", "get-lc2-page").replace("&raw=true", "&numparts=" + parseInt(flashrom_numparts));
+		flashrom_info.next_rompath = flashrom_info.next_rompath.replace("get-by-path", "get-lc2-page").replace("&raw=true", "&numparts=" + flashrom_info.part_count);
 	}
 	if (!flashrom_info.part_number || !flashrom_info.is_last_part || !flashrom_info.rompath || !flashrom_info.next_rompath || !flashrom_info.is_bootrom) {
 
@@ -99,8 +97,8 @@ blockurl="${flashrom_info.rompath}"
 lastblock="${flashrom_info.is_last_part}"
 curblock="` + (flashrom_info.part_number + 1) + `"
 `
-		if (flashrom_numparts) {
-			data += `totalblocks="${flashrom_numparts}"`;
+		if (flashrom_info.part_count) {
+			data += `totalblocks="${flashrom_info.part_count}"`;
 		}
 	data += `>
 <font size="-1" color="#D6DFD0">

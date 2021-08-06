@@ -1,8 +1,13 @@
 var gourl = "wtv-head-waiter:/login?";
-if (request_headers.query.relogin) gourl += "relogin=true";
-if (request_headers.query.reconnect) gourl += "reconnect=true";
 
 if (socket.ssid) {
+	if (ssid_sessions[socket.ssid].loadSessionData() == true) {
+		console.log(" * Loaded session data from disk for", filterSSID(socket.ssid))
+		ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
+	} else {
+		ssid_sessions[socket.ssid].session_data = {};
+		ssid_sessions[socket.ssid].setSessionData("registered", false);
+	}
     if (ssid_sessions[socket.ssid].data_store) {
         if (ssid_sessions[socket.ssid].data_store.sockets) {
             var i = 0;
@@ -15,22 +20,26 @@ if (socket.ssid) {
                     }
                 }
             });
-            if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", filterSSID(socket.ssid));
+			if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", filterSSID(socket.ssid));
         }
     }
-    if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+	if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+		if (zdebug) console.log(" # Recreating primary WTVSec login instance for", filterSSID(socket.ssid));
         delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
     }
 
 	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec();
 	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
+	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
 } else {
 	console.log(" * Something bad happened (we don't know the client ssid???)");
-	var errpage = doErrorCode(400)
+	var errpage = doErrorPage(400)
 	headers = errpage[0];
 	data = errpage[1];
 }
+
+if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
+if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
 
 if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
@@ -110,7 +119,6 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		gourl = null;
     }
 
-
 	if (!file_path != null && !zquiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
 
 	headers = "200 OK\n"
@@ -126,7 +134,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 
 	if (bf0app_update) headers += getServiceString('wtv-star', { "no_star_word": true }) + "\n";
 	else headers += getServiceString('wtv-star') + "\n";
-	
+	if (request_headers.query.reconnect && !ssid_sessions[socket.ssid].session_data.registered) headers += getServiceString('wtv-register') + "\n";
 	headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else headers += "wtv-boot-url: wtv-1800:/preregister?relogin=true\n";

@@ -51,7 +51,7 @@ class WTVFlashrom {
 	}
 
 
-	getFlashromData(data, path) {
+	getFlashromInfo(data, path) {
 		var flashrom_info = new Array();
 		var flashrom_magic = "96031889";
 		var part_header = new Buffer.alloc(32);
@@ -109,15 +109,21 @@ class WTVFlashrom {
 	async sendToClient(data, request_path, callback) {
 		var headers = "200 OK\n";
 		if (this.bf0app_update) headers += "minisrv-use-carriage-return: false\n";
-		var flashrom_info = this.getFlashromData(data, request_path)
+		var flashrom_info = this.getFlashromInfo(data, request_path)
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
 		if (flashrom_info.next_rompath != null) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
 		callback(data, headers);
 	}
 
+	async getFlashromMeta(request_path, callback) {
+		// read 512 bytes of rom, and send result of getFlashromInfo
+		// to callback (in data), without headers
+		this.getFlashRom(request_path, callback, 512);
+    }
+
 	async getFlashRom(request_path, callback, length = 0) {
-		var flashrom_file_path = null;
+		var headers, flashrom_file_path = null;
 		var self = this;
 		Object.keys(self.service_vaults).forEach(function (g) {
 			if (flashrom_file_path != null) return;
@@ -151,21 +157,20 @@ class WTVFlashrom {
 					if (res.statusCode == 200) {
 						var data = Buffer.from(data_hex, 'hex');
 					} else if (res.statusCode == 206) {
-						headers = "";
-						var data = self.getFlashromData(Buffer.from(data_hex, 'hex'), request_path);
+						var data = self.getFlashromInfo(Buffer.from(data_hex, 'hex'), request_path);
 					} else if (res.statusCode == 404) {
 						var errpage = doErrorPage(404, "The service could not find the requested ROM on zefie's server.")
-						var headers = errpage[0];
+						headers = errpage[0];
 						var data = errpage[1];
 					} else {
 						var errpage = doErrorPage(400)
-						var headers = errpage[0];
+						headers = errpage[0];
 						var data = errpage[1];
 					}
-					if (res.statusCode == "206") {
+					if (res.statusCode != 206) {
 						self.sendToClient(data, request_path, callback);
 					} else {
-						callback(data);
+						callback(data, headers);
 					}
 				});
 			});

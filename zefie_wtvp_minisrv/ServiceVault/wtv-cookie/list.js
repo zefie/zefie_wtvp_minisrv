@@ -1,6 +1,14 @@
+if (socket.ssid) {
+    if (ssid_sessions[socket.ssid]) {
 
-headers =`200 OK
-Connection: Keep-Alive
-Content-type: text/plain`
+        data = ssid_sessions[socket.ssid].listCookies();
+        headers = "200 OK\n";
+        headers += "Content-Type: text/plain";
+    }
+}
 
-data=`.passporttest.com/ppsecure.passporttest.com/`
+if (!headers) {
+    var errpage = doErrorPage(400)
+    headers = errpage[0];
+    data = errpage[1];
+}
