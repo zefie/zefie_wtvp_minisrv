@@ -543,8 +543,6 @@ async function sendToClient(socket, headers_obj, data) {
         var wtvcomp = new WTVLzpf();
         data = wtvcomp.Compress(data);
 
-        console.log("data", data)
-
         wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
     }
 
