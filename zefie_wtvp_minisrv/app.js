@@ -484,23 +484,15 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
     }
 
     // compress if needed
-    if (compress_data && clen > 0 && !headers_obj['minisrv-already-compressed']) {
-        if (zdebug) console.log(" # Uncompressed data length:", clen);
+    if (compress_data && clen > 0) {
         headers_obj["wtv-lzpf"] = 0;
+
         var wtvcomp = new WTVLzpf();
-        var compressed_data = new Buffer.alloc(clen);
-        wtvcomp.on('data', (data, length, offset, complete) => {
-            data.copy(compressed_data, offset, 0, length);
-            if (complete !== false) {
-                data = new Buffer.alloc(complete);
-                compressed_data.copy(data, 0, 0, compressed_data.byteLength);
-                compressed_data, wtvcomp = null;
-                headers_obj['minisrv-already-compressed'] = true;
-                sendToClient(socket, headers_obj, data);
-            }            
-        });
-        wtvcomp.Compress(data);
-        return;
+        data = wtvcomp.Compress(data);
+
+        console.log("data", data)
+
+        wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
     }
 
     if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];

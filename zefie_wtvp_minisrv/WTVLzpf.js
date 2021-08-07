@@ -9,17 +9,15 @@ var EventEmitter = require('events').EventEmitter;
 * By: Eric MacDonald (eMac)
 */
 
-class WTVLzpf extends EventEmitter {
+class WTVLzpf {
     // Note: currentlty doesn't offer optimal streaming support but this is good enough to meet perf demands at the scale we're at.
 
     current_length = 0
     current_literal = 0
-    compressed_offset = 0
-    total_compressed = 0;
     chunk_size = 65535;
     flag_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
-    compressed_data = null;
+    compressed_data = [];
 
     nomatchEncode = [
         [0x0000, 0x10], [0x0001, 0x10], [0x0002, 0x10], 
@@ -266,29 +264,25 @@ class WTVLzpf extends EventEmitter {
     /**
      * Initialize the Lzpf class.
      *
-     * @param chunk_size {Number} Set the size of the compressed data chunks to fire off with 'data' event. (suggested betweet 2048 and 65535);
      * @returns {undefined}
      */
-    constructor(chunk_size = 0) {
-        super(); // for extended class
-        if (chunk_size > 0) this.chunk_size = chunk_size;
+    constructor() {
         this.clear();
     }
 
     /**
      * Sets starting values for the compression algorithm.
      *
-     * @param length {Number} size of compressed data Buffer to allocate
      * @returns {undefined}
      */
-    clear(length = 0) {
+    clear() {
         this.current_length = 0;
         this.current_literal = 0;
         this.total_compressed = 0;
         this.compressed_offset = 0;
         this.ring_buffer.fill(0x00, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
-        this.compressed_data = (length > 0) ? null : Buffer.alloc(length);
+        this.compressed_data = [];
     }
 
     /**
@@ -306,8 +300,7 @@ class WTVLzpf extends EventEmitter {
         this.current_length += code_length;
 
         while (this.current_length > 7) {
-            //console.log("add", this.current_literal >>> 0, code >>> 0, byte, type)
-            this.compressed_offset = this.compressed_data.writeUInt8((this.current_literal >>> 0x18) & 0xFF, this.compressed_offset);
+            this.compressed_data.push((this.current_literal >>> 0x18) & 0xFF);
 
             this.current_length -= 8;
             this.current_literal = (this.current_literal << 8) & 0xFFFFFFFF;
@@ -321,23 +314,17 @@ class WTVLzpf extends EventEmitter {
      *
      * @returns {Buffer} Lzpf compression data
      */
-    async Compress(uncompressed_data) {
+    Compress(uncompressed_data) {
         this.clear();
-        if (uncompressed_data.words) {
-            // if its a wordArray convert it to a Buffer
 
-            // Barrow function from WTVSec class
-            const WTVSec = require("./WTVSec.js");
-            var wtvsec = new WTVSec();
+        if (uncompressed_data.words) {
             uncompressed_data = new Buffer.from(wtvsec.wordArrayToUint8Array(uncompressed_data));
         } else if (!uncompressed_data.byteLength) {
             // otherwise if its not already a Buffer, convert it to one
             uncompressed_data = new Buffer.from(uncompressed_data);
         }
 
-        var uncompressed_len = uncompressed_data.byteLength;
-        this.clear(uncompressed_len);
-        this.compressed_data = new Buffer.alloc((uncompressed_len >= this.chunk_size) ? this.chunk_size : uncompressed_len);
+        var uncompressed_len = uncompressed_data.length;
 
         var i = 0;
         var sum = 0;
@@ -397,11 +384,6 @@ class WTVLzpf extends EventEmitter {
             if (code_length > 0) {
                 this.EncodeLiteral(code_length, code);
             }
-            if (this.compressed_offset == this.chunk_size) {
-                this.total_compressed += this.compressed_offset;
-                this.emit('data', this.compressed_data, this.compressed_offset, (this.total_compressed - this.compressed_offset), false);
-                this.compressed_offset = 0;
-            }
         }
 
         // Finish up.  This would normally be in an Lzpf_Finish method.
@@ -429,12 +411,10 @@ class WTVLzpf extends EventEmitter {
         this.EncodeLiteral(0x08, (sum << 0x18) & 0xFFFFFFFF);
 
         // End
-        this.compressed_offset = this.compressed_data.writeUInt8(this.current_literal >>> 0x18, this.compressed_offset);
-        this.compressed_offset = this.compressed_data.writeUInt8(0x20, this.compressed_offset);
+        this.compressed_data.push(this.current_literal >>> 0x18);
+        this.compressed_data.push(0x20);
 
-        this.total_compressed += this.compressed_offset;
-
-        this.emit('data', this.compressed_data, this.compressed_offset, (this.total_compressed - this.compressed_offset), this.total_compressed);
+        return Buffer.from(this.compressed_data);
     }
 }
 
