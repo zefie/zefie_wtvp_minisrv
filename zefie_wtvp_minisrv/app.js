@@ -892,6 +892,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (zdebug) console.log(" # New ticket from client");
                             ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                             ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
+                            ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                         }
                     }
                 }

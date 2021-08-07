@@ -12,29 +12,22 @@ if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
 
 if (socket.ssid !== null) {
 	if (wtvsec_login.ticket_b64 == null) {
-		if (request_headers["wtv-ticket"]) {
-			if (request_headers["wtv-ticket"].length > 8) {
-				wtvsec_login.DecodeTicket(request_headers["wtv-ticket"]);
-				wtvsec_login.ticket_b64 = request_headers["wtv-ticket"];
+		challenge_response = wtvsec_login.challenge_response;
+		var client_challenge_response = request_headers["wtv-challenge-response"] || null;
+		if (challenge_response && client_challenge_response) {
+			if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
+				console.log(" * wtv-challenge-response success for " + filterSSID(socket.ssid));
+				wtvsec_login.PrepareTicket();
+				if (!ssid_sessions[socket.ssid].getSessionData("registered") && !request_headers.query.guest_login) gourl = "wtv-register:/splash";
+
+			} else {
+				console.log(" * wtv-challenge-response FAILED for " + filterSSID(socket.ssid));
+				if (zdebug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
+				if (zdebug) console.log("Response Received:", client_challenge_response)
+				gourl = "wtv-head-waiter:/login?reissue_challenge=true";
 			}
 		} else {
-			challenge_response = wtvsec_login.challenge_response;
-			var client_challenge_response = request_headers["wtv-challenge-response"] || null;
-			if (challenge_response && client_challenge_response) {		
-				if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
-					console.log(" * wtv-challenge-response success for " + filterSSID(socket.ssid));
-					wtvsec_login.PrepareTicket();
-					if (!ssid_sessions[socket.ssid].getSessionData("registered") && !request_headers.query.guest_login) gourl = "wtv-register:/splash";
-
-				} else {
-					console.log(" * wtv-challenge-response FAILED for " + filterSSID(socket.ssid));
-					if (zdebug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
-					if (zdebug) console.log("Response Received:", client_challenge_response)
-					gourl = "wtv-head-waiter:/login?reissue_challenge=true";
-				}
-			} else {
-				gourl = "wtv-head-waiter:/login?no_response=true";
-			}
+			gourl = "wtv-head-waiter:/login?no_response=true";
 		}
 	}
 }
