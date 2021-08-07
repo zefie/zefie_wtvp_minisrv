@@ -1,12 +1,16 @@
 if (request_headers.query.noreg) {
-    headers = `302 Moved
+    headers = `300 Moved
 Connection: Close
 wtv-noback-all: wtv-register:
 wtv-expire-all: wtv-
-wtv-open-isp-disabled: false
-wtv-visit: wtv-head-waiter:/login-stage-two?guest_mode=true
-Location: wtv-head-waiter:/login-stage-two?guest_mode=true
-Content-type: text/html`;
+wtv-ticket: ${ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64}
+wtv-service: reset
+${getServiceString('wtv-1800')}
+wtv-relogin-url: wtv-1800:/preregister?guest_login=true
+wtv-reconnect-url: wtv-1800:/preregister?guest_login=true&reconnect=true
+wtv-boot-url: wtv-1800:/preregister?guest_login=true
+Location: client:relogin`;
+
 } else if (!request_headers.query.registering) {
     var errpage = doErrorPage(400);
     headers = errpage[0];

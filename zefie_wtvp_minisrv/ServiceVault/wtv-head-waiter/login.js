@@ -2,7 +2,13 @@ var challenge_response, challenge_header = "";
 
 var gourl = "wtv-head-waiter:/login-stage-two?";
 if (request_headers.query.relogin) gourl += "relogin=true";
-if (request_headers.query.reconnect) gourl += "reconnect=true";
+else if (request_headers.query.reconnect) gourl += "reconnect=true";
+
+if (request_headers.query.guest_login) {
+	if (request_headers.query.relogin || request_headers.query.reconnect) gourl += "&";
+	gourl += "guest_login=true";
+}
+
 var send_to_relogin = true;
 
 if (socket.ssid) {

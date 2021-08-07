@@ -1,45 +1,45 @@
-var gourl = "wtv-head-waiter:/login?";
+	var gourl = "wtv-head-waiter:/login?";
 
-if (socket.ssid) {
-	if (ssid_sessions[socket.ssid].loadSessionData() == true) {
-		console.log(" * Loaded session data from disk for", filterSSID(socket.ssid))
-		ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
+	if (socket.ssid) {
+		if (ssid_sessions[socket.ssid].loadSessionData() == true) {
+			console.log(" * Loaded session data from disk for", filterSSID(socket.ssid))
+			ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
+		} else {
+			ssid_sessions[socket.ssid].session_data = {};
+			ssid_sessions[socket.ssid].setSessionData("registered", false);
+		}
+		if (ssid_sessions[socket.ssid].data_store) {
+			if (ssid_sessions[socket.ssid].data_store.sockets) {
+				var i = 0;
+				ssid_sessions[socket.ssid].data_store.sockets.forEach(function (k) {
+					if (typeof k != "undefined") {
+						if (k != socket) {
+							k.destroy();
+							ssid_sessions[socket.ssid].data_store.sockets.delete(k);
+							i++;
+						}
+					}
+				});
+				if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", filterSSID(socket.ssid));
+			}
+		}
+		if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+			if (zdebug) console.log(" # Recreating primary WTVSec login instance for", filterSSID(socket.ssid));
+			delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
+		}
+
+		ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec();
+		ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
+		ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
 	} else {
-		ssid_sessions[socket.ssid].session_data = {};
-		ssid_sessions[socket.ssid].setSessionData("registered", false);
+		console.log(" * Something bad happened (we don't know the client ssid???)");
+		var errpage = doErrorPage(400)
+		headers = errpage[0];
+		data = errpage[1];
 	}
-    if (ssid_sessions[socket.ssid].data_store) {
-        if (ssid_sessions[socket.ssid].data_store.sockets) {
-            var i = 0;
-            ssid_sessions[socket.ssid].data_store.sockets.forEach(function (k) {
-                if (typeof k != "undefined") {
-                    if (k != socket) {
-                        k.destroy();
-                        ssid_sessions[socket.ssid].data_store.sockets.delete(k);
-                        i++;
-                    }
-                }
-            });
-			if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", filterSSID(socket.ssid));
-        }
-    }
-	if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-		if (zdebug) console.log(" # Recreating primary WTVSec login instance for", filterSSID(socket.ssid));
-        delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
-    }
 
-	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec();
-	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
-} else {
-	console.log(" * Something bad happened (we don't know the client ssid???)");
-	var errpage = doErrorPage(400)
-	headers = errpage[0];
-	data = errpage[1];
-}
-
-if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
-if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
+	if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
+	if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
 
 if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
@@ -53,11 +53,11 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var file_path = null;
 	var bf0app_update = false;
 	var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
-	var send_tellyscripts = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin);
+	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin);
 	var wtv_script_id = parseInt(ssid_sessions[socket.ssid].get("wtv-script-id"));
-	var	bootrom = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version");
-	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscripts = false;
-	if (send_tellyscripts) {
+	var bootrom = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version");
+	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscript = false;
+	if (send_tellyscript) {
 		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
 			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)
 			if (send_telly_to_ssid) {
@@ -101,7 +101,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		}
 	}
 
-	
+
 	if (!request_headers['wtv-client-rom-type'] && bootrom == "105") {
 		// assume old classic in flash mode, override user setting and send tellyscript
 		// because it is required to proceed in flash mode
@@ -110,16 +110,21 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		var bf0app_update = true;
 		ssid_sessions[socket.ssid].set("bf0app_update", bf0app_update);
 	}
-	
+
 	if (request_headers["wtv-ticket"] && !request_headers.query.reconnect) {
 		gourl = "wtv-head-waiter:/login-stage-two?relogin=true";
 	}
 
 	if (request_headers.query.reconnect) {
 		gourl = null;
-    }
+	}
 
 	if (!file_path != null && !zquiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
+
+	if (request_headers.query.guest_login) {
+		send_tellyscript = false;
+		gourl += "&guest_login=true"
+	}
 
 	headers = "200 OK\n"
 	if (bf0app_update) headers += "minisrv-use-carriage-return: false\n";
@@ -137,7 +142,11 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	if (request_headers.query.reconnect && !ssid_sessions[socket.ssid].session_data.registered) headers += getServiceString('wtv-register') + "\n";
 	headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
-	else headers += "wtv-boot-url: wtv-1800:/preregister?relogin=true\n";
+	else {
+		headers += "wtv-boot-url: wtv-1800:/preregister?relogin=true";
+		if (request_headers.query.guest_login) headers += "&guest_login=true";
+		headers += "\n";
+	}
 	if (gourl != null) headers += "wtv-visit: " + gourl + "\n";
 	if (!bf0app_update && ssid_sessions[socket.ssid].get("wtv-open-access")) headers += "wtv-open-isp-disabled: false\n";
 	headers += "wtv-client-time-zone: GMT -0000\n";

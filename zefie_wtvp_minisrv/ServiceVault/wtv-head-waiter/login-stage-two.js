@@ -24,7 +24,7 @@ if (socket.ssid !== null) {
 				if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
 					console.log(" * wtv-challenge-response success for " + filterSSID(socket.ssid));
 					wtvsec_login.PrepareTicket();
-					if (!ssid_sessions[socket.ssid].getSessionData("registered")) gourl = "wtv-register:/splash";
+					if (!ssid_sessions[socket.ssid].getSessionData("registered") && !request_headers.query.guest_login) gourl = "wtv-register:/splash";
 
 				} else {
 					console.log(" * wtv-challenge-response FAILED for " + filterSSID(socket.ssid));
@@ -44,7 +44,7 @@ if (gourl) {
 Connection: Close
 wtv-open-isp-disabled: false
 `;
-	if (!ssid_sessions[socket.ssid].session_data.registered && !request_headers.query.guest_mode) {
+	if (!ssid_sessions[socket.ssid].getSessionData("registered") && !request_headers.query.guest_login) {
 		headers += `wtv-encrypted: true
 wtv-ticket: ${wtvsec_login.ticket_b64}
 ${getServiceString('wtv-register')}
@@ -58,7 +58,7 @@ Content-type: text/html`;
 	data = '';
 }
 else {
-	if (request_headers.query.guest_mode) {
+	if (request_headers.query.guest_login) {
 		var namerand = Math.floor(Math.random() * 100000);
 		var nickname = (minisrv_config.config.service_name + '_' + namerand)
 		var human_name = nickname;
@@ -99,7 +99,7 @@ wtv-messenger-authorized: ${messenger_authorized}
 wtv-messenger-enable: ${messenger_enabled}
 wtv-noback-all: wtv-
 wtv-service: reset
-`+ getServiceString('all', { "exceptions": ["wtv-register"] } ) + `
+`+ getServiceString('all', { "exceptions": ["wtv-register"] }) + `
 user-id: ${userid}
 wtv-human-name: ${human_name}
 ${ssid_sessions[socket.ssid].setIRCNick(nickname)}
@@ -115,11 +115,16 @@ wtv-inactive-timeout: 0
 wtv-connection-timeout: 90
 wtv-show-time-enabled: true
 wtv-fader-timeout: 900
-wtv-tourist-enabled: true
-wtv-boot-url: wtv-1800:/preregister?relogin=true
-wtv-allow-dsc: true
-wtv-home-url: wtv-home:/home?
-`
+wtv-tourist-enabled: true`
+	headers += "\nwtv-relogin-url: wtv-1800:/preregister?relogin=true";
+	if (request_headers.query.guest_login) headers += "&guest_login=true";
+	headers += "\nwtv-reconnect-url: wtv-1800:/preregister?reconnect=true";
+	if (request_headers.query.guest_login) headers += "&guest_login=true";
+	headers += "\nwtv-boot-url: wtv-1800:/preregister?relogin=true";
+	if (request_headers.query.guest_login) headers += "&guest_login=true";
+	headers += "\nwtv-allow-dsc: true";
+	headers += "\nwtv-home-url: wtv-home:/home?";
+
 	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect) {
 		headers += "\nwtv-settings-url: wtv-setup:/get";
 	}
