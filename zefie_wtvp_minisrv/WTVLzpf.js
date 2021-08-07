@@ -1,3 +1,5 @@
+var EventEmitter = require('events').EventEmitter;
+
 /**
 * Pure-JS implementation of WebTV's LZPF compression
 *
@@ -5,15 +7,22 @@
 * Originally reverse engineered from the box
 *
 * By: Eric MacDonald (eMac)
+* Modified By: zefie
 */
 
 class WTVLzpf {
-    // Note: currentlty doesn't offer streaming support but this is good enough to meet perf demands at the scale we're at.
+    // Note: currentlty doesn't offer optimal streaming support but this is good enough to meet perf demands at the scale we're at.
 
-    current_length = 0
-    current_literal = 0
+    current_length = 0;
+    current_literal = 0;
+    flag = 0xFFFF;
+    working_data = 0;
+    match_index = 0;
+    type_index = 0;
+    checksum = 0;
     flag_table = new Uint16Array(0x1000)
-    compressed_data = []
+    ring_buffer = new Uint8Array(0x2000)
+    encoded_data = [];
 
     nomatchEncode = [
         [0x0000, 0x10], [0x0001, 0x10], [0x0002, 0x10], 
@@ -274,8 +283,25 @@ class WTVLzpf {
     clear() {
         this.current_length = 0;
         this.current_literal = 0;
+        this.flag = 0xFFFF;
+        this.working_data = 0;
+        this.match_index = 0;
+        this.type_index = 0;
+        this.checksum = 0;
+        this.ring_buffer.fill(0x00, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
-        this.compressed_data = [];
+        this.encoded_data = [];
+    }
+
+    /**
+     * Appends a byte to the end of the compressed byte array.  Re-allocates as needed
+     *
+     * @param byte {Number} char code of the byte to be added.
+     *
+     * @returns {undefined}
+     */
+    AddByte(byte) {
+        this.encoded_data.push(byte);
     }
 
     /**
@@ -293,8 +319,7 @@ class WTVLzpf {
         this.current_length += code_length;
 
         while (this.current_length > 7) {
-            //console.log("add", this.current_literal >>> 0, code >>> 0, byte, type)
-            this.compressed_data.push((this.current_literal >>> 0x18) & 0xFF);
+            this.AddByte((this.current_literal >>> 0x18) & 0xFF);
 
             this.current_length -= 8;
             this.current_literal = (this.current_literal << 8) & 0xFFFFFFFF;
@@ -302,74 +327,73 @@ class WTVLzpf {
     }
 
     /**
-     * Compress data using WebTV's Lzpf compression algorithm and adds the footer to the end.
+     * Starts a compression stream
      *
-     * @param uncompressed_data {String} data to compress
-     *
-     * @returns {Buffer} Lzpf compression data
+     * @returns {undefined} Lzpf compression data
      */
-    Compress(uncompressed_data) {
+    Begin() {
         this.clear();
+    }
 
-        if (uncompressed_data.words) {
-            uncompressed_data = new Buffer.from(this.wordArrayToUint8Array(uncompressed_data));
-        } else {
-            uncompressed_data = new Buffer.from(uncompressed_data);
-        }
-
-        var uncompressed_len = uncompressed_data.length;
+    /**
+     * Encode a block of data.  Used for streamed chunks.
+     *
+     * @param unencoded_data {Buffer} data to encode
+     * @param compress_data {Boolean} compress data
+     *
+     * @returns {Buffer} Lzpf encoded data
+     */
+    EncodeBlock(unencoded_data, compress_data) {
+        this.encoded_data = [];
+        var uncompressed_len = unencoded_data.byteLength;
 
         var i = 0;
-        var sum = 0;
-        var working_data = 0;
-        var flag = 0xFFFF;
         var flags_index = 0;
-        var match_index = 0;
-        var type_index = 0;
-        while(i < uncompressed_len) {
+        while (i < uncompressed_len) {
             var code_length = -1;
             var code = -1;
 
-            var byte = uncompressed_data.readUInt8(i);
+            var byte = unencoded_data.readUInt8(i);
+            this.ring_buffer[i & 0x1FFF] = byte;
 
-            if(match_index > 0) {
-                if (byte != uncompressed_data.readUInt8(flag) || match_index > 0x0127) {
-                    code_length = this.matchEncode[match_index][1];
-                    code = this.matchEncode[match_index][0];
-                    match_index = 0;
-                    type_index = 3;
+            if (this.match_index > 0) {
+                if (byte != this.ring_buffer[this.flag] || this.match_index > 0x0127) {
+                    code_length = this.matchEncode[this.match_index][1];
+                    code = this.matchEncode[this.match_index][0];
+                    this.match_index = 0;
+                    this.type_index = 3;
                 } else {
-                    match_index++;
-                    flag++;
-                    sum = (sum + byte) & 0xFFFF;
-                    working_data = ((working_data * 0x0100) + byte) & 0xFFFFFFFF;
+                    this.match_index = (this.match_index + 1) & 0x1FFF;
+                    this.flag = (this.flag + 1) & 0x1FFF;
+                    this.checksum = (this.checksum + byte) & 0xFFFF;
+                    this.working_data = ((this.working_data * 0x0100) + byte) & 0xFFFFFFFF;
                     i++;
                 }
             } else {
-                flag = 0xFFFF;
+                this.flag = 0xFFFF;
 
                 if (i >= 3) {
-                    flags_index = (working_data >>> 0x0B ^ working_data) & 0x0FFF;
-                    flag = this.flag_table[flags_index];
-                    this.flag_table[flags_index] = i;
+                    flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
+                    this.flag = this.flag_table[flags_index];
+                    this.flag_table[flags_index] = i & 0x1FFF;
                 } else {
-                    type_index++;
+                    this.type_index++;
                 }
 
-                if (flag == 0xFFFF) {
+                if (this.flag == 0xFFFF) {
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
-                } else if (byte == uncompressed_data.readUInt8(flag)) {
-                    match_index = 1;
-                    flag++;
-                    type_index = 4;
+                } else if (byte == this.ring_buffer[this.flag] && compress_data) {
+                    this.match_index = 1;
+                    this.flag = (this.flag + 1) & 0x1FFF;
+                    this.type_index = 4;
                 } else {
                     code_length = this.nomatchEncode[byte][1] + 1;
                     code = this.nomatchEncode[byte][0] << 0x0F;
                 }
 
-                sum = (sum + byte) & 0xFFFF;
-                working_data = ((working_data * 0x0100) + byte) & 0xFFFFFFFF;
+                this.checksum = (this.checksum + byte) & 0xFFFF;
+                this.working_data = ((this.working_data * 0x0100) + byte) & 0xFFFFFFFF;
                 i++;
             }
 
@@ -378,18 +402,32 @@ class WTVLzpf {
             }
         }
 
-        // Finish up.  This would normally be in an Lzpf_Finish method.
-        if(type_index == 2) {
+        return Buffer.from(this.encoded_data);
+    }
+
+    /**
+     * Ends a compression stream.
+     *
+     * @param type_index {Number} the end type used to finalize
+     *
+     * @returns {Buffer} Lzpf compression data
+     */
+    Finish() {
+        var code_length = -1
+        var code = -1
+
+        if (this.type_index == 2) {
             this.EncodeLiteral(0x10, 0x00990000);
-        } else if(type_index >= 3) {
-            if(type_index == 4) {
-                code_length = this.matchEncode[match_index][1];
-                code = this.matchEncode[match_index][0];
+        } else if (this.type_index >= 3) {
+            if (this.type_index == 4) {
+                code_length = this.matchEncode[this.match_index][1];
+                code = this.matchEncode[this.match_index][0];
                 this.EncodeLiteral(code_length, code);
             }
 
-            flags_index = (working_data >>> 0x0B ^ working_data) & 0x0FFF;
-            if (flags_index == 0xFFFF) {
+            var flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
+            var flag = this.flag_table[flags_index];
+            if (flag == 0xFFFF) {
                 this.EncodeLiteral(0x10, 0x00990000);
             } else {
                 this.EncodeLiteral(0x11, 0x004c8000);
@@ -399,14 +437,48 @@ class WTVLzpf {
         // Below is just metadata.  The compressed block is complete.
 
         // Encode checksum
-        this.EncodeLiteral(0x08, (sum << 0x10) & 0xFFFFFFFF);
-        this.EncodeLiteral(0x08, (sum << 0x18) & 0xFFFFFFFF);
+        this.EncodeLiteral(0x08, (this.checksum << 0x10) & 0xFFFFFFFF);
+        this.EncodeLiteral(0x08, (this.checksum << 0x18) & 0xFFFFFFFF);
 
         // End
-        this.compressed_data.push(this.current_literal >>> 0x18);
-        this.compressed_data.push(0x20);
+        this.AddByte((this.current_literal >>> 0x18) & 0xFF);
+        this.AddByte(0x20);
+    }
 
-        return new Buffer.from(this.compressed_data);
+    /**
+     * Converts the data to a Javascript Buffer object
+     *
+     * @param data {String|Buffer|CryptoJS.lib.WordArray} Data to convert
+     *
+     * @returns {Buffer} Javascript Buffer object
+     */
+    ConvertToBuffer(data) {
+        if (data.words) {
+            var WTVSec = require("./WTVSec.js");
+            wtvsec = new WTVSec(1);
+            data = wtvsec.wordArrayToBuffer(data);
+            WTVSec, wtvsec = null;
+        } else if (!data.byteLength) {
+            // otherwise if its not already a Buffer, convert it to one
+            data = new Buffer.from(data);
+        }
+        return data;
+    }
+
+    /**
+     * Compress data using WebTV's Lzpf compression algorithm and adds the footer to the end.
+     *
+     * @param uncompressed_data {String|Buffer|CryptoJS.lib.WordArray} data to compress
+     *
+     * @returns {Buffer} Lzpf compression data
+     */
+    Compress(uncompressed_data) {
+        uncompressed_data = this.ConvertToBuffer(uncompressed_data);
+        this.Begin();
+        this.EncodeBlock(uncompressed_data, true);
+        this.Finish();
+
+        return Buffer.from(this.encoded_data);
     }
 }
 

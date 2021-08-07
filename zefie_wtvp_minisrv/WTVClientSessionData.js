@@ -77,9 +77,23 @@ class WTVClientSessionData {
             } else {
                 return false;
             }
-        }        
-        this.session_store.cookies[this.countCookies()] = Object.assign({}, cookie_data);
-        this.storeSessionData();
+        }
+
+        var self = this;
+        var cookie_index = -1;
+        // see if we have a cookie for this domain/path
+        Object.keys(this.session_store.cookies).forEach(function (k) {
+            if (cookie_index >= 0) return;
+            if (domain == self.session_store.cookies[k].domain && path == self.session_store.cookies[k].path) cookie_index = k;
+        });
+        // otherwise add a new one
+        if (cookie_index == -1) cookie_index = this.countCookies();
+
+        this.session_store.cookies[cookie_index] = Object.assign({}, cookie_data);
+
+        // do not write file if user is not registered
+        if (getSessionData('registered')) this.storeSessionData();
+
         return true;
     }
 
@@ -92,8 +106,8 @@ class WTVClientSessionData {
             if (self.session_store['cookies'][k].domain == domain &&
                 self.session_store['cookies'][k].path == path) {
 
-                var current_epoch_utc = Math.floor(Date.toUTCString().getTime() / 1000);
-                var cookie_expires_epoch_utc = Math.floor(Date.Parse(self.session_store['cookies'][k].expires).toUTCString().getTime());
+                var current_epoch_utc = Date.parse((new Date()).toUTCString());
+                var cookie_expires_epoch_utc = Date.parse(new Date(Date.parse(self.session_store['cookies'][k].expires)).toUTCString());
                 if (cookie_expires_epoch_utc <= current_epoch_utc) self.deleteCookie(self.session_store['cookies'][k]);
                 else result = self.session_store['cookies'][k];
             }
@@ -103,11 +117,14 @@ class WTVClientSessionData {
 
     getCookieString(domain, path) {
         var cookie_data = this.getCookie(domain, path);
-        var outstring = "";
+        /*
+         var outstring = "";
         Object.keys(cookie_data).forEach(function (k) {
             outstring += k + "=" + escape(cookie_data[k]) + "&";
         });
         return outstring.substring(0, outstring.length - 1);
+        */
+        return cookie_data.cookie;
     }
 
     deleteCookie(domain, path = null) {
@@ -196,6 +213,19 @@ class WTVClientSessionData {
         return this.saveSessionData();
     }
 
+
+    unregisterBox() {
+        try {
+            if (this.fs.lstatSync(this.session_storage + this.path.sep + this.ssid + ".json")) {
+                return this.fs.unlinkSync(this.session_storage + this.path.sep + this.ssid + ".json");
+                this.session_store = {};
+            }
+        } catch (e) {
+            // Don't log error 'file not found', it just means the client isn't registered yet
+            if (e.code != "ENOENT") console.error(" # Error deleting session data for", this.filterSSID(this.ssid), e);
+            return false;
+        }
+    }
 
     hasCap(cap) {
         if (this.capabilities) {

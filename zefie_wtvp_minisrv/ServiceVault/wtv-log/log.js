@@ -15,7 +15,7 @@ Content-length: 0`;
 
     var logdata_outstring = '';
     Object.keys(request_headers.query).forEach(function (k) {
-        logdata_outstring += k + "=" + unescape(request_headers.query[k].toString()) + "\r\n";
+        logdata_outstring += k + "=" + request_headers.query[k].toString() + "\r\n";
     });
     logdata_outstring += "\r\n";
     var logdata_outstring_hex = Buffer.from(logdata_outstring, 'utf8').toString('hex');
@@ -36,7 +36,7 @@ Content-length: 0`;
 
     var logdata_outstring = '';
     Object.keys(request_headers.query).forEach(function (k) {
-        logdata_outstring += k + "=" + unescape(request_headers.query[k].toString()) + "\r\n";
+        logdata_outstring += k + "=" + request_headers.query[k].toString() + "\r\n";
     });
     var logdata_outstring_hex = Buffer.from(logdata_outstring, 'utf8').toString('hex');
     if (minisrv_config.services[service_name].write_logs_to_disk) {

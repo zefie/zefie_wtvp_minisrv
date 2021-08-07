@@ -99,12 +99,68 @@ function doErrorPage(code, data = null) {
 
 
 function getConType(path) {
-    // custom contype for flashrom
-    if (path.indexOf("wtv-flashrom") && (getFileExt(path).toLowerCase() == "rom" || getFileExt(path).toLowerCase() == "brom")) {
-        return "binary/x-wtv-flashblock";
-    } else if (getFileExt(path).toLowerCase() == "rmf") {
-        return "audio/x-rmf";
+    var file_ext = getFileExt(path).toLowerCase();
+    // process WebTV overrides, fall back to generic mime lookup
+    switch (file_ext) {
+        case "aif":
+            return "audio/x-aif";
+        case "aifc":
+            return "audio/x-aifc";
+        case "aiff":
+            return "audio/x-aiff";
+        case "ani":
+            return "x-wtv-animation";
+        case "brom":
+            return "binary/x-wtv-bootrom";
+        case "cdf":
+            return "application/netcdf";
+        case "dat":
+            return "binary/cache-data";
+        case "dl":
+            return "wtv/download-list";
+        case "gsm":
+            return "audio/x-gsm";
+        case "gz":
+            return "application/gzip";
+        case "ini":
+            return "wtv/jack-configuration";
+        case "mips-code":
+            return "code/x-wtv-code-mips";
+        case "o":
+            return "binary/x-wtv-approm";
+        case "ram":
+            return "audio/x-pn-realaudio";
+        case "rom":
+            return "binary/x-wtv-flashblock";
+        case "rsp":
+            return "wtv/jack-response";
+        case "swa":
+        case "swf":
+            return "application/x-shockwave-flash";
+        case "srf":
+        case "spl":
+            return "wtv/jack-data";
+        case "ttf":
+            return "wtv/jack-fonts";
+        case "tvch":
+            return "wtv/tv-channels";
+        case "tvl":
+            return "wtv/tv-listings";
+        case "tvsl":
+            return "wtv/tv-smartlinks";
+        case "wad":
+            return "binary/doom-data";
+        case "mp2":
+        case "hsb":
+        case "rmf":
+        case "s3m":
+        case "mod":
+        case "xm":
+            return "application/Music";
     }
+
+    // if we reach here, its not a WebTV specific override
+    // or we are not yet aware of said override
     return mime.lookup(path);
 }
 
@@ -260,9 +316,10 @@ async function processURL(socket, request_headers) {
             if (qraw.length > 0) {
                 qraw = qraw.split("&");
                 for (let i = 0; i < qraw.length; i++) {
-                    var k = qraw[i].split("=")[0];
-                    if (k) {
-                        request_headers.query[k] = qraw[i].split("=")[1];
+                    var qraw_split = qraw[i].split("=");
+                    if (qraw_split.length == 2) {
+                        var k = qraw_split[0];
+                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g,"%20"));
                     }
                 }
             }
@@ -271,23 +328,25 @@ async function processURL(socket, request_headers) {
         }
 
         if (request_headers.post_data) {
-            if (headersAreStandard(request_headers.post_data.toString(CryptoJS.enc.Utf8))) {
-                if (request_headers.post_data.toString(CryptoJS.enc.Utf8).indexOf('=')) {
-                    if (request_headers.post_data.toString(CryptoJS.enc.Utf8).indexOf('&')) {
-                        var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8).split('&');
+            var post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8).replace("\0", "");
+            if (isUnencryptedString(post_data_string)) {
+                if (post_data_string.indexOf('=')) {
+                    if (post_data_string.indexOf('&')) {
+                        var qraw = post_data_string.split('&');
                         if (qraw.length > 0) {
                             for (let i = 0; i < qraw.length; i++) {
-                                var k = qraw[i].split("=")[0];
-                                if (k) {
-                                    request_headers.query[k] = qraw[i].split("=")[1];
+                                var qraw_split = qraw[i].split("=");
+                                if (qraw_split.length == 2) {
+                                    var k = qraw_split[0];
+                                    request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
                                 }
                             }
                         }
                     } else {
-                        var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8);
-                        var k = qraw[i].split("=")[0];
-                        if (k) {
-                            request_headers.query[k] = qraw[i].split("=")[1];
+                        var qraw_split = post_data_string.split("=");
+                        if (qraw_split.length == 2) {
+                            var k = qraw_split[0];
+                            request_headers.query[k] = unescape(qraw_split[1].replace(/\+/g, "%20"));
                         }
                     }
                 }
@@ -495,10 +554,10 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-async function sendToClient(socket, headers_obj, data, compress_data = false) {
-    var headers = "";
-    var wni_style_content_length = false;
+async function sendToClient(socket, headers_obj, data) {
     var compress_data = false;
+    var headers = "";
+    var content_length = 0;
     if (typeof (data) === 'undefined') data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -517,72 +576,44 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         headers_obj = moveObjectElement('Connection', 'http_response', headers_obj);
     }
 
-    if (headers_obj['minisrv-already-compressed'] && wni_style_content_length) {
-        content_length = headers_obj["Content-length"];
-    } else {
-        var content_length = 0;
-        if (typeof data.length !== 'undefined') {
-            content_length = data.length;
-        } else if (typeof data.byteLength !== 'undefined') {
-            content_length = data.byteLength;
-        }
+    var clen = 0;
+    if (typeof data.length !== 'undefined') {
+        clen = data.length;
+    } else if (typeof data.byteLength !== 'undefined') {
+        clen = data.byteLength;
     }
 
-
-    // fix captialization of Content-Type header. May be unnecessary.
+    // fix captialization
     if (headers_obj["Content-type"]) {
         headers_obj["Content-Type"] = headers_obj["Content-type"];
         delete headers_obj["Content-type"];
     }
 
-    /*
-    // check if client reports it supports compressed data
+
+    // if box can do compression, see if its worth enabling
     if (ssid_sessions[socket.ssid].capabilities) {
-        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
-            // if the client reports it supports compression, check the Content-Type
-            // of the file we are sending to see if its worth compressing
+        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data'] && minisrv_config.config.enable_lzpf_compression) {
             compress_data = shouldWeCompress(headers_obj["Content-Type"]);
         }
     }
-    */
 
-    // compress if needed, and if not already compressed
-    if (compress_data && content_length > 0 && !headers_obj['minisrv-already-compressed']) {
-        if (zdebug) console.log(" # Uncompressed data length:", content_length);
+    // compress if needed
+    if (compress_data && clen > 0) {
+        content_length = clen;
+
         headers_obj["wtv-lzpf"] = 0;
+
         var wtvcomp = new WTVLzpf();
-        // we expect the compressed data to be smaller or at most equal to the source size
-        // so we set our initial buffer size to the source size
-        var compressed_data = new Buffer.alloc(content_length);
-        wtvcomp.on('data', (data, length, offset, complete) => {
-            // put data received into buffer
-            data.copy(compressed_data, offset, 0, length);
-            if (complete !== false) {
-                if (zdebug) console.log(" # Compressed data length:", complete);
-                // now that we have all of the compressed data, copy it to a new buffer
-                // of the correct length, and clean up the original buffer.
-                data = new Buffer.alloc(complete);
-                compressed_data.copy(data, 0, 0, compressed_data.byteLength);
-                compressed_data, wtvcomp = null;
-                // internal header to tell ourselves to not compress again
-                headers_obj['minisrv-already-compressed'] = true;
-                if (wni_style_content_length) headers_obj["Content-length"] = content_length;
-                sendToClient(socket, headers_obj, data);
-            }            
-        });
-        wtvcomp.Compress(data);
-        return;
+        data = wtvcomp.Compress(data);
+
+        wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
     }
-
-    // clean up internal header for compression
-    if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];
-
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
+        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
             if (!zquiet) console.log(" * Encrypting response to client ...")
             var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             data = enc_data;
@@ -594,8 +625,14 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
     if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
     if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
 
-    // On the WNI server this is the length before compression but we're using the length after compression.
-    // It matches the HTTP spec anyway so leaving.
+    if (content_length == 0) {
+        if (typeof data.length !== 'undefined') {
+            content_length = data.length;
+        } else if (typeof data.byteLength !== 'undefined') {
+            content_length = data.byteLength;
+        }
+    }
+
     headers_obj["Content-length"] = content_length;
 
     if (ssid_sessions[socket.ssid]) {
@@ -610,15 +647,13 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         }
     }
 
-    // internal header to determine EOL type. bf0app upgrader does not like \r, while the rest of the WebTV world does.
-    // set header 'minisrv-use-carriage-return' to true to disable \r for this specific transfer.
     var end_of_line = "\n";
-    if (!headers_obj['minisrv-use-carriage-return'] || headers_obj['minisrv-use-carriage-return'] != "false") end_of_line = "\r\n";
+    if (headers_obj['minisrv-use-carriage-return'] == "true") end_of_line = "\r\n";
     if (headers_obj['minisrv-use-carriage-return']) delete headers_obj['minisrv-use-carriage-return'];
 
-    if (end_of_line == "\n" && zdebug) console.log(" * Script requested to send headers without carriage return (bf0app hack)");
+    if (end_of_line == "\r\n" && zdebug) console.log(" * Script requested to send headers with carriage return (out of WTVP Spec)");
 
-    // convert header object back to string
+    // header object to string
     if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
         if (k == "http_response") {
@@ -643,7 +678,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         if (zquiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
         if (socket_sessions[socket.id].secure_headers == true) {
             // encrypt headers
-            if (zquiet)verbosity_mod += " with encrypted headers";
+            if (zquiet) verbosity_mod += " with encrypted headers";
             var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + end_of_line);
             socket.write(new Uint8Array(concatArrayBuffer(enc_headers, data)));
         } else {
@@ -660,7 +695,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
     if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
     if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
     if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
-    
+
     if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
         if (headers_obj["Connection"].toLowerCase() == "close" || wtv_connection_close == "true") {
@@ -712,7 +747,7 @@ function moveObjectElement(currentKey, afterKey, obj) {
     if (next !== -1) return result; else return obj;
 }
 
-function headersAreStandard(string, verbose = false) {
+function isUnencryptedString(string, verbose = false) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 
     // compressed / encrypted data as ASCII. This function checks for characters expected 
     // in unencrypted headers, and returns true only if every character in the string matches
@@ -745,7 +780,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             } else {
                 data = data.split("\n\n")[0];
             }
-            if (headersAreStandard(data)) {
+            if (isUnencryptedString(data)) {
                 if (headers.length != 0) {
                     var new_header_obj = headerStringToObj(data);
                     Object.keys(new_header_obj).forEach(function (k, v) {
@@ -758,7 +793,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             } else if (!skipSecure) {
                 // if its a POST request, assume its a binary blob and not encrypted (dangerous)
                 if (!encryptedRequest) {
-                    // its not a POST and it failed the headersAreStandard test, so we think this is an encrypted blob
+                    // its not a POST and it failed the isUnencryptedString test, so we think this is an encrypted blob
                     if (socket_sessions[socket.id].secure != true) {
                         // first time so reroll sessions
                         if (zdebug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
@@ -917,6 +952,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (zdebug) console.log(" # New ticket from client");
                             ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                             ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
+                            ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                         }
                     }
                 }
@@ -951,7 +987,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     }
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
-                        if (headersAreStandard(enc_data.toString(CryptoJS.enc.Latin1), (!skipSecure && !encryptedRequest))) {
+                        if (isUnencryptedString(enc_data.toString(CryptoJS.enc.Latin1), (!skipSecure && !encryptedRequest))) {
                             // some builds (like our targeted 3833), send SECURE ON but then unencrypted headers
                             if (zdebug) console.log(" # Psuedo-encrypted Request (SECURE ON)", "on", socket.id);
                             // don't actually encrypt output
@@ -1028,33 +1064,34 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         var post_string = "POST";
                         if (socket_sessions[socket.id].secure == true) {
                             post_string = "Encrypted " + post_string;
-                        } else {
-                            // if the request is not encrypted, the client may have just sent the data with the primary headers, so lets look for that.
-                            if (data_hex.indexOf("0d0a0d0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0d0a0d0a") + 8);
-                            if (data_hex.indexOf("0a0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0a0a") + 4);
                         }
-                        if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
-                            // got all expected data
-                            if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
-                            console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(got all expected", socket_sessions[socket.id].post_data_length, "bytes of data from client already)");
-                            headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
-                            if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
-                            processURL(socket, headers);
-                        } else {
-                            // expecting more data (see below)
-                            socket_sessions[socket.id].expecting_post_data = true;
-                            console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
-                        }
-                        if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
-                            // got too much data ? ... should not ever reach this code
-                            var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
-                            headers = errpage[0];
-                            data = errpage[1];
-                            sendToClient(socket, headers, data);
-                            return;
-                        }
+
+                        // the client may have just sent the data with the primary headers, so lets look for that.
+                        if (data_hex.indexOf("0d0a0d0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0d0a0d0a") + 8);
+                        if (data_hex.indexOf("0a0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0a0a") + 4);
+
+                    }
+                    if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
+                        // got all expected data
+                        if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                        console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(got all expected", socket_sessions[socket.id].post_data_length, "bytes of data from client already)");
+                        headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
+                        if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
+                        processURL(socket, headers);
+                    } else {
+                        // expecting more data (see below)
+                        socket_sessions[socket.id].expecting_post_data = true;
+                        console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
+                    }
+                    if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
+                        // got too much data ? ... should not ever reach this code
+                        var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
+                        headers = errpage[0];
+                        data = errpage[1];
+                        sendToClient(socket, headers, data);
                         return;
                     }
+                    return;
                 } else {
                     delete socket_sessions[socket.id].headers;
                     delete socket_sessions[socket.id].post_data;
@@ -1150,7 +1187,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             return;
                         }
                         var str_test = enc_data.toString(CryptoJS.enc.Latin1);
-                        if (headersAreStandard(str_test)) {
+                        if (isUnencryptedString(str_test)) {
                             var dec_data = enc_data;
                         } else {
                             var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
@@ -1303,7 +1340,7 @@ function getGitRevision() {
         if (rev.indexOf(':') === -1) {
             return rev;
         } else {
-            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.substring(5)).toString().trim();
+            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.substring(5)).toString().trim().substring(0,8) + "-" + rev.split('/').pop();
         }
     } catch (e) {
         return null;
@@ -1312,12 +1349,9 @@ function getGitRevision() {
 
 // SERVER START
 var git_commit = getGitRevision()
-if (git_commit) {
-    var z_title = "zefie's wtv minisrv v" + require('./package.json').version + " (git " + git_commit.substring(0,8) + ")";
-} else {
-    var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
-}
-console.log("**** Welcome to " + z_title + " ****");
+var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
+if (git_commit) console.log("**** Welcome to " + z_title + " (git " + git_commit + ") ****");
+else console.log("**** Welcome to " + z_title + " ****");
 console.log(" *** Reading global configuration...");
 try {
     var minisrv_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "config.json"));

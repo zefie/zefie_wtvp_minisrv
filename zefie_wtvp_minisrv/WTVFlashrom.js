@@ -14,8 +14,34 @@ class WTVFlashrom {
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;
 		this.bf0app_update = bf0app_update;
-		this.zdebug = debug;
+		this.zdebug = true;
 	}
+
+
+	doErrorPage(code, data = null) {
+		var headers = null;
+		switch (code) {
+			case 404:
+				if (data === null) data = "The service could not find the requested page.";
+				headers = "404 " + data + "\r\n";
+				headers += "Content-Type: text/html\r\n";
+				break;
+			case 400:
+				if (data === null) data = "HackTV ran into a technical problem.";
+				headers = "400 " + data + "\r\n";
+				headers += "Content-Type: text/html\r\n";
+				break;
+			default:
+				// what we send when we did not detect a wtv-url.
+				// e.g. when a pc browser connects
+				headers = "HTTP/1.1 200 OK\r\n";
+				headers += "Content-Type: text/html\r\n";
+				break;
+		}
+		console.error("doErrorPage Called:", code, data);
+		return new Array(headers, data);
+	}
+
 
 	async doLocalFlashROM(flashrom_file_path, callback, info_only = false) {
 		// use local flashrom files;
