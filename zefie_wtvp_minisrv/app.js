@@ -522,18 +522,34 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         clen = data.byteLength;
     }
 
-    // If wtv-lzpf is in the header then force compression
-    if (headers_obj["wtv-lzpf"]) {
-        compress_data = true;
+    // fix captialization
+    if (headers_obj["Content-type"]) {
+        headers_obj["Content-Type"] = headers_obj["Content-type"];
+        delete headers_obj["Content-type"];
+    }
+
+
+    // if box can do compression, see if its worth enabling
+    if (ssid_sessions[socket.ssid].capabilities) {
+        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
+            compress_data = shouldWeCompress(headers_obj["Content-Type"]);
+        }
     }
 
     // compress if needed
     if (compress_data && clen > 0) {
-        headers_obj["wtv-lzpf"] = "0";
+        headers_obj["wtv-lzpf"] = 0;
 
-        var lzpf = new WTVLzpf();
-        data = lzpf.Compress(data);
+        var wtvcomp = new WTVLzpf();
+        data = wtvcomp.Compress(data);
+
+        console.log("data", data)
+
+        wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
     }
+
+    if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];
+
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
@@ -546,17 +562,11 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         }
     }
 
-    // fix captialization
-    if (headers_obj["Content-length"]) {
-        delete headers_obj["Content-length"];
-    }
-
-    if (headers_obj["Content-type"]) {
-        headers_obj["Content-Type"] = headers_obj["Content-type"];
-        delete headers_obj["Content-type"];
-    }
-
     // calculate content length
+    // make sure we are using our Content-length and not one set in a script.
+    if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
+    if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
+
     // On the WNI server this is the length before compression but we're using the length after compression.
     // It matches the HTTP spec anyway so leaving.
     if (typeof data.length !== 'undefined') {

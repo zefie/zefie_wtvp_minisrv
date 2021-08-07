@@ -32,3 +32,4 @@ wtv-backgroundmusic-add: wtv-music:/MusicCache/headspace/RMF/moods/affectionate.
 wtv-backgroundmusic-add: wtv-music:/MusicCache/headspace/RMF/moods/sociable.rmf`;
 
 */
+data = '';
