@@ -495,7 +495,7 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-async function sendToClient(socket, headers_obj, data, compress_data = false) {
+async function sendToClient(socket, headers_obj, data) {
     var headers = "";
     if (typeof (data) === 'undefined') data = '';
     if (typeof (headers_obj) === 'string') {
