@@ -14,7 +14,6 @@ class WTVLzpf {
 
     current_length = 0
     current_literal = 0
-    chunk_size = 65535;
     flag_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
     compressed_data = [];
@@ -278,8 +277,6 @@ class WTVLzpf {
     clear() {
         this.current_length = 0;
         this.current_literal = 0;
-        this.total_compressed = 0;
-        this.compressed_offset = 0;
         this.ring_buffer.fill(0x00, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
         this.compressed_data = [];
