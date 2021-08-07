@@ -14,6 +14,10 @@ class WTVLzpf {
 
     current_length = 0
     current_literal = 0
+    working_data = 0;
+    match_index = 0;
+    type_index = 0;
+    checksum = 0;
     flag_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
     compressed_data = [];
@@ -277,9 +281,24 @@ class WTVLzpf {
     clear() {
         this.current_length = 0;
         this.current_literal = 0;
+        this.working_data = 0;
+        this.match_index = 0;
+        this.type_index = 0;
+        this.checksum = 0;
         this.ring_buffer.fill(0x00, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
         this.compressed_data = [];
+    }
+
+    /**
+     * Appends a byte to the end of the compressed byte array.  Re-allocates as needed
+     *
+     * @param byte {Number} char code of the byte to be added.
+     *
+     * @returns {undefined}
+     */
+    AddByte(byte) {
+        this.compressed_data.push(byte);
     }
 
     /**
@@ -297,11 +316,70 @@ class WTVLzpf {
         this.current_length += code_length;
 
         while (this.current_length > 7) {
-            this.compressed_data.push((this.current_literal >>> 0x18) & 0xFF);
+            this.AddByte((this.current_literal >>> 0x18) & 0xFF);
 
             this.current_length -= 8;
             this.current_literal = (this.current_literal << 8) & 0xFFFFFFFF;
         }
+    }
+
+    /**
+     * Starts a compression stream
+     *
+     * @returns {undefined} Lzpf compression data
+     */
+    Begin() {
+        this.clear();
+    }
+
+    /**
+     * Compress a block of data.  Used for streamed chunks.
+     *
+     * @param uncompressed_data {String} data to compress
+     *
+     * @returns {Buffer} Lzpf compression data
+     */
+    CompressBlock(uncompressed_data) {
+    }
+
+    /**
+     * Ends a compression stream.
+     *
+     * @param type_index {Number} the end type used to finalize
+     *
+     * @returns {Buffer} Lzpf compression data
+     */
+    Finalize() {
+        var code_length = -1
+        var code = -1
+
+        if (this.type_index == 2) {
+            this.EncodeLiteral(0x10, 0x00990000);
+        } else if (this.type_index >= 3) {
+            if (this.type_index == 4) {
+                code_length = this.matchEncode[this.match_index][1];
+                code = this.matchEncode[this.match_index][0];
+                this.EncodeLiteral(code_length, code);
+            }
+
+            var flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
+            var flag = this.flag_table[flags_index];
+            if (flag == 0xFFFF) {
+                this.EncodeLiteral(0x10, 0x00990000);
+            } else {
+                this.EncodeLiteral(0x11, 0x004c8000);
+            }
+        }
+
+        // Below is just metadata.  The compressed block is complete.
+
+        // Encode checksum
+        this.EncodeLiteral(0x08, (this.checksum << 0x10) & 0xFFFFFFFF);
+        this.EncodeLiteral(0x08, (this.checksum << 0x18) & 0xFFFFFFFF);
+
+        // End
+        this.AddByte((this.current_literal >>> 0x18) & 0xFF);
+        this.AddByte(0x20);
     }
 
     /**
@@ -324,12 +402,8 @@ class WTVLzpf {
         var uncompressed_len = uncompressed_data.length;
 
         var i = 0;
-        var sum = 0;
-        var working_data = 0;
         var flag = 0xFFFF;
         var flags_index = 0;
-        var match_index = 0;
-        var type_index = 0;
         while(i < uncompressed_len) {
             var code_length = -1;
             var code = -1;
@@ -337,44 +411,44 @@ class WTVLzpf {
             var byte = uncompressed_data.readUInt8(i);
             this.ring_buffer[i & 0x1FFF] = byte;
 
-            if(match_index > 0) {
-                if (byte != this.ring_buffer[flag] || match_index > 0x0127) {
-                    code_length = this.matchEncode[match_index][1];
-                    code = this.matchEncode[match_index][0];
-                    match_index = 0;
-                    type_index = 3;
+            if (this.match_index > 0) {
+                if (byte != this.ring_buffer[flag] || this.match_index > 0x0127) {
+                    code_length = this.matchEncode[this.match_index][1];
+                    code = this.matchEncode[this.match_index][0];
+                    this.match_index = 0;
+                    this.type_index = 3;
                 } else {
-                    match_index = (match_index + 1) & 0x1FFF;
+                    this.match_index = (this.match_index + 1) & 0x1FFF;
                     flag = (flag + 1) & 0x1FFF;
-                    sum = (sum + byte) & 0xFFFF;
-                    working_data = ((working_data * 0x0100) + byte) & 0xFFFFFFFF;
+                    this.checksum = (this.checksum + byte) & 0xFFFF;
+                    this.working_data = ((this.working_data * 0x0100) + byte) & 0xFFFFFFFF;
                     i++;
                 }
             } else {
                 flag = 0xFFFF;
 
                 if (i >= 3) {
-                    flags_index = (working_data >>> 0x0B ^ working_data) & 0x0FFF;
+                    flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
                     flag = this.flag_table[flags_index];
                     this.flag_table[flags_index] = i & 0x1FFF;
                 } else {
-                    type_index++;
+                    this.type_index++;
                 }
 
                 if (flag == 0xFFFF) {
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
                 } else if (byte == this.ring_buffer[flag]) {
-                    match_index = 1;
+                    this.match_index = 1;
                     flag = (flag + 1) & 0x1FFF;
-                    type_index = 4;
+                    this.type_index = 4;
                 } else {
                     code_length = this.nomatchEncode[byte][1] + 1;
                     code = this.nomatchEncode[byte][0] << 0x0F;
                 }
 
-                sum = (sum + byte) & 0xFFFF;
-                working_data = ((working_data * 0x0100) + byte) & 0xFFFFFFFF;
+                this.checksum = (this.checksum + byte) & 0xFFFF;
+                this.working_data = ((this.working_data * 0x0100) + byte) & 0xFFFFFFFF;
                 i++;
             }
 
@@ -383,33 +457,7 @@ class WTVLzpf {
             }
         }
 
-        // Finish up.  This would normally be in an Lzpf_Finish method.
-        if(type_index == 2) {
-            this.EncodeLiteral(0x10, 0x00990000);
-        } else if(type_index >= 3) {
-            if(type_index == 4) {
-                code_length = this.matchEncode[match_index][1];
-                code = this.matchEncode[match_index][0];
-                this.EncodeLiteral(code_length, code);
-            }
-
-            flags_index = (working_data >>> 0x0B ^ working_data) & 0x0FFF;
-            if (flags_index == 0xFFFF) {
-                this.EncodeLiteral(0x10, 0x00990000);
-            } else {
-                this.EncodeLiteral(0x11, 0x004c8000);
-            }
-        }
-
-        // Below is just metadata.  The compressed block is complete.
-
-        // Encode checksum
-        this.EncodeLiteral(0x08, (sum << 0x10) & 0xFFFFFFFF);
-        this.EncodeLiteral(0x08, (sum << 0x18) & 0xFFFFFFFF);
-
-        // End
-        this.compressed_data.push(this.current_literal >>> 0x18);
-        this.compressed_data.push(0x20);
+        this.Finalize();
 
         return Buffer.from(this.compressed_data);
     }
