@@ -496,6 +496,7 @@ function headerStringToObj(headers, response = false) {
 }
 
 async function sendToClient(socket, headers_obj, data) {
+    var compress_data = false;
     var headers = "";
     var content_length = 0;
     if (typeof (data) === 'undefined') data = '';
