@@ -2,13 +2,14 @@ const CryptoJS = require('crypto-js');
 const endianness = require('endianness');
 var crypto = require('crypto');
 
-/***********************************\
-|* Special Thanks to:              *|
-|*           eMac (Eric MacDonald) *|
-|* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  *|
-|*  For the encryption/decryption  *|
-|*     information and process     *|
-\***********************************/
+/**
+ * Javascript implementation of WTVP Security
+ *
+ * Special Thanks to eMac (Eric MacDonald)
+ * For the encryption/decryption information and process 
+ * 
+ * By: zefie
+ */
 
 class WTVSec {
     // Initial Shared Key, in Base64 Format
@@ -32,6 +33,15 @@ class WTVSec {
     RC4Session = new Array();
     zdebug = false;
 
+
+    /**
+     * 
+     * Initialize the WTVSec class.
+     * 
+     * @param {Number} wtv_incarnation Sets the wtv-incarnation for this instance
+     * @param {Boolean} zdebug Enable debugging
+     * 
+     */
     constructor(wtv_incarnation = 1, zdebug = false) {   
         this.zdebug = zdebug;
         this.initial_shared_key = CryptoJS.enc.Base64.parse(this.initial_shared_key_b64);
@@ -44,6 +54,11 @@ class WTVSec {
         }
     }
 
+    /**
+     * Set the wtv-incarnation for this instance
+     * 
+     * @param {Number} wtv_incarnation
+     */
     set_incarnation(wtv_incarnation) {
         if (this.incarnation != wtv_incarnation) {
             this.incarnation = wtv_incarnation;
@@ -51,14 +66,26 @@ class WTVSec {
         }
     }
 
+    /**
+     * Increments the wtv-incaration for this instance by 1
+     */
     increment_incarnation() {
         this.set_incarnation(parseInt(this.incarnation) + 1);
     }
 
+    /**
+     * Clones a WordArray to allow modification without referencing its original
+     * @param {CryptoJS.lib.WordArray} wa
+     * 
+     * @returns {CryptoJS.lib.WordArray}
+     */
     DuplicateWordArray(wa) {
-        return CryptoJS.lib.WordArray.create(this.wordArrayToUint8Array(wa).buffer);
+        return CryptoJS.lib.WordArray.create(this.wordArrayToBuffer(wa));
     }
 
+    /**
+     * Prepares the wtv-ticket for this instance
+     */
     PrepareTicket() {
         // store last challenge response in ticket
         var ticket_data = this.challenge_raw;
@@ -77,6 +104,11 @@ class WTVSec {
         return this.ticket_b64;
     }
 
+    /**
+     * Decodes a wtv-ticket to set up this instance
+     * 
+     * @param {Base64} ticket_b64
+     */
     DecodeTicket(ticket_b64) {
         var ticket_hex = CryptoJS.enc.Base64.parse(ticket_b64).toString(CryptoJS.enc.Hex);
         var challenge_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(0, 16));
@@ -95,6 +127,13 @@ class WTVSec {
         console.log(" * Decoded session from wtv-ticket");
     }
 
+    /**
+     * Processes a wtv-challenge to get the expected response
+     * @param {Base64} wtv_challenge
+     * @param {any} key
+     * 
+     * @returns {CryptoJS.lib.WordArray} wtv-challenge-response (or blank if failed)
+     */
     ProcessChallenge(wtv_challenge, key = this.current_shared_key) {
         var challenge_raw = CryptoJS.enc.Base64.parse(wtv_challenge);
 
@@ -139,7 +178,6 @@ class WTVSec {
                 var challenge_response = CryptoJS.enc.Hex.parse(challenge_raw_hex.substr(0, (8 * 2))).concat(echo_encrypted.ciphertext);                
                 return challenge_response;
             } else {
-                throw ("Couldn't solve challenge");
                 return "";
             }
         } else {
@@ -147,6 +185,11 @@ class WTVSec {
         }
     }
 
+    /**
+     * Generates a wtv-challenge for this instance
+     * 
+     * @returns {Base64} wtv-challenge
+     */
     IssueChallenge() {
         /*
          *  bytes 0-8: Random id? Just echoed in the response
@@ -188,41 +231,21 @@ class WTVSec {
         return challenge_b64;
     }
 
-    wordToByteArray(word, length) {
-        var ba = [],
-            i,
-            xFF = 0xFF;
-        if (length > 0)
-            ba.push(word >>> 24);
-        if (length > 1)
-            ba.push((word >>> 16) & xFF);
-        if (length > 2)
-            ba.push((word >>> 8) & xFF);
-        if (length > 3)
-            ba.push(word & xFF);
-
-        return ba;
+    /**
+     * convert a CryptoJS.lib.WordArray to a Javascript Buffer
+     * @param {CryptoJS.lib.WordArray} wordArray
+     * 
+     * #returns {Buffer} JS Buffer object
+     */
+    wordArrayToBuffer(wordArray) {
+        return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
     }
 
-    wordArrayToUint8Array(wordArray, length = 0) {
-        if (wordArray.hasOwnProperty("sigBytes") && wordArray.hasOwnProperty("words")) {
-            length = wordArray.sigBytes;
-            wordArray = wordArray.words;
-        }
-
-        var result = [],
-            bytes,
-            i = 0;
-        while (length > 0) {
-            bytes = this.wordToByteArray(wordArray[i], Math.min(4, length));
-            length -= bytes.length;
-            result.push(bytes);
-            i++;
-        }
-        return new Uint8Array([].concat.apply([], result));
-    }
-
-
+    /**
+     * Starts an encryption session
+     * @param {Number} rc4session Session Type (0 = enc k1, 1 = dec k1, 3 = enc k2, 4 = dec k2, default: all)
+     * 
+     */
     SecureOn(rc4session = null) {
         if (this.zdebug) console.log(" # Generating RC4 sessions with wtv-incarnation: " + this.incarnation);
        
@@ -230,33 +253,37 @@ class WTVSec {
         endianness(buf, 4);
         this.hRC4_Key1 = CryptoJS.MD5(this.DuplicateWordArray(this.session_key1).concat(CryptoJS.lib.WordArray.create(buf).concat(this.DuplicateWordArray(this.session_key1))));
         this.hRC4_Key2 = CryptoJS.MD5(this.DuplicateWordArray(this.session_key2).concat(CryptoJS.lib.WordArray.create(buf).concat(this.DuplicateWordArray(this.session_key2))));
+        var key1 = this.wordArrayToBuffer(this.hRC4_Key1);
+        var key2 = this.wordArrayToBuffer(this.hRC4_Key2);
         switch (rc4session) {
             case 0:
-                this.RC4Session[0] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)),'');
+                this.RC4Session[0] = crypto.createCipheriv('rc4', key1,'');
                 break;
             case 1:
-                this.RC4Session[1] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)),'');
+                this.RC4Session[1] = crypto.createDecipheriv('rc4', key1,'');
                 break;
             case 2:
-                this.RC4Session[2] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)),'');
+                this.RC4Session[2] = crypto.createCipheriv('rc4', key2,'');
                 break;
             case 3:
-                this.RC4Session[3] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)),'');
+                this.RC4Session[3] = crypto.createDecipheriv('rc4', key2,'');
                 break;
             default:
-                this.RC4Session[0] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)), '');
-                this.RC4Session[1] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key1)), '');
-                this.RC4Session[2] = crypto.createCipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)), '');
-                this.RC4Session[3] = crypto.createDecipheriv('rc4', Buffer.from(this.wordArrayToUint8Array(this.hRC4_Key2)), '');
+                this.RC4Session[0] = crypto.createCipheriv('rc4', key1, '');
+                this.RC4Session[1] = crypto.createDecipheriv('rc4', key1, '');
+                this.RC4Session[2] = crypto.createCipheriv('rc4', key2, '');
+                this.RC4Session[3] = crypto.createDecipheriv('rc4', key2, '');
                 break;
         }
     }
 
-
-    NewRC4Session(num) {
-        this.SecureOn(num);
-    }
-
+    /**
+     * RC4 Encrypt data
+     * @param {Number} keynum Which key to use (0 = k1, 1 = k2)
+     * @param {CryptoJS.lib.WordArray|ArrayBuffer|Buffer} data Data to encrypt
+     * 
+     * @returns {ArrayBuffer} Encrypted data
+     */
     Encrypt(keynum, data) {
         var session_id;
         switch (keynum) {
@@ -271,16 +298,23 @@ class WTVSec {
                 break;
         }
         if (!this.RC4Session[session_id]) {
-            this.NewRC4Session(session_id);
+            this.SecureOn(session_id);
         }
         if (data.words) {
-            data = new Buffer.from(this.wordArrayToUint8Array(data));
+            data = this.wordArrayToBuffer(data);
         } else if (data.constructor === ArrayBuffer) {
             data = new Buffer.from(data);
         }
         return this.RC4Session[session_id].update(data);
     }
 
+    /**
+     * RC4 Decrypt data
+     * @param {Number} keynum Which key to use (0 = k1, 1 = k2)
+     * @param {CryptoJS.lib.WordArray|ArrayBuffer|Buffer} data Data to decrypt
+     * 
+     * @returns {ArrayBuffer} Decrypted data
+     */
     Decrypt(keynum, data) {
         var session_id;
         switch (keynum) {
@@ -295,10 +329,10 @@ class WTVSec {
                 break;
         }
         if (!this.RC4Session[session_id]) {
-            this.NewRC4Session(session_id);
+            this.SecureOn(session_id);
         }
         if (data.words) {
-            data = new Buffer.from(this.wordArrayToUint8Array(data));
+            data = this.wordArrayToBuffer(data);
         } else if (data.constructor === ArrayBuffer) {
             data = new Buffer.from(data);
         }

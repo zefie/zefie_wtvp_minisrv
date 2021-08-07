@@ -51,6 +51,10 @@ Content-Type: text/html`
 		<td width=10>
 		<td valign=top>Mini Service
 <tr>
+		<td valign=top align=right><shadow>Host/Port:</shadow>
+		<td width=10>
+		<td valign=top>${service_ip}/${minisrv_config.services[service_name].port}
+<tr>
 		<td valign=top align=right width=150><shadow>Service:</shadow>
 		<td width=10>
 		<td valign=top>${z_title}
@@ -76,11 +80,28 @@ Content-Type: text/html`
 		<td valign=top align=right><shadow>Client IP number:</shadow>
 		<td width=10>
 		<td valign=top>${socket.remoteAddress}
-<tr>
-		<td valign=top align=right><shadow>Service IP number:</shadow>
+`;
+	if (ssid_sessions[socket.ssid].getSessionData("registered")) {
+		data += `<tr>
+		<td valign=top align=right><shadow>Subscriber Name:</shadow>
 		<td width=10>
-		<td valign=top>${service_ip}
+		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_name")}
 <tr>
+		<td valign=top align=right><shadow>Subscriber Username:</shadow>
+		<td width=10>
+		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_username")}
+<tr>
+		<td valign=top align=right><shadow>Subscriber Contact:</shadow>
+		<td width=10>
+		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_contact")} (${ssid_sessions[socket.ssid].getSessionData("subscriber_contact_method")})`;
+	} else {
+		data += `<tr>
+		<td valign=top align=right><shadow>Unregistered Guest:</shadow>
+		<td width=10>
+		<td valign=top>Yes`;
+	}
+
+	data += `<tr>
 		<td height=20>
 <tr>
 		<td valign=top align=right><shadow>ROM type:</shadow>
@@ -106,7 +127,7 @@ Content-Type: text/html`
 <tr>
 		<td valign=top align=right><shadow>SysConfig:</shadow>
 		<td width=10>
-		<td valign=top>0x${wtv_system_sysconfig_hex.toUpperCase()}
+		<td valign=top>0x${wtv_system_sysconfig_hex}
 </table>
 
 <table>

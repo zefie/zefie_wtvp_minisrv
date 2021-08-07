@@ -4,7 +4,7 @@ wtv-expire-all: wtv-home:/splash
 wtv-expire-all: wtv-flashrom:
 Content-type: text/html`
 
-if (request_headers.query.url) headers += "\nwtv-visit: " + unescape(request_headers.query.url);
+if (request_headers.query.url) headers += "\nwtv-visit: " + request_headers.query.url;
 
 if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 	var cryptstatus = "<a href='client:showalert?message=Your%20WebTV%20Unit%20sent%20us%20a%20request%20for%20SECURE%20ON%2C%20but%20did%20not%20encrypt%20any%20data%2C%20nor%20will%20accept%20it.%20However%2C%20we%20send%20the%20wtv-encryption%20flag%20to%20roll%20with%20it%2C%20enabling%20%27psuedo-encryption%27.%20Nothing%20is%20encrypted%2C%20but%20the%20box%20trusts%20us.%20This%20will%20probably%20go%20away%20if%20you%20reload%20or%20change%20pages.&buttonaction1=client:donothing&buttonlabel1=Oh%2C%20okay...'>Psuedo-encrypted</a>";
@@ -24,7 +24,10 @@ function go() {
 	location.href=document.access.url.value;
 }
 </script>
-<h4>Welcome to `+ z_title + `</h4>
+<b>Welcome to `+ z_title + `</b><br>
+`;
+if (minisrv_config.config.git_commit) data += "<small><i>" + "&nbsp; ".repeat(32) + "git revision " + minisrv_config.config.git_commit + "</i></small><br>";
+data += `
 <b>Encryption Status</b>: ${cryptstatus}<br>
 <b>Connection Speed</b>: &rate;
 <p>
@@ -53,7 +56,7 @@ if (ssid_sessions[socket.ssid].hasCap("client-can-do-javascript")) {
 	data += `<li><input name=url `;
 
 	if (request_headers.query.url) {
-		data += "value='" + unescape(request_headers.query.url) + "'";
+		data += "value='" + request_headers.query.url + "'";
 	}
 
 	data += `width=250  height=10 bgcolor=#444444 text=#ffdd33 cursor=#cc9933>

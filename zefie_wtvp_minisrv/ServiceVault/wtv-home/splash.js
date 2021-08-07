@@ -24,9 +24,7 @@ data = `<html>
 Mini service
 <tr><td>
 zefie minisrv v${minisrv_config.version}`;
-if (getGitRevision()) {
-    data += " (git " + getGitRevision().substring(0, 8) + ")";
-}
+if (minisrv_config.config.git_commit) data += " (git " + minisrv_config.config.git_commit + ")";
 data += `
 <tr><td>&rate;
 </table>

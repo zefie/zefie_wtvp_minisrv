@@ -1,13 +1,4 @@
-if (request_headers.query.noreg) {
-    headers = `302 Moved
-Connection: Close
-wtv-noback-all: wtv-register:
-wtv-expire-all: wtv-
-wtv-open-isp-disabled: false
-wtv-visit: wtv-head-waiter:/login-stage-two?guest_mode=true
-Location: wtv-head-waiter:/login-stage-two?guest_mode=true
-Content-type: text/html`;
-} else if (!request_headers.query.registering) {
+if (!request_headers.query.registering) {
     var errpage = doErrorPage(400);
     headers = errpage[0];
     data = errpage[1];

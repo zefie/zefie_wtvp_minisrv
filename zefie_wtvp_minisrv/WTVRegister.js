@@ -29,6 +29,7 @@ class WTVRegister {
     checkUsernameAvailable(username, ssid_sessions) {
         var username_match = false;
         this.fs.readdirSync(this.session_store_dir).forEach(file => {
+            if (!file.match(/.*\.json/ig)) return;
             if (username_match) return;
             try {
                 var temp_session_data_file = this.fs.readFileSync(this.session_store_dir + this.path.sep + file, 'Utf8');
