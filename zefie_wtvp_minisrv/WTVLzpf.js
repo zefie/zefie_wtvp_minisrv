@@ -18,6 +18,7 @@ class WTVLzpf extends EventEmitter {
     total_compressed = 0;
     chunk_size = 65535;
     flag_table = new Uint16Array(0x1000)
+    ring_buffer = new Uint8Array(0x2000)
     compressed_data = null;
 
     nomatchEncode = [
@@ -285,6 +286,7 @@ class WTVLzpf extends EventEmitter {
         this.current_literal = 0;
         this.total_compressed = 0;
         this.compressed_offset = 0;
+        this.ring_buffer.fill(0x00, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
         this.compressed_data = (length > 0) ? null : Buffer.alloc(length);
     }
@@ -349,16 +351,17 @@ class WTVLzpf extends EventEmitter {
             var code = -1;
 
             var byte = uncompressed_data.readUInt8(i);
+            this.ring_buffer[i & 0x1FFF] = byte;
 
             if(match_index > 0) {
-                if (byte != uncompressed_data.readUInt8(flag) || match_index > 0x0127) {
+                if (byte != this.ring_buffer[flag] || match_index > 0x0127) {
                     code_length = this.matchEncode[match_index][1];
                     code = this.matchEncode[match_index][0];
                     match_index = 0;
                     type_index = 3;
                 } else {
-                    match_index++;
-                    flag++;
+                    match_index = (match_index + 1) & 0x1FFF;
+                    flag = (flag + 1) & 0x1FFF;
                     sum = (sum + byte) & 0xFFFF;
                     working_data = ((working_data * 0x0100) + byte) & 0xFFFFFFFF;
                     i++;
@@ -369,7 +372,7 @@ class WTVLzpf extends EventEmitter {
                 if (i >= 3) {
                     flags_index = (working_data >>> 0x0B ^ working_data) & 0x0FFF;
                     flag = this.flag_table[flags_index];
-                    this.flag_table[flags_index] = i;
+                    this.flag_table[flags_index] = i & 0x1FFF;
                 } else {
                     type_index++;
                 }
@@ -377,9 +380,9 @@ class WTVLzpf extends EventEmitter {
                 if (flag == 0xFFFF) {
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
-                } else if (byte == uncompressed_data.readUInt8(flag)) {
+                } else if (byte == this.ring_buffer[flag]) {
                     match_index = 1;
-                    flag++;
+                    flag = (flag + 1) & 0x1FFF;
                     type_index = 4;
                 } else {
                     code_length = this.nomatchEncode[byte][1] + 1;
