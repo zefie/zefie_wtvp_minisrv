@@ -531,7 +531,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
 
     // if box can do compression, see if its worth enabling
     if (ssid_sessions[socket.ssid].capabilities) {
-        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
+        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data'] && minisrv_config.config.enable_lzpf_compression) {
             compress_data = shouldWeCompress(headers_obj["Content-Type"]);
         }
     }
