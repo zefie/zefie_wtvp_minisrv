@@ -546,9 +546,6 @@ async function sendToClient(socket, headers_obj, data) {
         wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
     }
 
-    if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];
-
-
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
         headers_obj["wtv-encrypted"] = 'true';
