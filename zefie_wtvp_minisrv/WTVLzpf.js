@@ -290,7 +290,7 @@ class WTVLzpf {
      *
      * @returns {undefined}
      */
-    async EncodeLiteral(code_length, code) {
+    EncodeLiteral(code_length, code) {
         // Using >>> to stick with unsigned integers without making a mess with casting.
 
         this.current_literal |= code >>> (this.current_length & 0x1F);
