@@ -463,12 +463,6 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         clen = data.byteLength;
     }
 
-
-    // If wtv-lzpf is in the header then force compression
-    if (headers_obj["wtv-lzpf"]) {
-        compress_data = true;
-    }
-
     // fix captialization
     if (headers_obj["Content-type"]) {
         headers_obj["Content-Type"] = headers_obj["Content-type"];
