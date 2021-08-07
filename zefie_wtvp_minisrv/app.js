@@ -497,8 +497,6 @@ function headerStringToObj(headers, response = false) {
 
 async function sendToClient(socket, headers_obj, data, compress_data = false) {
     var headers = "";
-    var wni_style_content_length = false;
-    var compress_data = false;
     if (typeof (data) === 'undefined') data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -517,86 +515,55 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         headers_obj = moveObjectElement('Connection', 'http_response', headers_obj);
     }
 
-    if (headers_obj['minisrv-already-compressed'] && wni_style_content_length) {
-        content_length = headers_obj["Content-length"];
-    } else {
-        var content_length = 0;
-        if (typeof data.length !== 'undefined') {
-            content_length = data.length;
-        } else if (typeof data.byteLength !== 'undefined') {
-            content_length = data.byteLength;
-        }
+    var clen = 0;
+    if (typeof data.length !== 'undefined') {
+        clen = data.length;
+    } else if (typeof data.byteLength !== 'undefined') {
+        clen = data.byteLength;
     }
 
-
-    // fix captialization of Content-Type header. May be unnecessary.
-    if (headers_obj["Content-type"]) {
-        headers_obj["Content-Type"] = headers_obj["Content-type"];
-        delete headers_obj["Content-type"];
+    // If wtv-lzpf is in the header then force compression
+    if (headers_obj["wtv-lzpf"]) {
+        compress_data = true;
     }
 
-    /*
-    // check if client reports it supports compressed data
-    if (ssid_sessions[socket.ssid].capabilities) {
-        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
-            // if the client reports it supports compression, check the Content-Type
-            // of the file we are sending to see if its worth compressing
-            compress_data = shouldWeCompress(headers_obj["Content-Type"]);
-        }
+    // compress if needed
+    if (compress_data && clen > 0) {
+        headers_obj["wtv-lzpf"] = "0";
+
+        var lzpf = new WTVLzpf();
+        data = lzpf.Compress(data);
     }
-    */
-
-    // compress if needed, and if not already compressed
-    if (compress_data && content_length > 0 && !headers_obj['minisrv-already-compressed']) {
-        if (zdebug) console.log(" # Uncompressed data length:", content_length);
-        headers_obj["wtv-lzpf"] = 0;
-        var wtvcomp = new WTVLzpf();
-        // we expect the compressed data to be smaller or at most equal to the source size
-        // so we set our initial buffer size to the source size
-        var compressed_data = new Buffer.alloc(content_length);
-        wtvcomp.on('data', (data, length, offset, complete) => {
-            // put data received into buffer
-            data.copy(compressed_data, offset, 0, length);
-            if (complete !== false) {
-                if (zdebug) console.log(" # Compressed data length:", complete);
-                // now that we have all of the compressed data, copy it to a new buffer
-                // of the correct length, and clean up the original buffer.
-                data = new Buffer.alloc(complete);
-                compressed_data.copy(data, 0, 0, compressed_data.byteLength);
-                compressed_data, wtvcomp = null;
-                // internal header to tell ourselves to not compress again
-                headers_obj['minisrv-already-compressed'] = true;
-                if (wni_style_content_length) headers_obj["Content-length"] = content_length;
-                sendToClient(socket, headers_obj, data);
-            }            
-        });
-        wtvcomp.Compress(data);
-        return;
-    }
-
-    // clean up internal header for compression
-    if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];
-
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
+        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
             if (!zquiet) console.log(" * Encrypting response to client ...")
             var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             data = enc_data;
         }
     }
 
-    // calculate content length
-    // make sure we are using our Content-length and not one set in a script.
-    if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
-    if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
+    // fix captialization
+    if (headers_obj["Content-length"]) {
+        delete headers_obj["Content-length"];
+    }
 
+    if (headers_obj["Content-type"]) {
+        headers_obj["Content-Type"] = headers_obj["Content-type"];
+        delete headers_obj["Content-type"];
+    }
+
+    // calculate content length
     // On the WNI server this is the length before compression but we're using the length after compression.
     // It matches the HTTP spec anyway so leaving.
-    headers_obj["Content-length"] = content_length;
+    if (typeof data.length !== 'undefined') {
+        headers_obj["Content-length"] = data.length;
+    } else if (typeof data.byteLength !== 'undefined') {
+        headers_obj["Content-length"] = data.byteLength;
+    }
 
     if (ssid_sessions[socket.ssid]) {
         if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
@@ -610,15 +577,13 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         }
     }
 
-    // internal header to determine EOL type. bf0app upgrader does not like \r, while the rest of the WebTV world does.
-    // set header 'minisrv-use-carriage-return' to true to disable \r for this specific transfer.
     var end_of_line = "\n";
     if (!headers_obj['minisrv-use-carriage-return'] || headers_obj['minisrv-use-carriage-return'] != "false") end_of_line = "\r\n";
     if (headers_obj['minisrv-use-carriage-return']) delete headers_obj['minisrv-use-carriage-return'];
 
     if (end_of_line == "\n" && zdebug) console.log(" * Script requested to send headers without carriage return (bf0app hack)");
 
-    // convert header object back to string
+    // header object to string
     if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
         if (k == "http_response") {
@@ -643,7 +608,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
         if (zquiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
         if (socket_sessions[socket.id].secure_headers == true) {
             // encrypt headers
-            if (zquiet)verbosity_mod += " with encrypted headers";
+            if (zquiet) verbosity_mod += " with encrypted headers";
             var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + end_of_line);
             socket.write(new Uint8Array(concatArrayBuffer(enc_headers, data)));
         } else {
@@ -660,10 +625,10 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
     if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
     if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
     if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
-    
+
     if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
-        if (headers_obj["Connection"].toLowerCase() == "close" || wtv_connection_close == "true") {
+        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
             socket.destroy();
         }
     }
