@@ -638,7 +638,7 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
 
     if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
-        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
+        if (headers_obj["Connection"].toLowerCase() == "close" || wtv_connection_close == "true") {
             socket.destroy();
         }
     }
