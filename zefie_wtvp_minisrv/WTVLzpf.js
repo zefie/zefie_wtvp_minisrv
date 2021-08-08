@@ -21,7 +21,7 @@ class WTVLzpf {
     checksum = 0;
     flag_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
-    compressed_data = [];
+    encoded_data = [];
 
     nomatchEncode = [
         [0x0000, 0x10], [0x0001, 0x10], [0x0002, 0x10], 
@@ -289,7 +289,7 @@ class WTVLzpf {
         this.checksum = 0;
         this.ring_buffer.fill(0x00, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
-        this.compressed_data = [];
+        this.encoded_data = [];
     }
 
     /**
@@ -300,7 +300,7 @@ class WTVLzpf {
      * @returns {undefined}
      */
     AddByte(byte) {
-        this.compressed_data.push(byte);
+        this.encoded_data.push(byte);
     }
 
     /**
@@ -335,23 +335,16 @@ class WTVLzpf {
     }
 
     /**
-     * Compress a block of data.  Used for streamed chunks.
+     * Encode a block of data.  Used for streamed chunks.
      *
-     * @param uncompressed_data {String} data to compress
+     * @param unencoded_data {Buffer} data to encode
+     * @param compress_data {Boolean} compress data
      *
-     * @returns {Buffer} Lzpf compression data
+     * @returns {Buffer} Lzpf encoded data
      */
-    CompressBlock(uncompressed_data) {
-        this.compressed_data = [];
-
-        if (uncompressed_data.words) {
-            uncompressed_data = new Buffer.from(wtvsec.wordArrayToUint8Array(uncompressed_data));
-        } else if (!uncompressed_data.byteLength) {
-            // otherwise if its not already a Buffer, convert it to one
-            uncompressed_data = new Buffer.from(uncompressed_data);
-        }
-
-        var uncompressed_len = uncompressed_data.length;
+    EncodeBlock(unencoded_data, compress_data) {
+        this.encoded_data = [];
+        var uncompressed_len = unencoded_data.byteLength;
 
         var i = 0;
         var flags_index = 0;
@@ -359,7 +352,7 @@ class WTVLzpf {
             var code_length = -1;
             var code = -1;
 
-            var byte = uncompressed_data.readUInt8(i);
+            var byte = unencoded_data.readUInt8(i);
             this.ring_buffer[i & 0x1FFF] = byte;
 
             if (this.match_index > 0) {
@@ -389,7 +382,7 @@ class WTVLzpf {
                 if (this.flag == 0xFFFF) {
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
-                } else if (byte == this.ring_buffer[this.flag]) {
+                } else if (byte == this.ring_buffer[this.flag] && compress_data) {
                     this.match_index = 1;
                     this.flag = (this.flag + 1) & 0x1FFF;
                     this.type_index = 4;
@@ -408,7 +401,7 @@ class WTVLzpf {
             }
         }
 
-        return Buffer.from(this.compressed_data);
+        return Buffer.from(this.encoded_data);
     }
 
     /**
@@ -454,16 +447,37 @@ class WTVLzpf {
     /**
      * Compress data using WebTV's Lzpf compression algorithm and adds the footer to the end.
      *
-     * @param uncompressed_data {String} data to compress
+     * @param data {String|Buffer|CryptoJS.lib.WordArray} data to convert
+     *
+     * @returns {Buffer} Javascript Buffer object
+     */
+    ConvertToBuffer(data) {
+        if (data.words) {
+            var WTVSec = require("./WTVSec.js");
+            wtvsec = new WTVSec(1);
+            data = new Buffer.from(wtvsec.wordArrayToUint8Array(data));
+            WTVSec, wtvsec = null;
+        } else if (!data.byteLength) {
+            // otherwise if its not already a Buffer, convert it to one
+            data = new Buffer.from(data);
+        }
+        return data;
+    }
+
+    /**
+     * Compress data using WebTV's Lzpf compression algorithm and adds the footer to the end.
+     *
+     * @param uncompressed_data {String|Buffer|CryptoJS.lib.WordArray} data to compress
      *
      * @returns {Buffer} Lzpf compression data
      */
     Compress(uncompressed_data) {
+        uncompressed_data = this.ConvertToBuffer(uncompressed_data);
         this.Begin();
-        this.CompressBlock(uncompressed_data)
+        this.EncodeBlock(uncompressed_data, true);
         this.Finish();
 
-        return Buffer.from(this.compressed_data);
+        return Buffer.from(this.encoded_data);
     }
 }
 
