@@ -21,7 +21,6 @@ class WTVLzpf {
     checksum = 0;
     flag_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
-    encoded_data = [];
 
     nomatchEncode = [
         [0x0000, 0x10], [0x0001, 0x10], [0x0002, 0x10], 
@@ -289,7 +288,6 @@ class WTVLzpf {
         this.checksum = 0;
         this.ring_buffer.fill(0x00, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
-        this.encoded_data = [];
     }
 
     /**
@@ -299,8 +297,9 @@ class WTVLzpf {
      *
      * @returns {undefined}
      */
-    AddByte(byte) {
-        this.encoded_data.push(byte);
+    AddByte(byte, encoded_data) {
+        encoded_data.push(byte);
+        return encoded_data;
     }
 
     /**
@@ -311,18 +310,19 @@ class WTVLzpf {
      *
      * @returns {undefined}
      */
-    EncodeLiteral(code_length, code) {
+    EncodeLiteral(code_length, code, encoded_data) {
         // Using >>> to stick with unsigned integers without making a mess with casting.
 
         this.current_literal |= code >>> (this.current_length & 0x1F);
         this.current_length += code_length;
 
         while (this.current_length > 7) {
-            this.AddByte((this.current_literal >>> 0x18) & 0xFF);
+            encoded_data = this.AddByte((this.current_literal >>> 0x18) & 0xFF, encoded_data);
 
             this.current_length -= 8;
             this.current_literal = (this.current_literal << 8) & 0xFFFFFFFF;
         }
+        return encoded_data;
     }
 
     /**
@@ -342,8 +342,7 @@ class WTVLzpf {
      *
      * @returns {Buffer} Lzpf encoded data
      */
-    EncodeBlock(unencoded_data, compress_data) {
-        this.encoded_data = [];
+    EncodeBlock(unencoded_data, compress_data, encoded_data = []) {
         var uncompressed_len = unencoded_data.byteLength;
 
         var i = 0;
@@ -397,11 +396,11 @@ class WTVLzpf {
             }
 
             if (code_length > 0) {
-                this.EncodeLiteral(code_length, code);
+                encoded_data = this.EncodeLiteral(code_length, code, encoded_data);
             }
         }
 
-        return Buffer.from(this.encoded_data);
+        return encoded_data;
     }
 
     /**
@@ -411,37 +410,38 @@ class WTVLzpf {
      *
      * @returns {Buffer} Lzpf compression data
      */
-    Finish() {
+    Finish(encoded_data) {
         var code_length = -1
         var code = -1
 
         if (this.type_index == 2) {
-            this.EncodeLiteral(0x10, 0x00990000);
+            encoded_data = this.EncodeLiteral(0x10, 0x00990000, encoded_data);
         } else if (this.type_index >= 3) {
             if (this.type_index == 4) {
                 code_length = this.matchEncode[this.match_index][1];
                 code = this.matchEncode[this.match_index][0];
-                this.EncodeLiteral(code_length, code);
+                encoded_data = this.EncodeLiteral(code_length, code, encoded_data);
             }
 
             var flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
             var flag = this.flag_table[flags_index];
             if (flag == 0xFFFF) {
-                this.EncodeLiteral(0x10, 0x00990000);
+                encoded_data = this.EncodeLiteral(0x10, 0x00990000, encoded_data);
             } else {
-                this.EncodeLiteral(0x11, 0x004c8000);
+                encoded_data = this.EncodeLiteral(0x11, 0x004c8000, encoded_data);
             }
         }
 
         // Below is just metadata.  The compressed block is complete.
 
         // Encode checksum
-        this.EncodeLiteral(0x08, (this.checksum << 0x10) & 0xFFFFFFFF);
-        this.EncodeLiteral(0x08, (this.checksum << 0x18) & 0xFFFFFFFF);
+        encoded_data = this.EncodeLiteral(0x08, (this.checksum << 0x10) & 0xFFFFFFFF, encoded_data);
+        encoded_data = this.EncodeLiteral(0x08, (this.checksum << 0x18) & 0xFFFFFFFF, encoded_data);
 
         // End
-        this.AddByte((this.current_literal >>> 0x18) & 0xFF);
-        this.AddByte(0x20);
+        encoded_data = this.AddByte((this.current_literal >>> 0x18) & 0xFF, encoded_data);
+        encoded_data = this.AddByte(0x20, encoded_data);
+        return encoded_data;
     }
 
     /**
@@ -474,10 +474,10 @@ class WTVLzpf {
     Compress(uncompressed_data) {
         uncompressed_data = this.ConvertToBuffer(uncompressed_data);
         this.Begin();
-        this.EncodeBlock(uncompressed_data, true);
-        this.Finish();
+        var compressed_data = this.EncodeBlock(uncompressed_data, true);
+        compressed_data = this.Finish(compressed_data);
 
-        return Buffer.from(this.encoded_data);
+        return Buffer.from(compressed_data);
     }
 }
 
