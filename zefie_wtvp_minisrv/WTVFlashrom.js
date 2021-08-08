@@ -43,7 +43,7 @@ class WTVFlashrom {
 	}
 
 
-	async doLocalFlashROM(flashrom_file_path, callback, info_only = false) {
+	async doLocalFlashROM(flashrom_file_path, request_path, callback, info_only = false) {
 		// use local flashrom files;
 		console.log(info_only);
 		var self = this;
@@ -56,7 +56,7 @@ class WTVFlashrom {
 					callback(data, headers);
 				} else {
 					if (info_only) {
-						callback(self.getFlashromData(data, flashrom_file_path));
+						callback(self.getFlashromInfo(data, request_path));
 					} else {
 						self.sendToClient(data, flashrom_file_path, callback);
 					}
@@ -117,7 +117,7 @@ class WTVFlashrom {
 		flashrom_info.message = new Buffer.from(part_header.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
 
 		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) == flashrom_info.total_parts_size) ? true : false;
-		flashrom_info.rompath = 'wtv-flashrom:/get-by-path?path=' + path + '&raw=true';
+		flashrom_info.rompath = `wtv-flashrom:/${path}`;
 		if (this.zdebug) console.log(" # Flashrom Part Bytes Sent (after this part):", flashrom_info.byte_progress + flashrom_info.part_total_size);
 		if (this.zdebug) console.log(" # Flashrom Part is Last Part", flashrom_info.is_last_part);
 
@@ -202,7 +202,7 @@ class WTVFlashrom {
 			});
 			req.end();
 		} else {
-			this.doLocalFlashROM(flashrom_file_path, callback, ((length != 0) ? true : false));
+			this.doLocalFlashROM(flashrom_file_path, request_path, callback, ((length != 0) ? true : false));
 		}
 	}
 }

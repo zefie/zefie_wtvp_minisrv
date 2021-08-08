@@ -9,7 +9,7 @@ if (request_headers.query.vflash) delete request_headers.query.vflash;
 if (request_headers.query.pflash) delete request_headers.query.pflash;
 
 for (const [key, value] of Object.entries(request_headers.query)) {
-	proxy_query += "&" + key + "=" + value;
+	proxy_query += "&" + key + "=" + escape(value);
 }
 
 if (!minisrv_config.services[service_name].use_zefie_server) {
@@ -18,7 +18,7 @@ if (!minisrv_config.services[service_name].use_zefie_server) {
 
 var options = {
 	host: "wtv.zefie.com",
-	path: "/willie.php?minisrv=true&pflash=" + ssid_sessions[socket.ssid].get("wtv-client-rom-type") + proxy_query,
+	path: "/willie.php?minisrv=true&service_name="+escape(service_name)+"&pflash=" + ssid_sessions[socket.ssid].get("wtv-client-rom-type") + proxy_query,
 	timeout: 5000,
 	method: 'GET'
 }
@@ -42,7 +42,7 @@ const req = https.request(options, function (res) {
 	res.on('end', function () {
 		if (!zquiet) console.log(" * Upstream Ultra Willies HTTP Response:", res.statusCode, res.statusMessage);
 		if (request_headers.query.clear_cache) {
-			headers += "\nwtv-expire-all: wtv-flashrom";
+			headers += "\nwtv-expire-all: "+service_name;
         }
 		sendToClient(socket, headers, data);
 	});

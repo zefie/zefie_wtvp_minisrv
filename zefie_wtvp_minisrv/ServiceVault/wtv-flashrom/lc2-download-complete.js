@@ -25,12 +25,12 @@ hspace=0 vspace=0 fontsize="large">
 <td width=104 height=74 valign=middle align=center bgcolor="3B3A4D">
 <img src="${minisrv_config.config.service_logo}" width=87 height=67>
 <td width=20 valign=top align=left bgcolor="3B3A4D">
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=1 height=1>
 <td colspan=10 width=436 valign=middle align=left bgcolor="3B3A4D">
 <font color="D6DFD0" size="+2">
 <blackface>
 <shadow>
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=4>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=1 height=4>
 <br>
 Updating complete
 </shadow>
@@ -38,7 +38,7 @@ Updating complete
 </font>
 <tr>
 <td colspan=12 width=560 height=10 valign=top align=left>
-<img src="wtv-flashrom:/ROMCache/S40H1.gif" width=560 height=6>
+<img src="${service_name}:/ROMCache/S40H1.gif" width=560 height=6>
 <tr>
 <td width=104 height=10 valign=top align=left>
 <td width=20 valign=top align=left>
@@ -65,7 +65,7 @@ The update is complete.<br>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
 <td colspan=10 height=2 valign=middle align=center bgcolor="2B2B2B">
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=436 height=1>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
@@ -74,7 +74,7 @@ The update is complete.<br>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
 <td colspan=10 height=2 valign=top align=left bgcolor="0D0D0D">
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=436 height=1>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
