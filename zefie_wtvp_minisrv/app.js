@@ -585,6 +585,7 @@ async function doHTTPProxy(socket, request_headers) {
                 ]);
                 if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
                 if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
+                headers["wtv-http-proxy"] = true;
                 sendToClient(socket, headers, Buffer.from(data_hex,'hex'));
             });
         }).on('error', function (err) {
@@ -759,20 +760,17 @@ async function sendToClient(socket, headers_obj, data) {
         delete headers_obj["Content-type"];
     }
 
-    // encrypt if needed
-    if (socket_sessions[socket.id].secure == true) {
-        headers_obj["wtv-encrypted"] = 'true';
-        headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
-            if (!zquiet) console.log(" * Encrypting response to client ...")
-            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
-            data = enc_data;
-        }
-    }
-
     // if box can do compression, see if its worth enabling
+<<<<<<< HEAD
     var compression_type = shouldWeCompress(socket.ssid, headers_obj);
     if (headers_obj["wtv-modern-content-type"]) delete headers_obj["wtv-modern-content-type"];
+=======
+    if (ssid_sessions[socket.ssid].capabilities) {
+        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data'] && minisrv_config.config.enable_lzpf_compression) {
+            compress_data = shouldWeCompress(headers_obj);
+        }
+    }
+>>>>>>> 6a39cc5... Scratch that.  Do what offers better compression over replicating the service.  RC4 is too random
 
     // compress if needed
     if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0,3) == "200") {
@@ -813,6 +811,17 @@ async function sendToClient(socket, headers_obj, data) {
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
         if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
+            if (!zquiet) console.log(" * Encrypting response to client ...")
+            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
+            data = enc_data;
+        }
+    }
+
+    // encrypt if needed
+    if (socket_sessions[socket.id].secure == true) {
+        headers_obj["wtv-encrypted"] = 'true';
+        headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
+        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
             if (!zquiet) console.log(" * Encrypting response to client ...")
             var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             data = enc_data;
