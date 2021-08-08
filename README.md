@@ -14,18 +14,23 @@ This open source server is in alpha status. Use at your own risk.
 - Flashrom flashing support for all known units (including bf0app 'Old Classic')
 - Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
 - `wtv-update:/sync` for Download-o-Rama style file downloading
+- Custom Tellyscripts *(not yet customizable though)*
+- Flat file client session store and registration system
 
 ### Current issues:
-- Satellite Receiver units reportedly cannot surf with http or https proxy.
+- wtv-cookie implementation is still partial
+- wtv-lzpf compression support is not yet reliable
 - Mis-configuring wtv-update:/sync DiskMaps may cause units to delete contents of partitions (need more info)
+- Satellite Receiver units reportedly cannot surf with http or https proxy. *(May be fixed by current partial wtv-cookie implementation)*
 
 ### Won't fix:
 - wtv-encryption stream breaks when two different sessions have the same SSID (eg spoofing, won't fix (production did it too))
-- No intentions to support user accounts, registration, or any form of database system
+- ~~No intentions to support user accounts, registration, or any form of database system~~ *(I guess this was a lie, but we still don't use a database!)*
 
 ### Feature Todo:
-- wtv-lzpf support
-- TellyScript generation and/or manipulation (needed for Name Server configuration)
+- wtv-lzpf support *(Milestone v1.0)*
+- wtv-cookie full support *(Milestone v1.1)*
+- TellyScript generation and/or manipulation without external dependancies
 - ~~Flashrom flashing for bf0app old classic~~ ***Done [v0.9.9](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.9)***
 - ~~SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)~~ ***Done [v0.9.4](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.4)***
 - ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done [v0.8.0](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.8.0)***
