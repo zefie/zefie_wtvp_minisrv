@@ -455,7 +455,7 @@ class WTVLzpf {
         if (data.words) {
             var WTVSec = require("./WTVSec.js");
             wtvsec = new WTVSec(1);
-            data = new Buffer.from(wtvsec.wordArrayToUint8Array(data));
+            data = wtvsec.wordArrayToBuffer(data);
             WTVSec, wtvsec = null;
         } else if (!data.byteLength) {
             // otherwise if its not already a Buffer, convert it to one
