@@ -319,7 +319,7 @@ async function processURL(socket, request_headers) {
                     var qraw_split = qraw[i].split("=");
                     if (qraw_split.length == 2) {
                         var k = qraw_split[0];
-                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+',"%20"));
+                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g,"%20"));
                     }
                 }
             }
@@ -328,25 +328,25 @@ async function processURL(socket, request_headers) {
         }
 
         if (request_headers.post_data) {
-            if (headersAreStandard(request_headers.post_data.toString(CryptoJS.enc.Utf8))) {
-                if (request_headers.post_data.toString(CryptoJS.enc.Utf8).indexOf('=')) {
-                    if (request_headers.post_data.toString(CryptoJS.enc.Utf8).indexOf('&')) {
-                        var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8).split('&');
+            var post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8).replace("\0", "");
+            if (isUnencryptedString(post_data_string)) {
+                if (post_data_string.indexOf('=')) {
+                    if (post_data_string.indexOf('&')) {
+                        var qraw = post_data_string.split('&');
                         if (qraw.length > 0) {
                             for (let i = 0; i < qraw.length; i++) {
                                 var qraw_split = qraw[i].split("=");
                                 if (qraw_split.length == 2) {
                                     var k = qraw_split[0];
-                                    request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+', "%20"));
+                                    request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
                                 }
                             }
                         }
                     } else {
-                        var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8);
-                        var qraw_split = qraw[i].split("=");
+                        var qraw_split = post_data_string.split("=");
                         if (qraw_split.length == 2) {
                             var k = qraw_split[0];
-                            request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+', "%20"));
+                            request_headers.query[k] = unescape(qraw_split[1].replace(/\+/g, "%20"));
                         }
                     }
                 }
@@ -747,7 +747,7 @@ function moveObjectElement(currentKey, afterKey, obj) {
     if (next !== -1) return result; else return obj;
 }
 
-function headersAreStandard(string, verbose = false) {
+function isUnencryptedString(string, verbose = false) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 
     // compressed / encrypted data as ASCII. This function checks for characters expected 
     // in unencrypted headers, and returns true only if every character in the string matches
@@ -780,7 +780,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             } else {
                 data = data.split("\n\n")[0];
             }
-            if (headersAreStandard(data)) {
+            if (isUnencryptedString(data)) {
                 if (headers.length != 0) {
                     var new_header_obj = headerStringToObj(data);
                     Object.keys(new_header_obj).forEach(function (k, v) {
@@ -793,7 +793,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             } else if (!skipSecure) {
                 // if its a POST request, assume its a binary blob and not encrypted (dangerous)
                 if (!encryptedRequest) {
-                    // its not a POST and it failed the headersAreStandard test, so we think this is an encrypted blob
+                    // its not a POST and it failed the isUnencryptedString test, so we think this is an encrypted blob
                     if (socket_sessions[socket.id].secure != true) {
                         // first time so reroll sessions
                         if (zdebug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
@@ -987,7 +987,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     }
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
-                        if (headersAreStandard(enc_data.toString(CryptoJS.enc.Latin1), (!skipSecure && !encryptedRequest))) {
+                        if (isUnencryptedString(enc_data.toString(CryptoJS.enc.Latin1), (!skipSecure && !encryptedRequest))) {
                             // some builds (like our targeted 3833), send SECURE ON but then unencrypted headers
                             if (zdebug) console.log(" # Psuedo-encrypted Request (SECURE ON)", "on", socket.id);
                             // don't actually encrypt output
@@ -1187,7 +1187,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             return;
                         }
                         var str_test = enc_data.toString(CryptoJS.enc.Latin1);
-                        if (headersAreStandard(str_test)) {
+                        if (isUnencryptedString(str_test)) {
                             var dec_data = enc_data;
                         } else {
                             var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
