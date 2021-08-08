@@ -51,6 +51,10 @@ Content-Type: text/html`
 		<td width=10>
 		<td valign=top>Mini Service
 <tr>
+		<td valign=top align=right><shadow>Host/Port:</shadow>
+		<td width=10>
+		<td valign=top>${service_ip}/${minisrv_config.services[service_name].port}
+<tr>
 		<td valign=top align=right width=150><shadow>Service:</shadow>
 		<td width=10>
 		<td valign=top>${z_title}
@@ -76,10 +80,6 @@ Content-Type: text/html`
 		<td valign=top align=right><shadow>Client IP number:</shadow>
 		<td width=10>
 		<td valign=top>${socket.remoteAddress}
-<tr>
-		<td valign=top align=right><shadow>Service IP number:</shadow>
-		<td width=10>
-		<td valign=top>${service_ip}
 `;
 	if (ssid_sessions[socket.ssid].getSessionData("registered")) {
 		data += `<tr>

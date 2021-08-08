@@ -1279,7 +1279,7 @@ function getGitRevision() {
         if (rev.indexOf(':') === -1) {
             return rev;
         } else {
-            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.substring(5)).toString().trim();
+            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.substring(5)).toString().trim().substring(0,8) + "-" + rev.split('/').pop();
         }
     } catch (e) {
         return null;
@@ -1288,11 +1288,7 @@ function getGitRevision() {
 
 // SERVER START
 var git_commit = getGitRevision()
-if (git_commit) {
-    var z_title = "zefie's wtv minisrv v" + require('./package.json').version + " (git " + git_commit.substring(0,8) + ")";
-} else {
-    var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
-}
+var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 console.log("**** Welcome to " + z_title + " ****");
 console.log(" *** Reading global configuration...");
 try {

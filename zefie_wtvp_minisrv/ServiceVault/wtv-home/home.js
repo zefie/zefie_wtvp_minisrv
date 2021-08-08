@@ -24,7 +24,10 @@ function go() {
 	location.href=document.access.url.value;
 }
 </script>
-<h4>Welcome to `+ z_title + `</h4>
+<b>Welcome to `+ z_title + `</b><br>
+`;
+if (minisrv_config.config.git_commit) data += "<small><i>" + "&nbsp; ".repeat(32) + "git revision " + minisrv_config.config.git_commit + "</i></small><br>";
+data += `
 <b>Encryption Status</b>: ${cryptstatus}<br>
 <b>Connection Speed</b>: &rate;
 <p>
