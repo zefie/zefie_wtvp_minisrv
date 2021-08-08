@@ -7,6 +7,7 @@ var EventEmitter = require('events').EventEmitter;
 * Originally reverse engineered from the box
 *
 * By: Eric MacDonald (eMac)
+* Modified By: zefie
 */
 
 class WTVLzpf {

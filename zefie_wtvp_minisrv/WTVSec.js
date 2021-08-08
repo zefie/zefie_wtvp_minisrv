@@ -2,13 +2,14 @@ const CryptoJS = require('crypto-js');
 const endianness = require('endianness');
 var crypto = require('crypto');
 
-/***********************************\
-|* Special Thanks to:              *|
-|*           eMac (Eric MacDonald) *|
-|* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  *|
-|*  For the encryption/decryption  *|
-|*     information and process     *|
-\***********************************/
+/**
+ * Javascript implementation of WTVP Security
+ *
+ * Special Thanks to eMac (Eric MacDonald)
+ * For the encryption/decryption information and process 
+ * 
+ * By: zefie
+ */
 
 class WTVSec {
     // Initial Shared Key, in Base64 Format
