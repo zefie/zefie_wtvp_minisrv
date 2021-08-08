@@ -139,7 +139,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 
 	if (bf0app_update) headers += getServiceString('wtv-star', { "no_star_word": true }) + "\n";
 	else headers += getServiceString('wtv-star') + "\n";
-	if (request_headers.query.reconnect && !ssid_sessions[socket.ssid].session_data.registered) headers += getServiceString('wtv-register') + "\n";
+	if (request_headers.query.reconnect && !ssid_sessions[socket.ssid].getSessionData("registered")) headers += getServiceString('wtv-register') + "\n";
 	headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {
