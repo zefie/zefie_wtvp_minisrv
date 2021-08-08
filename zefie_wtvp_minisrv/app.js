@@ -551,8 +551,10 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-async function sendToClient(socket, headers_obj, data, compress_data = false) {
+async function sendToClient(socket, headers_obj, data) {
+    var compress_data = false;
     var headers = "";
+    var content_length = 0;
     if (typeof (data) === 'undefined') data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -594,18 +596,15 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
 
     // compress if needed
     if (compress_data && clen > 0) {
+        content_length = clen;
+
         headers_obj["wtv-lzpf"] = 0;
 
         var wtvcomp = new WTVLzpf();
         data = wtvcomp.Compress(data);
 
-        console.log("data", data)
-
         wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
     }
-
-    if (headers_obj['minisrv-already-compressed']) delete headers_obj['minisrv-already-compressed'];
-
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
@@ -623,13 +622,15 @@ async function sendToClient(socket, headers_obj, data, compress_data = false) {
     if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
     if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
 
-    // On the WNI server this is the length before compression but we're using the length after compression.
-    // It matches the HTTP spec anyway so leaving.
-    if (typeof data.length !== 'undefined') {
-        headers_obj["Content-length"] = data.length;
-    } else if (typeof data.byteLength !== 'undefined') {
-        headers_obj["Content-length"] = data.byteLength;
+    if (content_length == 0) {
+        if (typeof data.length !== 'undefined') {
+            content_length = data.length;
+        } else if (typeof data.byteLength !== 'undefined') {
+            content_length = data.byteLength;
+        }
     }
+
+    headers_obj["Content-length"] = content_length;
 
     if (ssid_sessions[socket.ssid]) {
         if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
