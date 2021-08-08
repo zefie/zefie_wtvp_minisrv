@@ -279,8 +279,8 @@ function filterSSID(obj) {
                 return obj.substr(0, 6) + ('*').repeat(9);
             }
         } else {
-            if (obj["wtv-client-serial-number"]) {
-                var ssid = obj["wtv-client-serial-number"];
+            if (makeSafeSSID(obj["wtv-client-serial-number"])) {
+                var ssid = makeSafeSSID(obj["wtv-client-serial-number"]);
                 if (ssid.substr(0, 8) == "MSTVSIMU") {
                     obj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
                 } else if (ssid.substr(0, 5) == "1SEGA") {
@@ -294,6 +294,12 @@ function filterSSID(obj) {
     } else {
         return obj;
     }
+}
+
+function makeSafeSSID(ssid) {
+    ssid = ssid.replace(/[^a-zA-Z0-9]/g, "");
+    if (ssid.length == 0) ssid = null;
+    return ssid;
 }
 
 function makeSafePath(base, target) {
@@ -356,8 +362,11 @@ async function processURL(socket, request_headers) {
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
             var ssid = socket.ssid;
             if (ssid == null) {
-                ssid = request_headers["wtv-client-serial-number"];
+                // prevent possible injection attacks via SSID and filesystem SessionStore
+                ssid = makeSafeSSID(request_headers["wtv-client-serial-number"]);
+                if (ssid == "") ssid = null;
             }
+
             var reqverb = "Request";
             if (request_headers.encrypted || request_headers.secure) {
                 reqverb = "Encrypted " + reqverb;
@@ -757,7 +766,7 @@ function isUnencryptedString(string, verbose = false) {
 }
 
 function filterSSID(ssid) {
-    var WTVCSD = new WTVClientSessionData(minisrv_config.config.hide_ssid_in_logs);
+    var WTVCSD = new WTVClientSessionData(null,minisrv_config.config.hide_ssid_in_logs);
     return WTVCSD.filterSSID(ssid);
 }
 
@@ -827,14 +836,17 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 
             if (!headers) return;
 
-            if (headers["wtv-client-serial-number"] != null) {
-                socket.ssid = headers["wtv-client-serial-number"];
-                if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config.config.hide_ssid_in_logs);
+            if (headers["wtv-client-serial-number"] != null && socket.ssid == null) {
+                socket.ssid = makeSafeSSID(headers["wtv-client-serial-number"]);
+                if (socket.ssid != null) {
+                    if (!ssid_sessions[socket.ssid]) {
+                        ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid,minisrv_config.config.hide_ssid_in_logs);
+                        ssid_sessions[socket.ssid].SaveIfRegistered();
+                    }
+                    if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
+                    ssid_sessions[socket.ssid].ssid = socket.ssid;
+                    ssid_sessions[socket.ssid].data_store.sockets.add(socket);
                 }
-                if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
-                ssid_sessions[socket.ssid].ssid = socket.ssid;
-                ssid_sessions[socket.ssid].data_store.sockets.add(socket);
             }
 
             var ip2long = function (ip) {
@@ -920,7 +932,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 
             if (headers["wtv-capability-flags"] != null) {
                 if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config.config.hide_ssid_in_logs);
+                    ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid,minisrv_config.config.hide_ssid_in_logs);
+                    ssid_sessions[socket.ssid].SaveIfRegistered();
                 }
                 if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
             }
