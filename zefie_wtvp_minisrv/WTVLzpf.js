@@ -1,5 +1,3 @@
-var EventEmitter = require('events').EventEmitter;
-
 /**
 * Pure-JS implementation of WebTV's LZPF compression
 *
