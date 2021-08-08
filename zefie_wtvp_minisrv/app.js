@@ -1349,7 +1349,8 @@ function getGitRevision() {
 // SERVER START
 var git_commit = getGitRevision()
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
-console.log("**** Welcome to " + z_title + " ****");
+if (git_commit) console.log("**** Welcome to " + z_title + " (git " + git_commit + ") ****");
+else console.log("**** Welcome to " + z_title + " ****");
 console.log(" *** Reading global configuration...");
 try {
     var minisrv_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "config.json"));
