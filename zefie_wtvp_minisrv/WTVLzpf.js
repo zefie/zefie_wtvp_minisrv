@@ -413,8 +413,8 @@ class WTVLzpf {
      * @returns {Buffer} Lzpf compression data
      */
     Finish() {
-        var code_length = -1
-        var code = -1
+        var code_length = -1;
+        var code = -1;
 
         if (this.type_index == 2) {
             this.EncodeLiteral(0x10, 0x00990000);
