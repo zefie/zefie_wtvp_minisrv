@@ -475,6 +475,7 @@ async function doHTTPProxy(socket, request_headers) {
                 ]);
                 if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
                 if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
+                headers["wtv-http-proxy"] = true;
                 sendToClient(socket, headers, Buffer.from(data_hex,'hex'));
             });
         }).on('error', function (err) {
@@ -589,21 +590,10 @@ async function sendToClient(socket, headers_obj, data) {
         delete headers_obj["Content-type"];
     }
 
-    // encrypt if needed
-    if (socket_sessions[socket.id].secure == true) {
-        headers_obj["wtv-encrypted"] = 'true';
-        headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
-            if (!zquiet) console.log(" * Encrypting response to client ...")
-            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
-            data = enc_data;
-        }
-    }
-
     // if box can do compression, see if its worth enabling
     if (ssid_sessions[socket.ssid].capabilities) {
         if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data'] && minisrv_config.config.enable_lzpf_compression) {
-            compress_data = shouldWeCompress(headers_obj["Content-Type"]);
+            compress_data = shouldWeCompress(headers_obj);
         }
     }
 
@@ -617,6 +607,17 @@ async function sendToClient(socket, headers_obj, data) {
         data = wtvcomp.Compress(data);
 
         wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
+    }
+
+    // encrypt if needed
+    if (socket_sessions[socket.id].secure == true) {
+        headers_obj["wtv-encrypted"] = 'true';
+        headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
+        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
+            if (!zquiet) console.log(" * Encrypting response to client ...")
+            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
+            data = enc_data;
+        }
     }
 
     // calculate content length
@@ -703,13 +704,11 @@ async function sendToClient(socket, headers_obj, data) {
     }
 }
 
-function shouldWeCompress(content_type) {
-    if (typeof (content_type) != 'undefined') {
-        if ((content_type.match(/^text\//) && content_type != "text/tellyscript") ||
-            content_type.match(/^application\/(x-?)javascript$/) ||
-            content_type.match(/^audio\/(x-)?midi/) ||
-            content_type.match(/^audio\/(x-)?wav/) ||
-            content_type == "application/json") {
+function shouldWeCompress(headers_obj) {
+    if (typeof (headers_obj["Content-Type"]) != 'undefined' && typeof (headers_obj["wtv-http-proxy"]) == 'undefined') {
+        if ((headers_obj["Content-Type"].match(/^text\//) && headers_obj["Content-Type"] != "text/tellyscript") ||
+            headers_obj["Content-Type"].match(/^application\/(x-?)javascript$/) ||
+            headers_obj["Content-Type"] == "application/json") {
             return true;
         }
     }
