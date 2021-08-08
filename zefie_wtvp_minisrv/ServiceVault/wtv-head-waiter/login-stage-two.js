@@ -31,11 +31,10 @@ if (socket.ssid !== null) {
 	}
 }
 
-if (!ssid_sessions[socket.ssid].getSessionData("registered") && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash";
+if (!ssid_sessions[socket.ssid].getSessionData("registered") && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
 
 if (gourl) {
 	headers = `200 OK
-Connection: Close
 wtv-open-isp-disabled: false
 `;
 	if (!ssid_sessions[socket.ssid].getSessionData("registered") && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
@@ -44,7 +43,7 @@ wtv-ticket: ${wtvsec_login.ticket_b64}
 ${getServiceString('wtv-register')}
 ${getServiceString('wtv-head-waiter')}
 ${getServiceString('wtv-star')}
-wtv-boot-url: wtv-register:/splash
+wtv-boot-url: wtv-register:/splash?
 `
 	}
 	headers += `wtv-visit: ${gourl}
