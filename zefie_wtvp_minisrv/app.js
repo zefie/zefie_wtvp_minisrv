@@ -648,10 +648,10 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     var end_of_line = "\n";
-    if (!headers_obj['minisrv-use-carriage-return'] || headers_obj['minisrv-use-carriage-return'] != "false") end_of_line = "\r\n";
+    if (headers_obj['minisrv-use-carriage-return'] == "true") end_of_line = "\r\n";
     if (headers_obj['minisrv-use-carriage-return']) delete headers_obj['minisrv-use-carriage-return'];
 
-    if (end_of_line == "\n" && zdebug) console.log(" * Script requested to send headers without carriage return (bf0app hack)");
+    if (end_of_line == "\r\n" && zdebug) console.log(" * Script requested to send headers with carriage return (out of WTVP Spec)");
 
     // header object to string
     if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
