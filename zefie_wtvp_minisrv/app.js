@@ -99,12 +99,68 @@ function doErrorPage(code, data = null) {
 
 
 function getConType(path) {
-    // custom contype for flashrom
-    if (path.indexOf("wtv-flashrom") && (getFileExt(path).toLowerCase() == "rom" || getFileExt(path).toLowerCase() == "brom")) {
-        return "binary/x-wtv-flashblock";
-    } else if (getFileExt(path).toLowerCase() == "rmf") {
-        return "audio/x-rmf";
+    var file_ext = getFileExt(path).toLowerCase();
+    // process WebTV overrides, fall back to generic mime lookup
+    switch (file_ext) {
+        case "aif":
+            return "audio/x-aif";
+        case "aifc":
+            return "audio/x-aifc";
+        case "aiff":
+            return "audio/x-aiff";
+        case "ani":
+            return "x-wtv-animation";
+        case "brom":
+            return "binary/x-wtv-bootrom";
+        case "cdf":
+            return "application/netcdf";
+        case "dat":
+            return "binary/cache-data";
+        case "dl":
+            return "wtv/download-list";
+        case "gsm":
+            return "audio/x-gsm";
+        case "gz":
+            return "application/gzip";
+        case "ini":
+            return "wtv/jack-configuration";
+        case "mips-code":
+            return "code/x-wtv-code-mips";
+        case "o":
+            return "binary/x-wtv-approm";
+        case "ram":
+            return "audio/x-pn-realaudio";
+        case "rom":
+            return "binary/x-wtv-flashblock";
+        case "rsp":
+            return "wtv/jack-response";
+        case "swa":
+        case "swf":
+            return "application/x-shockwave-flash";
+        case "srf":
+        case "spl":
+            return "wtv/jack-data";
+        case "ttf":
+            return "wtv/jack-fonts";
+        case "tvch":
+            return "wtv/tv-channels";
+        case "tvl":
+            return "wtv/tv-listings";
+        case "tvsl":
+            return "wtv/tv-smartlinks";
+        case "wad":
+            return "binary/doom-data";
+        case "mp2":
+        case "hsb":
+        case "rmf":
+        case "s3m":
+        case "mod":
+        case "xm":
+            return "application/Music";
     }
+
+    // if we reach here, its not a WebTV specific override
+    // or we are not yet aware of said override
     return mime.lookup(path);
 }
 
