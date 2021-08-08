@@ -197,6 +197,19 @@ class WTVClientSessionData {
     }
 
 
+    unregisterBox() {
+        try {
+            if (this.fs.lstatSync(this.session_storage + this.path.sep + this.ssid + ".json")) {
+                return this.fs.unlinkSync(this.session_storage + this.path.sep + this.ssid + ".json");
+                this.session_store = {};
+            }
+        } catch (e) {
+            // Don't log error 'file not found', it just means the client isn't registered yet
+            if (e.code != "ENOENT") console.error(" # Error deleting session data for", this.filterSSID(this.ssid), e);
+            return false;
+        }
+    }
+
     hasCap(cap) {
         if (this.capabilities) {
             return this.capabilities[cap] || false;

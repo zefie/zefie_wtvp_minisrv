@@ -80,7 +80,28 @@ Content-Type: text/html`
 		<td valign=top align=right><shadow>Service IP number:</shadow>
 		<td width=10>
 		<td valign=top>${service_ip}
+`;
+	if (ssid_sessions[socket.ssid].getSessionData("registered")) {
+		data += `<tr>
+		<td valign=top align=right><shadow>Subscriber Name:</shadow>
+		<td width=10>
+		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_name")}
 <tr>
+		<td valign=top align=right><shadow>Subscriber Username:</shadow>
+		<td width=10>
+		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_username")}
+<tr>
+		<td valign=top align=right><shadow>Subscriber Contact:</shadow>
+		<td width=10>
+		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_contact")} (${ssid_sessions[socket.ssid].getSessionData("subscriber_contact_method")})`;
+	} else {
+		data += `<tr>
+		<td valign=top align=right><shadow>Unregistered Guest:</shadow>
+		<td width=10>
+		<td valign=top>Yes`;
+	}
+
+	data += `<tr>
 		<td height=20>
 <tr>
 		<td valign=top align=right><shadow>ROM type:</shadow>

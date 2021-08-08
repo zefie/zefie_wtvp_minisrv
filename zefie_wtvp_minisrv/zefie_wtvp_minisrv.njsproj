@@ -47,6 +47,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-cookie\list.js" />
+    <Content Include="ServiceVault\wtv-cookie\reset.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-flashrom\current-noflash.js">
       <SubType>Code</SubType>
     </Content>
@@ -231,7 +234,13 @@
     <Content Include="ServiceVault\wtv-tricks\info.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-tricks\register.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-tricks\tricks.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-tricks\unregister.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-update\content\diskmaps\DealerDemo.json">
