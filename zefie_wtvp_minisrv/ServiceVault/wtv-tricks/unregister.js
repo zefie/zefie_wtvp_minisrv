@@ -8,12 +8,15 @@ if (!ssid_sessions[socket.ssid].getSessionData("registered")) {
     if (ssid_sessions[socket.ssid].unregisterBox()) {
         headers += "\nwtv-noback-all: wtv-";
         headers += "\nwtv-expire-all: wtv-";
-        var message = `Your account data has been successfully removed. You will now be be redirected to registration.<br><a href="${redirect[1]}">Click here if you are not automatically redirected.</a>`;
         var redirect = [3, "client:relog?"];
+        var message = "Your account data has been successfully removed. You will now be be redirected to registration.<br><br>";
+        message += `<a href="${redirect[1]}">Click here if you are not automatically redirected.</a>`;
     } else {
-        var message = "There was an error deleting your account data. Please try again later. If the problem persists, please contact " + minisrv_config.config.service_owner + " to request manual deletion. SSID verifcation may be required to perform a manual deletion.<br><br>Returning from whence you came...";
         var redirect = [10, "client:goback?"];
-    }
+        var message = "There was an error deleting your account data. Please try again later. If the problem persists, please contact " + minisrv_config.config.service_owner + " to request manual deletion.";
+        message += "SSID verifcation may be required to perform a manual deletion.< br > <br>Returning from whence you came...<br><br>";
+        message += `<a href="${redirect[1]}">Click here if you are not automatically redirected.</a>`;
+        }
 } else {
     message = `Are you sure you wish to unregister your account? Session Data deleted by this tool is unrecoverable, even by ${minisrv_config.config.service_owner}.
 Please be absolutely sure this is what you want to do!<br><br>
