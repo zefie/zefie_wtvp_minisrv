@@ -7,6 +7,7 @@ else if (request_headers.query.reconnect) gourl += "reconnect=true";
 if (request_headers.query.guest_login) {
 	if (request_headers.query.relogin || request_headers.query.reconnect) gourl += "&";
 	gourl += "guest_login=true";
+	if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 }
 
 var send_to_relogin = true;

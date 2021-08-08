@@ -15,7 +15,7 @@ wtv-expire-all: wtv-`;
     headers += `
 wtv-service: reset
 ${getServiceString('wtv-1800')}
-wtv-relogin-url: wtv-1800:/preregister?guest_login=true
+wtv-relogin-url: wtv-1800:/preregister?guest_login=true&skip_splash=true
 wtv-reconnect-url: wtv-1800:/preregister?guest_login=true&reconnect=true
 wtv-boot-url: wtv-1800:/preregister?guest_login=true
 Location: client:relogin`;

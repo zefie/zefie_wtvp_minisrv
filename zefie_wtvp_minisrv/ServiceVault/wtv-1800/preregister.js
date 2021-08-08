@@ -124,6 +124,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	if (request_headers.query.guest_login) {
 		send_tellyscript = false;
 		gourl += "&guest_login=true"
+		if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 	}
 
 	headers = "200 OK\n"

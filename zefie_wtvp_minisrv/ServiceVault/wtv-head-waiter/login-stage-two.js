@@ -59,7 +59,8 @@ else {
 		var userid = '1' + Math.floor(Math.random() * 1000000000000000000);
 		var messenger_enabled = 0;
 		var messenger_authorized = 0;
-		var home_url = "wtv-home:/home?";
+		if (request_headers.query.skip_splash) var home_url = "wtv-home:/home?";
+		else var home_url = "wtv-home:/splash?";
 	} else if (!ssid_sessions[socket.ssid].getSessionData("registered")) {
 		var errpage = doErrorPage(400);
 		headers = errpage[0];
