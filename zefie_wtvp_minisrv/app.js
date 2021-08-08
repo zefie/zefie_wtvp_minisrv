@@ -759,6 +759,16 @@ async function sendToClient(socket, headers_obj, data) {
         delete headers_obj["Content-type"];
     }
 
+    // encrypt if needed
+    if (socket_sessions[socket.id].secure == true) {
+        headers_obj["wtv-encrypted"] = 'true';
+        headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
+        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
+            if (!zquiet) console.log(" * Encrypting response to client ...")
+            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
+            data = enc_data;
+        }
+    }
 
     // if box can do compression, see if its worth enabling
     var compression_type = shouldWeCompress(socket.ssid, headers_obj);
@@ -797,7 +807,6 @@ async function sendToClient(socket, headers_obj, data) {
         var compression_percentage = ((compressed_content_length / uncompressed_content_length) * 100).toFixed(1).toString() + "%";
         if (uncompressed_content_length != compressed_content_length) if (zdebug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_percentage);
     }
-
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
