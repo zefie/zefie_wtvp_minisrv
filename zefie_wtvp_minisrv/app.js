@@ -708,8 +708,6 @@ function shouldWeCompress(content_type) {
     if (typeof (content_type) != 'undefined') {
         if ((content_type.match(/^text\//) && content_type != "text/tellyscript") ||
             content_type.match(/^application\/(x-?)javascript$/) ||
-            content_type.match(/^audio\/(x-)?midi/) ||
-            content_type.match(/^audio\/(x-)?wav/) ||
             content_type == "application/json") {
             return true;
         }
