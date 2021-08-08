@@ -11,7 +11,7 @@ var default_build_to_send = minisrv_config.services[service_name].bf0app_default
 
 var request_path = "";
 var bf0app_update = true;
-if (request_headers.query.path) request_path = unescape(request_headers.query.path);
+if (request_headers.query.path) request_path = request_headers.query.path;
 else request_path = default_build_to_send;
 
 if (ssid_sessions[socket.ssid].get("wtv-client-rom-type") == "bf0app" && ssid_sessions[socket.ssid].get("wtv-client-bootrom-version") == "105") {

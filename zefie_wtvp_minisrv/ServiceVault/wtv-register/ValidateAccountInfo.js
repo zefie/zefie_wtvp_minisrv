@@ -10,9 +10,9 @@ if (!request_headers.query.registering) {
     if (!request_headers.query.registering) errpage = doErrorPage(400);
     else if (!request_headers.query.subscriber_name) errpage = doErrorPage(400, "Please enter your name. This can be your real name, or your well-known online alias.");
     else if (!request_headers.query.subscriber_username) errpage = doErrorPage(400, "Please enter a username.");
-    else if (unescape(request_headers.query.subscriber_username).length < 5) errpage = doErrorPage(400, "Please choose a username with 5 or more characters.");
-    else if (unescape(request_headers.query.subscriber_username).length > 16) errpage = doErrorPage(400, "Please choose a username with 16 or less characters.");
-    else if (!WTVRegister.checkUsernameSanity(unescape(request_headers.query.subscriber_username))) errpage = doErrorPage(400, "The username you have chosen contains invalid characters. Please choose a username with only <b>letters</b>, <b>numbers</b>, <b>_</b> or <b>-</b>. Also, please be sure your username begins with a letter.");
+    else if (request_headers.query.subscriber_username.length < 5) errpage = doErrorPage(400, "Please choose a username with 5 or more characters.");
+    else if (request_headers.query.subscriber_username.length > 16) errpage = doErrorPage(400, "Please choose a username with 16 or less characters.");
+    else if (!WTVRegister.checkUsernameSanity(request_headers.query.subscriber_username)) errpage = doErrorPage(400, "The username you have chosen contains invalid characters. Please choose a username with only <b>letters</b>, <b>numbers</b>, <b>_</b> or <b>-</b>. Also, please be sure your username begins with a letter.");
     else if (!WTVRegister.checkUsernameAvailable(request_headers.query.subscriber_username, ssid_sessions)) errpage = doErrorPage(400, "The username you have selected is already in use. Please select another username.");
     else if (!request_headers.query.subscriber_contact) errpage = doErrorPage(400, "Please enter your contact information.");
     else if (request_headers.query.subscriber_contact_method == "") errpage = doErrorPage(400, "Please select the type of contact information you provided.");
@@ -64,10 +64,10 @@ Review account info
 <td border=0 abswidth=40 bgcolor="#171726" rowspan="6" >
 <form ACTION="ValidateReviewAccountInfo" ENCTYPE="x-www-form-encoded" METHOD="POST">
 <input type=hidden name=registering value="true">
-<input type=hidden name=subscriber_name value="${unescape(request_headers.query.subscriber_name)}">
-<input type=hidden name=subscriber_username value="${unescape(request_headers.query.subscriber_username)}">
-<input type=hidden name=subscriber_contact value="${unescape(request_headers.query.subscriber_contact)}">
-<input type=hidden name=subscriber_contact_method value="${unescape(request_headers.query.subscriber_contact_method)}">
+<input type=hidden name=subscriber_name value="${request_headers.query.subscriber_name}">
+<input type=hidden name=subscriber_username value="${request_headers.query.subscriber_username}">
+<input type=hidden name=subscriber_contact value="${request_headers.query.subscriber_contact}">
+<input type=hidden name=subscriber_contact_method value="${request_headers.query.subscriber_contact_method}">
 <td height=50 width= 300 bgcolor="#171726" colspan=6 valign=top align=left>
 Here is your account information. If you need to<br>
 correct an item, press <b>Back</b>.
@@ -76,24 +76,24 @@ correct an item, press <b>Back</b>.
 <td width=260 valign=top align=left colspan=4>
 <table cellspacing=0 cellpadding=0 border=0 >
 	<img src="images/arrow.gif">&nbsp;&nbsp;<font size=-2><b>NAME</b></font><br>
-<tt><font color=#d1d3d3 size=-2><spacer type=horizontal size=17> ${unescape(request_headers.query.subscriber_name)}</font></tt></a>
+<tt><font color=#d1d3d3 size=-2><spacer type=horizontal size=17> ${request_headers.query.subscriber_name}</font></tt></a>
 </table>
 <p>
 <table cellspacing=0 cellpadding=0 border=0> 
 <img src="images/arrow.gif">&nbsp;&nbsp;<font size=-2><b>CONTACT</b></font><br>
-<tt><font color=#d1d3d3 size=-2><spacer type=horizontal size=17> ${unescape(request_headers.query.subscriber_contact)}</font></tt></a>
+<tt><font color=#d1d3d3 size=-2><spacer type=horizontal size=17> ${request_headers.query.subscriber_contact}</font></tt></a>
 </table>
 </TD>
 <td abswidth=200 bgcolor=#171726 valign=top align=left>
 <table cellspacing=0 cellpadding=0 border=0> <TR><TD>
 <img src="images/arrow.gif"><font size=-2>&nbsp;&nbsp;<b>USERNAME</b></font><br>
 <tr><td maxlines=1 >
-<tt><font color=#d1d3d3><spacer type=horizontal size=17>${unescape(request_headers.query.subscriber_name)}</font></tt></a>
+<tt><font color=#d1d3d3><spacer type=horizontal size=17>${request_headers.query.subscriber_name}</font></tt></a>
 </table>
 <p>
 <table cellspacing=0 cellpadding=0 border=0>
 	<img src="images/arrow.gif">&nbsp;&nbsp;<font size=-2><b>CONTACT TYPE</b></font><br>
-<tt><font color=#d1d3d3 size=-2><spacer type=horizontal size=17>${unescape(request_headers.query.subscriber_contact_method)}</font></tt>
+<tt><font color=#d1d3d3 size=-2><spacer type=horizontal size=17>${request_headers.query.subscriber_contact_method}</font></tt>
 </table> <P>&nbsp;<P>&nbsp;
 <td abswidth=20 bgcolor=#171726 >
 </tr>

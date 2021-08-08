@@ -11,10 +11,10 @@ if (!request_headers.query.registering ||
     headers = errpage[0];
     data = errpage[1];
 } else {
-    ssid_sessions[socket.ssid].setSessionData("subscriber_name", unescape(request_headers.query.subscriber_name));
-    ssid_sessions[socket.ssid].setSessionData("subscriber_username", unescape(request_headers.query.subscriber_username));
-    ssid_sessions[socket.ssid].setSessionData("subscriber_contact", unescape(request_headers.query.subscriber_contact));
-    ssid_sessions[socket.ssid].setSessionData("subscriber_contact_method", unescape(request_headers.query.subscriber_contact_method));
+    ssid_sessions[socket.ssid].setSessionData("subscriber_name", request_headers.query.subscriber_name);
+    ssid_sessions[socket.ssid].setSessionData("subscriber_username", request_headers.query.subscriber_username);
+    ssid_sessions[socket.ssid].setSessionData("subscriber_contact", request_headers.query.subscriber_contact);
+    ssid_sessions[socket.ssid].setSessionData("subscriber_contact_method", request_headers.query.subscriber_contact_method);
     ssid_sessions[socket.ssid].setSessionData("subscriber_userid", '1' + Math.floor(Math.random() * 1000000000000000000));
     ssid_sessions[socket.ssid].setSessionData("registered", true);
     if (!ssid_sessions[socket.ssid].storeSessionData()) {

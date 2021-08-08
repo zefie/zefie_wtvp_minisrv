@@ -2,7 +2,7 @@ const WTVFlashrom = require("./WTVFlashrom.js");
 request_is_async = true;
 
 var bf0app_update = false;
-var request_path = unescape(request_headers.query.path);
+var request_path = request_headers.query.path;
 var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 var bootver = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version")
 

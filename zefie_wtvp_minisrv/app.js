@@ -318,7 +318,7 @@ async function processURL(socket, request_headers) {
                 for (let i = 0; i < qraw.length; i++) {
                     var k = qraw[i].split("=")[0];
                     if (k) {
-                        request_headers.query[k] = qraw[i].split("=")[1];
+                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+',"%20"));
                     }
                 }
             }
@@ -335,7 +335,7 @@ async function processURL(socket, request_headers) {
                             for (let i = 0; i < qraw.length; i++) {
                                 var k = qraw[i].split("=")[0];
                                 if (k) {
-                                    request_headers.query[k] = qraw[i].split("=")[1];
+                                    request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+', "%20"));
                                 }
                             }
                         }
@@ -343,7 +343,7 @@ async function processURL(socket, request_headers) {
                         var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8);
                         var k = qraw[i].split("=")[0];
                         if (k) {
-                            request_headers.query[k] = qraw[i].split("=")[1];
+                            request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+', "%20"));
                         }
                     }
                 }
