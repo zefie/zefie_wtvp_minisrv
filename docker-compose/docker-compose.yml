@@ -11,12 +11,15 @@ services:
    minisrv:
     build: ./minisrv
     restart: unless-stopped
+    stop_signal: SIGINT
     links:
      - webone
     ports:
      - "1600-1699:1600-1699"
     volumes:
      - /home/zefie/docker/wtvminisrv/user_config.json:/opt/minisrv/zefie_wtvp_minisrv/user_config.json:ro
-     - /home/zefie/docker/wtvminisrv/UserServiceVault:/opt/minisrv/zefie_wtvp_minisrv/UserServiceVault
+     - /home/zefie/docker/wtvminisrv/UserServiceVault:/opt/minisrv/zefie_wtvp_minisrv/UserServiceVault:ro
+     - /home/zefie/docker/wtvminisrv/SessionStore:/opt/minisrv/zefie_wtvp_minisrv/SessionStore
+     - /home/zefie/docker/wtvminisrv/ServiceLogPost:/opt/minisrv/zefie_wtvp_minisrv/ServiceLogPost
 
 

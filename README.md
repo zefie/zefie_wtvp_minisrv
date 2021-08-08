@@ -11,7 +11,7 @@ This open source server is in alpha status. Use at your own risk.
 - Suports `.js` service files with synchronous or asynchronous requests
 - Supports multiple simultaneous users
 - WebTV-compatible HTTP(S) Proxy (via minisrv, or using an external proxy for enhanced features (such as [WebOne](https://github.com/atauenis/webone))
-- WebTV Cookie (wtv-cookie) support for HTTP(s)
+- WebTV cookie support (wtv-cookie) for HTTP(s)
 - Flashrom flashing support for all known units (including bf0app 'Old Classic')
 - Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
 - `wtv-update:/sync` for Download-o-Rama style file downloading
