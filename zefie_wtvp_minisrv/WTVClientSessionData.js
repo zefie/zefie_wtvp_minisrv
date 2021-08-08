@@ -1,3 +1,5 @@
+const { lib } = require('crypto-js');
+
 class WTVClientSessionData {
 
     fs = require('fs');
@@ -38,7 +40,8 @@ class WTVClientSessionData {
         }
     }
 
-    constructor(hide_ssid_in_logs, session_storage_directory) {
+    constructor(ssid, hide_ssid_in_logs, session_storage_directory) {
+        this.ssid = ssid;
         if (hide_ssid_in_logs) this.hide_ssid_in_logs = hide_ssid_in_logs;
         if (!session_storage_directory) session_storage_directory = __dirname + "/SessionStore";
         this.session_storage = session_storage_directory;
@@ -172,11 +175,13 @@ class WTVClientSessionData {
         return outstring;
     }
 
-    loadSessionData() {
+    loadSessionData(raw_data = false) {
         try {
             if (this.fs.lstatSync(this.session_storage + this.path.sep + this.ssid + ".json")) {
-                var session_data_file = this.fs.readFileSync(this.session_storage + this.path.sep + this.ssid + ".json", 'Utf8');
-                var session_data = JSON.parse(session_data_file);
+                var json_data = this.fs.readFileSync(this.session_storage + this.path.sep + this.ssid + ".json", 'Utf8')
+                if (raw_data) return json_data;
+
+                var session_data = JSON.parse(json_data);
                 this.session_store = session_data;
                 return true;
             }
@@ -188,14 +193,17 @@ class WTVClientSessionData {
     }
 
     saveSessionData() {
-        if (!this.session_store.registered) {
-            var temp_store = this.session_store;
-            this.loadSessionData();
-            this.session_store = Object.assign(this.session_store, temp_store);
-        }
+        // load data from disk and merge new data
+        var temp_store = this.session_store;
+        if (this.loadSessionData()) this.session_store = Object.assign(this.session_store, temp_store);
+        else this.session_store = temp_store;
+        temp_store = null;
+
         try {
-            var store_data = JSON.stringify(this.session_store);
-            this.fs.writeFileSync(this.session_storage + this.path.sep + this.ssid + ".json", store_data, "Utf8");
+            // only save if file has changed
+            var json_save_data = JSON.stringify(this.session_store);
+            var json_load_data = loadSessionData(true);
+            if (json_save_data != json_load_data) this.fs.writeFileSync(this.session_storage + this.path.sep + this.ssid + ".json", JSON.stringify(this.session_store), "Utf8");
             return true;
         } catch (e) {            
             console.error(" # Error saving session data for", this.filterSSID(this.ssid), e);
@@ -213,16 +221,31 @@ class WTVClientSessionData {
         return this.saveSessionData();
     }
 
+    SaveIfRegistered() {
+        if (this.isRegistered()) this.saveSessionData();
+    }
+
+    isRegistered() {
+        var self = this;
+        var ssid_match = false;
+        this.fs.readdirSync(this.session_storage).forEach(file => {
+            if (!file.match(/.*\.json/ig)) return;
+            if (ssid_match) return;
+            if (file.split('.')[0] == self.ssid) ssid_match = true;
+        });
+        return ssid_match;
+    }
 
     unregisterBox() {
         try {
             if (this.fs.lstatSync(this.session_storage + this.path.sep + this.ssid + ".json")) {
-                return this.fs.unlinkSync(this.session_storage + this.path.sep + this.ssid + ".json");
+                this.fs.unlinkSync(this.session_storage + this.path.sep + this.ssid + ".json");
                 this.session_store = {};
+                return true;
             }
         } catch (e) {
             // Don't log error 'file not found', it just means the client isn't registered yet
-            if (e.code != "ENOENT") console.error(" # Error deleting session data for", this.filterSSID(this.ssid), e);
+            console.error(" # Error deleting session data for", this.filterSSID(this.ssid), e);
             return false;
         }
     }
