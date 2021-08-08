@@ -445,9 +445,9 @@ class WTVLzpf {
     }
 
     /**
-     * Compress data using WebTV's Lzpf compression algorithm and adds the footer to the end.
+     * Converts the data to a Javascript Buffer object
      *
-     * @param data {String|Buffer|CryptoJS.lib.WordArray} data to convert
+     * @param data {String|Buffer|CryptoJS.lib.WordArray} Data to convert
      *
      * @returns {Buffer} Javascript Buffer object
      */
