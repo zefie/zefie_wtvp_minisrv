@@ -127,7 +127,7 @@ Content-Type: text/html`
 <tr>
 		<td valign=top align=right><shadow>SysConfig:</shadow>
 		<td width=10>
-		<td valign=top>0x${wtv_system_sysconfig_hex.toUpperCase()}
+		<td valign=top>0x${wtv_system_sysconfig_hex}
 </table>
 
 <table>
