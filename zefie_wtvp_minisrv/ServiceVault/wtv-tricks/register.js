@@ -12,7 +12,7 @@ wtv-relogin-url: wtv-1800:/preregister?relogin=true
 wtv-reconnect-url: wtv-1800:/preregister?reconnect=true
 wtv-boot-url: wtv-1800:/preregister?relogin=true`;
 
-        var message = "You will now be be redirected to registration.";
+        var message = `You will now be be redirected to registration.<br><a href="${redirect[1]}">Click here if you are not automatically redirected.</a>`;
         var redirect = [3, "client:relog?"];
 } else {
     message = `Are you ready to register your box with ${minisrv_config.config.service_name}?

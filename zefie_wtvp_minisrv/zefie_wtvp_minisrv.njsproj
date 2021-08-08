@@ -199,6 +199,9 @@
     <Content Include="ServiceVault\wtv-music\get-playlist.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-register\BeMyGuest.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-register\FinishRegistration.js">
       <SubType>Code</SubType>
     </Content>

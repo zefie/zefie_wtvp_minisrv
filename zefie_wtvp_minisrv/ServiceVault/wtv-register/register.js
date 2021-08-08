@@ -63,7 +63,7 @@ data += `
 <shadow>
 <input type=button action="ValidateAgreement?registering=true&subscriber_name=${human_name}&subscriber_username=${nickname}" Value="Quick Reg" name="speedyreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=130>
 `;
-if (minisrv_config.config.allow_guests) data += `<input type=button action="ValidateWelcome" Value="Sign in as Guest" name="noreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=170 >`;
+if (minisrv_config.config.allow_guests) data += `<input type=button action="BeMyGuest" Value="Sign in as Guest" name="noreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=170 >`;
 
 data += `<input type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=110 selected>
 </shadow>

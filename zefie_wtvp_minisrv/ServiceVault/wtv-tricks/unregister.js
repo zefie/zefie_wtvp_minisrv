@@ -8,7 +8,7 @@ if (!ssid_sessions[socket.ssid].getSessionData("registered")) {
     if (ssid_sessions[socket.ssid].unregisterBox()) {
         headers += "\nwtv-noback-all: wtv-";
         headers += "\nwtv-expire-all: wtv-";
-        var message = "Your account data has been successfully removed. You will now be be redirected to registration.";
+        var message = `Your account data has been successfully removed. You will now be be redirected to registration.<br><a href="${redirect[1]}">Click here if you are not automatically redirected.</a>`;
         var redirect = [3, "client:relog?"];
     } else {
         var message = "There was an error deleting your account data. Please try again later. If the problem persists, please contact " + minisrv_config.config.service_owner + " to request manual deletion. SSID verifcation may be required to perform a manual deletion.<br><br>Returning from whence you came...";

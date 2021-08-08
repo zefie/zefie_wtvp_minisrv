@@ -1061,33 +1061,34 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         var post_string = "POST";
                         if (socket_sessions[socket.id].secure == true) {
                             post_string = "Encrypted " + post_string;
-                        } else {
-                            // if the request is not encrypted, the client may have just sent the data with the primary headers, so lets look for that.
-                            if (data_hex.indexOf("0d0a0d0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0d0a0d0a") + 8);
-                            if (data_hex.indexOf("0a0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0a0a") + 4);
                         }
-                        if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
-                            // got all expected data
-                            if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
-                            console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(got all expected", socket_sessions[socket.id].post_data_length, "bytes of data from client already)");
-                            headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
-                            if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
-                            processURL(socket, headers);
-                        } else {
-                            // expecting more data (see below)
-                            socket_sessions[socket.id].expecting_post_data = true;
-                            console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
-                        }
-                        if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
-                            // got too much data ? ... should not ever reach this code
-                            var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
-                            headers = errpage[0];
-                            data = errpage[1];
-                            sendToClient(socket, headers, data);
-                            return;
-                        }
+
+                        // the client may have just sent the data with the primary headers, so lets look for that.
+                        if (data_hex.indexOf("0d0a0d0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0d0a0d0a") + 8);
+                        if (data_hex.indexOf("0a0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0a0a") + 4);
+
+                    }
+                    if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
+                        // got all expected data
+                        if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                        console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(got all expected", socket_sessions[socket.id].post_data_length, "bytes of data from client already)");
+                        headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
+                        if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
+                        processURL(socket, headers);
+                    } else {
+                        // expecting more data (see below)
+                        socket_sessions[socket.id].expecting_post_data = true;
+                        console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
+                    }
+                    if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
+                        // got too much data ? ... should not ever reach this code
+                        var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
+                        headers = errpage[0];
+                        data = errpage[1];
+                        sendToClient(socket, headers, data);
                         return;
                     }
+                    return;
                 } else {
                     delete socket_sessions[socket.id].headers;
                     delete socket_sessions[socket.id].post_data;
