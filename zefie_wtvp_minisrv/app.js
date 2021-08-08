@@ -316,8 +316,9 @@ async function processURL(socket, request_headers) {
             if (qraw.length > 0) {
                 qraw = qraw.split("&");
                 for (let i = 0; i < qraw.length; i++) {
-                    var k = qraw[i].split("=")[0];
-                    if (k) {
+                    var qraw_split = qraw[i].split("=");
+                    if (qraw_split.length == 2) {
+                        var k = qraw_split[0];
                         request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+',"%20"));
                     }
                 }
@@ -341,8 +342,9 @@ async function processURL(socket, request_headers) {
                         }
                     } else {
                         var qraw = request_headers.post_data.toString(CryptoJS.enc.Utf8);
-                        var k = qraw[i].split("=")[0];
-                        if (k) {
+                        var qraw_split = qraw[i].split("=");
+                        if (qraw_split.length == 2) {
+                            var k = qraw_split[0];
                             request_headers.query[k] = unescape(qraw[i].split("=")[1].replace('+', "%20"));
                         }
                     }
