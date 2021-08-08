@@ -589,6 +589,16 @@ async function sendToClient(socket, headers_obj, data) {
         delete headers_obj["Content-type"];
     }
 
+    // encrypt if needed
+    if (socket_sessions[socket.id].secure == true) {
+        headers_obj["wtv-encrypted"] = 'true';
+        headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
+        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
+            if (!zquiet) console.log(" * Encrypting response to client ...")
+            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
+            data = enc_data;
+        }
+    }
 
     // if box can do compression, see if its worth enabling
     if (ssid_sessions[socket.ssid].capabilities) {
@@ -607,17 +617,6 @@ async function sendToClient(socket, headers_obj, data) {
         data = wtvcomp.Compress(data);
 
         wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
-    }
-
-    // encrypt if needed
-    if (socket_sessions[socket.id].secure == true) {
-        headers_obj["wtv-encrypted"] = 'true';
-        headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
-            if (!zquiet) console.log(" * Encrypting response to client ...")
-            var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
-            data = enc_data;
-        }
     }
 
     // calculate content length
