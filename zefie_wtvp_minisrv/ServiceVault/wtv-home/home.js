@@ -12,6 +12,16 @@ if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 	var cryptstatus = ((socket_sessions[socket.id].secure === true) ? "Encrypted" : "Not Encrypted")
 }
 
+var comp_type = shouldWeCompress(socket.ssid,'text/html');
+var compstatus = "uncompressed";
+switch (comp_type) {
+	case 1:
+		compstatus = "wtv-lzpf";
+		break;
+	case 2:
+		compstatus = "gzip (level 9)";
+		break;
+}
 
 data = `<html>
 <head>
@@ -24,13 +34,16 @@ function go() {
 	location.href=document.access.url.value;
 }
 </script>
-<b>Welcome to `+ z_title + `</b><br>
-`;
-if (minisrv_config.config.git_commit) data += "<small><i>" + "&nbsp; ".repeat(32) + "git revision " + minisrv_config.config.git_commit + "</i></small><br>";
+<b>Welcome to ${z_title}`;
+if (ssid_sessions[socket.ssid].getSessionData("registered")) data += ", " + ssid_sessions[socket.ssid].getSessionData("subscriber_username") + "!";
+data += "</b><br>";
+if (minisrv_config.config.git_commit) data += `<div width="540" align="right"><font size="-4"><i>git revision  ${minisrv_config.config.git_commit}</i></small></font></div><br>`;
+
 data += `
-<b>Encryption Status</b>: ${cryptstatus}<br>
+<hr>
+<b>Status</b>: ${cryptstatus} (${compstatus})<br>
 <b>Connection Speed</b>: &rate;
-<p>
+<hr>
 <form name=access onsubmit="go()">
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
@@ -45,7 +58,7 @@ if (ssid_sessions[socket.ssid].hasCap("client-has-disk")) {
 	data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
 	if (ssid_sessions[socket.ssid].hasCap("client-can-do-macromedia-flash2")) {
 		// only show demo if client can do flash2
-		data += "<li>Old MSNTV DealerDemo: <a href=\"wtv-update:/DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\"> Access (after Download)</a></li>\n";
+		data += "<li>Old MSNTV DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\"> Access (after Download)</a></li>\n";
 	}
 }
 

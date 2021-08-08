@@ -53,8 +53,8 @@ wtv-expire-all: wtv-head-waiter:
 wtv-log-url: wtv-log:/log`;
 	if (challenge_header != "") headers += "\n" + challenge_header;
 	headers += `
-wtv-relogin-url: wtv-1800:/preregister?relogin=true
-wtv-reconnect-url: wtv-1800:/preregister?reconnect=true
+wtv-relogin-url: wtv-head-waiter:/relogin?relogin=true
+wtv-reconnect-url: wwtv-head-waiter:/relogin?reconnect=true
 wtv-visit: ${gourl}
 Content-type: text/html`;
 	data = '';
@@ -66,7 +66,7 @@ Connection: Keep-Alive
 Expires: Wed, 09 Oct 1991 22:00:00 GMT
 wtv-expire-all: wtv-head-waiter:
 wtv-expire-all: wtv-1800:
-wtv-visit: wtv-1800:/preregister?relogin=true
+wtv-visit: wtv-head-waiter:/relogin?relogin=true
 Content-type: text/html`;
 	data = '';
 }

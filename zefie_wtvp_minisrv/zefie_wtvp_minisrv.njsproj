@@ -32,6 +32,8 @@
     <Content Include=".gitignore" />
     <Content Include="app.js" />
     <Content Include="config.json" />
+    <Content Include="ServiceVault\http_pc\get.js" />
+    <Content Include="ServiceVault\http_pc\index.js" />
     <Content Include="ServiceVault\wtv-1800\noflash.js" />
     <Content Include="ServiceVault\wtv-1800\offer-open-isp-suggest.js" />
     <Content Include="ServiceVault\wtv-chat\home.js" />
@@ -50,6 +52,7 @@
     <Content Include="ServiceVault\wtv-cookie\reset.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-flashrom\content\content-serve.js" />
     <Content Include="ServiceVault\wtv-flashrom\current-noflash.js">
       <SubType>Code</SubType>
     </Content>
@@ -71,6 +74,9 @@
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\up-arrows.swf" />
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\WebTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-flashrom\willie.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\relogin.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-music\demo\hacktv4.gif" />
     <Content Include="ServiceVault\wtv-music\demo\index.html" />
     <Content Include="ServiceVault\wtv-music\demo\midi\acey.mid" />
@@ -247,15 +253,13 @@
     <Content Include="ServiceVault\wtv-tricks\unregister.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\content\diskmaps\DealerDemo.json">
+    <Content Include="ServiceVault\wtv-disk\content\diskmaps\DealerDemo.json">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\sync.js">
+    <Content Include="ServiceVault\wtv-disk\sync.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\DealerDemo.js" />
     <Content Include="ServiceVault\wtv-home\home.js" />
-    <Content Include="ServiceVault\wtv-update\updatesuccess.txt" />
     <Content Include="ServiceVault\wtv-1800\preregister.js" />
     <Content Include="ServiceVault\wtv-head-waiter\finalize-security.js" />
     <Content Include="ServiceVault\wtv-head-waiter\login-stage-two.js" />
@@ -287,10 +291,12 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ServiceVault\" />
+    <Folder Include="ServiceVault\http_pc\" />
     <Folder Include="ServiceVault\wtv-chat\" />
     <Folder Include="ServiceVault\wtv-chat\images\" />
     <Folder Include="ServiceVault\wtv-cookie\" />
     <Folder Include="ServiceVault\wtv-flashrom\" />
+    <Folder Include="ServiceVault\wtv-flashrom\content\" />
     <Folder Include="ServiceVault\wtv-flashrom\ROMCache\" />
     <Folder Include="ServiceVault\wtv-music\" />
     <Folder Include="ServiceVault\wtv-music\demo\" />
@@ -300,13 +306,13 @@
     <Folder Include="ServiceVault\wtv-star\" />
     <Folder Include="ServiceVault\wtv-star\ROMCache\" />
     <Folder Include="ServiceVault\wtv-tricks\" />
-    <Folder Include="ServiceVault\wtv-update\" />
+    <Folder Include="ServiceVault\wtv-disk\" />
     <Folder Include="ServiceVault\wtv-1800\" />
     <Folder Include="ServiceVault\wtv-head-waiter\" />
     <Folder Include="ServiceVault\wtv-home\" />
     <Folder Include="ServiceVault\wtv-log\" />
-    <Folder Include="ServiceVault\wtv-update\content\" />
-    <Folder Include="ServiceVault\wtv-update\content\diskmaps\" />
+    <Folder Include="ServiceVault\wtv-disk\content\" />
+    <Folder Include="ServiceVault\wtv-disk\content\diskmaps\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
 </Project>

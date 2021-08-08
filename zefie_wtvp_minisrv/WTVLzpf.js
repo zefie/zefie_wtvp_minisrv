@@ -1,5 +1,3 @@
-var EventEmitter = require('events').EventEmitter;
-
 /**
 * Pure-JS implementation of WebTV's LZPF compression
 *
@@ -25,6 +23,7 @@ class WTVLzpf {
     encoded_data = [];
 
     nomatchEncode = [
+
         [0x0000, 0x10], [0x0001, 0x10], [0x0002, 0x10], 
         [0x0003, 0x10], [0x0004, 0x10], [0x009A, 0x0F], 
         [0x0005, 0x10], [0x009C, 0x0F], [0x009E, 0x0F], 
@@ -413,8 +412,8 @@ class WTVLzpf {
      * @returns {Buffer} Lzpf compression data
      */
     Finish() {
-        var code_length = -1
-        var code = -1
+        var code_length = -1;
+        var code = -1;
 
         if (this.type_index == 2) {
             this.EncodeLiteral(0x10, 0x00990000);
