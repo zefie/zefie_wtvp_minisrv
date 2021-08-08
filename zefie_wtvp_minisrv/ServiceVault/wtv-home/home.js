@@ -24,9 +24,11 @@ function go() {
 	location.href=document.access.url.value;
 }
 </script>
-<b>Welcome to `+ z_title + `</b><br>
-`;
-if (minisrv_config.config.git_commit) data += "<small><i>" + "&nbsp; ".repeat(32) + "git revision " + minisrv_config.config.git_commit + "</i></small><br>";
+<b>Welcome to ${z_title}`;
+if (ssid_sessions[socket.ssid].getSessionData("registered")) data += ", " + ssid_sessions[socket.ssid].getSessionData("subscriber_username") + "!";
+data += "</b><br>";
+if (minisrv_config.config.git_commit) data += "<small><i>" + "&nbsp; ".repeat(35) + "git revision " + minisrv_config.config.git_commit + "</i></small><br>";
+
 data += `
 <b>Encryption Status</b>: ${cryptstatus}<br>
 <b>Connection Speed</b>: &rate;
