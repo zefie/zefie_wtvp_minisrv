@@ -1,4 +1,4 @@
-if (request_headers.query.noreg) {
+if (request_headers.query.noreg && minisrv_config.config.allow_guests) {
     headers = `300 Moved
 Connection: Close
 wtv-noback-all: wtv-register:

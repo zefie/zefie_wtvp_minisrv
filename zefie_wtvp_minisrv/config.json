@@ -14,7 +14,8 @@
     "post_percentages": [ 0, 25, 50, 100 ],
     "verbosity": 2,
     "error_log_file": "errors.log",
-    "enable_lzpf_compression": false
+    "enable_lzpf_compression": false,
+    "allow_guests": true
   },
   "services": {
     "wtv-head-waiter": {

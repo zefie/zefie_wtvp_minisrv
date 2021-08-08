@@ -18,7 +18,6 @@ if (socket.ssid !== null) {
 			if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
 				console.log(" * wtv-challenge-response success for " + filterSSID(socket.ssid));
 				wtvsec_login.PrepareTicket();
-				if (!ssid_sessions[socket.ssid].getSessionData("registered") && !request_headers.query.guest_login) gourl = "wtv-register:/splash";
 
 			} else {
 				console.log(" * wtv-challenge-response FAILED for " + filterSSID(socket.ssid));
@@ -32,12 +31,14 @@ if (socket.ssid !== null) {
 	}
 }
 
+if (!ssid_sessions[socket.ssid].getSessionData("registered") && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash";
+
 if (gourl) {
 	headers = `200 OK
 Connection: Close
 wtv-open-isp-disabled: false
 `;
-	if (!ssid_sessions[socket.ssid].getSessionData("registered") && !request_headers.query.guest_login) {
+	if (!ssid_sessions[socket.ssid].getSessionData("registered") && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
 		headers += `wtv-encrypted: true
 wtv-ticket: ${wtvsec_login.ticket_b64}
 ${getServiceString('wtv-register')}
@@ -51,7 +52,7 @@ Content-type: text/html`;
 	data = '';
 }
 else {
-	if (request_headers.query.guest_login) {
+	if (request_headers.query.guest_login && minisrv_config.config.allow_guests) {
 		var namerand = Math.floor(Math.random() * 100000);
 		var nickname = (minisrv_config.config.service_name + '_' + namerand)
 		var human_name = nickname;

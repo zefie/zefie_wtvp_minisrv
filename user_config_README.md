@@ -17,7 +17,11 @@ If an absolute path (`wtv-url:/`, `file://` url, or `http(s)://` url) is not pas
 ```
 		"post_debug": true
 ```
-If you would like to see debug information about realtime bytes received from a client POST request, set `post_debug` to true.
+If you would like to see debug information about realtime bytes received from a client POST request, set `post_debug` to `true`.
+```
+		"allow_guests":  false
+```
+If you would like to require registration, disabling guest mode, you can set `allow_guests` to `false`. Default is `true`;
 ```
 		"post_percentages": [ 0, 25, 50, 100]
 ```

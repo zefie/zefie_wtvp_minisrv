@@ -59,11 +59,13 @@ The next screens will lead you through a quick setup process for using this serv
 var namerand = Math.floor(Math.random() * 100000);
 var nickname = (minisrv_config.config.service_name + '_' + namerand)
 var human_name = nickname;
-    data += `
+data += `
 <shadow>
 <input type=button action="ValidateAgreement?registering=true&subscriber_name=${human_name}&subscriber_username=${nickname}" Value="Quick Reg" name="speedyreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=130>
-<input type=button action="ValidateWelcome" Value="Sign in as Guest" name="noreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=170>
-<input type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=110 selected>
+`;
+if (minisrv_config.config.allow_guests) data += `<input type=button action="ValidateWelcome" Value="Sign in as Guest" name="noreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=170 >`;
+
+data += `<input type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/ButtonBorder2.bif" usestyle width=110 selected>
 </shadow>
 </font>
 </form>	<td abswidth=13 absheight=50 bgcolor=#171726>
