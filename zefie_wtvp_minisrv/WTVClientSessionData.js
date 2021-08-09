@@ -202,7 +202,7 @@ class WTVClientSessionData {
         try {
             // only save if file has changed
             var json_save_data = JSON.stringify(this.session_store);
-            var json_load_data = loadSessionData(true);
+            var json_load_data = this.loadSessionData(true);
             if (json_save_data != json_load_data) this.fs.writeFileSync(this.session_storage + this.path.sep + this.ssid + ".json", JSON.stringify(this.session_store), "Utf8");
             return true;
         } catch (e) {            

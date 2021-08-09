@@ -40,7 +40,7 @@ Welcome
 ENCTYPE="x-www-form-encoded" METHOD="POST">
 <input type=hidden name=registering value="true">
 <td height=230 width= 300 bgcolor="#171726" colspan=5 valign=top align=left>
-Welcome to the ${minisrv_config.config.service_name} Mini Service, operated by ${minisrv_config.config.service_owner}
+Welcome to the ${minisrv_config.config.service_name} Mini Service, operated by ${minisrv_config.config.service_owner}.
 The next screens will lead you through a quick setup process for using this service.<p> Press the "Continue" button below to begin setup.<p>
 <td abswidth=20 bgcolor=#171726 >
 </tr>

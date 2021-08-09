@@ -71,6 +71,9 @@
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\up-arrows.swf" />
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\WebTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-flashrom\willie.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\relogin.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-music\demo\hacktv4.gif" />
     <Content Include="ServiceVault\wtv-music\demo\index.html" />
     <Content Include="ServiceVault\wtv-music\demo\midi\acey.mid" />

@@ -43,7 +43,7 @@ wtv-ticket: ${wtvsec_login.ticket_b64}
 ${getServiceString('wtv-register')}
 ${getServiceString('wtv-head-waiter')}
 ${getServiceString('wtv-star')}
-wtv-boot-url: wtv-register:/splash?
+wtv-boot-url: wtv-head-waiter:/relogin?
 `
 	}
 	headers += `wtv-visit: ${gourl}
@@ -110,11 +110,11 @@ wtv-connection-timeout: 90
 wtv-show-time-enabled: true
 wtv-fader-timeout: 900
 wtv-tourist-enabled: true`
-	headers += "\nwtv-relogin-url: wtv-1800:/preregister?relogin=true";
+	headers += "\nwtv-relogin-url: wtv-head-waiter:/relogin?relogin=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
-	headers += "\nwtv-reconnect-url: wtv-1800:/preregister?reconnect=true";
+	headers += "\nwtv-reconnect-url: wtv-head-waiter:/relogin?reconnect=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
-	headers += "\nwtv-boot-url: wtv-1800:/preregister?relogin=true";
+	headers += "\nwtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
 	headers += "\nwtv-allow-dsc: true";
 	headers += "\nwtv-home-url: wtv-home:/home?";

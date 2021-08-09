@@ -144,7 +144,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {
-		headers += "wtv-boot-url: wtv-1800:/preregister?relogin=true";
+		headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
 		if (request_headers.query.guest_login) headers += "&guest_login=true";
 		headers += "\n";
 	}
