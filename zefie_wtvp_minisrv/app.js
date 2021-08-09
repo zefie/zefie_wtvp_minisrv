@@ -74,24 +74,31 @@ function getFileExt(path) {
     return path.reverse().split(".")[0].reverse();
 }
 
-function doErrorPage(code, data = null) {
+function doErrorPage(code, data = null, pc_mode = false) {
     var headers = null;
     switch (code) {
         case 404:
             if (data === null) data = "The service could not find the requested page.";
-            headers = "404 " + data + "\r\n";
-            headers += "Content-Type: text/html\r\n";
+            if (pc_mode) headers = "404 Not Found\n";
+            else headers = code + " "+ data + "\n";
+            headers += "Content-Type: text/html\n";
             break;
         case 400:
+        case 500:
             if (data === null) data = "HackTV ran into a technical problem.";
-            headers = "400 " + data + "\r\n";
-            headers += "Content-Type: text/html\r\n";
+            if (pc_mode) headers = "500 Internal Server Error\n";
+            else headers = code + " " + data + "\n";
+            headers += "Content-Type: text/html\n";
+            break;
+        case 401:
+            if (data === null) data = "Access Denied.";
+            if (pc_mode) headers = "401 Access Denied\n";
+            else headers = code + " " + data + "\n";
+            headers += "Content-Type: text/html\n";
             break;
         default:
-            // what we send when we did not detect a wtv-url.
-            // e.g. when a pc browser connects
-            headers = "HTTP/1.1 200 OK\r\n";
-            headers += "Content-Type: text/html\r\n";
+            headers = code + " " + data + "\n";
+            headers += "Content-Type: text/html\n";
             break;
     }
     console.error("doErrorPage Called:", code, data);
@@ -175,8 +182,25 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     try {
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
-            service_vault_file_path = makeSafePath(service_vault_dir,service_path);
+            service_vault_file_path = makeSafePath(service_vault_dir, service_path);
 
+            // deny access to catchall file name directly
+            var service_path_split = service_path.split("/");
+            var service_path_request_file = service_path_split[service_path_split.length - 1];
+            if (minisrv_config.config.catchall_file_name) {
+                var minisrv_catchall = null;
+                if (minisrv_config.services[service_name]) minisrv_catchall = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
+                else minisrv_catchall = minisrv_config.config.catchall_file_name || null;
+                if (minisrv_catchall) {
+                    if (service_path_request_file == minisrv_catchall) {
+                        var errpage = doErrorPage(401, "Access Denied");
+                        headers = errpage[0];
+                        data = errpage[1];
+                        return;
+                    }
+                }                
+            }
+            minisrv_catchall, service_path_split, service_path_request_file = null;
 
             if (fs.existsSync(service_vault_file_path)) {
                 // file exists, read it and return it
@@ -242,6 +266,31 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 fs.readFile(service_vault_file_path + ".html", null, function (err, data) {
                     sendToClient(socket, headers, data);
                 });
+            } else {
+                // look for a catchallin the current path and all parent paths up until the service root
+                if (minisrv_config.config.catchall_file_name) {
+                    var minisrv_catchall_file_name = null;
+                    if (minisrv_config.services[service_name]) minisrv_catchall_file_name = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
+                    else  minisrv_catchall_file_name = minisrv_config.config.catchall_file_name || null;
+                    if (minisrv_catchall_file_name) {
+                        var service_check_dir = service_vault_file_path.split(path.sep);
+                        service_check_dir.pop(); // pop filename
+
+                        while (service_check_dir.join(path.sep) != service_vault_dir) {
+                            var catchall_file = service_check_dir.join(path.sep) + path.sep + minisrv_catchall_file_name;
+                            if (fs.existsSync(catchall_file)) {
+                                if (!zquiet) console.log(" * Found catchall at " + catchall_file + ".html to handle request (HTML Mode) [Socket " + socket.id + "]");
+                                var jscript_eval = fs.readFileSync(catchall_file).toString();
+                                // don't pass these vars to the script
+                                var service_check_dir, minisrv_catchall_file_name = null;
+                                eval(jscript_eval);
+                                if (request_is_async && !zquiet) console.log(" * Script requested Asynchronous mode");
+                            } else {
+                                service_check_dir.pop();
+                            }
+                        }
+                    }
+                }
             }
             // either `request_is_async`, or `headers` and `data` MUST be defined by this point!
         });
@@ -254,12 +303,12 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     if (!request_is_async) {
         if (!service_vault_found) {
             console.error(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, ""));
-            var errpage = doErrorPage(404);
+            var errpage = doErrorPage(404, null, socket.minisrv_pc_mode);
             headers = errpage[0];
             data = errpage[1];
         }
         if (headers == null && !request_is_async) {
-            var errpage = doErrorPage(400);
+            var errpage = doErrorPage(400, null, socket.minisrv_pc_mode);
             headers = errpage[0];
             data = errpage[1];
             console.error(" * Scripting or Data error: Headers were not defined. (headers,data) as follows:")
@@ -300,7 +349,7 @@ function filterSSID(obj) {
     }
 }
 
-function makeSafeSSID(ssid) {
+function makeSafeSSID(ssid = "") {
     ssid = ssid.replace(/[^a-zA-Z0-9]/g, "");
     if (ssid.length == 0) ssid = null;
     return ssid;
@@ -313,10 +362,21 @@ function makeSafePath(base, target) {
     return base + path.sep + targetPath;
 }
 
-async function processURL(socket, request_headers) {
-    if (request_headers === null) {
-        return;
+function getServiceBySocket(socket) {
+    var socket_port = socket.server._connectionKey;
+    if (socket_port) {
+        socket_port = socket.server._connectionKey.split(":")[2];
+        var service_name = null;
+        Object.keys(minisrv_config.services).forEach(function (k) {
+            if (minisrv_config.services[k].disabled) return;
+            if (minisrv_config.services[k].port == socket_port) service_name = k;
+        });
+        return service_name;
     }
+    return null;    
+}
+
+async function processURL(socket, request_headers) {
     var shortURL, headers, data = "";
     request_headers.query = new Array();
     if (request_headers.request_url) {
@@ -372,6 +432,32 @@ async function processURL(socket, request_headers) {
             shortURL_split.shift();
             var shortURL_service_path = shortURL_split.join(":");
             shortURL = shortURL_service_name + ":/" + shortURL_service_path;
+        } else if (shortURL.indexOf(":") == -1 && request_headers.request.indexOf("HTTP/1") > 0) {
+            // is this an odd WTVP request or HTTP Request?
+            if (request_headers.Host) {
+                if (minisrv_config.config.pc_server_hidden_service_enabled) {
+                    // browsers typically send a Host header
+                    service_name = minisrv_config.config.pc_server_hidden_service;
+                    socket.minisrv_pc_mode = true;
+                    shortURL = service_name + ":" + shortURL;
+
+                    // if a directory, request index
+                    if (shortURL.substring(shortURL.length - 1) == "/") shortURL += "index";
+                } else {
+                    // minimal pc mode to send error
+                    socket.minisrv_pc_mode = true;
+                    var errpage = doErrorPage(401, "PC services are disabled on this server", socket.minisrv_pc_mode);
+                    headers = errpage[0];
+                    data = errpage[1]
+                    socket_sessions[socket.id].close_me = true;
+                    sendToClient(socket, headers, data);
+                    return;
+                }
+            } else {
+                // look up service name by socket port
+                service_name = getServiceBySocket(socket);
+                shortURL = service_name + ":" + shortURL;
+            }
         }
 
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
@@ -744,10 +830,10 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     var end_of_line = "\n";
-    if (headers_obj['minisrv-use-carriage-return'] == "true") end_of_line = "\r\n";
-    if (headers_obj['minisrv-use-carriage-return']) delete headers_obj['minisrv-use-carriage-return'];
-
-    if (end_of_line == "\r\n" && zdebug) console.log(" * Script requested to send headers with carriage return (out of WTVP Spec)");
+    if (socket.minisrv_pc_mode) {
+        end_of_line = "\r\n";
+        headers_obj['http_response'] = "HTTP/1.0 " + headers_obj['http_response'];
+    }
 
     // header object to string
     if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
@@ -1359,6 +1445,7 @@ async function handleSocket(socket) {
     // create unique socket id with client address and port
     socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
     socket_sessions[socket.id] = [];
+    socket.minisrv_pc_mode = false;
     socket.setEncoding('hex'); //set data encoding (Text: 'ascii', 'utf8' ~ Binary: 'hex', 'base64' (do not trust 'binary' encoding))
     socket.setTimeout(10800000); // 3 hours
     socket.on('data', function (data_hex) {

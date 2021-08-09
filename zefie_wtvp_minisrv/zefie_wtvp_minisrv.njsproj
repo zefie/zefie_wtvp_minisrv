@@ -32,6 +32,8 @@
     <Content Include=".gitignore" />
     <Content Include="app.js" />
     <Content Include="config.json" />
+    <Content Include="ServiceVault\http_pc\get.js" />
+    <Content Include="ServiceVault\http_pc\index.js" />
     <Content Include="ServiceVault\wtv-1800\noflash.js" />
     <Content Include="ServiceVault\wtv-1800\offer-open-isp-suggest.js" />
     <Content Include="ServiceVault\wtv-chat\home.js" />
@@ -50,6 +52,7 @@
     <Content Include="ServiceVault\wtv-cookie\reset.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-flashrom\content\content-serve.js" />
     <Content Include="ServiceVault\wtv-flashrom\current-noflash.js">
       <SubType>Code</SubType>
     </Content>
@@ -289,10 +292,12 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ServiceVault\" />
+    <Folder Include="ServiceVault\http_pc\" />
     <Folder Include="ServiceVault\wtv-chat\" />
     <Folder Include="ServiceVault\wtv-chat\images\" />
     <Folder Include="ServiceVault\wtv-cookie\" />
     <Folder Include="ServiceVault\wtv-flashrom\" />
+    <Folder Include="ServiceVault\wtv-flashrom\content\" />
     <Folder Include="ServiceVault\wtv-flashrom\ROMCache\" />
     <Folder Include="ServiceVault\wtv-music\" />
     <Folder Include="ServiceVault\wtv-music\demo\" />

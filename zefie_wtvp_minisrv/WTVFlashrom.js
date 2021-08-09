@@ -117,7 +117,7 @@ class WTVFlashrom {
 		flashrom_info.message = new Buffer.from(part_header.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
 
 		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) == flashrom_info.total_parts_size) ? true : false;
-		flashrom_info.rompath = 'wtv-flashrom:/get-by-path?path=' + path + '&raw=true';
+		flashrom_info.rompath = `wtv-flashrom:/${path}`;
 		if (this.zdebug) console.log(" # Flashrom Part Bytes Sent (after this part):", flashrom_info.byte_progress + flashrom_info.part_total_size);
 		if (this.zdebug) console.log(" # Flashrom Part is Last Part", flashrom_info.is_last_part);
 

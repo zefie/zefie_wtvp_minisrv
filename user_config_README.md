@@ -23,6 +23,10 @@ If you would like to see debug information about realtime bytes received from a 
 ```
 If you would like to require registration, disabling guest mode, you can set `allow_guests` to `false`. Default is `true`;
 ```
+		"pc_server_hidden_service": false
+```
+Set this option to false to disable the HTTP Server for Browsers. Set it to a string to use that directory under the service vaults.
+```
 		"post_percentages": [ 0, 25, 50, 100]
 ```
 If you would like to see progress updates on client POST requests, you can define which percentages to show here. Other examples would be `[ 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 ]` for every 10%, or you could set it to `false`, or `null`, to disable progress updates. Note that percentages are not shown when `post_debug` is enabled.
