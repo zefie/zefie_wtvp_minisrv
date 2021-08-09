@@ -742,8 +742,9 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // if box can do compression, see if its worth enabling
-    var compression_type = shouldWeCompress(socket.ssid, headers_obj);
-    if (headers_obj["wtv-modern-content-type"]) delete headers_obj["wtv-modern-content-type"];
+    // small files actually get larger, so don't compress them
+    var compression_type = 0;
+    if (content_length >= 256) compression_type = shouldWeCompress(socket.ssid, headers_obj);
 
     // compress if needed
     if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0,3) == "200") {
