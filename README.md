@@ -31,7 +31,7 @@ This open source server is in alpha status. Use at your own risk.
 ### Feature Todo:
 - wtv-lzpf support *(Milestone v1.0)*
 - TellyScript generation and/or manipulation without external dependancies
-- wtv-cookie full support ***Done [v0.9.13](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.13)***
+- ~~wtv-cookie full support~~ ***Done [v0.9.13](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.13)***
 - ~~Flashrom flashing for bf0app old classic~~ ***Done [v0.9.9](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.9)***
 - ~~SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)~~ ***Done [v0.9.4](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.4)***
 - ~~Flashrom flashing functionality (at least for LC2 and higher)~~ ***Done [v0.8.0](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.8.0)***
