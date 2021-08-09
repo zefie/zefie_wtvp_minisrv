@@ -25,7 +25,7 @@ if (request_headers.query.raw || bf0app_update) {
 	headers = "200 OK\n"
 	if (request_headers.query.path) {
 		headers += "Content-type: text/html\n"
-		headers += "wtv-visit: wtv-flashrom:/initiate-lc2-download?path=" + request_headers.query.path;
+		headers += "wtv-visit: " + service_name + ":/initiate-lc2-download?path=" + request_headers.query.path;
 		data = '';
 	} else {
 		var errpage = doErrorPage(404)

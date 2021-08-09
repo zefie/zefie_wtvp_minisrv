@@ -20,11 +20,10 @@ if (!request_headers.query.path) {
 async function processLC2DownloadPage(path, flashrom_info, numparts = null) {
 	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
 	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
-
-	if (!flashrom_info.is_last_part) {
-		flashrom_info.next_rompath = flashrom_info.next_rompath.replace("get-by-path", "get-lc2-page").replace("&raw=true", "&numparts=" + flashrom_info.part_count);
-	}
 	if (!flashrom_info.part_number || !flashrom_info.is_last_part || !flashrom_info.rompath || !flashrom_info.next_rompath || !flashrom_info.is_bootrom) {
+		if (!flashrom_info.is_last_part) {
+			flashrom_info.next_rompath = request_headers.request_url.replace(escape(request_headers.query.path), escape(flashrom_info.next_rompath.replace(service_name+":/","")));
+		}
 
 		headers = `200 OK
 Content-type: text/html`
@@ -43,12 +42,12 @@ hspace=0 vspace=0 fontsize="large">
 <td width=104 height=74 valign=middle align=center bgcolor="3B3A4D">
 <img src="${minisrv_config.config.service_logo}" width=87 height=67>
 <td width=20 valign=top align=left bgcolor="3B3A4D">
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=1 height=1>
 <td colspan=10 width=436 valign=middle align=left bgcolor="3B3A4D">
 <font color="D6DFD0" size="+2">
 <blackface>
 <shadow>
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=4>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=1 height=4>
 <br>
 Updating now
 </shadow>
@@ -56,7 +55,7 @@ Updating now
 </font>
 <tr>
 <td colspan=12 width=560 height=10 valign=top align=left>
-<img src="wtv-flashrom:/ROMCache/S40H1.gif" width=560 height=6>
+<img src="${service_name}:/ROMCache/S40H1.gif" width=560 height=6>
 <tr>
 <td width=104 height=10 valign=top align=left>
 <td width=20 valign=top align=left>
@@ -92,7 +91,7 @@ data += `
 <br><br><br><br><br>
 <upgradeblock width=280 height=15
 nexturl="${flashrom_info.next_rompath}"
-errorurl="wtv-flashrom:/lc2-download-failed?"
+errorurl="${service_name}:/lc2-download-failed?"
 blockurl="${flashrom_info.rompath}"
 lastblock="${flashrom_info.is_last_part}"
 curblock="` + (flashrom_info.part_number + 1) + `"
@@ -103,14 +102,14 @@ curblock="` + (flashrom_info.part_number + 1) + `"
 	data += `>
 <font size="-1" color="#D6DFD0">
 <br>
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=2 height=10><br>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=2 height=10><br>
 ${flashrom_info.message}
  <br><br>
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
 <td colspan=10 height=2 valign=middle align=center bgcolor="#191919">
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=436 height=1>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
@@ -119,7 +118,7 @@ ${flashrom_info.message}
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
 <td colspan=10 height=2 valign=top align=left bgcolor="#191919">
-<img src="wtv-flashrom:/ROMCache/Spacer.gif" width=436 height=1>
+<img src="${service_name}:/ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
