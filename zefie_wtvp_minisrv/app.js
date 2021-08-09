@@ -362,20 +362,6 @@ function makeSafePath(base, target) {
     return base + path.sep + targetPath;
 }
 
-function getServiceBySocket(socket) {
-    var socket_port = socket.server._connectionKey;
-    if (socket_port) {
-        socket_port = socket.server._connectionKey.split(":")[2];
-        var service_name = null;
-        Object.keys(minisrv_config.services).forEach(function (k) {
-            if (minisrv_config.services[k].disabled) return;
-            if (minisrv_config.services[k].port == socket_port) service_name = k;
-        });
-        return service_name;
-    }
-    return null;    
-}
-
 async function processURL(socket, request_headers) {
     var shortURL, headers, data = "";
     request_headers.query = new Array();
@@ -433,7 +419,6 @@ async function processURL(socket, request_headers) {
             var shortURL_service_path = shortURL_split.join(":");
             shortURL = shortURL_service_name + ":/" + shortURL_service_path;
         } else if (shortURL.indexOf(":") == -1 && request_headers.request.indexOf("HTTP/1") > 0) {
-            // is this an odd WTVP request or HTTP Request?
             if (request_headers.Host) {
                 if (minisrv_config.config.pc_server_hidden_service_enabled) {
                     // browsers typically send a Host header
@@ -453,10 +438,6 @@ async function processURL(socket, request_headers) {
                     sendToClient(socket, headers, data);
                     return;
                 }
-            } else {
-                // look up service name by socket port
-                service_name = getServiceBySocket(socket);
-                shortURL = service_name + ":" + shortURL;
             }
         }
 
