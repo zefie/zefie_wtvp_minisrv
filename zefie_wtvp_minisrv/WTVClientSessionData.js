@@ -95,7 +95,7 @@ class WTVClientSessionData {
         this.session_store.cookies[cookie_index] = Object.assign({}, cookie_data);
 
         // do not write file if user is not registered
-        if (getSessionData('registered')) this.storeSessionData();
+        if (this.getSessionData('registered')) this.storeSessionData();
 
         return true;
     }
