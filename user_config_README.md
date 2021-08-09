@@ -23,9 +23,10 @@ If you would like to see debug information about realtime bytes received from a 
 ```
 If you would like to require registration, disabling guest mode, you can set `allow_guests` to `false`. Default is `true`;
 ```
-		"pc_server_hidden_service": false
+		"pc_server_hidden_service_enabled": false,
+		"pc_server_hidden_service": "http_pc"
 ```
-Set this option to false to disable the HTTP Server for Browsers. Set it to a string to use that directory under the service vaults.
+Set `pc_server_hidden_service_enabled` option to `true` to enable the HTTP Server for Browsers. Set `pc_server_hidden_service` to a directory under the ServiceVaults to use solely for PC requests. See `ServiceVault/http_pc` for some example code.
 ```
 		"post_percentages": [ 0, 25, 50, 100]
 ```
