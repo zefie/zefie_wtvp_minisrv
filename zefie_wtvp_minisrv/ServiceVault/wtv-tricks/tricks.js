@@ -20,13 +20,13 @@ data = `<html>
 <tr>
 <td><a href="wtv-tricks:/info">Info</a>
 <td width = 25>
-<td><a href="wtv-cookie:/list">List Cookies</a>
+<td><a href="wtv-cookie:list">List Cookies</a>
 <tr>
 <td colspan=3 height=6>
 <tr>
 <td><a href="wtv-flashrom:/willie">Visit Ultra Willie's!</a>
 <td width = 25>
-<td><a href="wtv-cookie:/reset">Clear Cookies</a>
+<td><a href="wtv-cookie:reset">Clear Cookies</a>
 <tr>
 <td colspan=3 height=6>
 <tr>
