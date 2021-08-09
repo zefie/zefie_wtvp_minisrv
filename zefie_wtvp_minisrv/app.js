@@ -656,7 +656,7 @@ async function sendToClient(socket, headers_obj, data) {
     if (headers_obj["wtv-modern-content-type"]) delete headers_obj["wtv-modern-content-type"];
 
     // compress if needed
-    if (compression_type > 0 && content_length > 0) {
+    if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0,3) == "200") {
         var uncompressed_content_length = content_length;
         switch (compression_type) {
             case 1:
