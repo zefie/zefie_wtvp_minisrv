@@ -13,16 +13,17 @@ class WTVLzpf {
 
     current_length = 0;
     current_literal = 0;
-    flag = 0xFFFFFFFF;
+    flag = 0xFFFF;
     working_data = 0;
     match_index = 0;
     type_index = 0;
     checksum = 0;
-    flag_table = new Uint32Array(0x1000)
+    flag_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
     encoded_data = [];
 
     nomatchEncode = [
+
         [0x0000, 0x10], [0x0001, 0x10], [0x0002, 0x10], 
         [0x0003, 0x10], [0x0004, 0x10], [0x009A, 0x0F], 
         [0x0005, 0x10], [0x009C, 0x0F], [0x009E, 0x0F], 
@@ -281,13 +282,13 @@ class WTVLzpf {
     clear() {
         this.current_length = 0;
         this.current_literal = 0;
-        this.flag = 0xFFFFFFFF;
+        this.flag = 0xFFFF;
         this.working_data = 0;
         this.match_index = 0;
         this.type_index = 0;
         this.checksum = 0;
         this.ring_buffer.fill(0x00, 0, 0x2000)
-        this.flag_table.fill(0xFFFFFFFF, 0, 0x1000);
+        this.flag_table.fill(0xFFFF, 0, 0x1000);
         this.encoded_data = [];
     }
 
@@ -362,28 +363,28 @@ class WTVLzpf {
                     this.type_index = 3;
                 } else {
                     this.match_index = (this.match_index + 1) & 0x1FFF;
-                    this.flag = (this.flag + 1) & 0x1FFFFFFF;
+                    this.flag = (this.flag + 1) & 0x1FFF;
                     this.checksum = (this.checksum + byte) & 0xFFFF;
                     this.working_data = ((this.working_data * 0x0100) + byte) & 0xFFFFFFFF;
                     i++;
                 }
             } else {
-                this.flag = 0xFFFFFFFF;
+                this.flag = 0xFFFF;
 
                 if (i >= 3) {
                     flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
                     this.flag = this.flag_table[flags_index];
-                    this.flag_table[flags_index] = i & 0x1FFFFFFF;
+                    this.flag_table[flags_index] = i & 0x1FFF;
                 } else {
                     this.type_index++;
                 }
 
-                if (this.flag == 0xFFFFFFFF) {
+                if (this.flag == 0xFFFF) {
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
                 } else if (byte == this.ring_buffer[this.flag] && compress_data) {
                     this.match_index = 1;
-                    this.flag = (this.flag + 1) & 0x1FFFFFFF;
+                    this.flag = (this.flag + 1) & 0x1FFF;
                     this.type_index = 4;
                 } else {
                     code_length = this.nomatchEncode[byte][1] + 1;
@@ -425,7 +426,7 @@ class WTVLzpf {
 
             var flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
             var flag = this.flag_table[flags_index];
-            if (flag == 0xFFFFFFFF) {
+            if (flag == 0xFFFF) {
                 this.EncodeLiteral(0x10, 0x00990000);
             } else {
                 this.EncodeLiteral(0x11, 0x004c8000);
