@@ -15,6 +15,7 @@
     "verbosity": 2,
     "error_log_file": "errors.log",
     "enable_lzpf_compression": false,
+    "enable_gzip_compression": true,
     "allow_guests": true
   },
   "services": {

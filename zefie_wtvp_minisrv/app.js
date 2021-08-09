@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const http = require('http');
 const https = require('https');
 const strftime = require('strftime'); // used externally by service scripts
@@ -100,68 +101,70 @@ function doErrorPage(code, data = null) {
 
 function getConType(path) {
     var file_ext = getFileExt(path).toLowerCase();
+    var wtv_mime_type = "";
+    var modern_mime_type = "";
     // process WebTV overrides, fall back to generic mime lookup
     switch (file_ext) {
         case "aif":
-            return "audio/x-aif";
+            wtv_mime_type = "audio/x-aif";
         case "aifc":
-            return "audio/x-aifc";
+            wtv_mime_type = "audio/x-aifc";
         case "aiff":
-            return "audio/x-aiff";
+            wtv_mime_type = "audio/x-aiff";
         case "ani":
-            return "x-wtv-animation";
+            wtv_mime_type = "x-wtv-animation";
         case "brom":
-            return "binary/x-wtv-bootrom";
+            wtv_mime_type = "binary/x-wtv-bootrom";
         case "cdf":
-            return "application/netcdf";
+            wtv_mime_type = "application/netcdf";
         case "dat":
-            return "binary/cache-data";
+            wtv_mime_type = "binary/cache-data";
         case "dl":
-            return "wtv/download-list";
+            wtv_mime_type = "wtv/download-list";
         case "gsm":
-            return "audio/x-gsm";
+            wtv_mime_type = "audio/x-gsm";
         case "gz":
-            return "application/gzip";
+            wtv_mime_type = "application/gzip";
         case "ini":
-            return "wtv/jack-configuration";
+            wtv_mime_type = "wtv/jack-configuration";
         case "mips-code":
-            return "code/x-wtv-code-mips";
+            wtv_mime_type = "code/x-wtv-code-mips";
         case "o":
-            return "binary/x-wtv-approm";
+            wtv_mime_type = "binary/x-wtv-approm";
         case "ram":
-            return "audio/x-pn-realaudio";
+            wtv_mime_type = "audio/x-pn-realaudio";
         case "rom":
-            return "binary/x-wtv-flashblock";
+            wtv_mime_type = "binary/x-wtv-flashblock";
         case "rsp":
-            return "wtv/jack-response";
+            wtv_mime_type = "wtv/jack-response";
         case "swa":
         case "swf":
-            return "application/x-shockwave-flash";
+            wtv_mime_type = "application/x-shockwave-flash";
         case "srf":
         case "spl":
-            return "wtv/jack-data";
+            wtv_mime_type = "wtv/jack-data";
         case "ttf":
-            return "wtv/jack-fonts";
+            wtv_mime_type = "wtv/jack-fonts";
         case "tvch":
-            return "wtv/tv-channels";
+            wtv_mime_type = "wtv/tv-channels";
         case "tvl":
-            return "wtv/tv-listings";
+            wtv_mime_type = "wtv/tv-listings";
         case "tvsl":
-            return "wtv/tv-smartlinks";
+            wtv_mime_type = "wtv/tv-smartlinks";
         case "wad":
-            return "binary/doom-data";
+            wtv_mime_type = "binary/doom-data";
         case "mp2":
         case "hsb":
         case "rmf":
         case "s3m":
         case "mod":
         case "xm":
-            return "application/Music";
+            wtv_mime_type = "application/Music";
     }
 
-    // if we reach here, its not a WebTV specific override
-    // or we are not yet aware of said override
-    return mime.lookup(path);
+    modern_mime_type = mime.lookup(path);
+    if (wtv_mime_type == "") wtv_mime_type = modern_mime_type;
+    return new Array(wtv_mime_type, modern_mime_type);
 }
 
 async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name) {
@@ -180,9 +183,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 service_vault_found = true;
                 request_is_async = true;
                 if (!zquiet) console.log(" * Found " + service_vault_file_path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
-                var contype = getConType(service_vault_file_path);
+                var contypes = getConType(service_vault_file_path);
                 headers = "200 OK\n"
-                headers += "Content-Type: " + contype;
+                headers += "Content-Type: " + contypes[0] + "\n";
+                headers += "wtv-modern-content-type" + contypes[1];
                 fs.readFile(service_vault_file_path, null, function (err, data) {
                     sendToClient(socket, headers, data);
                 });
@@ -585,11 +589,11 @@ async function sendToClient(socket, headers_obj, data) {
         headers_obj = moveObjectElement('Connection', 'http_response', headers_obj);
     }
 
-    var clen = 0;
+    var content_length = 0;
     if (typeof data.length !== 'undefined') {
-        clen = data.length;
+        content_length = data.length;
     } else if (typeof data.byteLength !== 'undefined') {
-        clen = data.byteLength;
+        content_length = data.byteLength;
     }
 
     // fix captialization
@@ -601,28 +605,80 @@ async function sendToClient(socket, headers_obj, data) {
 
     // if box can do compression, see if its worth enabling
     if (ssid_sessions[socket.ssid].capabilities) {
-        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data'] && minisrv_config.config.enable_lzpf_compression) {
-            compress_data = shouldWeCompress(headers_obj["Content-Type"]);
+        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
+            var compression_type = 1; // lzpf
+            if (ssid_sessions[socket.ssid].get("wtv-client-rom-type") != "bf0app") {
+                var compression_type = 2; // gzip
+            }
+
+            // mostly for debugging
+            if (minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
+            if (minisrv_config.config.force_compression_type == "gzip") compression_type = 2;
+
+            // should we bother to compress?
+            if (!headers_obj["Content-Encoding"]) {
+                if (typeof (headers_obj["Content-Type"]) != 'undefined') {
+                    var content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-Type"];
+                    // both lzpf and gzip
+                    if (content_type.match(/^text\//) && headers_obj["Content-Type"] != "text/tellyscript") compress_data = true;
+                    else if (content_type.match(/^application\/(x-?)javascript$/)) compress_data = true;
+                    else if (content_type == "application/json") compress_data = true;
+                    if (compression_type == 2) {
+                        // gzip only
+                        if (content_type.match(/^audio\/(x-)?[midi|wav]/)) compress_data = true; // midi & wav
+                        if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]/)) compress_data = true; // s3m, mod, xm
+                        if (content_type.match(/^audio\/(x-)?[midi|wav]/)) compress_data = true; // midi & wav
+                    }
+                }
+            }
+            if (headers_obj["wtv-modern-content-type"]) delete headers_obj["wtv-modern-content-type"];
         }
     }
 
     // compress if needed
-    if (compress_data && clen > 0) {
-        content_length = clen;
+    if (compress_data && compression_type && content_length > 0) {
+        var uncompressed_content_length = content_length;
+        switch (compression_type) {
+            case 1:
+                // wtv-lzpf implementation
+                if (minisrv_config.config.enable_lzpf_compression || minisrv_config.config.force_compression_type) {
+                    headers_obj["wtv-lzpf"] = 0;
+                    var wtvcomp = new WTVLzpf();
+                    data = wtvcomp.Compress(data);
+                    wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
+                }
+                break;
 
-        headers_obj["wtv-lzpf"] = 0;
+            case 2:
+                // zlib gzip implementation
+                if (minisrv_config.config.enable_gzip_compression || minisrv_config.config.force_compression_type) {
+                    headers_obj['Content-Encoding'] = 'gzip';
+                    data = zlib.gzipSync(data, {
+                        'level': 9
+                    });
+                }
+                break;
+        }
 
-        var wtvcomp = new WTVLzpf();
-        data = wtvcomp.Compress(data);
-
-        wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
+        var compressed_content_length = 0;
+        if (content_length == 0 || compression_type != 1) {
+            // ultimately send compressed content length
+            compressed_content_length = data.byteLength;
+            content_length = compressed_content_length;
+        } else {
+            // ultimately send original content length if lzpf
+            compressed_content_length = data.byteLength;
+        }
+        var compression_percentage = ((compressed_content_length / uncompressed_content_length) * 100).toFixed(1).toString() + "%";
+        if (uncompressed_content_length != compressed_content_length) if (zdebug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_percentage);
     }
+
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true) {
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
-        if (clen > 0 && socket_sessions[socket.id].wtvsec) {
+        if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
             if (!zquiet) console.log(" * Encrypting response to client ...")
             var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             data = enc_data;
@@ -633,14 +689,6 @@ async function sendToClient(socket, headers_obj, data) {
     // make sure we are using our Content-length and not one set in a script.
     if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
     if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
-
-    if (content_length == 0) {
-        if (typeof data.length !== 'undefined') {
-            content_length = data.length;
-        } else if (typeof data.byteLength !== 'undefined') {
-            content_length = data.byteLength;
-        }
-    }
 
     headers_obj["Content-length"] = content_length;
 
@@ -711,19 +759,6 @@ async function sendToClient(socket, headers_obj, data) {
             socket.destroy();
         }
     }
-}
-
-function shouldWeCompress(content_type) {
-    if (typeof (content_type) != 'undefined') {
-        if ((content_type.match(/^text\//) && content_type != "text/tellyscript") ||
-            content_type.match(/^application\/(x-?)javascript$/) ||
-            content_type.match(/^audio\/(x-)?midi/) ||
-            content_type.match(/^audio\/(x-)?wav/) ||
-            content_type == "application/json") {
-            return true;
-        }
-    }
-    return false;
 }
 
 function concatArrayBuffer(buffer1, buffer2) {
