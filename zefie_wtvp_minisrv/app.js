@@ -1313,14 +1313,16 @@ async function cleanupSocket(socket) {
                 // set timer to destroy entirety of session data if client does not return in X time
                 var timeout = 180000; // timeout is in milliseconds, default 180000 (3 min) .. be sure to allow time for dialup reconnections
 
-                if (!ssid_sessions[socket.ssid].data_store.socket_check) {
-                    ssid_sessions[socket.ssid].data_store.socket_check = setTimeout(function (ssid) {
-                        if (ssid_sessions[ssid].currentConnections() === 0) {
-                            if (!zquiet) console.log(" * WebTV SSID", filterSSID(ssid), " has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
-                            delete ssid_sessions[ssid];
-                        }
-                    }, timeout, socket.ssid);
-                }
+                // clear any existing timeout check
+                if (ssid_sessions[socket.ssid].data_store.socket_check) clearTimeout(ssid_sessions[socket.ssid].data_store.socket_check);
+
+                // set timeout to check 
+                ssid_sessions[socket.ssid].data_store.socket_check = setTimeout(function (ssid) {
+                    if (ssid_sessions[ssid].currentConnections() === 0) {
+                        if (!zquiet) console.log(" * WebTV SSID", filterSSID(ssid), " has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
+                        delete ssid_sessions[ssid];
+                    }
+                }, timeout, socket.ssid);
             }
         }
         socket.end();
