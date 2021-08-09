@@ -567,8 +567,56 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-async function sendToClient(socket, headers_obj, data) {
+function shouldWeCompress(ssid, headers_obj) {
     var compress_data = false;
+    var compression_type = 0; // no compression
+    if (ssid_sessions[ssid]) {
+        if (ssid_sessions[ssid].capabilities) {
+            if (ssid_sessions[ssid].capabilities['client-can-receive-compressed-data']) {
+                if (minisrv_config.config.enable_lzpf_compression || minisrv_config.config.force_compression_type) {
+                    compression_type = 1; // lzpf
+                }
+
+                if (ssid_sessions[ssid]) {
+                    if (ssid_sessions[ssid].get("wtv-client-rom-type") != "bf0app" && (minisrv_config.config.enable_gzip_compression || minisrv_config.config.force_compression_type)) {
+                        // LC2 and newer appear to support gzip even in the MiniBrowser
+                        compression_type = 2; // gzip
+                    }
+                }
+
+                // mostly for debugging
+                if (minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
+                if (minisrv_config.config.force_compression_type == "gzip") compression_type = 2;
+
+                // do not compress if already encoded
+                if (headers_obj["Content-Encoding"]) return 0;
+
+                // should we bother to compress?
+                var content_type = "";
+                if (typeof (headers_obj) == 'string') content_type = headers_obj;
+                else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-Type"];
+
+                if (content_type) {
+                    // both lzpf and gzip
+                    if (content_type.match(/^text\//) && content_type != "text/tellyscript") compress_data = true;
+                    else if (content_type.match(/^application\/(x-?)javascript$/)) compress_data = true;
+                    else if (content_type == "application/json") compress_data = true;
+                    if (compression_type == 2) {
+                        // gzip only
+                        if (content_type.match(/^audio\/(x-)?[midi|wav]/)) compress_data = true; // midi & wav
+                        if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]/)) compress_data = true; // s3m, mod, xm
+                        if (content_type.match(/^audio\/(x-)?[midi|wav]/)) compress_data = true; // midi & wav
+                    }
+                }
+            }
+        }
+    }
+
+    // return compression_type if compress_data = true
+    return (compress_data) ? compression_type : 0;
+}
+
+async function sendToClient(socket, headers_obj, data) {
     var headers = "";
     var content_length = 0;
     if (typeof (data) === 'undefined') data = '';
@@ -604,59 +652,27 @@ async function sendToClient(socket, headers_obj, data) {
 
 
     // if box can do compression, see if its worth enabling
-    if (ssid_sessions[socket.ssid].capabilities) {
-        if (ssid_sessions[socket.ssid].capabilities['client-can-receive-compressed-data']) {
-            var compression_type = 1; // lzpf
-            if (ssid_sessions[socket.ssid].get("wtv-client-rom-type") != "bf0app") {
-                var compression_type = 2; // gzip
-            }
-
-            // mostly for debugging
-            if (minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
-            if (minisrv_config.config.force_compression_type == "gzip") compression_type = 2;
-
-            // should we bother to compress?
-            if (!headers_obj["Content-Encoding"]) {
-                if (typeof (headers_obj["Content-Type"]) != 'undefined') {
-                    var content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-Type"];
-                    // both lzpf and gzip
-                    if (content_type.match(/^text\//) && headers_obj["Content-Type"] != "text/tellyscript") compress_data = true;
-                    else if (content_type.match(/^application\/(x-?)javascript$/)) compress_data = true;
-                    else if (content_type == "application/json") compress_data = true;
-                    if (compression_type == 2) {
-                        // gzip only
-                        if (content_type.match(/^audio\/(x-)?[midi|wav]/)) compress_data = true; // midi & wav
-                        if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]/)) compress_data = true; // s3m, mod, xm
-                        if (content_type.match(/^audio\/(x-)?[midi|wav]/)) compress_data = true; // midi & wav
-                    }
-                }
-            }
-            if (headers_obj["wtv-modern-content-type"]) delete headers_obj["wtv-modern-content-type"];
-        }
-    }
+    var compression_type = shouldWeCompress(socket.ssid, headers_obj);
+    if (headers_obj["wtv-modern-content-type"]) delete headers_obj["wtv-modern-content-type"];
 
     // compress if needed
-    if (compress_data && compression_type && content_length > 0) {
+    if (compression_type > 0 && content_length > 0) {
         var uncompressed_content_length = content_length;
         switch (compression_type) {
             case 1:
                 // wtv-lzpf implementation
-                if (minisrv_config.config.enable_lzpf_compression || minisrv_config.config.force_compression_type) {
-                    headers_obj["wtv-lzpf"] = 0;
-                    var wtvcomp = new WTVLzpf();
-                    data = wtvcomp.Compress(data);
-                    wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
-                }
+                headers_obj["wtv-lzpf"] = 0;
+                var wtvcomp = new WTVLzpf();
+                data = wtvcomp.Compress(data);
+                wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
                 break;
 
             case 2:
                 // zlib gzip implementation
-                if (minisrv_config.config.enable_gzip_compression || minisrv_config.config.force_compression_type) {
-                    headers_obj['Content-Encoding'] = 'gzip';
-                    data = zlib.gzipSync(data, {
-                        'level': 9
-                    });
-                }
+                headers_obj['Content-Encoding'] = 'gzip';
+                data = zlib.gzipSync(data, {
+                    'level': 9
+                });
                 break;
         }
 

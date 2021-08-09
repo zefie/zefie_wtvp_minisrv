@@ -12,6 +12,16 @@ if (ssid_sessions[socket.ssid].get('box-does-psuedo-encryption')) {
 	var cryptstatus = ((socket_sessions[socket.id].secure === true) ? "Encrypted" : "Not Encrypted")
 }
 
+var comp_type = shouldWeCompress(socket.ssid,'text/html');
+var compstatus = "uncompressed";
+switch (comp_type) {
+	case 1:
+		compstatus = "wtv-lzpf";
+		break;
+	case 2:
+		compstatus = "gzip (level 9)";
+		break;
+}
 
 data = `<html>
 <head>
@@ -27,12 +37,13 @@ function go() {
 <b>Welcome to ${z_title}`;
 if (ssid_sessions[socket.ssid].getSessionData("registered")) data += ", " + ssid_sessions[socket.ssid].getSessionData("subscriber_username") + "!";
 data += "</b><br>";
-if (minisrv_config.config.git_commit) data += "<small><i>" + "&nbsp; ".repeat(35) + "git revision " + minisrv_config.config.git_commit + "</i></small><br>";
+if (minisrv_config.config.git_commit) data += `<div width="540" align="right"><font size="-4"><i>git revision  ${minisrv_config.config.git_commit}</i></small></font></div><br>`;
 
 data += `
-<b>Encryption Status</b>: ${cryptstatus}<br>
+<hr>
+<b>Status</b>: ${cryptstatus} (${compstatus})<br>
 <b>Connection Speed</b>: &rate;
-<p>
+<hr>
 <form name=access onsubmit="go()">
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
