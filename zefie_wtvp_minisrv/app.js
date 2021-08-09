@@ -573,16 +573,28 @@ function shouldWeCompress(ssid, headers_obj) {
     if (ssid_sessions[ssid]) {
         if (ssid_sessions[ssid].capabilities) {
             if (ssid_sessions[ssid].capabilities['client-can-receive-compressed-data']) {
+
                 if (minisrv_config.config.enable_lzpf_compression || minisrv_config.config.force_compression_type) {
                     compression_type = 1; // lzpf
                 }
 
                 if (ssid_sessions[ssid]) {
-                    if (ssid_sessions[ssid].get("wtv-client-rom-type") != "bf0app" && (minisrv_config.config.enable_gzip_compression || minisrv_config.config.force_compression_type)) {
-                        // LC2 and newer appear to support gzip even in the MiniBrowser
-                        compression_type = 2; // gzip
+                    // if gzip is enabled...
+                    if (minisrv_config.config.enable_gzip_compression || minisrv_config.config.force_compression_type) {
+                        var is_bf0app = ssid_sessions[ssid].get("wtv-client-rom-type") == "bf0app";
+                        var is_minibrowser = (ssid_sessions[ssid].get("wtv-needs-upgrade") || ssid_sessions[ssid].get("wtv-used-8675309"));
+                        var is_softmodem = ssid_sessions[ssid].get("wtv-client-rom-type").match(/softmodem/);
+                        if (!is_bf0app && ((!is_softmodem && !is_minibrowser) || (is_softmodem && !is_minibrowser))) {
+                            // softmodem boxes do not appear to support gzip in the minibrowser
+                            // LC2 appears to support gzip even in the MiniBrowser
+                            // LC2 and newer approms appear to support gzip
+                            // bf0app does not appear to support gzip
+                            compression_type = 2; // gzip
+                        }
                     }
                 }
+
+
 
                 // mostly for debugging
                 if (minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
