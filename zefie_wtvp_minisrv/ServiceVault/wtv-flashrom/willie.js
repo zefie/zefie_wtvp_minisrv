@@ -9,7 +9,7 @@ if (request_headers.query.vflash) delete request_headers.query.vflash;
 if (request_headers.query.pflash) delete request_headers.query.pflash;
 
 for (const [key, value] of Object.entries(request_headers.query)) {
-	proxy_query += "&" + key + "=" + value;
+	proxy_query += "&" + key + "=" + escape(value);
 }
 
 if (!minisrv_config.services[service_name].use_zefie_server) {
