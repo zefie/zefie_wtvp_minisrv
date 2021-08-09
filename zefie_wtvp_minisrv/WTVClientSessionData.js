@@ -94,9 +94,6 @@ class WTVClientSessionData {
 
         this.session_store.cookies[cookie_index] = Object.assign({}, cookie_data);
 
-        // do not write file if user is not registered
-        if (this.getSessionData('registered')) this.storeSessionData();
-
         return true;
     }
 
@@ -193,12 +190,17 @@ class WTVClientSessionData {
     }
 
     saveSessionData() {
-        // load data from disk and merge new data
-        var temp_store = this.session_store;
-        if (this.loadSessionData()) this.session_store = Object.assign(this.session_store, temp_store);
-        else this.session_store = temp_store;
-        temp_store = null;
-
+        if (this.isRegistered()) {
+            // load data from disk and merge new data
+            var temp_store = this.session_store;
+            if (this.loadSessionData()) this.session_store = Object.assign(this.session_store, temp_store);
+            else this.session_store = temp_store;
+            temp_store = null;
+        } else {
+            // do not write file if user is not registered, return true because this is not an error
+            return true;
+        }
+        
         try {
             // only save if file has changed
             var json_save_data = JSON.stringify(this.session_store);
@@ -213,7 +215,7 @@ class WTVClientSessionData {
 
     retrieveSessionData() {
         // alias
-        this.loadSessionData();
+        return this.loadSessionData();
     }
 
     storeSessionData() {
@@ -222,7 +224,8 @@ class WTVClientSessionData {
     }
 
     SaveIfRegistered() {
-        if (this.isRegistered()) this.saveSessionData();
+        if (this.isRegistered()) return this.saveSessionData();
+        return false;
     }
 
     isRegistered() {
