@@ -43,7 +43,7 @@ class WTVFlashrom {
 	}
 
 
-	async doLocalFlashROM(flashrom_file_path, callback, info_only = false) {
+	async doLocalFlashROM(flashrom_file_path, request_path, callback, info_only = false) {
 		// use local flashrom files;
 		console.log(info_only);
 		var self = this;
@@ -56,7 +56,7 @@ class WTVFlashrom {
 					callback(data, headers);
 				} else {
 					if (info_only) {
-						callback(self.getFlashromData(data, flashrom_file_path));
+						callback(self.getFlashromInfo(data, request_path));
 					} else {
 						self.sendToClient(data, flashrom_file_path, callback);
 					}
@@ -202,7 +202,7 @@ class WTVFlashrom {
 			});
 			req.end();
 		} else {
-			this.doLocalFlashROM(flashrom_file_path, callback, ((length != 0) ? true : false));
+			this.doLocalFlashROM(flashrom_file_path, request_path, callback, ((length != 0) ? true : false));
 		}
 	}
 }
