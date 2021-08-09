@@ -363,6 +363,17 @@ async function processURL(socket, request_headers) {
             }
         }
 
+        if ((shortURL.indexOf("http") != 0 && shortURL.indexOf("ftp") != 0 && shortURL.indexOf(":") > 0 && shortURL.indexOf(":/") == -1)) {
+            // Apparently it is within WTVP spec to accept urls without a slash (eg wtv-home:home)
+            // Here, we just reassemble the request URL as if it was a proper URL (eg wtv-home:/home)
+            // we will allow this on any service except http(s) and ftp
+            var shortURL_split = shortURL.split(':');
+            var shortURL_service_name = shortURL_split[0];
+            shortURL_split.shift();
+            var shortURL_service_path = shortURL_split.join(":");
+            shortURL = shortURL_service_name + ":/" + shortURL_service_path;
+        }
+
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
             var ssid = socket.ssid;
             if (ssid == null) {
