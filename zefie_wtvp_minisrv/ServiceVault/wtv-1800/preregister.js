@@ -2,7 +2,7 @@
 
 	if (socket.ssid) {
 		if (ssid_sessions[socket.ssid].loadSessionData() == true) {
-			console.log(" * Loaded session data from disk for", filterSSID(socket.ssid))
+			console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
 			ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
 		} else {
 			ssid_sessions[socket.ssid].session_data = {};
@@ -20,11 +20,11 @@
 						}
 					}
 				});
-				if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", filterSSID(socket.ssid));
+				if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", wtvshared.filterSSID(socket.ssid));
 			}
 		}
 		if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-			if (zdebug) console.log(" # Recreating primary WTVSec login instance for", filterSSID(socket.ssid));
+			if (zdebug) console.log(" # Recreating primary WTVSec login instance for", wtvshared.filterSSID(socket.ssid));
 			delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
 		}
 

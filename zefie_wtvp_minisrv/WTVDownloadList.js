@@ -3,10 +3,22 @@
  * By: zefie
  */
 class WTVDownloadList {
-    download_list = "";
-    content_type = "wtv/download-list";
 
-    constructor() {
+    download_list = "";
+    service_name = "";
+    content_type = "wtv/download-list";
+    wtvshared = null;
+    clientShowAlert = null;
+
+    /**
+     * Constructs the WTVDownloadList Class
+     * @param {string} service_name Service name to use in wtv-urls
+     */
+    constructor(service_name = "wtv-disk") {
+        var { WTVShared, clientShowAlert } = require('./WTVShared.js');
+        this.wtvshared = new WTVShared();
+        this.clientShowAlert = clientShowAlert;
+        this.service_name = service_name
         this.clear();
     }
 
@@ -98,13 +110,31 @@ class WTVDownloadList {
      * Adds a PUT command to the download list
      * @param {string} path Absolute file://Disk/ path of a file to upload to the service
      * @param {string} destination Destination address (wtv url on service) in which to POST upload the file to
-     * @param {string} display Message to display while working on this file
      */
     put(path, destination) {
         this.download_list += "PUT " + path + "\n";
         this.download_list += "location: " + destination + "\n";
     }
 
+    /**
+    * Alias to put() for User Store
+    * @param {string} path Absolute file://Disk/ path of a file to upload to the service
+    * @param {string} destination Destination file path in the User Store
+    */
+    putUserStoreDest(path, destination) {
+        this.download_list += "PUT " + path + "\n";
+        this.download_list += "location: " + this.service_name + ":/userstore?partialPath="+escape(destination) + "\n";
+    }
+
+    /**
+     * Alias to putUserStoreDest() that generates the destination
+     * @param {any} path
+     */
+    putUserStore(path) {
+        var destination = path.replace("file://", "");
+        this.download_list += "PUT " + path + "\n";
+        this.download_list += "location: " + this.service_name + ":/userstore?partialPath=" + escape(destination) + "\n";
+    }
     /**
      * Adds a GET command to the download list
      * @param {string} file Non-absolute path of client destination file (relative to group base)
@@ -169,6 +199,99 @@ class WTVDownloadList {
         this.deleteGroup(group + "-UPDATE");
         this.delete(path + ".GROUP-UPDATE/");
     }
+
+   /**
+    * Generates the Download page
+    * @param {object} minisrv_config minisrv config object
+    * @param {string} title Page title
+    * @param {string} group
+    * @param {string|null} diskmap
+    * @param {string|null} main_message Message displayed in the center of the page
+    * @param {string|null} message Initial progress bar message
+    * @param {boolean|null} force_update Force this update even if the client reports the files are synced
+    * @param {string|null} success_url Where the client goes when the process succeeds
+    * @param {string|null} fail_url  Where the client goes when the process fails.
+    * @param {string|null} url Use your own URL for client:fetch?source= instead of our generated one
+    * @returns {string} HTML Download Page
+    */
+    getSyncPage(minisrv_config, title, group, diskmap = null, main_message = null, message = null, force_update = null, success_url = null, fail_url = null, url = null) {
+        // Begin Set defaults
+        if (main_message === null) main_message = "Your receiver is downloading files.";
+
+        if (message === null) message = "Retrieving files";
+
+        if (force_update === null) force_update = false;
+
+        if (url === null) url = this.service_name + ":/sync?diskmap=" + escape(diskmap) + "&force=" + force_update;
+
+        if (success_url === null) success_url = new this.clientShowAlert({
+            'image': minisrv_config.config.service_logo,
+            'message': "Download successful!",
+            'buttonlabel1': "Okay",
+            'buttonaction1': "client:goback",
+            'noback': true,
+        }).getURL();
+
+        if (fail_url === null) fail_url = new this.clientShowAlert({
+            'image': minisrv_config.config.service_logo,
+            'message': "Download failed...",
+            'buttonlabel1': "Okay...",
+            'buttonaction1': "client:goback",
+            'noback': true,
+        }).getURL();
+        // End set defaults
+        return `<html>
+<head>
+        <meta
+                http-equiv=refresh
+                    content="0;url=client:Fetch?group=${escape(group)}&source=${escape(url)}&message=${escape(message)}"
+        >
+        <display downloadsuccess="${success_url}" downloadfail="${fail_url}">
+        <title>${title}</title>
+</head>
+<body bgcolor=#0 text=#42CC55 fontsize=large hspace=0 vspace=0>
+<table cellspacing=0 cellpadding=0>
+        <tr>
+                <td width=104 height=74 valign=middle align=center bgcolor=3B3A4D>
+                        <img src="${minisrv_config.config.service_logo}" width=86 height=64>
+                <td width=20 valign=top align=left bgcolor=3B3A4D>
+                        <spacer>
+                <td colspan=2 width=436 valign=middle align=left bgcolor=3B3A4D>
+                        <font color=D6DFD0 size=+2><blackface><shadow>
+                                <spacer type=block width=1 height=4>
+                                <br>
+                                        ${message}
+                                </shadow>
+                                </blackface>
+                        </font>
+        <tr>
+                <td width=104 height=20>
+                <td width=20>
+                <td width=416>
+                <td width=20>
+        <tr>
+                <td colspan=2>
+                <td>
+                        <font size=+1>
+                               ${main_message}
+                                <p>This may take a while.
+                        </font>
+        <tr>
+                <td colspan=2>
+                <td>
+                        <br><br>
+                        <font color=white>
+                        <progressindicator name="downloadprogress"
+                           message="Preparing..."
+                           height=40 width=250>
+                        </font>
+</table>
+</body>
+</html>
+
+`
+    }
+
 }
 
 module.exports = WTVDownloadList;

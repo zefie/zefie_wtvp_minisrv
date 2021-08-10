@@ -18,7 +18,7 @@ Content-Type: text/html`
 
 	var wtv_system_version = ssid_sessions[socket.ssid].get("wtv-system-version");
 	var wtv_client_bootrom_version = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version");
-	var wtv_client_serial_number = filterSSID(ssid_sessions[socket.ssid].get("wtv-client-serial-number"));
+	var wtv_client_serial_number = wtvshared.filterSSID(ssid_sessions[socket.ssid].get("wtv-client-serial-number"));
 	var wtv_client_rom_type = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 	var wtv_system_chipversion_str = ssid_sessions[socket.ssid].get("wtv-system-chipversion");
 	var wtv_system_sysconfig_hex = parseInt(ssid_sessions[socket.ssid].get("wtv-system-sysconfig")).toString(16);

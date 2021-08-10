@@ -4,6 +4,7 @@ class WTVClientSessionData {
 
     fs = require('fs');
     path = require('path');
+
     ssid = null;
     data_store = null;
     session_store = null;
@@ -11,48 +12,107 @@ class WTVClientSessionData {
     capabilities = null;
     session_storage = "";
     hide_ssid_in_logs = true;
-
-    filterSSID(obj) {
-        if (this.hide_ssid_in_logs === true) {
-            if (typeof (obj) == "string") {
-                if (obj.substr(0, 8) == "MSTVSIMU") {
-                    return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
-                } else if (obj.substr(0, 5) == "1SEGA") {
-                    return obj.substr(0, 6) + ('*').repeat(6) + obj.substr(13);
-                } else {
-                    return obj.substr(0, 6) + ('*').repeat(9);
-                }
-            } else {
-                if (obj["wtv-client-serial-number"]) {
-                    var ssid = obj["wtv-client-serial-number"];
-                    if (ssid.substr(0, 8) == "MSTVSIMU") {
-                        obj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
-                    } else if (ssid.substr(0, 5) == "1SEGA") {
-                        obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
-                    } else {
-                        obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
-                    }
-                }
-                return obj;
-            }
-        } else {
-            return obj;
-        }
-    }
+    wtvshared = null;
+    wtvmime = null;
 
     constructor(ssid, hide_ssid_in_logs, session_storage_directory) {
+        var { WTVShared, clientShowAlert } = require('./WTVShared.js');
+        var WTVMimeTypes = require('./WTVMimeTypes.js');
+        this.wtvshared = new WTVShared();
+        this.wtvmime = new WTVMimeTypes();
+
         this.ssid = ssid;
         if (hide_ssid_in_logs) this.hide_ssid_in_logs = hide_ssid_in_logs;
-        if (!session_storage_directory) session_storage_directory = __dirname + "/SessionStore";
+        if (!session_storage_directory) session_storage_directory = __dirname + this.path.sep + "SessionStore";
         this.session_storage = session_storage_directory;
         this.data_store = new Array();
         this.session_store = {};
     }
 
+    /**
+     * Returns the absolute path to the user's file store
+     */
+    getUserStoreDirectory() {
+        return this.session_storage + this.path.sep + this.ssid + this.path.sep;
+    }
+
+    /**
+     * Store a file in the user's file store
+     * @param {string} path Relative path to User's file store
+     * @param {Buffer} data File data
+     * @param {number|null} last_modified Unix timestamp to set last modified date to
+     * @param {boolean} overwrite Overwrite if file exists
+     * @returns {boolean} Whether or not the file was written
+     */
+    storeUserStoreFile(path, data, last_modified = null, overwrite = true) {
+        var result = false;
+        var store_dir = this.getUserStoreDirectory();
+        var path_split = path.split('/');
+        var file_name = path_split.pop();
+        var store_dir_path = this.wtvshared.makeSafePath(store_dir, path_split.join('/').replace('/', this.path.sep));
+        var store_full_path = this.wtvshared.makeSafePath(store_dir_path, file_name);
+
+        try {
+            if (!this.fs.existsSync(store_dir_path)) this.fs.mkdirSync(store_dir_path, { recursive: true });
+            var file_exists = this.fs.existsSync(store_full_path);
+            if (!file_exists || (file_exists && overwrite)) result = this.fs.writeFileSync(store_full_path, data);
+            if (result !== false && last_modified) {
+                var file_timestamp = new Date(last_modified * 1000);
+                fs.utimesSync(store_full_path, Date.now(), file_timestamp)
+            }
+        } catch (e) {
+            console.error(" # User File Store failed", e);
+        }
+        return (result === false) ? false : true;
+    }
+
+    /**
+     * Retrieves a file from the user store
+     * @param {string} path Path relative to the User File Store
+     * @returns {Buffer|false} Buffer data, or false if could not open file
+     */
+    getUserStoreFile(path) {
+        var store_dir = this.getUserStoreDirectory();
+        var store_dir_path = this.wtvshared.makeSafePath(store_dir, path.replace('/', this.path.sep));
+        if (this.fs.existsSync(store_dir_path)) return this.fs.readFileSync(store_dir_path);
+        else return false;
+    }
+
+    /**
+     * Retrieves a file from the user store with a file://Disk/ url
+     * @param {string} url file://Disk/ base url
+     * @returns {Buffer|false} Buffer data, or false if could not open file
+     */
+    getUserStoreFileByURL(url) {
+        var path_split = url.split('/');
+        path_split.shift();
+        path_split.shift();
+        var store_dir_path = path_split.join('/').replace('/', this.path.sep);
+        return this.getUserStoreFile(store_dir_path);
+    }
+
+    /**
+    * Retrieves the Content-Type of a User Store File
+    * @param {string} path Path relative to the User File Store
+    * @returns {string|false} Content-Type, or false if could not open file
+    */
+    getUserStoreContentType(path) {
+        return this.wtvmime.getSimpleContentType(path);
+    }
+
+    /**
+     * Returns a RFC7231 compliant UTC Date String from the current time
+     * @param {Number} offset Offset from current time (+/-)
+     * @returns {string} A RFC7231 compliant UTC Date String from the current time
+     */
     getUTCTime(offset = 0) {
         return new Date((new Date).getTime() + offset).toUTCString();
     }
 
+    /**
+     * Returns the number of user cookies
+     * @returns {number} Number of cookies
+     */
     countCookies() {
         return Object.keys(this.session_store.cookies).length || 0;
     }
@@ -184,7 +244,7 @@ class WTVClientSessionData {
             }
         } catch (e) {
             // Don't log error 'file not found', it just means the client isn't registered yet
-            if (e.code != "ENOENT") console.error(" # Error loading session data for", this.filterSSID(this.ssid), e);
+            if (e.code != "ENOENT") console.error(" # Error loading session data for", this.wtvshared.filterSSID(this.ssid), e);
             return false;
         }
     }
@@ -209,7 +269,7 @@ class WTVClientSessionData {
             if (json_save_data != json_load_data) this.fs.writeFileSync(this.session_storage + this.path.sep + this.ssid + ".json", JSON.stringify(this.session_store), "Utf8");
             return true;
         } catch (e) {            
-            console.error(" # Error saving session data for", this.filterSSID(this.ssid), e);
+            console.error(" # Error saving session data for", this.wtvshared.filterSSID(this.ssid), e);
             return false;
         }
     }
@@ -249,7 +309,7 @@ class WTVClientSessionData {
             }
         } catch (e) {
             // Don't log error 'file not found', it just means the client isn't registered yet
-            console.error(" # Error deleting session data for", this.filterSSID(this.ssid), e);
+            console.error(" # Error deleting session data for", this.wtvshared.filterSSID(this.ssid), e);
             return false;
         }
     }
