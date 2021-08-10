@@ -115,9 +115,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		gourl = "wtv-head-waiter:/login-stage-two?relogin=true";
 	}
 
-	if (request_headers.query.reconnect) {
-		gourl = null;
-	}
+	if (request_headers.query.reconnect) gourl = null;
 
 	if (!file_path != null && !zquiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
 
@@ -132,7 +130,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	headers += "Connection: Keep-Alive\n";
 	headers += "wtv-initial-key: " + ssid_sessions[socket.ssid].data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
 	headers += "Content-Type: " + prereg_contype + "\n";
-	headers += "wtv-service: reset\n";
+	if (!request_headers.query.reconnect) headers += "wtv-service: reset\n";
 	if (!bf0app_update) headers += getServiceString('wtv-1800') + "\n";
 
 	if (bf0app_update) headers += getServiceString('wtv-head-waiter', { "flags": "0x00000001" }) + "\n";
