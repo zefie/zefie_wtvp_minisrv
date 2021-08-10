@@ -189,7 +189,7 @@ class WTVClientSessionData {
         }
     }
 
-    saveSessionData() {
+    saveSessionData(force_write = false) {
         if (this.isRegistered()) {
             // load data from disk and merge new data
             var temp_store = this.session_store;
@@ -198,7 +198,8 @@ class WTVClientSessionData {
             temp_store = null;
         } else {
             // do not write file if user is not registered, return true because this is not an error
-            return true;
+            // force write needed to set the initial reg
+            if (!force_write) return true;
         }
         
         try {
@@ -218,9 +219,9 @@ class WTVClientSessionData {
         return this.loadSessionData();
     }
 
-    storeSessionData() {
+    storeSessionData(force_write = false) {
         // alias
-        return this.saveSessionData();
+        return this.saveSessionData(force_write);
     }
 
     SaveIfRegistered() {
