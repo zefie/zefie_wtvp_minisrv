@@ -72,7 +72,7 @@
       "port": 1630,
       "connections": 3
     },
-    "wtv-update": {
+    "wtv-disk": {
       "port": 1635,
       "connections": 3
     },

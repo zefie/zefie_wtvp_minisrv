@@ -252,15 +252,13 @@
     <Content Include="ServiceVault\wtv-tricks\unregister.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\content\diskmaps\DealerDemo.json">
+    <Content Include="ServiceVault\wtv-disk\content\diskmaps\DealerDemo.json">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\sync.js">
+    <Content Include="ServiceVault\wtv-disk\sync.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-update\DealerDemo.js" />
     <Content Include="ServiceVault\wtv-home\home.js" />
-    <Content Include="ServiceVault\wtv-update\updatesuccess.txt" />
     <Content Include="ServiceVault\wtv-1800\preregister.js" />
     <Content Include="ServiceVault\wtv-head-waiter\finalize-security.js" />
     <Content Include="ServiceVault\wtv-head-waiter\login-stage-two.js" />
@@ -307,13 +305,13 @@
     <Folder Include="ServiceVault\wtv-star\" />
     <Folder Include="ServiceVault\wtv-star\ROMCache\" />
     <Folder Include="ServiceVault\wtv-tricks\" />
-    <Folder Include="ServiceVault\wtv-update\" />
+    <Folder Include="ServiceVault\wtv-disk\" />
     <Folder Include="ServiceVault\wtv-1800\" />
     <Folder Include="ServiceVault\wtv-head-waiter\" />
     <Folder Include="ServiceVault\wtv-home\" />
     <Folder Include="ServiceVault\wtv-log\" />
-    <Folder Include="ServiceVault\wtv-update\content\" />
-    <Folder Include="ServiceVault\wtv-update\content\diskmaps\" />
+    <Folder Include="ServiceVault\wtv-disk\content\" />
+    <Folder Include="ServiceVault\wtv-disk\content\diskmaps\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
 </Project>
