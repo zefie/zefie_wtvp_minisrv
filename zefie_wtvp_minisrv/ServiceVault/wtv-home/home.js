@@ -58,7 +58,7 @@ if (ssid_sessions[socket.ssid].hasCap("client-has-disk")) {
 	data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
 	if (ssid_sessions[socket.ssid].hasCap("client-can-do-macromedia-flash2")) {
 		// only show demo if client can do flash2
-		data += "<li>Old MSNTV DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\"> Access (after Download)</a></li>\n";
+		data += "<li>Old DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\">Access</a></li>\n";
 	}
 }
 
