@@ -1,5 +1,8 @@
+/**
+ * wtv/download-list creation helper class
+ * By: zefie
+ */
 class WTVDownloadList {
-
     download_list = "";
     content_type = "wtv/download-list";
 
@@ -138,9 +141,9 @@ class WTVDownloadList {
 
     /**
      * Adds a SET-GROUP command to the download list
-     * @param {any} group Group to set state of
-     * @param {any} state State to set group to
-     * @param {any} version Version to set group to
+     * @param {string} group Group to set state of
+     * @param {string} state State to set group to
+     * @param {string} version Version to set group to
      */
     setGroup(group, state, version) {
         this.download_list += "SET-GROUP " + group + "\n";
@@ -148,9 +151,10 @@ class WTVDownloadList {
         this.download_list += "version: " + version + "\n";
         this.download_list += "last-checkup-time: " + new Date().toUTCString().replace("GMT", "+0000") + "\n\n";
     }
+
     /**
      * Adds a DELETE-GROUP command to the download list
-     * @param {any} group Group to delete
+     * @param {string} group Group to delete
      */
     deleteGroup(group) {
         this.download_list += "DELETE-GROUP " + group + "\n\n";
@@ -158,8 +162,8 @@ class WTVDownloadList {
 
     /**
      * An alias for deleteGroup() that handles deleting the '-UPDATE' group files for you
-     * @param {any} group
-     * @param {any} path
+     * @param {string} group Group to delete
+     * @param {string} path Group base path
      */
     deleteGroupUpdate(group, path) {
         this.deleteGroup(group + "-UPDATE");
