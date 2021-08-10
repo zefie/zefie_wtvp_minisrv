@@ -274,28 +274,33 @@ async function processURL(socket, request_headers) {
         }
 
         if (request_headers.post_data) {
-            var post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8).replace("\0", "");
-            if (isUnencryptedString(post_data_string)) {
-                if (post_data_string.indexOf('=')) {
-                    if (post_data_string.indexOf('&')) {
-                        var qraw = post_data_string.split('&');
-                        if (qraw.length > 0) {
-                            for (let i = 0; i < qraw.length; i++) {
-                                var qraw_split = qraw[i].split("=");
-                                if (qraw_split.length == 2) {
-                                    var k = qraw_split[0];
-                                    request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+            var post_data_string = '';
+            try {
+                post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8).replace("\0", ""); // if not text this will probably throw an exception
+                if (isUnencryptedString(post_data_string)) {
+                    if (post_data_string.indexOf('=')) {
+                        if (post_data_string.indexOf('&')) {
+                            var qraw = post_data_string.split('&');
+                            if (qraw.length > 0) {
+                                for (let i = 0; i < qraw.length; i++) {
+                                    var qraw_split = qraw[i].split("=");
+                                    if (qraw_split.length == 2) {
+                                        var k = qraw_split[0];
+                                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                    }
                                 }
                             }
-                        }
-                    } else {
-                        var qraw_split = post_data_string.split("=");
-                        if (qraw_split.length == 2) {
-                            var k = qraw_split[0];
-                            request_headers.query[k] = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                        } else {
+                            var qraw_split = post_data_string.split("=");
+                            if (qraw_split.length == 2) {
+                                var k = qraw_split[0];
+                                request_headers.query[k] = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                            }
                         }
                     }
                 }
+            } catch (e) {
+                socket_sessions[socket.id].expecting_post_data = true;
             }
         }
 
@@ -748,7 +753,7 @@ async function sendToClient(socket, headers_obj, data) {
     if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
     if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
     if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
-
+    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
     if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
         if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
@@ -1094,6 +1099,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             // handle POST
             if (headers['request']) {
                 if (headers['request'].substring(0, 4) == "POST") {
+                    socket.setTimeout(minisrv_config.config.post_data_socket_timeout * 1000);
                     if (typeof socket_sessions[socket.id].post_data == "undefined") {
                         if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
                         socket_sessions[socket.id].post_data_length = headers['Content-length'] || headers['Content-Length'] || 0;
@@ -1313,21 +1319,25 @@ async function handleSocket(socket) {
     socket_sessions[socket.id] = [];
     socket.minisrv_pc_mode = false;
     socket.setEncoding('hex'); //set data encoding (Text: 'ascii', 'utf8' ~ Binary: 'hex', 'base64' (do not trust 'binary' encoding))
-    socket.setTimeout(10800000); // 3 hours
+    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
     socket.on('data', function (data_hex) {
-        if (!socket_sessions[socket.id].secure && !socket_sessions[socket.id].expecting_post_data) {
-            // buffer unencrypted data until we see the classic double-newline, or get blank
-            if (!socket_sessions[socket.id].header_buffer) socket_sessions[socket.id].header_buffer = "";
-            socket_sessions[socket.id].header_buffer += data_hex;
-            if (socket_sessions[socket.id].header_buffer.indexOf("0d0a0d0a") != -1 || socket_sessions[socket.id].header_buffer.indexOf("0a0a") != -1) {
-                data_hex = socket_sessions[socket.id].header_buffer;
-                delete socket_sessions[socket.id].header_buffer;
+        if (socket_sessions[socket.id]) {
+            if (!socket_sessions[socket.id].secure && !socket_sessions[socket.id].expecting_post_data) {
+                // buffer unencrypted data until we see the classic double-newline, or get blank
+                if (!socket_sessions[socket.id].header_buffer) socket_sessions[socket.id].header_buffer = "";
+                socket_sessions[socket.id].header_buffer += data_hex;
+                if (socket_sessions[socket.id].header_buffer.indexOf("0d0a0d0a") != -1 || socket_sessions[socket.id].header_buffer.indexOf("0a0a") != -1) {
+                    data_hex = socket_sessions[socket.id].header_buffer;
+                    delete socket_sessions[socket.id].header_buffer;
+                    processRequest(this, data_hex);
+                }
+            } else {
+                // stream encrypted requests through the processor
+                if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
                 processRequest(this, data_hex);
             }
         } else {
-            // stream encrypted requests through the processor
-            if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
-            processRequest(this, data_hex);
+            cleanupSocket(socket);
         }
     });
 
