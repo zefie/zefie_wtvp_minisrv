@@ -31,19 +31,18 @@ class WTVSec {
     hRC4_Key1 = null;
     hRC4_Key2 = null;
     RC4Session = new Array();
-    zdebug = false;
-
+    minisrv_config = [];
 
     /**
      * 
      * Initialize the WTVSec class.
      * 
      * @param {Number} wtv_incarnation Sets the wtv-incarnation for this instance
-     * @param {Boolean} zdebug Enable debugging
+     * @param {Boolean} minisrv_config.config.debug_flags.debug Enable debugging
      * 
      */
-    constructor(wtv_incarnation = 1, zdebug = false) {   
-        this.zdebug = zdebug;
+    constructor(minisrv_config, wtv_incarnation = 1) {   
+        this.minisrv_config = minisrv_config;
         this.initial_shared_key = CryptoJS.enc.Base64.parse(this.initial_shared_key_b64);
 
         if (this.initial_shared_key.sigBytes === 8) {
@@ -238,7 +237,8 @@ class WTVSec {
      * #returns {Buffer} JS Buffer object
      */
     wordArrayToBuffer(wordArray) {
-        return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
+        if (wordArray) return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
+        else return null;
     }
 
     /**
@@ -247,7 +247,7 @@ class WTVSec {
      * 
      */
     SecureOn(rc4session = null) {
-        if (this.zdebug) console.log(" # Generating RC4 sessions with wtv-incarnation: " + this.incarnation);
+        if (this.minisrv_config.config.debug_flags.debug) console.log(" # Generating RC4 sessions with wtv-incarnation: " + this.incarnation);
        
         var buf = new Uint8Array([0xff & this.incarnation, 0xff & (this.incarnation >> 8), 0xff & (this.incarnation >> 16), 0xff & (this.incarnation >> 24)]);
         endianness(buf, 4);

@@ -22,7 +22,7 @@ if (ssid_sessions[socket.ssid].get("wtv-client-rom-type") == "bf0app" && ssid_se
 }
 
 if (!ssid_sessions[socket.ssid].data_store.WTVFlashrom) {
-	ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(service_vaults, service_name, 0, minisrv_config.services[service_name].use_zefie_server, bf0app_update, minisrv_config.services[service_name].debug);
+	ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, 0, minisrv_config.services[service_name].use_zefie_server, bf0app_update, minisrv_config.services[service_name].debug);
 }
 
 ssid_sessions[socket.ssid].data_store.WTVFlashrom.getFlashRom(request_path, function (data, headers) {

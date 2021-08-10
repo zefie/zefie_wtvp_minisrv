@@ -54,7 +54,7 @@ wtv-log-url: wtv-log:/log`;
 	if (challenge_header != "") headers += "\n" + challenge_header;
 	headers += `
 wtv-relogin-url: wtv-head-waiter:/relogin?relogin=true
-wtv-reconnect-url: wwtv-head-waiter:/relogin?reconnect=true
+wtv-reconnect-url: wtv-head-waiter:/relogin?reconnect=true
 wtv-visit: ${gourl}
 Content-type: text/html`;
 	data = '';

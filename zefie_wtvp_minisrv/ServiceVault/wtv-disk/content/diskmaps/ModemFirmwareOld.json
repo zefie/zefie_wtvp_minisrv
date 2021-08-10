@@ -1,0 +1,18 @@
+{
+  "ModemFirmware": {
+    "base": "file://Disk/Browser/Modem_Firmware/",
+    "location": "content/Modem_Firmware/",
+	"execute": "client:ModemReload",
+	"execute_when": "atEnd",
+	"service_owned": true,
+    "files": [
+      {
+        "file": "file://Disk/Browser/Modem_Firmware/Locale/en-US/modem_firmware.dat.gz",
+        "location": "content/Modem_Firmware/Locale/en-US/kflex/modem_firmware.dat.gz"
+      },
+      {
+        "file": "file://Disk/Browser/Modem_Firmware/Locale/ja-JP/modem_firmware.dat.gz"
+      }
+   ]
+  }
+}

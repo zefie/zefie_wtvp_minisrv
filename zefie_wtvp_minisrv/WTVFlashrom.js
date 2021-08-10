@@ -5,16 +5,18 @@ class WTVFlashrom {
 	use_zefie_server = true;
 	bf0app_update = false;
 	service_vaults = new Array();
+	no_debug = false;
 	service_name = "";
-	zdebug = false;
+	minisrv_config = [];
 
 
-	constructor(service_vaults, service_name, use_zefie_server = true, bf0app_update = false, debug = false) {
+	constructor(minisrv_config, service_vaults, service_name, use_zefie_server = true, bf0app_update = false, no_debug = false) {
 		this.service_vaults = service_vaults;
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;
 		this.bf0app_update = bf0app_update;
-		this.zdebug = true;
+		this.no_debug = no_debug;
+		this.minisrv_config = minisrv_config;
 	}
 
 
@@ -95,31 +97,37 @@ class WTVFlashrom {
 		if (flashrom_info.magic == flashrom_magic) flashrom_info.valid_flashrom = true;
 		if (!flashrom_info.valid_flashrom) console.error(" * Warning! FlashROM File Magic (" + flashrom_info.magic + ") did not match expected magic (" + flashrom_magic + ")...");
 
-		if (this.zdebug) console.log(" # FlashROM File Magic (" + flashrom_info.magic + "), expected magic (" + flashrom_magic + "), OK = " + flashrom_info.valid_flashrom + "...");
+		//if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # FlashROM File Magic (" + flashrom_info.magic + "), expected magic (" + flashrom_magic + "), OK = " + flashrom_info.valid_flashrom + "...");
 		flashrom_info.byte_progress = data.readUInt32BE(68);
-		if (this.zdebug) console.log(" # Flashrom Part Bytes Sent:", flashrom_info.byte_progress);
 		flashrom_info.compression_type = parseInt(part_header[16], 16);
-		if (this.zdebug) console.log(" # Flashrom Part Compression Type:", flashrom_info.compression_type);
+		//if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Part Compression Type:", flashrom_info.compression_type);
 		flashrom_info.part_data_size = data.readUInt32BE(4);
-		if (this.zdebug) console.log(" # Flashrom Part Data Size:", flashrom_info.part_data_size);
+		//if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Part Data Size:", flashrom_info.part_data_size);
 		flashrom_info.part_total_size = flashrom_info.part_data_size + flashrom_info.header_length;
-		if (this.zdebug) console.log(" # Flashrom Part Total Size:", flashrom_info.part_total_size);
-
 		flashrom_info.total_parts_size = data.readUInt32BE(32);
-		if (this.zdebug) console.log(" # Flashrom All Parts Total Size:", flashrom_info.total_parts_size);
+		flashrom_info.percent_complete = ((((flashrom_info.byte_progress + flashrom_info.part_total_size) / flashrom_info.total_parts_size)) * 100).toFixed(1);
+
+		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Part Size  :", flashrom_info.part_total_size);
+		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Bytes Sent :", flashrom_info.byte_progress);
+		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Bytes Sent+:", flashrom_info.byte_progress + flashrom_info.part_total_size, "(" + flashrom_info.percent_complete + "% complete)");
+		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Total Size :", flashrom_info.total_parts_size);
 
 		// read current part number bit from part header
 		flashrom_info.part_number = data.readUInt16BE(28);
 
-		if (this.zdebug) console.log(" # Flashrom Current Part Number:", flashrom_info.part_number);
+		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Curr Part Number :", flashrom_info.part_number);
+		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) == flashrom_info.total_parts_size) ? true : false;
+
+		if (flashrom_info.is_last_part) {
+			if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Curr Part is Last:", flashrom_info.is_last_part);
+		} else {
+			flashrom_info.next_part_number = flashrom_info.part_number + 1;
+			if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Next Part Number :", flashrom_info.next_part_number);
+		}
 
 		// read current part display message from part header
 		flashrom_info.message = new Buffer.from(part_header.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
-
-		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) == flashrom_info.total_parts_size) ? true : false;
 		flashrom_info.rompath = `wtv-flashrom:/${path}`;
-		if (this.zdebug) console.log(" # Flashrom Part Bytes Sent (after this part):", flashrom_info.byte_progress + flashrom_info.part_total_size);
-		if (this.zdebug) console.log(" # Flashrom Part is Last Part", flashrom_info.is_last_part);
 
 		if (flashrom_info.is_last_part && this.bf0app_update) {
 			flashrom_info.next_rompath = null;
@@ -138,7 +146,7 @@ class WTVFlashrom {
 		var flashrom_info = this.getFlashromInfo(data, request_path)
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
-		if (flashrom_info.next_rompath != null) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
+		if (flashrom_info.next_rompath != null && this.bf0app_update) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
 		callback(data, headers);
 	}
 
@@ -179,7 +187,7 @@ class WTVFlashrom {
 				})
 
 				res.on('end', function () {
-					console.log(` * Zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
+					if (self.minisrv_config.config.debug_flags.debug) console.log(` * Zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
 					if (res.statusCode == 200) {
 						var data = Buffer.from(data_hex, 'hex');
 					} else if (res.statusCode == 206) {

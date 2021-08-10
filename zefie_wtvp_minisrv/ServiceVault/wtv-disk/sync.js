@@ -1,88 +1,104 @@
-// todo: async
+const WTVDownloadList = require("./WTVDownloadList.js");
+var wtvdl = new WTVDownloadList(minisrv_config, service_name);
 
 var force_update = (request_headers.query.force == "true") ? true : false;
-console.log(force_update);
 if (request_headers['wtv-request-type'] == 'download') {
-    var path = require("path");
-
     var content_dir = "content/"
     var diskmap_dir = content_dir + "diskmaps/";
 
     function generateDownloadList(diskmap_group_data, update_list, diskmap_data) {
-        // create WebTV Download List
-        var newest_file_epoch = 0;
-        var download_list = '';
-
-        if (diskmap_data.execute && diskmap_data.execute_when == "atStart") {
-            download_list += "EXECUTE " + diskmap_data.execute + "\n\n";
-        }
-
-        if (diskmap_data.partition_size) {
-            download_list += "CREATE " + diskmap_data.base + "\n";
-            download_list += "partition-size: " + diskmap_data.partition_size + "\n\n";
-        }
-
-        download_list += "CREATE-GROUP " + diskmap_group_data + "-UPDATE\n";
-        download_list += "state: invalid\n";
-        download_list += "base: " + diskmap_data.base + ".GROUP-UPDATE/\n\n";
-
-        download_list += "CREATE-GROUP " + diskmap_group_data + "\n";
-        download_list += "state: invalid\n";
-        download_list += "service-owned: " + (diskmap_data.service_owned || false) + "\n";
-        download_list += "base: " + diskmap_data.base + "\n\n";
-
-        Object.keys(update_list).forEach(function (k) {
-            if (!update_list[k].invalid) return;
-            download_list += "DELETE " + update_list[k].file.replace(diskmap_data.base, "") + "\n";
-            download_list += "group: " + diskmap_group_data + "\n\n";
-        });
-
+        wtvdl.reset();
+        var files_to_send = 0;
         Object.keys(update_list).forEach(function (k) {
             if (update_list[k].checksum_match && !force_update) return;
             if (!update_list[k].invalid && !force_update) return;
-            download_list += "DISPLAY " + update_list[k].display + "\n\n";
-            download_list += "GET " + update_list[k].file.replace(diskmap_data.base, "") + "\n";
-            download_list += "group: " + diskmap_group_data + "-UPDATE\n";
-            download_list += "location: " + service_name + ":/" + update_list[k].location + "\n";
-            download_list += "file-permission: r\n"
-            download_list += "wtv-checksum: " + update_list[k].checksum + "\n";
-            download_list += "service-source-location: /webtv/content/" + service_name.replace("wtv-", "") + "d/" + update_list[k].location + "\n";
-            download_list += "client-dest-location: " + update_list[k].file + "\n\n";
+            files_to_send++;
         });
 
-        download_list += "CREATE-GROUP " + diskmap_group_data + "\n";
-        download_list += "state: invalid\n";
-        download_list += "service-owned: " + (diskmap_data.service_owned || false) + "\n";
-        download_list += "base: " + diskmap_data.base + "\n\n";
-
-
-        Object.keys(update_list).forEach(function (k) {
-            if (!update_list[k].invalid) return;
-            download_list += "RENAME " + update_list[k].file.replace(diskmap_data.base, "") + "\n";
-            download_list += "group: " + diskmap_group_data + "-UPDATE\n";
-            download_list += "destination-group: " + diskmap_group_data + "\n";
-            download_list += "location: " + update_list[k].file.replace(diskmap_data.base, "") + "\n\n";
-        });
-
-        download_list += "SET-GROUP " + diskmap_group_data + "\n";
-        download_list += "state: ok\n";
-        download_list += "version: " + diskmap_data.version + "\n";
-        download_list += "last-checkup-time: " + new Date().toUTCString().replace("GMT", "+0000") + "\n\n";
-
-        if (diskmap_data.execute && diskmap_data.execute_when == "atEnd") {
-            download_list += "EXECUTE " + diskmap_data.execute + "\n\n";
+        // create WebTV Download List
+        if (diskmap_data.execute && diskmap_data.execute_when) {
+            if (diskmap_data.execute_when.toLowerCase().match(/start/)) {
+                wtvdl.execute(diskmap_data.execute);
+            }
         }
 
-        download_list += "DELETE-GROUP " + diskmap_group_data + "-UPDATE\n\n";
-        download_list += "DELETE " + diskmap_data.base + ".GROUP-UPDATE/\n\n";
-        console.log(download_list);
+        if (diskmap_group_data.display) wtvdl.display(diskmap_group_data.display);
+
+        if (files_to_send > 0) {
+
+            if (diskmap_data.partition_size) {
+                wtvdl.createPartition(diskmap_data.base, diskmap_data.partition_size);
+            }
+
+            if (!diskmap_data.nogroup) {
+                // only send group commands if group mode is enable
+                // useful to disable for PUT
+                wtvdl.createUpdateGroup(diskmap_group_data, diskmap_data.base, "invalid", (diskmap_data.service_owned || false));
+            }
+
+            Object.keys(update_list).forEach(function (k) {
+                // file { "action": "delete" }
+                // Useful to purge files we no longer want on the client
+                if (update_list[k].action != "DELETE") {
+                    // skip deleting valid files if we aren't specifically requesting their deletion
+                    if (update_list[k].checksum_match && !force_update) return;
+                    if (!update_list[k].invalid && !force_update) return;
+                }
+                wtvdl.delete(update_list[k].file.replace(diskmap_data.base, ""), diskmap_group_data);
+            });
+
+            Object.keys(update_list).forEach(function (k) {
+                if (update_list[k].checksum_match && !force_update) return;
+                if (!update_list[k].invalid && !force_update) return;
+                if (update_list[k].display) wtvdl.display(update_list[k].display);
+                switch (update_list[k].action) {
+                    case "PUT":
+                        wtvdl.put(update_list[k].file.replace(diskmap_data.base, ""), service_name + ":/" + update_list[k].location, update_list[k].display);
+                        break;
+
+                    case "GET":
+                        wtvdl.get(update_list[k].file.replace(diskmap_data.base, ""), update_list[k].file, service_name + ":/" + update_list[k].location, diskmap_group_data, update_list[k].checksum, update_list[k].uncompressed_size || null, update_list[k].original_filename)
+                        break;
+                }
+            });
+
+            if (!diskmap_data.nogroup) {
+                wtvdl.createGroup(diskmap_group_data, diskmap_data.base, "invalid", (diskmap_data.service_owned || false));
+
+
+                // this rename loop is a part of the group system
+                Object.keys(update_list).forEach(function (k) {
+                    if (update_list[k].checksum_match && !force_update) return;
+                    if (!update_list[k].invalid && !force_update) return;
+                    wtvdl.rename(update_list[k].file.replace(diskmap_data.base, ""), update_list[k].file.replace(diskmap_data.base, ""), diskmap_group_data, diskmap_group_data);
+                });
+
+                wtvdl.setGroup(diskmap_group_data, 'ok', diskmap_data.version);
+            }
+
+        }
+
+        if (diskmap_data.execute && diskmap_data.execute_when) {
+            if (diskmap_data.execute_when.toLowerCase().match(/end/)) {
+                wtvdl.execute(diskmap_data.execute);
+            }
+        }
+
+        if (files_to_send > 0) {
+            if (!diskmap_data.nogroup) {
+                wtvdl.deleteGroupUpdate(diskmap_group_data, diskmap_data.base);
+            }
+        }
+        var download_list = wtvdl.getDownloadList();
+        if (minisrv_config.config.show_diskmap) console.log(download_list);
         return download_list;
     }
 
     function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgroup = null) {
         // parse webtv post
         var output_data = '';
-        var post_data = request_headers.post_data.toString(CryptoJS.enc.Latin1).split("\n");
+        var post_data = new Array();
+        if (request_headers.post_data) post_data = request_headers.post_data.toString(CryptoJS.enc.Latin1).split("\n");
         var post_data_current_directory = '';
         var post_data_current_file = false;
         var post_data_current_group = '';
@@ -172,6 +188,8 @@ if (request_headers['wtv-request-type'] == 'download') {
                 if (!fs.existsSync(post_match_file)) post_match_file = null;
             });
 
+            
+
             var post_match_file_lstat = fs.lstatSync(post_match_file);
             var post_match_file_data = new Buffer.from(fs.readFileSync(post_match_file, {
                 encoding: null,
@@ -180,10 +198,23 @@ if (request_headers['wtv-request-type'] == 'download') {
             diskmap_group_data.files[k].base = diskmap_group_data.base;
             diskmap_group_data.files[k].last_modified = (new Date(new Date(post_match_file_lstat.mtime).toUTCString()) / 1000);
             diskmap_group_data.files[k].content_length = post_match_file_lstat.size;
-            diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(post_match_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
+            diskmap_group_data.files[k].action = (diskmap_group_data.files[k].action) ? diskmap_group_data.files[k].action.toUpperCase() : "GET";
+
+            if (wtvshared.getFileExt(post_match_file).toLowerCase() == "gz") {
+                // we need the checksum of the uncompressed data
+                var gunzipped = zlib.gunzipSync(post_match_file_data);
+                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
+                var gzip_fn_end = post_match_file_data.indexOf("\0", 10);
+                if (!diskmap_group_data.files[k].dont_extract_filename) {
+                    diskmap_group_data.files[k].original_filename = post_match_file_data.toString('utf8', 10, gzip_fn_end);
+                }
+                //diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
+                gunzipped = null;
+            } else {
+                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(post_match_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
+            }
 
             if (parseInt(diskmap_group_data.files[k].last_modified) > newest_file_epoch) newest_file_epoch = parseInt(diskmap_group_data.files[k].last_modified);
-            if (!diskmap_group_data.files[k].display) diskmap_group_data.files[k].display = diskmap_group_data.display;
 
             diskmap_group_data.files[k].invalid = true;
             wtv_download_list.push(diskmap_group_data.files[k]);
@@ -205,7 +236,7 @@ if (request_headers['wtv-request-type'] == 'download') {
         return output_data;
     }
 
-    if (request_headers.query.diskmap && request_headers.query.group && request_headers.post_data) {
+    if (request_headers.query.diskmap && request_headers.query.group) {
         var diskmap_json_file = null;
         Object.keys(service_vaults).forEach(function (g) {
             if (diskmap_json_file != null) return;
@@ -243,69 +274,17 @@ if (request_headers['wtv-request-type'] == 'download') {
             var errpage = doErrorPage(404, "The requested DiskMap does not exist.");
             headers = errpage[0];
             data = errpage[1];
-            if (zdebug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
+            if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
         }
     } else {
         var errpage = doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
-        if (zdebug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
+        if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
     }
 } else if (request_headers.query.group && request_headers.query.diskmap) {
     var message = request_headers.query.message || "Retrieving files...";
     var main_message = request_headers.query.main_message || "Your receiver is downloading files.";
-    headers = `200 OK
-Content-Type: text/html`;
-
-    data = `
-<html>
-<head>
-        <meta
-                http-equiv=refresh
-                    content="0;url=client:Fetch?group=${escape(request_headers.query.group)}&source=${service_name}:/sync%3Fdiskmap%3D${escape(escape(request_headers.query.diskmap))}%26force%3D${force_update}&message=${escape(message)}"
-        >
-        <display downloadsuccess="client:ShowAlert?message=Download%20successful%21&buttonlabel1=Okay&buttonaction1=client:goback&image=${minisrv_config.config.service_logo}&noback=true" downloadfail="client:ShowAlert?message=Download%20failed...&buttonlabel1=Okay...&buttonaction1=client:goback&image=${minisrv_config.config.service_logo}&noback=true">
-        <title>Retrieving files...</title>
-</head>
-<body bgcolor=#0 text=#42CC55 fontsize=large hspace=0 vspace=0>
-<table cellspacing=0 cellpadding=0>
-        <tr>
-                <td width=104 height=74 valign=middle align=center bgcolor=3B3A4D>
-                        <img src="${minisrv_config.config.service_logo}" width=86 height=64>
-                <td width=20 valign=top align=left bgcolor=3B3A4D>
-                        <spacer>
-                <td colspan=2 width=436 valign=middle align=left bgcolor=3B3A4D>
-                        <font color=D6DFD0 size=+2><blackface><shadow>
-                                <spacer type=block width=1 height=4>
-                                <br>
-                                        ${message}
-                                </shadow>
-                                </blackface>
-                        </font>
-        <tr>
-                <td width=104 height=20>
-                <td width=20>
-                <td width=416>
-                <td width=20>
-        <tr>
-                <td colspan=2>
-                <td>
-                        <font size=+1>
-                               ${main_message}
-                                <p>This may take a while.
-                        </font>
-        <tr>
-                <td colspan=2>
-                <td>
-                        <br><br>
-                        <font color=white>
-                        <progressindicator name="downloadprogress"
-                           message="Preparing..."
-                           height=40 width=250>
-                        </font>
-</table>
-</body>
-</html>
-`;
-
+    headers = "200 OK\nwtv-connection-close: close\nConnection: close\nContent-Type: text/html";
+    data = wtvdl.getSyncPage(message, request_headers.query.group, request_headers.query.diskmap, main_message, message, force_update)
 }
