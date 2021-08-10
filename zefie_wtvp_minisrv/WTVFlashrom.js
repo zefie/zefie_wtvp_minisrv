@@ -14,7 +14,7 @@ class WTVFlashrom {
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;
 		this.bf0app_update = bf0app_update;
-		this.zdebug = true;
+		this.zdebug = debug;
 	}
 
 
@@ -138,7 +138,7 @@ class WTVFlashrom {
 		var flashrom_info = this.getFlashromInfo(data, request_path)
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
-		if (flashrom_info.next_rompath != null) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
+		if (flashrom_info.next_rompath != null && this.bf0app_update) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
 		callback(data, headers);
 	}
 

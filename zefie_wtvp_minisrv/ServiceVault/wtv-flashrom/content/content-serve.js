@@ -1,6 +1,5 @@
 const WTVFlashrom = require("./WTVFlashrom.js");
 request_is_async = true;
-console.log(request_headers);
 
 var bf0app_update = false;
 var request_path = request_headers.request_url.replace(service_name + ":/", "");

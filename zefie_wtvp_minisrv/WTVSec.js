@@ -238,7 +238,8 @@ class WTVSec {
      * #returns {Buffer} JS Buffer object
      */
     wordArrayToBuffer(wordArray) {
-        return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
+        if (wordArray) return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
+        else return null;
     }
 
     /**
