@@ -31,7 +31,8 @@ if (request_headers['wtv-request-type'] == 'download') {
         download_list += "base: " + diskmap_data.base + "\n\n";
 
         Object.keys(update_list).forEach(function (k) {
-            if (!update_list[k].invalid) return;
+            if (update_list[k].checksum_match && !force_update) return;
+            if (!update_list[k].invalid && !force_update) return;
             download_list += "DELETE " + update_list[k].file.replace(diskmap_data.base, "") + "\n";
             download_list += "group: " + diskmap_group_data + "\n\n";
         });
@@ -56,7 +57,8 @@ if (request_headers['wtv-request-type'] == 'download') {
 
 
         Object.keys(update_list).forEach(function (k) {
-            if (!update_list[k].invalid) return;
+            if (update_list[k].checksum_match && !force_update) return;
+            if (!update_list[k].invalid && !force_update) return;
             download_list += "RENAME " + update_list[k].file.replace(diskmap_data.base, "") + "\n";
             download_list += "group: " + diskmap_group_data + "-UPDATE\n";
             download_list += "destination-group: " + diskmap_group_data + "\n";
