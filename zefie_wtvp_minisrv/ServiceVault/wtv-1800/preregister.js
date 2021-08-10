@@ -2,7 +2,7 @@
 
 	if (socket.ssid) {
 		if (ssid_sessions[socket.ssid].loadSessionData() == true) {
-			console.log(" * Loaded session data from disk for", filterSSID(socket.ssid))
+			console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
 			ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
 		} else {
 			ssid_sessions[socket.ssid].session_data = {};
@@ -20,15 +20,15 @@
 						}
 					}
 				});
-				if (i > 0 && zdebug) console.log(" # Closed", i, "previous sockets for", filterSSID(socket.ssid));
+				if (i > 0 && minisrv_config.config.debug_flags.debug) console.log(" # Closed", i, "previous sockets for", wtvshared.filterSSID(socket.ssid));
 			}
 		}
 		if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-			if (zdebug) console.log(" # Recreating primary WTVSec login instance for", filterSSID(socket.ssid));
+			if (minisrv_config.config.debug_flags.debug) console.log(" # Recreating primary WTVSec login instance for", wtvshared.filterSSID(socket.ssid));
 			delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
 		}
 
-		ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec();
+		ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
 		ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
 		ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
 	} else {
@@ -115,24 +115,23 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		gourl = "wtv-head-waiter:/login-stage-two?relogin=true";
 	}
 
-	if (request_headers.query.reconnect) {
-		gourl = null;
-	}
-
-	if (!file_path != null && !zquiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
+	if (request_headers.query.reconnect) gourl = null;
 
 	if (request_headers.query.guest_login) {
 		send_tellyscript = false;
-		gourl += "&guest_login=true"
+		if (gourl != null) gourl += "&guest_login=true"
 		if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 	}
+
+	if (!file_path != null && send_tellyscript && !minisrv_config.config.debug_flags.quiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
+
 
 	headers = "200 OK\n"
 	if (bf0app_update) headers += "minisrv-use-carriage-return: false\n";
 	headers += "Connection: Keep-Alive\n";
 	headers += "wtv-initial-key: " + ssid_sessions[socket.ssid].data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
 	headers += "Content-Type: " + prereg_contype + "\n";
-	headers += "wtv-service: reset\n";
+	if (!request_headers.query.reconnect) headers += "wtv-service: reset\n";
 	if (!bf0app_update) headers += getServiceString('wtv-1800') + "\n";
 
 	if (bf0app_update) headers += getServiceString('wtv-head-waiter', { "flags": "0x00000001" }) + "\n";

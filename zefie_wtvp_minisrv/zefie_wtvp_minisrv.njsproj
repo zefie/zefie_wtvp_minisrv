@@ -52,6 +52,10 @@
     <Content Include="ServiceVault\wtv-cookie\reset.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-disk\content\diskmaps\ModemFirmware.json" />
+    <Content Include="ServiceVault\wtv-disk\userstore.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-flashrom\content\content-serve.js" />
     <Content Include="ServiceVault\wtv-flashrom\current-noflash.js">
       <SubType>Code</SubType>
@@ -275,10 +279,16 @@
     <Content Include="WTVClientCapabilities.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="WTVDownloadList.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="WTVFlashrom.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="WTVLzpf.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="WTVMime.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="WTVRegister.js">
@@ -288,6 +298,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="package.json" />
+    <Content Include="WTVShared.js">
+      <SubType>Code</SubType>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ServiceVault\" />

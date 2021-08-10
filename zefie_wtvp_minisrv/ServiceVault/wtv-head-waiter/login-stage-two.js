@@ -2,7 +2,7 @@ var challenge_response, challenge_header = '';
 var gourl;
 
 if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
-	var wtvsec_login = new WTVSec(1,zdebug);
+	var wtvsec_login = new WTVSec(minisrv_config);
 	wtvsec_login.IssueChallenge();
 	wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
@@ -16,13 +16,13 @@ if (socket.ssid !== null) {
 		var client_challenge_response = request_headers["wtv-challenge-response"] || null;
 		if (challenge_response && client_challenge_response) {
 			if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
-				console.log(" * wtv-challenge-response success for " + filterSSID(socket.ssid));
+				console.log(" * wtv-challenge-response success for " + wtvshared.filterSSID(socket.ssid));
 				wtvsec_login.PrepareTicket();
 
 			} else {
-				console.log(" * wtv-challenge-response FAILED for " + filterSSID(socket.ssid));
-				if (zdebug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
-				if (zdebug) console.log("Response Received:", client_challenge_response)
+				console.log(" * wtv-challenge-response FAILED for " + wtvshared.filterSSID(socket.ssid));
+				if (minisrv_config.config.debug_flags.debug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
+				if (minisrv_config.config.debug_flags.debug) console.log("Response Received:", client_challenge_response)
 				gourl = "wtv-head-waiter:/login?reissue_challenge=true";
 			}
 		} else {
@@ -147,6 +147,7 @@ wtv-open-isp-disabled: false
 wtv-offline-mail-enable: false
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
+wtv-name-server: 8.8.8.8
 wtv-visit: ${home_url}
 Content-Type: text/html`;
 }

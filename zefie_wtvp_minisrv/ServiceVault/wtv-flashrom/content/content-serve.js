@@ -1,6 +1,5 @@
 const WTVFlashrom = require("./WTVFlashrom.js");
 request_is_async = true;
-console.log(request_headers);
 
 var bf0app_update = false;
 var request_path = request_headers.request_url.replace(service_name + ":/", "");
@@ -15,7 +14,7 @@ if ((romtype == "bf0app" || !romtype) && (bootver == "105" || !bootver)) {
 }
 
 if (!ssid_sessions[socket.ssid].data_store.WTVFlashrom) {
-	ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, bf0app_update, minisrv_config.services[service_name].debug);
+	ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, bf0app_update);
 }
 
 ssid_sessions[socket.ssid].data_store.WTVFlashrom.getFlashRom(request_path, function (data, headers) {
