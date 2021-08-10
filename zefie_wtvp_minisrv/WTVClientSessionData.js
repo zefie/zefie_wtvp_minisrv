@@ -30,9 +30,11 @@ class WTVClientSessionData {
     }
 
     /**
-     * Returns the absolute path to the user's file store
+     * Returns the absolute path to the user's file store, or false if unregistered
+     * @returns {string|boolean} Absolute path to the user's file store, or false if unregistered
      */
     getUserStoreDirectory() {
+        if (!this.isRegistered()) return false;
         return this.session_storage + this.path.sep + this.ssid + this.path.sep;
     }
 
@@ -45,8 +47,9 @@ class WTVClientSessionData {
      * @returns {boolean} Whether or not the file was written
      */
     storeUserStoreFile(path, data, last_modified = null, overwrite = true) {
-        var result = false;
         var store_dir = this.getUserStoreDirectory();
+        if (!store_dir) return false; // unregistered
+        var result = false;        
         var path_split = path.split('/');
         var file_name = path_split.pop();
         var store_dir_path = this.wtvshared.makeSafePath(store_dir, path_split.join('/').replace('/', this.path.sep));
@@ -73,6 +76,7 @@ class WTVClientSessionData {
      */
     getUserStoreFile(path) {
         var store_dir = this.getUserStoreDirectory();
+        if (!store_dir) return false; // unregistered
         var store_dir_path = this.wtvshared.makeSafePath(store_dir, path.replace('/', this.path.sep));
         if (this.fs.existsSync(store_dir_path)) return this.fs.readFileSync(store_dir_path);
         else return false;
