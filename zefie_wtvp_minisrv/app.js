@@ -114,52 +114,75 @@ function getConType(path) {
     switch (file_ext) {
         case "aif":
             wtv_mime_type = "audio/x-aif";
+            break;
         case "aifc":
             wtv_mime_type = "audio/x-aifc";
+            break;
         case "aiff":
             wtv_mime_type = "audio/x-aiff";
+            break;
         case "ani":
             wtv_mime_type = "x-wtv-animation";
+            break;
         case "brom":
             wtv_mime_type = "binary/x-wtv-bootrom";
+            break;
         case "cdf":
             wtv_mime_type = "application/netcdf";
+            break;
         case "dat":
             wtv_mime_type = "binary/cache-data";
+            break;
         case "dl":
             wtv_mime_type = "wtv/download-list";
+            break;
         case "gsm":
             wtv_mime_type = "audio/x-gsm";
+            break;
         case "gz":
             wtv_mime_type = "application/gzip";
+            break;
         case "ini":
             wtv_mime_type = "wtv/jack-configuration";
+            break;
         case "mips-code":
             wtv_mime_type = "code/x-wtv-code-mips";
+            break;
         case "o":
             wtv_mime_type = "binary/x-wtv-approm";
+            break;
         case "ram":
             wtv_mime_type = "audio/x-pn-realaudio";
+            break;
         case "rom":
             wtv_mime_type = "binary/x-wtv-flashblock";
+            break;
         case "rsp":
             wtv_mime_type = "wtv/jack-response";
+            break;
         case "swa":
         case "swf":
             wtv_mime_type = "application/x-shockwave-flash";
+            break;
         case "srf":
         case "spl":
             wtv_mime_type = "wtv/jack-data";
+            break;
         case "ttf":
             wtv_mime_type = "wtv/jack-fonts";
+            break;
         case "tvch":
             wtv_mime_type = "wtv/tv-channels";
+            break;
         case "tvl":
             wtv_mime_type = "wtv/tv-listings";
+            break;
         case "tvsl":
             wtv_mime_type = "wtv/tv-smartlinks";
+            break;
         case "wad":
             wtv_mime_type = "binary/doom-data";
+            break;
         case "mp2":
         case "hsb":
         case "rmf":
@@ -167,6 +190,7 @@ function getConType(path) {
         case "mod":
         case "xm":
             wtv_mime_type = "application/Music";
+            break;
     }
 
     modern_mime_type = mime.lookup(path);
