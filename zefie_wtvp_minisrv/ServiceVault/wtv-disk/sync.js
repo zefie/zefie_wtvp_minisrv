@@ -92,7 +92,6 @@ if (request_headers['wtv-request-type'] == 'download') {
             }
         }
         var download_list = wtvdl.getDownloadList();
-        console.log(download_list);
         return download_list;
     }
 
