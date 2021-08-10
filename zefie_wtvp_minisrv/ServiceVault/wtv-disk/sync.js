@@ -1,7 +1,6 @@
 // todo: async
 
 var force_update = (request_headers.query.force == "true") ? true : false;
-console.log(force_update);
 if (request_headers['wtv-request-type'] == 'download') {
     var path = require("path");
 
@@ -75,7 +74,6 @@ if (request_headers['wtv-request-type'] == 'download') {
 
         download_list += "DELETE-GROUP " + diskmap_group_data + "-UPDATE\n\n";
         download_list += "DELETE " + diskmap_data.base + ".GROUP-UPDATE/\n\n";
-        console.log(download_list);
         return download_list;
     }
 
