@@ -274,6 +274,9 @@
     <Content Include="WTVClientCapabilities.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="WTVDownloadList.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="WTVFlashrom.js">
       <SubType>Code</SubType>
     </Content>
