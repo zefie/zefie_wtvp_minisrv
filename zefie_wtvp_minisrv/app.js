@@ -602,8 +602,8 @@ async function sendToClient(socket, headers_obj, data) {
             // ultimately send original content length if lzpf
             compressed_content_length = data.byteLength;
         }
-        var compression_percentage = ((compressed_content_length / uncompressed_content_length) * 100).toFixed(1).toString() + "%";
-        if (uncompressed_content_length != compressed_content_length) if (zdebug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_percentage);
+        var compression_percentage = ((1 - (compressed_content_length / uncompressed_content_length)) * 100).toFixed(1).toString() + "%";
+        if (uncompressed_content_length != compressed_content_length) if (zdebug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ % Reduced:", compression_percentage);
     }
 
     // encrypt if needed
