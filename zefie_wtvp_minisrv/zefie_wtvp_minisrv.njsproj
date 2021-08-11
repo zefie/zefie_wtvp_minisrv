@@ -52,12 +52,6 @@
     <Content Include="ServiceVault\wtv-cookie\reset.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-disk\uptest.js">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="ServiceVault\wtv-disk\userbrowser.js">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="ServiceVault\wtv-disk\userstore.js">
       <SubType>Code</SubType>
     </Content>
