@@ -133,7 +133,7 @@ class WTVDownloadList {
     putUserStore(path) {
         var destination = path.replace("file://", "");
         this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + this.service_name + ":/userstore?partialPath=" + escape(destination) + "\n";
+        this.download_list += "location: " + this.service_name + ":/userstore?partialPath=" + escape(destination) + "\n\n";
     }
     /**
      * Adds a GET command to the download list
