@@ -115,7 +115,7 @@ class WTVDownloadList {
      */
     put(path, destination) {
         this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + destination + "\n";
+        this.download_list += "location: " + destination + "\n\n";
     }
 
     /**
@@ -124,8 +124,7 @@ class WTVDownloadList {
     * @param {string} destination Destination file path in the User Store
     */
     putUserStoreDest(path, destination) {
-        this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + this.service_name + ":/userstore?partialPath="+escape(destination) + "\n";
+        this.put(path, this.service_name + ":/userstore?partialPath=" + escape(destination));
     }
 
     /**
@@ -134,8 +133,7 @@ class WTVDownloadList {
      */
     putUserStore(path) {
         var destination = path.replace("file://", "");
-        this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + this.service_name + ":/userstore?partialPath=" + escape(destination) + "\n\n";
+        this.putUserStoreDest(path, destination);
     }
     /**
      * Adds a GET command to the download list
