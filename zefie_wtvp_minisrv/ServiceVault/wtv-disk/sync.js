@@ -90,6 +90,7 @@ if (request_headers['wtv-request-type'] == 'download') {
             }
         }
         var download_list = wtvdl.getDownloadList();
+        if (minisrv_config.config.show_diskmap) console.log(download_list);
         return download_list;
     }
 
@@ -259,13 +260,13 @@ if (request_headers['wtv-request-type'] == 'download') {
             var errpage = doErrorPage(404, "The requested DiskMap does not exist.");
             headers = errpage[0];
             data = errpage[1];
-            if (zdebug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
+            if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
         }
     } else {
         var errpage = doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
-        if (zdebug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
+        if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
     }
 } else if (request_headers.query.group && request_headers.query.diskmap) {
     var message = request_headers.query.message || "Retrieving files...";

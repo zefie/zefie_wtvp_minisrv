@@ -104,6 +104,7 @@ class WTVDownloadList {
      * @param {string} group Group to which it belongs
      */
     delete(path, group = null) {
+        path = this.wtvshared.stripGzipFromPath(path);
         this.download_list += "DELETE " + path + "\n";
         if (group !== null) this.download_list += "group: " + group + "\n\n";
     }
@@ -115,7 +116,7 @@ class WTVDownloadList {
      */
     put(path, destination) {
         this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + destination + "\n";
+        this.download_list += "location: " + destination + "\n\n";
     }
 
     /**
@@ -124,8 +125,7 @@ class WTVDownloadList {
     * @param {string} destination Destination file path in the User Store
     */
     putUserStoreDest(path, destination) {
-        this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + this.service_name + ":/userstore?partialPath="+escape(destination) + "\n";
+        this.put(path, this.service_name + ":/userstore?partialPath=" + escape(destination));
     }
 
     /**
@@ -134,8 +134,7 @@ class WTVDownloadList {
      */
     putUserStore(path) {
         var destination = path.replace("file://", "");
-        this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + this.service_name + ":/userstore?partialPath=" + escape(destination) + "\n\n";
+        this.putUserStoreDest(path, destination);
     }
     /**
      * Adds a GET command to the download list
@@ -147,13 +146,16 @@ class WTVDownloadList {
      * @param {string} checksum md5sum of the file
      * @param {string} file_permission File permissions
      */
-    get(file, path, source, group, checksum = null, file_permission = 'r') {
+    get(file, path, source, group, checksum = null, uncompressed_size = null, file_permission = 'r') {
+        file = this.wtvshared.stripGzipFromPath(file);
         this.download_list += "GET " + file + "\n";
         this.download_list += "group: " + group + "-UPDATE\n";
         this.download_list += "location: " + source + "\n";
         this.download_list += "file-permission: " + file_permission + "\n";
         if (checksum != null) this.download_list += "wtv-checksum: " + checksum + "\n";
+        if (uncompressed_size != null) this.download_list += "wtv-uncompressed-filesize: " + uncompressed_size + "\n";
         this.download_list += "service-source-location: /webtv/content/" + source.substr(source.indexOf('-') + 1, source.indexOf(':/') - source.indexOf('-') - 1) + "d/" + source.substr(source.indexOf(':/') + 2) + "\n";
+        path = this.wtvshared.stripGzipFromPath(path);
         this.download_list += "client-dest-location: " + path + "\n\n";
     }
 
@@ -165,6 +167,8 @@ class WTVDownloadList {
      * @param {string} destgroup Destination Group
      */
     rename(srcfile, destfile, srcgroup, destgroup) {
+        srcfile = this.wtvshared.stripGzipFromPath(srcfile);
+        destfile = this.wtvshared.stripGzipFromPath(destfile);
         this.download_list += "RENAME " + srcfile + "\n";
         this.download_list += "group: " + srcgroup + "-UPDATE\n";
         this.download_list += "destination-group: " + destgroup + "\n";

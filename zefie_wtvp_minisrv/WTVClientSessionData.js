@@ -104,15 +104,6 @@ class WTVClientSessionData {
     }
 
     /**
-     * Returns a RFC7231 compliant UTC Date String from the current time
-     * @param {Number} offset Offset from current time (+/-)
-     * @returns {string} A RFC7231 compliant UTC Date String from the current time
-     */
-    getUTCTime(offset = 0) {
-        return new Date((new Date).getTime() + offset).toUTCString();
-    }
-
-    /**
      * Returns the number of user cookies
      * @returns {number} Number of cookies
      */
@@ -123,7 +114,7 @@ class WTVClientSessionData {
     resetCookies() {
         this.session_store.cookies = {};
         // webtv likes to have at least one cookie in the list, set a dummy cookie for zefie's site expiring in 1 year.
-        this.addCookie("wtv.zefie.com", "/", this.getUTCTime(365 * 86400000), "cookie_type=chocolatechip");
+        this.addCookie("wtv.zefie.com", "/", this.wtvshared.getUTCTime(365 * 86400000), "cookie_type=chocolatechip");
     }
 
     addCookie(domain, path = null, expires = null, data = null) {
