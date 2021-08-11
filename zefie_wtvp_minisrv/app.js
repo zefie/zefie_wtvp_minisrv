@@ -575,10 +575,14 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // Add last modified if not a dynamic script
-    if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js") {
-        var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
-        if (last_modified) headers_obj["Last-Modified"] = last_modified;
-   }
+    if (socket_sessions[socket.id]) {
+        if (socket_sessions[socket.id].request_headers) {
+            if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js") {
+                var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
+                if (last_modified) headers_obj["Last-Modified"] = last_modified;
+            }
+        }
+    }
 
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
@@ -586,7 +590,7 @@ async function sendToClient(socket, headers_obj, data) {
     if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
 
     // disk service hack before further processing :)
-    if (socket_sessions[socket.id].wtv_request_type == "download" && content_length < 0) {
+    if (socket_sessions[socket.id].wtv_request_type == "download" && content_length > 0) {
         if (headers_obj['Content-Type'] == "application/gzip") {
             var gunzipped = zlib.gunzipSync(data);
             headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
