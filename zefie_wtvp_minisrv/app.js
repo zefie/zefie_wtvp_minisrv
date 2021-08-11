@@ -575,10 +575,14 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // Add last modified if not a dynamic script
-    if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js") {
-        var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
-        if (last_modified) headers_obj["Last-Modified"] = last_modified;
-   }
+    if (socket_sessions[socket.id]) {
+        if (socket_sessions[socket.id].request_headers) {
+            if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js") {
+                var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
+                if (last_modified) headers_obj["Last-Modified"] = last_modified;
+            }
+        }
+    }
 
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
