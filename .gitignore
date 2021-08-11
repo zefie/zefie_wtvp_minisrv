@@ -367,3 +367,4 @@ FodyWeavers.xsd
 /zefie_wtvp_minisrv/UserServiceVault/*-*/
 /zefie_wtvp_minisrv/ServiceLogPost/*.log
 /zefie_wtvp_minisrv/SessionStore/*.json
+/zefie_wtvp_minisrv/SessionStore/*/
