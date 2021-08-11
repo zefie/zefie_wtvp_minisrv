@@ -15,7 +15,7 @@ class WTVFlashrom {
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;
 		this.bf0app_update = bf0app_update;
-		this.no_debug = no_debug
+		this.no_debug = no_debug;
 		this.minisrv_config = minisrv_config;
 	}
 

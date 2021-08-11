@@ -8,7 +8,7 @@ if (!request_headers.query.path) {
 	headers = errpage[0];
 	data = errpage[1];
 } else {	
-	var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, true);
+	var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, true);
 	var request_path = request_headers.query.path;
 
 	// read flashrom header info into array using WTVFlashrom class	
