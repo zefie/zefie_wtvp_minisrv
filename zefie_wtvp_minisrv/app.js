@@ -1070,8 +1070,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         socket_sessions[socket.id].post_data = "";
                         socket_sessions[socket.id].headers = headers;
                         var post_string = "POST";
-                        if (socket_sessions[socket.id].secure == true) {
+                        if (socket_sessions[socket.id].secure) {
+                            // decrypt if encrypted
                             post_string = "Encrypted " + post_string;
+                            data_hex = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, CryptoJS.enc.Hex.parse(data_hex))).toString(CryptoJS.enc.Hex);
                         }
 
                         // the client may have just sent the data with the primary headers, so lets look for that.
@@ -1079,6 +1081,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (data_hex.indexOf("0a0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0a0a") + 4);
 
                     }
+
                     if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
                         // got all expected data
                         if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
@@ -1090,13 +1093,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         // expecting more data (see below)
                         socket_sessions[socket.id].expecting_post_data = true;
                         if (!socket_sessions[socket.id].post_data) socket_sessions[socket.id].post_data = '';
-                        if (socket_sessions[socket.id].secure) {
-                            // decrypt if encrypted
-                            socket_sessions[socket.id].post_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data))).toString(CryptoJS.enc.Hex);
-                        } else {
-                            // just pass it over
-                            socket_sessions[socket.id].post_data = socket_sessions[socket.id].post_data;
-                        }
                         socket_sessions[socket.id].post_data += CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                         console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
                     }
