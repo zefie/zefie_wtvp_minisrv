@@ -212,7 +212,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                             var catchall_file = service_check_dir.join(path.sep) + path.sep + minisrv_catchall_file_name;
                             if (fs.existsSync(catchall_file)) {
                                 if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
-                                equest_headers.service_file_path = catchall_file;
+                                request_headers.service_file_path = catchall_file;
                                 var jscript_eval = fs.readFileSync(catchall_file).toString();
                                 // don't pass these vars to the script
                                 var service_check_dir, minisrv_catchall_file_name = null;
