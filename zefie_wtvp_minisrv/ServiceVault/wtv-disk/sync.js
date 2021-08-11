@@ -1,5 +1,5 @@
 const WTVDownloadList = require("./WTVDownloadList.js");
-var wtvdl = new WTVDownloadList(service_name);
+var wtvdl = new WTVDownloadList(minisrv_config, service_name);
 
 var force_update = (request_headers.query.force == "true") ? true : false;
 if (request_headers['wtv-request-type'] == 'download') {
@@ -272,5 +272,5 @@ if (request_headers['wtv-request-type'] == 'download') {
     var message = request_headers.query.message || "Retrieving files...";
     var main_message = request_headers.query.main_message || "Your receiver is downloading files.";
     headers = "200 OK\nContent-Type: text/html";
-    data = wtvdl.getSyncPage(minisrv_config, message, request_headers.query.group, request_headers.query.diskmap, main_message, message, force_update)
+    data = wtvdl.getSyncPage(message, request_headers.query.group, request_headers.query.diskmap, main_message, message, force_update)
 }

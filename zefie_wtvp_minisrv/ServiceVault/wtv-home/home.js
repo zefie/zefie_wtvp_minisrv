@@ -7,7 +7,7 @@ Content-type: text/html`
 if (request_headers.query.url) headers += "\nwtv-visit: " + request_headers.query.url;
 var cryptstatus = ((socket_sessions[socket.id].secure === true) ? "Encrypted" : "Not Encrypted")
 
-var comp_type = shouldWeCompress(socket.ssid,'text/html');
+var comp_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid],'text/html');
 var compstatus = "uncompressed";
 switch (comp_type) {
 	case 1:

@@ -9,14 +9,16 @@ class WTVDownloadList {
     content_type = "wtv/download-list";
     wtvshared = null;
     clientShowAlert = null;
+    minisrv_config = [];
 
     /**
      * Constructs the WTVDownloadList Class
      * @param {string} service_name Service name to use in wtv-urls
      */
-    constructor(service_name = "wtv-disk") {
+    constructor(minisrv_config, service_name = "wtv-disk") {
         var { WTVShared, clientShowAlert } = require('./WTVShared.js');
-        this.wtvshared = new WTVShared();
+        this.minisrv_config = minisrv_config;
+        this.wtvshared = new WTVShared(minisrv_config);
         this.clientShowAlert = clientShowAlert;
         this.service_name = service_name
         this.clear();
@@ -214,7 +216,7 @@ class WTVDownloadList {
     * @param {string|null} url Use your own URL for client:fetch?source= instead of our generated one
     * @returns {string} HTML Download Page
     */
-    getSyncPage(minisrv_config, title, group, diskmap = null, main_message = null, message = null, force_update = null, success_url = null, fail_url = null, url = null) {
+    getSyncPage(title, group, diskmap = null, main_message = null, message = null, force_update = null, success_url = null, fail_url = null, url = null) {
         // Begin Set defaults
         if (main_message === null) main_message = "Your receiver is downloading files.";
 
@@ -225,7 +227,7 @@ class WTVDownloadList {
         if (url === null) url = this.service_name + ":/sync?diskmap=" + escape(diskmap) + "&force=" + force_update;
 
         if (success_url === null) success_url = new this.clientShowAlert({
-            'image': minisrv_config.config.service_logo,
+            'image': this.minisrv_config.config.service_logo,
             'message': "Download successful!",
             'buttonlabel1': "Okay",
             'buttonaction1': "client:goback",
@@ -233,7 +235,7 @@ class WTVDownloadList {
         }).getURL();
 
         if (fail_url === null) fail_url = new this.clientShowAlert({
-            'image': minisrv_config.config.service_logo,
+            'image': this.minisrv_config.config.service_logo,
             'message': "Download failed...",
             'buttonlabel1': "Okay...",
             'buttonaction1': "client:goback",
@@ -253,7 +255,7 @@ class WTVDownloadList {
 <table cellspacing=0 cellpadding=0>
         <tr>
                 <td width=104 height=74 valign=middle align=center bgcolor=3B3A4D>
-                        <img src="${minisrv_config.config.service_logo}" width=86 height=64>
+                        <img src="${this.minisrv_config.config.service_logo}" width=86 height=64>
                 <td width=20 valign=top align=left bgcolor=3B3A4D>
                         <spacer>
                 <td colspan=2 width=436 valign=middle align=left bgcolor=3B3A4D>

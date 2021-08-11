@@ -14,11 +14,8 @@ var WTVSec = require('./WTVSec.js');
 var WTVLzpf = require('./WTVLzpf.js');
 var WTVClientCapabilities = require('./WTVClientCapabilities.js');
 var WTVClientSessionData = require('./WTVClientSessionData.js');
-var WTVMimeTypes = require("./WTVMimeTypes.js");
+var WTVMime = require("./WTVMime.js");
 var { WTVShared, clientShowAlert } = require("./WTVShared.js");
-
-const wtvshared = new WTVShared();
-const wtvmime = new WTVMimeTypes();
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -536,67 +533,6 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-function shouldWeCompress(ssid, headers_obj) {
-    var compress_data = false;
-    var compression_type = 0; // no compression
-    if (ssid_sessions[ssid]) {
-        if (ssid_sessions[ssid].capabilities) {
-            if (ssid_sessions[ssid].capabilities['client-can-receive-compressed-data']) {
-
-                if (minisrv_config.config.enable_lzpf_compression || minisrv_config.config.force_compression_type) {
-                    compression_type = 1; // lzpf
-                }
-
-                if (ssid_sessions[ssid]) {
-                    // if gzip is enabled...
-                    if (minisrv_config.config.enable_gzip_compression || minisrv_config.config.force_compression_type) {
-                        var is_bf0app = ssid_sessions[ssid].get("wtv-client-rom-type") == "bf0app";
-                        var is_minibrowser = (ssid_sessions[ssid].get("wtv-needs-upgrade") || ssid_sessions[ssid].get("wtv-used-8675309"));
-                        var is_softmodem = ssid_sessions[ssid].get("wtv-client-rom-type").match(/softmodem/);
-                        if (!is_bf0app && ((!is_softmodem && !is_minibrowser) || (is_softmodem && !is_minibrowser))) {
-                            // softmodem boxes do not appear to support gzip in the minibrowser
-                            // LC2 appears to support gzip even in the MiniBrowser
-                            // LC2 and newer approms appear to support gzip
-                            // bf0app does not appear to support gzip
-                            compression_type = 2; // gzip
-                        }
-                    }
-                }
-
-
-
-                // mostly for debugging
-                if (minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
-                if (minisrv_config.config.force_compression_type == "gzip") compression_type = 2;
-
-                // do not compress if already encoded
-                if (headers_obj["Content-Encoding"]) return 0;
-
-                // should we bother to compress?
-                var content_type = "";
-                if (typeof (headers_obj) == 'string') content_type = headers_obj;
-                else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-Type"];
-
-                if (content_type) {
-                    // both lzpf and gzip
-                    if (content_type.match(/^text\//) && content_type != "text/tellyscript") compress_data = true;
-                    else if (content_type.match(/^application\/(x-?)javascript$/)) compress_data = true;
-                    else if (content_type == "application/json") compress_data = true;
-                    if (compression_type == 2) {
-                        // gzip only
-                        if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]$/)) compress_data = true; // s3m, mod, xm
-                        if (content_type.match(/^audio\/(x-)?[midi|wav|wave]$/)) compress_data = true; // midi & wav
-                        if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms                        
-                    }
-                }
-            }
-        }
-    }
-
-    // return compression_type if compress_data = true
-    return (compress_data) ? compression_type : 0;
-}
-
 async function sendToClient(socket, headers_obj, data) {
     var headers = "";
     var content_length = 0;
@@ -634,7 +570,7 @@ async function sendToClient(socket, headers_obj, data) {
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
     var compression_type = 0;
-    if (content_length >= 256) compression_type = shouldWeCompress(socket.ssid, headers_obj);
+    if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
 
     // compress if needed
     if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0,3) == "200") {
@@ -949,7 +885,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 socket.ssid = wtvshared.makeSafeSSID(headers["wtv-client-serial-number"]);
                 if (socket.ssid != null) {
                     if (!ssid_sessions[socket.ssid]) {
-                        ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid,minisrv_config.config.hide_ssid_in_logs);
+                        ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
                         ssid_sessions[socket.ssid].SaveIfRegistered();
                     }
                     if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
@@ -967,7 +903,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 
             if (headers["wtv-capability-flags"] != null) {
                 if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid, minisrv_config.config.hide_ssid_in_logs);
+                    ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
                     ssid_sessions[socket.ssid].SaveIfRegistered();
                 }
                 if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
@@ -1091,7 +1027,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             }
 
             // handle POST
-            if (headers['request']) {
+            if (headers['request'] && !socket_sessions[socket.id].expecting_post_data) {
                 if (headers['request'].substring(0, 4) == "POST") {
                     socket.setTimeout(minisrv_config.config.post_data_socket_timeout * 1000);
                     if (typeof socket_sessions[socket.id].post_data == "undefined") {
@@ -1120,6 +1056,15 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     } else {
                         // expecting more data (see below)
                         socket_sessions[socket.id].expecting_post_data = true;
+                        if (!socket_sessions[socket.id].post_data) socket_sessions[socket.id].post_data = '';
+                        if (socket_sessions[socket.id].secure) {
+                            // decrypt if encrypted
+                            socket_sessions[socket.id].post_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data))).toString(CryptoJS.enc.Hex);
+                        } else {
+                            // just pass it over
+                            socket_sessions[socket.id].post_data = socket_sessions[socket.id].post_data;
+                        }
+                        socket_sessions[socket.id].post_data += CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                         console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
                     }
                     if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
@@ -1568,6 +1513,8 @@ bind_ports.forEach(function (v) {
 initstring = initstring.substring(0, initstring.length - 2);
 
 
+const wtvshared = new WTVShared(minisrv_config);
+const wtvmime = new WTVMime(minisrv_config);
 
 console.log(" * Started server on ports " + initstring + "...")
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";

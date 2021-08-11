@@ -5,8 +5,10 @@
 class WTVShared {
 
     path = require('path');
+    minisrv_config = [];
 
-    constructor() {
+    constructor(minisrv_config) {
+        this.minisrv_config = minisrv_config;
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
                 var splitString = this.split("");
@@ -22,7 +24,7 @@ class WTVShared {
     * @param {string|Array} obj SSID String or Headers Object
     */
     filterSSID(obj) {
-        if (this.hide_ssid_in_logs === true) {
+        if (this.minisrv_config.config.hide_ssid_in_logs === true) {
             if (typeof (obj) == "string") {
                 if (obj.substr(0, 8) == "MSTVSIMU") {
                     return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);

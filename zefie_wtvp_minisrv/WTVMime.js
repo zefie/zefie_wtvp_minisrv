@@ -3,15 +3,17 @@
  */
 
 
-class WTVMimeTypes {
+class WTVMime {
 
     mime = require('mime-types');
     wtvshared = null;
+    minisrv_config = [];
 
 
-    constructor() {
-        var { WTVShared, clientShowAlert } = require('./WTVShared.js');
-        this.wtvshared = new WTVShared();
+    constructor(minisrv_config) {
+        var WTVShared = require('./WTVShared.js')['WTVShared'];
+        this.minisrv_config = minisrv_config;
+        this.wtvshared = new WTVShared(minisrv_config);
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
                 var splitString = this.split("");
@@ -20,6 +22,68 @@ class WTVMimeTypes {
                 return joinArray;
             }
         }
+    }
+
+
+    shouldWeCompress(ssid_session, headers_obj) {
+        var compress_data = false;
+        var compression_type = 0; // no compression
+        if (ssid_session) {
+            if (ssid_session.capabilities) {
+                if (ssid_session.capabilities['client-can-receive-compressed-data']) {
+
+                    if (this.minisrv_config.config.enable_lzpf_compression || this.minisrv_config.config.force_compression_type) {
+                        compression_type = 1; // lzpf
+                    }
+
+                    if (ssid_session) {
+                        // if gzip is enabled...
+                        if (this.minisrv_config.config.enable_gzip_compression || this.minisrv_config.config.force_compression_type) {
+                            var is_bf0app = ssid_session.get("wtv-client-rom-type") == "bf0app";
+                            var is_minibrowser = (ssid_session.get("wtv-needs-upgrade") || ssid_session.get("wtv-used-8675309"));
+                            var is_softmodem = ssid_session.get("wtv-client-rom-type").match(/softmodem/);
+                            if (!is_bf0app && ((!is_softmodem && !is_minibrowser) || (is_softmodem && !is_minibrowser))) {
+                                // softmodem boxes do not appear to support gzip in the minibrowser
+                                // LC2 appears to support gzip even in the MiniBrowser
+                                // LC2 and newer approms appear to support gzip
+                                // bf0app does not appear to support gzip
+                                compression_type = 2; // gzip
+                            }
+                        }
+                    }
+
+
+
+                    // mostly for debugging
+                    if (this.minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
+                    if (this.minisrv_config.config.force_compression_type == "gzip") compression_type = 2;
+
+                    // do not compress if already encoded
+                    if (headers_obj["Content-Encoding"]) return 0;
+
+                    // should we bother to compress?
+                    var content_type = "";
+                    if (typeof (headers_obj) == 'string') content_type = headers_obj;
+                    else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-Type"];
+
+                    if (content_type) {
+                        // both lzpf and gzip
+                        if (content_type.match(/^text\//) && content_type != "text/tellyscript") compress_data = true;
+                        else if (content_type.match(/^application\/(x-?)javascript$/)) compress_data = true;
+                        else if (content_type == "application/json") compress_data = true;
+                        if (compression_type == 2) {
+                            // gzip only
+                            if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]$/)) compress_data = true; // s3m, mod, xm
+                            if (content_type.match(/^audio\/(x-)?[midi|wav|wave]$/)) compress_data = true; // midi & wav
+                            if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms                        
+                        }
+                    }
+                }
+            }
+        }
+
+        // return compression_type if compress_data = true
+        return (compress_data) ? compression_type : 0;
     }
 
     /**
@@ -130,4 +194,4 @@ class WTVMimeTypes {
 
 }
 
-module.exports = WTVMimeTypes;
+module.exports = WTVMime;

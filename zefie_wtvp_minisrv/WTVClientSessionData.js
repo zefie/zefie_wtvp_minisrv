@@ -11,20 +11,19 @@ class WTVClientSessionData {
     login_security = null;
     capabilities = null;
     session_storage = "";
-    hide_ssid_in_logs = true;
+    minisrv_config = [];
     wtvshared = null;
     wtvmime = null;
 
-    constructor(ssid, hide_ssid_in_logs, session_storage_directory) {
-        var { WTVShared, clientShowAlert } = require('./WTVShared.js');
-        var WTVMimeTypes = require('./WTVMimeTypes.js');
-        this.wtvshared = new WTVShared();
-        this.wtvmime = new WTVMimeTypes();
+    constructor(minisrv_config, ssid) {
+        if (!minisrv_config) throw ("minisrv_config required");
+        var WTVShared = require('./WTVShared.js')['WTVShared'];
+        var WTVMime = require('./WTVMime.js');
+        this.minisrv_config = minisrv_config;
+        this.wtvshared = new WTVShared(minisrv_config);
+        this.wtvmime = new WTVMime(minisrv_config);
 
         this.ssid = ssid;
-        if (hide_ssid_in_logs) this.hide_ssid_in_logs = hide_ssid_in_logs;
-        if (!session_storage_directory) session_storage_directory = __dirname + this.path.sep + "SessionStore";
-        this.session_storage = session_storage_directory;
         this.data_store = new Array();
         this.session_store = {};
     }
@@ -35,7 +34,7 @@ class WTVClientSessionData {
      */
     getUserStoreDirectory() {
         if (!this.isRegistered()) return false;
-        return this.session_storage + this.path.sep + this.ssid + this.path.sep;
+        return this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + this.path.sep;
     }
 
     /**
@@ -238,8 +237,8 @@ class WTVClientSessionData {
 
     loadSessionData(raw_data = false) {
         try {
-            if (this.fs.lstatSync(this.session_storage + this.path.sep + this.ssid + ".json")) {
-                var json_data = this.fs.readFileSync(this.session_storage + this.path.sep + this.ssid + ".json", 'Utf8')
+            if (this.fs.lstatSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json")) {
+                var json_data = this.fs.readFileSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json", 'Utf8')
                 if (raw_data) return json_data;
 
                 var session_data = JSON.parse(json_data);
@@ -270,7 +269,7 @@ class WTVClientSessionData {
             // only save if file has changed
             var json_save_data = JSON.stringify(this.session_store);
             var json_load_data = this.loadSessionData(true);
-            if (json_save_data != json_load_data) this.fs.writeFileSync(this.session_storage + this.path.sep + this.ssid + ".json", JSON.stringify(this.session_store), "Utf8");
+            if (json_save_data != json_load_data) this.fs.writeFileSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json", JSON.stringify(this.session_store), "Utf8");
             return true;
         } catch (e) {            
             console.error(" # Error saving session data for", this.wtvshared.filterSSID(this.ssid), e);
@@ -296,7 +295,7 @@ class WTVClientSessionData {
     isRegistered() {
         var self = this;
         var ssid_match = false;
-        this.fs.readdirSync(this.session_storage).forEach(file => {
+        this.fs.readdirSync(this.minisrv_config.config.SessionStore).forEach(file => {
             if (!file.match(/.*\.json/ig)) return;
             if (ssid_match) return;
             if (file.split('.')[0] == self.ssid) ssid_match = true;
@@ -306,8 +305,8 @@ class WTVClientSessionData {
 
     unregisterBox() {
         try {
-            if (this.fs.lstatSync(this.session_storage + this.path.sep + this.ssid + ".json")) {
-                this.fs.unlinkSync(this.session_storage + this.path.sep + this.ssid + ".json");
+            if (this.fs.lstatSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json")) {
+                this.fs.unlinkSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json");
                 this.session_store = {};
                 return true;
             }
