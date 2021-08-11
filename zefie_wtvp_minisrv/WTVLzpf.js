@@ -400,8 +400,6 @@ class WTVLzpf {
                 this.EncodeLiteral(code_length, code);
             }
         }
-
-        return Buffer.from(this.encoded_data);
     }
 
     /**
@@ -442,6 +440,8 @@ class WTVLzpf {
         // End
         this.AddByte((this.current_literal >>> 0x18) & 0xFF);
         this.AddByte(0x20);
+
+        return Buffer.from(this.encoded_data);
     }
 
     /**
@@ -467,9 +467,7 @@ class WTVLzpf {
         uncompressed_data = this.ConvertToBuffer(uncompressed_data);
         this.Begin();
         this.EncodeBlock(uncompressed_data, true);
-        this.Finish();
-
-        return Buffer.from(this.encoded_data);
+        return this.Finish();
     }
 }
 
