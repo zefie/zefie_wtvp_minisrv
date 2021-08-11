@@ -295,12 +295,16 @@ class WTVClientSessionData {
     }
 
     unregisterBox() {
+        var user_store_base = this.wtvshared.makeSafePath(this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore), this.path.sep + this.ssid);
         try {
-            if (this.fs.lstatSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json")) {
-                this.fs.unlinkSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json");
+            if (this.fs.existsSync(user_store_base + ".json")) {
+                this.fs.unlinkSync(user_store_base + ".json");
                 this.session_store = {};
-                return true;
             }
+            if (this.fs.existsSync(user_store_base)) {
+                this.fs.rmdirSync(user_store_base, { recursive: true });
+            }
+            return true;
         } catch (e) {
             // Don't log error 'file not found', it just means the client isn't registered yet
             console.error(" # Error deleting session data for", this.wtvshared.filterSSID(this.ssid), e);
