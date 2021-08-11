@@ -590,7 +590,7 @@ async function sendToClient(socket, headers_obj, data) {
     if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
 
     // disk service hack before further processing :)
-    if (socket_sessions[socket.id].wtv_request_type == "download" && content_length > 0) {
+    if (socket_sessions[socket.id].wtv_request_type == "download" && content_length > 0 && headers_obj['Content-Type'] != "wtv/download-list") {
         if (minisrv_config.config.debug_flags.debug) console.log(" * Calculating uncompressed size and checksum...");
         if (headers_obj['Content-Type'] == "application/gzip") {
             var gunzipped = zlib.gunzipSync(data);
