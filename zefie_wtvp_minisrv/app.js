@@ -8,13 +8,14 @@ const https = require('https');
 const strftime = require('strftime'); // used externally by service scripts
 const net = require('net');
 const CryptoJS = require('crypto-js');
-const mime = require('mime-types');
 const { crc16 } = require('easy-crc');
 const process = require('process');
 var WTVSec = require('./WTVSec.js');
 var WTVLzpf = require('./WTVLzpf.js');
 var WTVClientCapabilities = require('./WTVClientCapabilities.js');
 var WTVClientSessionData = require('./WTVClientSessionData.js');
+var WTVMime = require("./WTVMime.js");
+var { WTVShared, clientShowAlert } = require("./WTVShared.js");
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -70,10 +71,6 @@ function getServiceString(service, overrides = {}) {
     }
 }
 
-function getFileExt(path) {
-    return path.reverse().split(".")[0].reverse();
-}
-
 function doErrorPage(code, data = null, pc_mode = false) {
     var headers = null;
     switch (code) {
@@ -105,99 +102,6 @@ function doErrorPage(code, data = null, pc_mode = false) {
     return new Array(headers, data);
 }
 
-
-function getConType(path) {
-    var file_ext = getFileExt(path).toLowerCase();
-    var wtv_mime_type = "";
-    var modern_mime_type = "";
-    // process WebTV overrides, fall back to generic mime lookup
-    switch (file_ext) {
-        case "aif":
-            wtv_mime_type = "audio/x-aif";
-            break;
-        case "aifc":
-            wtv_mime_type = "audio/x-aifc";
-            break;
-        case "aiff":
-            wtv_mime_type = "audio/x-aiff";
-            break;
-        case "ani":
-            wtv_mime_type = "x-wtv-animation";
-            break;
-        case "brom":
-            wtv_mime_type = "binary/x-wtv-bootrom";
-            break;
-        case "cdf":
-            wtv_mime_type = "application/netcdf";
-            break;
-        case "dat":
-            wtv_mime_type = "binary/cache-data";
-            break;
-        case "dl":
-            wtv_mime_type = "wtv/download-list";
-            break;
-        case "gsm":
-            wtv_mime_type = "audio/x-gsm";
-            break;
-        case "gz":
-            wtv_mime_type = "application/gzip";
-            break;
-        case "ini":
-            wtv_mime_type = "wtv/jack-configuration";
-            break;
-        case "mips-code":
-            wtv_mime_type = "code/x-wtv-code-mips";
-            break;
-        case "o":
-            wtv_mime_type = "binary/x-wtv-approm";
-            break;
-        case "ram":
-            wtv_mime_type = "audio/x-pn-realaudio";
-            break;
-        case "rom":
-            wtv_mime_type = "binary/x-wtv-flashblock";
-            break;
-        case "rsp":
-            wtv_mime_type = "wtv/jack-response";
-            break;
-        case "swa":
-        case "swf":
-            wtv_mime_type = "application/x-shockwave-flash";
-            break;
-        case "srf":
-        case "spl":
-            wtv_mime_type = "wtv/jack-data";
-            break;
-        case "ttf":
-            wtv_mime_type = "wtv/jack-fonts";
-            break;
-        case "tvch":
-            wtv_mime_type = "wtv/tv-channels";
-            break;
-        case "tvl":
-            wtv_mime_type = "wtv/tv-listings";
-            break;
-        case "tvsl":
-            wtv_mime_type = "wtv/tv-smartlinks";
-            break;
-        case "wad":
-            wtv_mime_type = "binary/doom-data";
-            break;
-        case "mp2":
-        case "hsb":
-        case "rmf":
-        case "s3m":
-        case "mod":
-        case "xm":
-            wtv_mime_type = "application/Music";
-            break;
-    }
-
-    modern_mime_type = mime.lookup(path);
-    if (wtv_mime_type == "") wtv_mime_type = modern_mime_type;
-    return new Array(wtv_mime_type, modern_mime_type);
-}
-
 async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name) {
     var headers, data = null;
     var request_is_async = false;
@@ -206,7 +110,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     try {
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
-            service_vault_file_path = makeSafePath(service_vault_dir, service_path);
+            service_vault_file_path = wtvshared.makeSafePath(service_vault_dir, service_path);
 
             // deny access to catchall file name directly
             var service_path_split = service_path.split("/");
@@ -231,7 +135,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 service_vault_found = true;
                 request_is_async = true;
                 if (!zquiet) console.log(" * Found " + service_vault_file_path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
-                var contypes = getConType(service_vault_file_path);
+                var contypes = wtvmime.getContentType(service_vault_file_path);
                 headers = "200 OK\n"
                 headers += "Content-Type: " + contypes[0] + "\n";
                 headers += "wtv-modern-content-type" + contypes[1];
@@ -345,47 +249,6 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     }
 }
 
-function filterSSID(obj) {
-    if (minisrv_config.config.hide_ssid_in_logs === true) {
-        if (typeof (obj) == "string") {
-            if (obj.substr(0, 8) == "MSTVSIMU") {
-                return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
-            } else if (obj.substr(0, 5) == "1SEGA") {
-                return obj.substr(0, 6) + ('*').repeat(6) + obj.substr(13);
-            } else {
-                return obj.substr(0, 6) + ('*').repeat(9);
-            }
-        } else {
-            if (makeSafeSSID(obj["wtv-client-serial-number"])) {
-                var ssid = makeSafeSSID(obj["wtv-client-serial-number"]);
-                if (ssid.substr(0, 8) == "MSTVSIMU") {
-                    obj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
-                } else if (ssid.substr(0, 5) == "1SEGA") {
-                    obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
-                } else {
-                    obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
-                }
-            }
-            return obj;
-        }
-    } else {
-        return obj;
-    }
-}
-
-function makeSafeSSID(ssid = "") {
-    ssid = ssid.replace(/[^a-zA-Z0-9]/g, "");
-    if (ssid.length == 0) ssid = null;
-    return ssid;
-}
-
-function makeSafePath(base, target) {
-    target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-    if (path.sep != "/") target = target.replace(/\//g, path.sep);
-    var targetPath = path.posix.normalize(target)
-    return base + path.sep + targetPath;
-}
-
 async function processURL(socket, request_headers) {
     var shortURL, headers, data = "";
     request_headers.query = new Array();
@@ -408,28 +271,33 @@ async function processURL(socket, request_headers) {
         }
 
         if (request_headers.post_data) {
-            var post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8).replace("\0", "");
-            if (isUnencryptedString(post_data_string)) {
-                if (post_data_string.indexOf('=')) {
-                    if (post_data_string.indexOf('&')) {
-                        var qraw = post_data_string.split('&');
-                        if (qraw.length > 0) {
-                            for (let i = 0; i < qraw.length; i++) {
-                                var qraw_split = qraw[i].split("=");
-                                if (qraw_split.length == 2) {
-                                    var k = qraw_split[0];
-                                    request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+            var post_data_string = '';
+            try {
+                post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8).replace("\0", ""); // if not text this will probably throw an exception
+                if (isUnencryptedString(post_data_string)) {
+                    if (post_data_string.indexOf('=')) {
+                        if (post_data_string.indexOf('&')) {
+                            var qraw = post_data_string.split('&');
+                            if (qraw.length > 0) {
+                                for (let i = 0; i < qraw.length; i++) {
+                                    var qraw_split = qraw[i].split("=");
+                                    if (qraw_split.length == 2) {
+                                        var k = qraw_split[0];
+                                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                    }
                                 }
                             }
-                        }
-                    } else {
-                        var qraw_split = post_data_string.split("=");
-                        if (qraw_split.length == 2) {
-                            var k = qraw_split[0];
-                            request_headers.query[k] = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                        } else {
+                            var qraw_split = post_data_string.split("=");
+                            if (qraw_split.length == 2) {
+                                var k = qraw_split[0];
+                                request_headers.query[k] = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                            }
                         }
                     }
                 }
+            } catch (e) {
+                // do nothing
             }
         }
 
@@ -469,26 +337,21 @@ async function processURL(socket, request_headers) {
             var ssid = socket.ssid;
             if (ssid == null) {
                 // prevent possible injection attacks via SSID and filesystem SessionStore
-                ssid = makeSafeSSID(request_headers["wtv-client-serial-number"]);
+                ssid = wtvshared.makeSafeSSID(request_headers["wtv-client-serial-number"]);
                 if (ssid == "") ssid = null;
             }
 
             var reqverb = "Request";
-            if (request_headers.encrypted || request_headers.secure) {
-                reqverb = "Encrypted " + reqverb;
-            }
-            if (request_headers.psuedo_encryption) {
-                reqverb = "Psuedo-encrypted " + reqverb;
-            }
+            if (request_headers.encrypted || request_headers.secure) reqverb = "Encrypted " + reqverb;
             if (ssid != null) {
-                console.log(" * " + reqverb + " for " + request_headers.request_url + " from WebTV SSID " + (await filterSSID(ssid)), 'on', socket.id);
+                console.log(" * " + reqverb + " for " + request_headers.request_url + " from WebTV SSID " + (await wtvshared.filterSSID(ssid)), 'on', socket.id);
             } else {
                 console.log(" * " + reqverb + " for " + request_headers.request_url, 'on', socket.id);
             }
             // assume webtv since there is a :/ in the GET
             var service_name = shortURL.split(':/')[0];
             var urlToPath = service_name + path.sep + shortURL.split(':/')[1];
-            if (zshowheaders) console.log(" * Incoming headers on socket ID", socket.id, (await filterSSID(request_headers)));
+            if (zshowheaders) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.filterSSID(request_headers)));
             processPath(socket, urlToPath, request_headers, service_name);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) {
             doHTTPProxy(socket, request_headers);
@@ -505,7 +368,7 @@ async function processURL(socket, request_headers) {
 
 async function doHTTPProxy(socket, request_headers) {
     var request_type = (request_headers.request_url.substring(0, 5) == "https") ? "https" : "http";
-    if (zshowheaders) console.log(request_type.toUpperCase() +" Proxy: Client Request Headers on socket ID", socket.id, (await filterSSID(request_headers)));
+    if (zshowheaders) console.log(request_type.toUpperCase() +" Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.filterSSID(request_headers)));
     switch (request_type) {
         case "https":
             var proxy_agent = https;
@@ -670,67 +533,6 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-function shouldWeCompress(ssid, headers_obj) {
-    var compress_data = false;
-    var compression_type = 0; // no compression
-    if (ssid_sessions[ssid]) {
-        if (ssid_sessions[ssid].capabilities) {
-            if (ssid_sessions[ssid].capabilities['client-can-receive-compressed-data']) {
-
-                if (minisrv_config.config.enable_lzpf_compression || minisrv_config.config.force_compression_type) {
-                    compression_type = 1; // lzpf
-                }
-
-                if (ssid_sessions[ssid]) {
-                    // if gzip is enabled...
-                    if (minisrv_config.config.enable_gzip_compression || minisrv_config.config.force_compression_type) {
-                        var is_bf0app = ssid_sessions[ssid].get("wtv-client-rom-type") == "bf0app";
-                        var is_minibrowser = (ssid_sessions[ssid].get("wtv-needs-upgrade") || ssid_sessions[ssid].get("wtv-used-8675309"));
-                        var is_softmodem = ssid_sessions[ssid].get("wtv-client-rom-type").match(/softmodem/);
-                        if (!is_bf0app && ((!is_softmodem && !is_minibrowser) || (is_softmodem && !is_minibrowser))) {
-                            // softmodem boxes do not appear to support gzip in the minibrowser
-                            // LC2 appears to support gzip even in the MiniBrowser
-                            // LC2 and newer approms appear to support gzip
-                            // bf0app does not appear to support gzip
-                            compression_type = 2; // gzip
-                        }
-                    }
-                }
-
-
-
-                // mostly for debugging
-                if (minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
-                if (minisrv_config.config.force_compression_type == "gzip") compression_type = 2;
-
-                // do not compress if already encoded
-                if (headers_obj["Content-Encoding"]) return 0;
-
-                // should we bother to compress?
-                var content_type = "";
-                if (typeof (headers_obj) == 'string') content_type = headers_obj;
-                else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-Type"];
-
-                if (content_type) {
-                    // both lzpf and gzip
-                    if (content_type.match(/^text\//) && content_type != "text/tellyscript") compress_data = true;
-                    else if (content_type.match(/^application\/(x-?)javascript$/)) compress_data = true;
-                    else if (content_type == "application/json") compress_data = true;
-                    if (compression_type == 2) {
-                        // gzip only
-                        if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]$/)) compress_data = true; // s3m, mod, xm
-                        if (content_type.match(/^audio\/(x-)?[midi|wav|wave]$/)) compress_data = true; // midi & wav
-                        if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms                        
-                    }
-                }
-            }
-        }
-    }
-
-    // return compression_type if compress_data = true
-    return (compress_data) ? compression_type : 0;
-}
-
 async function sendToClient(socket, headers_obj, data) {
     var headers = "";
     var content_length = 0;
@@ -768,7 +570,7 @@ async function sendToClient(socket, headers_obj, data) {
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
     var compression_type = 0;
-    if (content_length >= 256) compression_type = shouldWeCompress(socket.ssid, headers_obj);
+    if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
 
     // compress if needed
     if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0,3) == "200") {
@@ -841,7 +643,7 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // header object to string
-    if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await filterSSID(headers_obj)));
+    if (zshowheaders) console.log(" * Outgoing headers on socket ID", socket.id, (await wtvshared.filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
         if (k == "http_response") {
             headers += headers_obj[k] + end_of_line;
@@ -882,7 +684,7 @@ async function sendToClient(socket, headers_obj, data) {
     if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
     if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
     if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
-
+    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
     if (socket_sessions[socket.id].close_me) socket.end();
     if (headers_obj["Connection"]) {
         if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
@@ -921,6 +723,89 @@ function moveObjectElement(currentKey, afterKey, obj) {
     if (next !== -1) return result; else return obj;
 }
 
+function checkSecurity(socket) {
+    var out = null;
+    var ip2long = function (ip) {
+        var components;
+
+        if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
+            var iplong = 0;
+            var power = 1;
+            for (var i = 4; i >= 1; i -= 1) {
+                iplong += power * parseInt(components[i]);
+                power *= 256;
+            }
+            return iplong;
+        }
+        else return -1;
+    };
+
+    var isInSubnet = function (ip, subnet) {
+        var mask, base_ip, long_ip = ip2long(ip);
+        if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip2long(mask[1])) >= 0)) {
+            var freedom = Math.pow(2, 32 - parseInt(mask[2]));
+            return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+        }
+        else return false;
+    };
+
+    var rejectSSIDConnection = function (ssid, blacklist) {
+        if (blacklist) console.log(" * Request from SSID", wtvshared.filterSSID(ssid), "(" + socket.remoteAddr + "), but that SSID is in the blacklist, rejecting.");
+        else console.log(" * Request from SSID", wtvshared.filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
+
+        var errpage = doErrorPage(401, "Access to this service is denied.");
+        out = errpage;
+    }
+
+    var checkSSIDIPWhitelist = function (ssid, blacklist) {
+        var ssid_access_list_ip_override = false;
+        if (minisrv_config.config.ssid_ip_allow_list) {
+            if (minisrv_config.config.ssid_ip_allow_list[socket.ssid]) {
+                Object.keys(minisrv_config.config.ssid_ip_allow_list[socket.ssid]).forEach(function (k) {
+                    if (minisrv_config.config.ssid_ip_allow_list[socket.ssid][k].indexOf('/') > 0) {
+                        if (isInSubnet(socket.remoteAddress, minisrv_config.config.ssid_ip_allow_list[socket.ssid][k])) {
+                            // remoteAddr is in allowed subnet
+                            ssid_access_list_ip_override = true;
+                        }
+                    } else {
+                        if (socket.remoteAddress == minisrv_config.config.ssid_ip_allow_list[socket.ssid][k]) {
+                            // remoteAddr directly matches IP
+                            ssid_access_list_ip_override = true;
+                        }
+                    }
+                });
+                if (!ssid_access_list_ip_override) rejectSSIDConnection(socket.ssid, blacklist);
+            } else {
+                rejectSSIDConnection(socket.ssid, blacklist);
+            }
+        } else {
+            rejectSSIDConnection(socket.ssid, blacklist);
+        }
+        if (ssid_access_list_ip_override && zdebug) console.log(" * Request from disallowed SSID", wtvshared.filterSSID(ssid), "was allowed due to IP address whitelist");
+    }
+
+    // process whitelist first
+    if (socket.ssid && minisrv_config.config.ssid_allow_list) {
+        var ssid_is_in_whitelist = minisrv_config.config.ssid_allow_list.findIndex(element => element == socket.ssid);
+        if (ssid_is_in_whitelist == -1) {
+            // no whitelist match, but lets see if the remoteAddress is allowed
+            checkSSIDIPWhitelist(socket.ssid, false);
+        }
+    }
+
+    // now check blacklist
+    if (socket.ssid && minisrv_config.config.ssid_block_list) {
+        var ssid_is_in_blacklist = minisrv_config.config.ssid_block_list.findIndex(element => element == socket.ssid);
+        if (ssid_is_in_blacklist != -1) {
+            // blacklist match, but lets see if the remoteAddress is allowed
+            checkSSIDIPWhitelist(socket.ssid, true);
+        }
+    }
+
+    // Passed Security
+    return out;
+}
+
 function isUnencryptedString(string, verbose = false) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 
     // compressed / encrypted data as ASCII. This function checks for characters expected 
@@ -928,11 +813,6 @@ function isUnencryptedString(string, verbose = false) {
     // the regex. Once we know the string is binary, we can better process it with the
     // raw base64 or hex data in processRequest() below.
     return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*\@\#\\]{8,})$/.test(string);
-}
-
-function filterSSID(ssid) {
-    var WTVCSD = new WTVClientSessionData(null,minisrv_config.config.hide_ssid_in_logs);
-    return WTVCSD.filterSSID(ssid);
 }
 
 async function processRequest(socket, data_hex, skipSecure = false, encryptedRequest = false) {
@@ -1002,10 +882,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             if (!headers) return;
 
             if (headers["wtv-client-serial-number"] != null && socket.ssid == null) {
-                socket.ssid = makeSafeSSID(headers["wtv-client-serial-number"]);
+                socket.ssid = wtvshared.makeSafeSSID(headers["wtv-client-serial-number"]);
                 if (socket.ssid != null) {
                     if (!ssid_sessions[socket.ssid]) {
-                        ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid,minisrv_config.config.hide_ssid_in_logs);
+                        ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
                         ssid_sessions[socket.ssid].SaveIfRegistered();
                     }
                     if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
@@ -1014,95 +894,20 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
             }
 
-            var ip2long = function (ip) {
-                var components;
-
-                if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
-                    var iplong = 0;
-                    var power = 1;
-                    for (var i = 4; i >= 1; i -= 1) {
-                        iplong += power * parseInt(components[i]);
-                        power *= 256;
-                    }
-                    return iplong;
-                }
-                else return -1;
-            };
-
-            var isInSubnet = function (ip, subnet) {
-                var mask, base_ip, long_ip = ip2long(ip);
-                if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip2long(mask[1])) >= 0)) {
-                    var freedom = Math.pow(2, 32 - parseInt(mask[2]));
-                    return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
-                }
-                else return false;
-            };
-
-            var rejectSSIDConnection = function (ssid, blacklist) {
-                if (blacklist) console.log(" * Request from SSID", filterSSID(ssid), "(" + socket.remoteAddr + "), but that SSID is in the blacklist, rejecting.");
-                else console.log(" * Request from SSID", filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
-
-                var errpage = doErrorPage(401, "Access to this service is denied.");
-                headers = errpage[0];
-                data = errpage[1];
+            var failed_security = checkSecurity(socket);
+            if (failed_security) {
                 socket_sessions[socket.id].close_me = true;
+                headers = failed_security[0];
+                data = failed_security[1];
             }
-
-            var checkSSIDIPWhitelist = function (ssid, blacklist) {
-                var ssid_access_list_ip_override = false;
-                if (minisrv_config.config.ssid_ip_allow_list) {
-                    if (minisrv_config.config.ssid_ip_allow_list[socket.ssid]) {
-                        Object.keys(minisrv_config.config.ssid_ip_allow_list[socket.ssid]).forEach(function (k) {
-                            if (minisrv_config.config.ssid_ip_allow_list[socket.ssid][k].indexOf('/') > 0) {
-                                if (isInSubnet(socket.remoteAddress, minisrv_config.config.ssid_ip_allow_list[socket.ssid][k])) {
-                                    // remoteAddr is in allowed subnet
-                                    ssid_access_list_ip_override = true;
-                                }
-                            } else {
-                                if (socket.remoteAddress == minisrv_config.config.ssid_ip_allow_list[socket.ssid][k]) {
-                                    // remoteAddr directly matches IP
-                                    ssid_access_list_ip_override = true;
-                                }
-                            }
-                        });
-                        if (!ssid_access_list_ip_override) rejectSSIDConnection(socket.ssid, blacklist);
-                    } else {
-                        rejectSSIDConnection(socket.ssid, blacklist);
-                    }
-                } else {
-                    rejectSSIDConnection(socket.ssid, blacklist);
-                }
-                if (ssid_access_list_ip_override && zdebug) console.log(" * Request from disallowed SSID", filterSSID(ssid), "was allowed due to IP address whitelist");
-            }
-
-            // process whitelist first
-            if (socket.ssid && minisrv_config.config.ssid_allow_list) {
-                var ssid_is_in_whitelist = minisrv_config.config.ssid_allow_list.findIndex(element => element == socket.ssid);
-                if (ssid_is_in_whitelist == -1) {
-                    // no whitelist match, but lets see if the remoteAddress is allowed
-                    checkSSIDIPWhitelist(socket.ssid, false);
-                }
-            }
-
-            // now check blacklist
-            if (socket.ssid && minisrv_config.config.ssid_block_list) {
-                var ssid_is_in_blacklist = minisrv_config.config.ssid_block_list.findIndex(element => element == socket.ssid);
-                if (ssid_is_in_blacklist != -1) {
-                    // blacklist match, but lets see if the remoteAddress is allowed
-                    checkSSIDIPWhitelist(socket.ssid, true);
-                }
-            }
-
-            // Passed Security
 
             if (headers["wtv-capability-flags"] != null) {
                 if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid,minisrv_config.config.hide_ssid_in_logs);
+                    ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
                     ssid_sessions[socket.ssid].SaveIfRegistered();
                 }
                 if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
             }
-
 
             // log all client wtv- headers to the SessionData for that SSID
             // this way we can pull up client info such as wtv-client-rom-type or wtv-system-sysconfig
@@ -1165,46 +970,37 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     }
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
-                        if (isUnencryptedString(enc_data.toString(CryptoJS.enc.Latin1), (!skipSecure && !encryptedRequest))) {
-                            // some builds (like our targeted 3833), send SECURE ON but then unencrypted headers
-                            if (zdebug) console.log(" # Psuedo-encrypted Request (SECURE ON)", "on", socket.id);
-                            // don't actually encrypt output
-                            headers.psuedo_encryption = true;
-                            ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", true);
-                            socket_sessions[socket.id].secure = false;
-                            var secure_headers = await processRequest(socket, enc_data.toString(CryptoJS.enc.Hex), true, true);
-                        } else {
-                            // SECURE ON and detected encrypted data
-                            ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", false);
-                            var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
-                            if (!socket_sessions[socket.id].secure_buffer) socket_sessions[socket.id].secure_buffer = "";
-                            socket_sessions[socket.id].secure_buffer += dec_data.toString(CryptoJS.enc.Hex);
-                            var secure_headers = null;
-                            if (headers['request']) {
-                                if (headers['request'] == "GET") {
-                                    if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
-                                        secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
-                                    }
-                                } else {
-                                     secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
+
+                        // SECURE ON and detected encrypted data
+                        var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
+                        if (!socket_sessions[socket.id].secure_buffer) socket_sessions[socket.id].secure_buffer = "";
+                        socket_sessions[socket.id].secure_buffer += dec_data.toString(CryptoJS.enc.Hex);
+                        var secure_headers = null;
+                        if (headers['request']) {
+                            if (headers['request'] == "GET") {
+                                if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
+                                    secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                                 }
                             } else {
-                                 secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
-                            }                            
-                            if (!secure_headers) return;
-
-                            delete socket_sessions[socket.id].secure_buffer;
-                            if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
-                            if (zshowheaders) console.log(secure_headers);
-                            if (!secure_headers.request) {
-                                socket_sessions[socket.id].secure = false;
-                                var errpage = doErrorPage(400);
-                                headers = errpage[0];
-                                data = errpage[1];
-                                sendToClient(socket, headers, data);
-                                return;
+                                secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                             }
+                        } else {
+                            secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                         }
+                        if (!secure_headers) return;
+
+                        delete socket_sessions[socket.id].secure_buffer;
+                        if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
+                        if (zshowheaders) console.log(secure_headers);
+                        if (!secure_headers.request) {
+                            socket_sessions[socket.id].secure = false;
+                            var errpage = doErrorPage(400);
+                            headers = errpage[0];
+                            data = errpage[1];
+                            sendToClient(socket, headers, data);
+                            return;
+                        }
+
                         // Merge new headers into existing headers object
                         Object.keys(secure_headers).forEach(function (k) {
                             headers[k] = secure_headers[k];
@@ -1231,8 +1027,9 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             }
 
             // handle POST
-            if (headers['request']) {
+            if (headers['request'] && !socket_sessions[socket.id].expecting_post_data) {
                 if (headers['request'].substring(0, 4) == "POST") {
+                    socket.setTimeout(minisrv_config.config.post_data_socket_timeout * 1000);
                     if (typeof socket_sessions[socket.id].post_data == "undefined") {
                         if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
                         socket_sessions[socket.id].post_data_length = headers['Content-length'] || headers['Content-Length'] || 0;
@@ -1252,14 +1049,23 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
                         // got all expected data
                         if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
-                        console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(got all expected", socket_sessions[socket.id].post_data_length, "bytes of data from client already)");
+                        console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(got all expected", socket_sessions[socket.id].post_data_length, "bytes of data from client already)");
                         headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                         if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
                         processURL(socket, headers);
                     } else {
                         // expecting more data (see below)
                         socket_sessions[socket.id].expecting_post_data = true;
-                        console.log(" * Incoming", post_string, "request on", socket.id, "from", filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
+                        if (!socket_sessions[socket.id].post_data) socket_sessions[socket.id].post_data = '';
+                        if (socket_sessions[socket.id].secure) {
+                            // decrypt if encrypted
+                            socket_sessions[socket.id].post_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data))).toString(CryptoJS.enc.Hex);
+                        } else {
+                            // just pass it over
+                            socket_sessions[socket.id].post_data = socket_sessions[socket.id].post_data;
+                        }
+                        socket_sessions[socket.id].post_data += CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
+                        console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
                     }
                     if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                         // got too much data ? ... should not ever reach this code
@@ -1313,7 +1119,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (minisrv_config.config.post_percentages.includes(postPercent)) {
                                 if (!socket_sessions[socket.id].post_data_percents_shown) socket_sessions[socket.id].post_data_percents_shown = new Array();
                                 if (!socket_sessions[socket.id].post_data_percents_shown[postPercent]) {
-                                    console.log(" * Received", postPercent, "% of", socket_sessions[socket.id].post_data_length, "bytes on", socket.id, "from", filterSSID(socket.ssid));
+                                    console.log(" * Received", postPercent, "% of", socket_sessions[socket.id].post_data_length, "bytes on", socket.id, "from", wtvshared.filterSSID(socket.ssid));
                                     socket_sessions[socket.id].post_data_percents_shown[postPercent] = true;
                                 }
                                 if (postPercent == 100) delete socket_sessions[socket.id].post_data_percents_shown;
@@ -1324,6 +1130,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
                     // got all expected data
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                     if (socket_sessions[socket.id].secure == true) {
                         if (zdebug) console.log(" # Encrypted POST Content (SECURE ON)", "on", socket.id, "[", headers.post_data.sigBytes, "bytes ]");
@@ -1338,6 +1145,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
                 if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     // got too much data ? ... should not ever reach this code
                     var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
                     headers = errpage[0];
@@ -1433,7 +1241,7 @@ async function cleanupSocket(socket) {
                 // set timeout to check 
                 ssid_sessions[socket.ssid].data_store.socket_check = setTimeout(function (ssid) {
                     if (ssid_sessions[ssid].currentConnections() === 0) {
-                        if (!zquiet) console.log(" * WebTV SSID", filterSSID(ssid), " has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
+                        if (!zquiet) console.log(" * WebTV SSID", wtvshared.filterSSID(ssid), " has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
                         delete ssid_sessions[ssid];
                     }
                 }, timeout, socket.ssid);
@@ -1452,21 +1260,25 @@ async function handleSocket(socket) {
     socket_sessions[socket.id] = [];
     socket.minisrv_pc_mode = false;
     socket.setEncoding('hex'); //set data encoding (Text: 'ascii', 'utf8' ~ Binary: 'hex', 'base64' (do not trust 'binary' encoding))
-    socket.setTimeout(10800000); // 3 hours
+    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
     socket.on('data', function (data_hex) {
-        if (!socket_sessions[socket.id].secure && !socket_sessions[socket.id].expecting_post_data) {
-            // buffer unencrypted data until we see the classic double-newline, or get blank
-            if (!socket_sessions[socket.id].header_buffer) socket_sessions[socket.id].header_buffer = "";
-            socket_sessions[socket.id].header_buffer += data_hex;
-            if (socket_sessions[socket.id].header_buffer.indexOf("0d0a0d0a") != -1 || socket_sessions[socket.id].header_buffer.indexOf("0a0a") != -1) {
-                data_hex = socket_sessions[socket.id].header_buffer;
-                delete socket_sessions[socket.id].header_buffer;
+        if (socket_sessions[socket.id]) {
+            if (!socket_sessions[socket.id].secure && !socket_sessions[socket.id].expecting_post_data) {
+                // buffer unencrypted data until we see the classic double-newline, or get blank
+                if (!socket_sessions[socket.id].header_buffer) socket_sessions[socket.id].header_buffer = "";
+                socket_sessions[socket.id].header_buffer += data_hex;
+                if (socket_sessions[socket.id].header_buffer.indexOf("0d0a0d0a") != -1 || socket_sessions[socket.id].header_buffer.indexOf("0a0a") != -1) {
+                    data_hex = socket_sessions[socket.id].header_buffer;
+                    delete socket_sessions[socket.id].header_buffer;
+                    processRequest(this, data_hex);
+                }
+            } else {
+                // stream encrypted requests through the processor
+                if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
                 processRequest(this, data_hex);
             }
         } else {
-            // stream encrypted requests through the processor
-            if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
-            processRequest(this, data_hex);
+            cleanupSocket(socket);
         }
     });
 
@@ -1701,6 +1513,8 @@ bind_ports.forEach(function (v) {
 initstring = initstring.substring(0, initstring.length - 2);
 
 
+const wtvshared = new WTVShared(minisrv_config);
+const wtvmime = new WTVMime(minisrv_config);
 
 console.log(" * Started server on ports " + initstring + "...")
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";

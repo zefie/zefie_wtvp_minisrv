@@ -16,11 +16,11 @@ if (socket.ssid !== null) {
 		var client_challenge_response = request_headers["wtv-challenge-response"] || null;
 		if (challenge_response && client_challenge_response) {
 			if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
-				console.log(" * wtv-challenge-response success for " + filterSSID(socket.ssid));
+				console.log(" * wtv-challenge-response success for " + wtvshared.filterSSID(socket.ssid));
 				wtvsec_login.PrepareTicket();
 
 			} else {
-				console.log(" * wtv-challenge-response FAILED for " + filterSSID(socket.ssid));
+				console.log(" * wtv-challenge-response FAILED for " + wtvshared.filterSSID(socket.ssid));
 				if (zdebug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
 				if (zdebug) console.log("Response Received:", client_challenge_response)
 				gourl = "wtv-head-waiter:/login?reissue_challenge=true";
