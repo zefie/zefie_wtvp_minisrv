@@ -32,7 +32,7 @@ const req = https.request(options, function (res) {
 	});
 
 	res.on('error', function (e) {
-		if (!zquiet) console.log(" * Upstream Ultra Willies HTTP Error:", e);
+		if (!minisrv_config.config.debug_flags.quiet) console.log(" * Upstream Ultra Willies HTTP Error:", e);
 		var errpage = doErrorPage(400)
 		headers = errpage[0];
 		data = errpage[1];
@@ -40,7 +40,7 @@ const req = https.request(options, function (res) {
 	});
 
 	res.on('end', function () {
-		if (!zquiet) console.log(" * Upstream Ultra Willies HTTP Response:", res.statusCode, res.statusMessage);
+		if (!minisrv_config.config.debug_flags.quiet) console.log(" * Upstream Ultra Willies HTTP Response:", res.statusCode, res.statusMessage);
 		if (request_headers.query.clear_cache) {
 			headers += "\nwtv-expire-all: "+service_name;
         }

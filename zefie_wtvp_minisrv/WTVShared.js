@@ -5,6 +5,7 @@
 class WTVShared {
 
     path = require('path');
+    fs = require('fs');
     minisrv_config = [];
 
     constructor(minisrv_config) {
@@ -17,6 +18,33 @@ class WTVShared {
                 return joinArray;
             }
         }
+    }
+
+    /**
+     * Returns the Last-Modified date in Unix Timestamp format
+     * @param {string} file Path to a file
+     */
+    getFileLastModified(file) {
+        var stats = this.fs.lstatSync(file);
+        if (stats) return new Date(stats.mtimeMs);
+        return false;
+    }
+
+    /**
+     * Returns the Last-Modified date in a RFC7231 compliant UTC Date String
+     * @param {string} file Path to a file
+     */
+    getFileLastModifiedUTCString(file) {
+        return this.getFileLastModified(file).toUTCString();
+    }
+
+    /**
+     * Returns a RFC7231 compliant UTC Date String from the current time
+     * @param {Number} offset Offset from current time (+/-)
+     * @returns {string} A RFC7231 compliant UTC Date String from the current time
+     */
+    getUTCTime(offset = 0) {
+        return new Date((new Date).getTime() + offset).toUTCString();
     }
 
     /**
@@ -62,6 +90,20 @@ class WTVShared {
             path = (directory + this.path.sep + path);
         } else {
             // already absolute path
+        }
+        return path;
+    }
+
+    /**
+     * If the file ends with .gz, remove it
+     * @param {string} path
+     * @return {string} path without gz, or unmodified path if it isnt a gz
+     */
+    stripGzipFromPath(path) {
+        var path_split = path.split('.');
+        if (path_split[path_split.length - 1].toLowerCase() == "gz") {
+            path_split.pop();
+            path = path_split.join(".");
         }
         return path;
     }
