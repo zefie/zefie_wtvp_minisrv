@@ -584,29 +584,29 @@ async function sendToClient(socket, headers_obj, data) {
         }
     }
 
+    if (content_length > 0) {
+        if (socket_sessions[socket.id].wtv_request_type == "download") {
+            if (headers_obj['Content-Type'] != "wtv/download-list") {
+                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.request_url).toLowerCase() == "gz") {
+                    // we need the checksum of the uncompressed data
+                    var gunzipped = zlib.gunzipSync(data);
+                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
+                    headers_obj['wtv-uncompressed-size'] = gunzipped.byteLength;
+                    gunzipped = null;
+                } else {
+                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(data)).toString(CryptoJS.enc.Hex).toLowerCase();
+                }
+            }
+        }
+    }
+
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
     var compression_type = 0;
     if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
 
-    // disk service hack before further processing :)
-    if (socket_sessions[socket.id].wtv_request_type == "download" && content_length > 0 && headers_obj['Content-Type'] != "wtv/download-list") {
-        if (minisrv_config.config.debug_flags.debug) console.log(" * Calculating uncompressed size and checksum...");
-        if (headers_obj['Content-Type'] == "application/gzip") {
-            var gunzipped = zlib.gunzipSync(data);
-            headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
-            headers_obj['wtv-uncompressed-filesize'] = gunzipped.byteLength;
-            headers_obj['Content-Type'] = wtvmime.getSimpleContentType(wtvshared.stripGzipFromPath(socket_sessions[socket.id].request_headers.request_url));
-            gunzipped = null;
-        } else {
-            headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(data)).toString(CryptoJS.enc.Hex).toLowerCase();
-        }
-    }
-    delete socket_sessions[socket.id].wtv_request_type;
-    delete socket_sessions[socket.id].request_headers;
-
     // compress if needed
-    if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0,3) == "200") {
+    if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0, 3) == "200") {
         var uncompressed_content_length = content_length;
         switch (compression_type) {
             case 1:
@@ -641,7 +641,7 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // encrypt if needed
-    if (socket_sessions[socket.id].secure == true) {
+    if (socket_sessions[socket.id].secure == true && !socket_sessions[socket.id].do_not_encrypt) {
         headers_obj["wtv-encrypted"] = 'true';
         headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
         if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
@@ -649,6 +649,11 @@ async function sendToClient(socket, headers_obj, data) {
             var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             data = enc_data;
         }
+    }
+
+    if (socket_sessions[socket.id].do_not_encrypt) {
+        if (headers_obj["wtv-encrypted"]) delete headers_obj["wtv-encrypted"];
+        if (headers_obj["secure"]) delete headers_obj["secure"];
     }
 
     // calculate content length
@@ -676,6 +681,21 @@ async function sendToClient(socket, headers_obj, data) {
         headers_obj['http_response'] = "HTTP/1.0 " + headers_obj['http_response'];
     }
 
+/*    // wtv-request-type download wants minimal headers?
+    if (data.byteLength > 0) {
+        if (socket_sessions[socket.id].wtv_request_type == "download") {
+            if (headers_obj['Content-Type'] != "wtv/download-list") {
+                // minimalize headers
+                var new_headers = { "http_response": headers_obj['http_response'].split(" ")[0] + " " }
+                if (headers_obj['wtv-encrypted']) new_headers['wtv-encrypted'] = headers_obj['wtv-encrypted'];
+                new_headers["content-type"] = headers_obj['Content-Type'];
+                new_headers["content-length"] = headers_obj['Content-length'];
+                
+                headers_obj = new_headers;
+            }
+        }
+    }    
+*/
     // header object to string
     if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing headers on socket ID", socket.id, (await wtvshared.filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
@@ -696,16 +716,16 @@ async function sendToClient(socket, headers_obj, data) {
     var toClient = null;
     if (typeof data == 'string') {
         toClient = headers + end_of_line + data;
-        socket.write(toClient);
+        sendToSocket(socket, Buffer.from(toClient));
     } else if (typeof data == 'object') {
         if (minisrv_config.config.debug_flags.quiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
         if (socket_sessions[socket.id].secure_headers == true) {
             // encrypt headers
             if (minisrv_config.config.debug_flags.quiet) verbosity_mod += " with encrypted headers";
             var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + end_of_line);
-            socket.write(new Uint8Array(concatArrayBuffer(enc_headers, data)));
+            sendToSocket(socket, new Buffer.from(concatArrayBuffer(enc_headers, data)));
         } else {
-            socket.write(new Uint8Array(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
+            sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
         }
         if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.http_response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
     }
@@ -724,6 +744,25 @@ async function sendToClient(socket, headers_obj, data) {
         if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
             socket.destroy();
         }
+    }
+}
+
+async function sendToSocket(socket, data, chunk_offset = 0) {
+    socket.setNoDelay(true);
+    // buffer size = lesser of minisrv_config.config.chunk_size or size remaining
+    var chunk_size = 16384;
+    var buffer_size = ((data.byteLength - chunk_offset) >= chunk_size) ? chunk_size : (data.byteLength - chunk_offset);
+    var chunk = new Buffer.alloc(buffer_size);
+    data.copy(chunk, 0, chunk_offset, (chunk_offset + buffer_size));
+    if (!socket.write(chunk)) {
+        socket.once('drain', function () {
+            sendToSocket(socket, data, socket.bytesWritten);
+        });
+    } else {
+        if (socket.bytesWritten == data.byteLength) socket.end();
+        else setTimeout(function () {
+            sendToSocket(socket, data, socket.bytesWritten);
+        }, 10);
     }
 }
 
@@ -1136,10 +1175,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         console.log(" * ", Math.floor(new Date().getTime() / 1000), "Receiving", post_string, "data on", socket.id, "[", socket_sessions[socket.id].post_data.length / 2, "of", socket_sessions[socket.id].post_data_length, "bytes ]");
                     } else {
                         // calculate and display percentage of data received
-                        var getPercentage = function (partialValue, totalValue) {
-                            return Math.floor((100 * partialValue) / totalValue);
-                        }
-                        var postPercent = getPercentage(socket_sessions[socket.id].post_data.length, (socket_sessions[socket.id].post_data_length * 2));
+                        var postPercent = wtvshared.getPercentage(socket_sessions[socket.id].post_data.length, (socket_sessions[socket.id].post_data_length * 2));
                         if (minisrv_config.config.post_percentages) {
                             if (minisrv_config.config.post_percentages.includes(postPercent)) {
                                 if (!socket_sessions[socket.id].post_data_percents_shown) socket_sessions[socket.id].post_data_percents_shown = new Array();
