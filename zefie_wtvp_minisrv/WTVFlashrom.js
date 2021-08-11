@@ -9,12 +9,12 @@ class WTVFlashrom {
 	minisrv_config = [];
 
 
-	constructor(minisrv_config, service_vaults, service_name, use_zefie_server = true, bf0app_update = false, debug = false) {
+	constructor(minisrv_config, service_vaults, service_name, use_zefie_server = true, bf0app_update = false) {
 		this.service_vaults = service_vaults;
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;
 		this.bf0app_update = bf0app_update;
-		this.minisrv_config.config.debug_flags.debug = debug;
+		this.minisrv_config = minisrv_config;
 	}
 
 
@@ -179,7 +179,7 @@ class WTVFlashrom {
 				})
 
 				res.on('end', function () {
-					if (this.minisrv_config.config.debug_flags.debug) console.log(` * Zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
+					if (self.minisrv_config.config.debug_flags.debug) console.log(` * Zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
 					if (res.statusCode == 200) {
 						var data = Buffer.from(data_hex, 'hex');
 					} else if (res.statusCode == 206) {
