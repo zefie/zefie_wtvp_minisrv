@@ -300,7 +300,7 @@ async function processURL(socket, request_headers) {
                     }
                 }
             } catch (e) {
-                socket_sessions[socket.id].expecting_post_data = true;
+                // do nothing
             }
         }
 
@@ -792,6 +792,89 @@ function moveObjectElement(currentKey, afterKey, obj) {
     if (next !== -1) return result; else return obj;
 }
 
+function checkSecurity(socket) {
+    var out = null;
+    var ip2long = function (ip) {
+        var components;
+
+        if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
+            var iplong = 0;
+            var power = 1;
+            for (var i = 4; i >= 1; i -= 1) {
+                iplong += power * parseInt(components[i]);
+                power *= 256;
+            }
+            return iplong;
+        }
+        else return -1;
+    };
+
+    var isInSubnet = function (ip, subnet) {
+        var mask, base_ip, long_ip = ip2long(ip);
+        if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip2long(mask[1])) >= 0)) {
+            var freedom = Math.pow(2, 32 - parseInt(mask[2]));
+            return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+        }
+        else return false;
+    };
+
+    var rejectSSIDConnection = function (ssid, blacklist) {
+        if (blacklist) console.log(" * Request from SSID", wtvshared.filterSSID(ssid), "(" + socket.remoteAddr + "), but that SSID is in the blacklist, rejecting.");
+        else console.log(" * Request from SSID", wtvshared.filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
+
+        var errpage = doErrorPage(401, "Access to this service is denied.");
+        out = errpage;
+    }
+
+    var checkSSIDIPWhitelist = function (ssid, blacklist) {
+        var ssid_access_list_ip_override = false;
+        if (minisrv_config.config.ssid_ip_allow_list) {
+            if (minisrv_config.config.ssid_ip_allow_list[socket.ssid]) {
+                Object.keys(minisrv_config.config.ssid_ip_allow_list[socket.ssid]).forEach(function (k) {
+                    if (minisrv_config.config.ssid_ip_allow_list[socket.ssid][k].indexOf('/') > 0) {
+                        if (isInSubnet(socket.remoteAddress, minisrv_config.config.ssid_ip_allow_list[socket.ssid][k])) {
+                            // remoteAddr is in allowed subnet
+                            ssid_access_list_ip_override = true;
+                        }
+                    } else {
+                        if (socket.remoteAddress == minisrv_config.config.ssid_ip_allow_list[socket.ssid][k]) {
+                            // remoteAddr directly matches IP
+                            ssid_access_list_ip_override = true;
+                        }
+                    }
+                });
+                if (!ssid_access_list_ip_override) rejectSSIDConnection(socket.ssid, blacklist);
+            } else {
+                rejectSSIDConnection(socket.ssid, blacklist);
+            }
+        } else {
+            rejectSSIDConnection(socket.ssid, blacklist);
+        }
+        if (ssid_access_list_ip_override && zdebug) console.log(" * Request from disallowed SSID", wtvshared.filterSSID(ssid), "was allowed due to IP address whitelist");
+    }
+
+    // process whitelist first
+    if (socket.ssid && minisrv_config.config.ssid_allow_list) {
+        var ssid_is_in_whitelist = minisrv_config.config.ssid_allow_list.findIndex(element => element == socket.ssid);
+        if (ssid_is_in_whitelist == -1) {
+            // no whitelist match, but lets see if the remoteAddress is allowed
+            checkSSIDIPWhitelist(socket.ssid, false);
+        }
+    }
+
+    // now check blacklist
+    if (socket.ssid && minisrv_config.config.ssid_block_list) {
+        var ssid_is_in_blacklist = minisrv_config.config.ssid_block_list.findIndex(element => element == socket.ssid);
+        if (ssid_is_in_blacklist != -1) {
+            // blacklist match, but lets see if the remoteAddress is allowed
+            checkSSIDIPWhitelist(socket.ssid, true);
+        }
+    }
+
+    // Passed Security
+    return out;
+}
+
 function isUnencryptedString(string, verbose = false) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 
     // compressed / encrypted data as ASCII. This function checks for characters expected 
@@ -880,95 +963,20 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
             }
 
-            var ip2long = function (ip) {
-                var components;
-
-                if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
-                    var iplong = 0;
-                    var power = 1;
-                    for (var i = 4; i >= 1; i -= 1) {
-                        iplong += power * parseInt(components[i]);
-                        power *= 256;
-                    }
-                    return iplong;
-                }
-                else return -1;
-            };
-
-            var isInSubnet = function (ip, subnet) {
-                var mask, base_ip, long_ip = ip2long(ip);
-                if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip2long(mask[1])) >= 0)) {
-                    var freedom = Math.pow(2, 32 - parseInt(mask[2]));
-                    return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
-                }
-                else return false;
-            };
-
-            var rejectSSIDConnection = function (ssid, blacklist) {
-                if (blacklist) console.log(" * Request from SSID", wtvshared.filterSSID(ssid), "(" + socket.remoteAddr + "), but that SSID is in the blacklist, rejecting.");
-                else console.log(" * Request from SSID", wtvshared.filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
-
-                var errpage = doErrorPage(401, "Access to this service is denied.");
-                headers = errpage[0];
-                data = errpage[1];
+            var failed_security = checkSecurity(socket);
+            if (failed_security) {
                 socket_sessions[socket.id].close_me = true;
+                headers = failed_security[0];
+                data = failed_security[1];
             }
-
-            var checkSSIDIPWhitelist = function (ssid, blacklist) {
-                var ssid_access_list_ip_override = false;
-                if (minisrv_config.config.ssid_ip_allow_list) {
-                    if (minisrv_config.config.ssid_ip_allow_list[socket.ssid]) {
-                        Object.keys(minisrv_config.config.ssid_ip_allow_list[socket.ssid]).forEach(function (k) {
-                            if (minisrv_config.config.ssid_ip_allow_list[socket.ssid][k].indexOf('/') > 0) {
-                                if (isInSubnet(socket.remoteAddress, minisrv_config.config.ssid_ip_allow_list[socket.ssid][k])) {
-                                    // remoteAddr is in allowed subnet
-                                    ssid_access_list_ip_override = true;
-                                }
-                            } else {
-                                if (socket.remoteAddress == minisrv_config.config.ssid_ip_allow_list[socket.ssid][k]) {
-                                    // remoteAddr directly matches IP
-                                    ssid_access_list_ip_override = true;
-                                }
-                            }
-                        });
-                        if (!ssid_access_list_ip_override) rejectSSIDConnection(socket.ssid, blacklist);
-                    } else {
-                        rejectSSIDConnection(socket.ssid, blacklist);
-                    }
-                } else {
-                    rejectSSIDConnection(socket.ssid, blacklist);
-                }
-                if (ssid_access_list_ip_override && zdebug) console.log(" * Request from disallowed SSID", wtvshared.filterSSID(ssid), "was allowed due to IP address whitelist");
-            }
-
-            // process whitelist first
-            if (socket.ssid && minisrv_config.config.ssid_allow_list) {
-                var ssid_is_in_whitelist = minisrv_config.config.ssid_allow_list.findIndex(element => element == socket.ssid);
-                if (ssid_is_in_whitelist == -1) {
-                    // no whitelist match, but lets see if the remoteAddress is allowed
-                    checkSSIDIPWhitelist(socket.ssid, false);
-                }
-            }
-
-            // now check blacklist
-            if (socket.ssid && minisrv_config.config.ssid_block_list) {
-                var ssid_is_in_blacklist = minisrv_config.config.ssid_block_list.findIndex(element => element == socket.ssid);
-                if (ssid_is_in_blacklist != -1) {
-                    // blacklist match, but lets see if the remoteAddress is allowed
-                    checkSSIDIPWhitelist(socket.ssid, true);
-                }
-            }
-
-            // Passed Security
 
             if (headers["wtv-capability-flags"] != null) {
                 if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid,minisrv_config.config.hide_ssid_in_logs);
+                    ssid_sessions[socket.ssid] = new WTVClientSessionData(socket.ssid, minisrv_config.config.hide_ssid_in_logs);
                     ssid_sessions[socket.ssid].SaveIfRegistered();
                 }
                 if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
             }
-
 
             // log all client wtv- headers to the SessionData for that SSID
             // this way we can pull up client info such as wtv-client-rom-type or wtv-system-sysconfig
@@ -1191,6 +1199,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
                     // got all expected data
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                     if (socket_sessions[socket.id].secure == true) {
                         if (zdebug) console.log(" # Encrypted POST Content (SECURE ON)", "on", socket.id, "[", headers.post_data.sigBytes, "bytes ]");
@@ -1205,6 +1214,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
                 if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     // got too much data ? ... should not ever reach this code
                     var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
                     headers = errpage[0];
