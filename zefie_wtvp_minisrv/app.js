@@ -345,12 +345,7 @@ async function processURL(socket, request_headers) {
             }
 
             var reqverb = "Request";
-            if (request_headers.encrypted || request_headers.secure) {
-                reqverb = "Encrypted " + reqverb;
-            }
-            if (request_headers.psuedo_encryption) {
-                reqverb = "Psuedo-encrypted " + reqverb;
-            }
+            if (request_headers.encrypted || request_headers.secure) reqverb = "Encrypted " + reqverb;
             if (ssid != null) {
                 console.log(" * " + reqverb + " for " + request_headers.request_url + " from WebTV SSID " + (await wtvshared.filterSSID(ssid)), 'on', socket.id);
             } else {
@@ -1039,46 +1034,37 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     }
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
-                        if (isUnencryptedString(enc_data.toString(CryptoJS.enc.Latin1), (!skipSecure && !encryptedRequest))) {
-                            // some builds (like our targeted 3833), send SECURE ON but then unencrypted headers
-                            if (zdebug) console.log(" # Psuedo-encrypted Request (SECURE ON)", "on", socket.id);
-                            // don't actually encrypt output
-                            headers.psuedo_encryption = true;
-                            ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", true);
-                            socket_sessions[socket.id].secure = false;
-                            var secure_headers = await processRequest(socket, enc_data.toString(CryptoJS.enc.Hex), true, true);
-                        } else {
-                            // SECURE ON and detected encrypted data
-                            ssid_sessions[socket.ssid].set("box-does-psuedo-encryption", false);
-                            var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
-                            if (!socket_sessions[socket.id].secure_buffer) socket_sessions[socket.id].secure_buffer = "";
-                            socket_sessions[socket.id].secure_buffer += dec_data.toString(CryptoJS.enc.Hex);
-                            var secure_headers = null;
-                            if (headers['request']) {
-                                if (headers['request'] == "GET") {
-                                    if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
-                                        secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
-                                    }
-                                } else {
-                                     secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
+
+                        // SECURE ON and detected encrypted data
+                        var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
+                        if (!socket_sessions[socket.id].secure_buffer) socket_sessions[socket.id].secure_buffer = "";
+                        socket_sessions[socket.id].secure_buffer += dec_data.toString(CryptoJS.enc.Hex);
+                        var secure_headers = null;
+                        if (headers['request']) {
+                            if (headers['request'] == "GET") {
+                                if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
+                                    secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                                 }
                             } else {
-                                 secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
-                            }                            
-                            if (!secure_headers) return;
-
-                            delete socket_sessions[socket.id].secure_buffer;
-                            if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
-                            if (zshowheaders) console.log(secure_headers);
-                            if (!secure_headers.request) {
-                                socket_sessions[socket.id].secure = false;
-                                var errpage = doErrorPage(400);
-                                headers = errpage[0];
-                                data = errpage[1];
-                                sendToClient(socket, headers, data);
-                                return;
+                                secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                             }
+                        } else {
+                            secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                         }
+                        if (!secure_headers) return;
+
+                        delete socket_sessions[socket.id].secure_buffer;
+                        if (zdebug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
+                        if (zshowheaders) console.log(secure_headers);
+                        if (!secure_headers.request) {
+                            socket_sessions[socket.id].secure = false;
+                            var errpage = doErrorPage(400);
+                            headers = errpage[0];
+                            data = errpage[1];
+                            sendToClient(socket, headers, data);
+                            return;
+                        }
+
                         // Merge new headers into existing headers object
                         Object.keys(secure_headers).forEach(function (k) {
                             headers[k] = secure_headers[k];
