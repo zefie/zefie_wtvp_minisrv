@@ -447,27 +447,19 @@ class WTVLzpf {
     /**
      * Converts the data to a Javascript Buffer object
      *
-     * @param data {String|Buffer|CryptoJS.lib.WordArray} Data to convert
+     * @param data {String|Buffer} Data to convert
      *
      * @returns {Buffer} Javascript Buffer object
      */
     ConvertToBuffer(data) {
-        if (data.words) {
-            var WTVSec = require("./WTVSec.js");
-            wtvsec = new WTVSec(1);
-            data = wtvsec.wordArrayToBuffer(data);
-            WTVSec, wtvsec = null;
-        } else if (!data.byteLength) {
-            // otherwise if its not already a Buffer, convert it to one
-            data = new Buffer.from(data);
-        }
+        data = new Buffer.from(data.toString('binary'));
         return data;
     }
 
     /**
      * Compress data using WebTV's Lzpf compression algorithm and adds the footer to the end.
      *
-     * @param uncompressed_data {String|Buffer|CryptoJS.lib.WordArray} data to compress
+     * @param uncompressed_data {String|Buffer} data to compress
      *
      * @returns {Buffer} Lzpf compression data
      */
