@@ -591,6 +591,7 @@ async function sendToClient(socket, headers_obj, data) {
 
     // disk service hack before further processing :)
     if (socket_sessions[socket.id].wtv_request_type == "download" && content_length > 0) {
+        if (minisrv_config.config.debug_flags.debug) console.log(" * Calculating uncompressed size and checksum...");
         if (headers_obj['Content-Type'] == "application/gzip") {
             var gunzipped = zlib.gunzipSync(data);
             headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
