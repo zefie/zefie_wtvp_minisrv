@@ -131,6 +131,7 @@ wtv-open-isp-disabled: false
 wtv-offline-mail-enable: false
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
+wtv-name-server: 8.8.8.8
 wtv-visit: ${home_url}
 Content-Type: text/html`;
 }
