@@ -751,19 +751,20 @@ async function sendToSocket(socket, data, chunk_offset = 0) {
     socket.setNoDelay(true);
     // buffer size = lesser of minisrv_config.config.chunk_size or size remaining
     var chunk_size = 16384;
-    var buffer_size = ((data.byteLength - chunk_offset) >= chunk_size) ? chunk_size : (data.byteLength - chunk_offset);
-    var chunk = new Buffer.alloc(buffer_size);
-    data.copy(chunk, 0, chunk_offset, (chunk_offset + buffer_size));
-    if (!socket.write(chunk)) {
-        socket.once('drain', function () {
-            sendToSocket(socket, data, socket.bytesWritten);
-        });
-    } else {
-        if (socket.bytesWritten == data.byteLength) socket.end();
-        else setTimeout(function () {
-            sendToSocket(socket, data, socket.bytesWritten);
-        }, 10);
-    }
+    var can_write = true;
+    while (socket.bytesWritten != data.byteLength && can_write) {
+        var buffer_size = ((data.byteLength - chunk_offset) >= chunk_size) ? chunk_size : (data.byteLength - chunk_offset);
+        var chunk = new Buffer.alloc(buffer_size);
+        data.copy(chunk, 0, chunk_offset, (chunk_offset + buffer_size));
+        can_write = socket.write(chunk);
+        if (!can_write) {
+            socket.once('drain', function () {
+                sendToSocket(socket, data, socket.bytesWritten);
+            });
+            break;
+        }
+    }    
+    if (socket.bytesWritten == data.byteLength) socket.end();    
 }
 
 function concatArrayBuffer(buffer1, buffer2) {
