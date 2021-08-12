@@ -29,7 +29,6 @@ if (request_headers['wtv-request-type'] == 'download') {
         if (diskmap_group_data.client_group_data) {
             if (force_update || diskmap_group_data.client_group_data.state == "invalid") {
                 wtvdl.deleteGroupUpdate(diskmap_group_data.client_group_data.group, diskmap_group_data.client_group_data.path);
-                wtvdl.deleteGroup(diskmap_group_data.client_group_data.group, diskmap_group_data.client_group_data.path);
             }
 
             // delete partition/path if force, and not no_delete
@@ -38,6 +37,8 @@ if (request_headers['wtv-request-type'] == 'download') {
                 if (!diskmap_group_data.base.match(/disk\/browser(\/)?$/i)) {
                     if (diskmap_group_data.client_group_data.path.toLowerCase() == diskmap_group_data.base.toLowerCase()) {
                         wtvdl.delete(diskmap_group_data.base, null);
+                    } else {
+                        wtvdl.delete(diskmap_group_data.base, diskmap_group_data.client_group_data.group);
                     }
                 }
             }
