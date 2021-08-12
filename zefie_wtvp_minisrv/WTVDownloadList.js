@@ -147,8 +147,15 @@ class WTVDownloadList {
      * @param {string} file_permission File permissions
      */
     get(file, path, source, group, checksum = null, uncompressed_size = null, original_filename = null, file_permission = 'r') {
-        if (original_filename) this.download_list += "GET " + original_filename + "\n";
-        else this.download_list += "GET " + file + "\n";
+        if (original_filename) {
+            file = file.split('/');
+            var file_name = file[file.length - 1];
+            path = path.replace(file_name, original_filename);
+            file.pop();
+            if (file.length > 0) file = file.join('/') + '/' + original_filename;
+            else file = original_filename;
+        }
+        this.download_list += "GET " + file + "\n";
 
         this.download_list += "group: " + group + "-UPDATE\n";
         this.download_list += "location: " + source + "\n";
@@ -156,11 +163,6 @@ class WTVDownloadList {
         if (checksum != null) this.download_list += "wtv-checksum: " + checksum + "\n";
         if (uncompressed_size != null) this.download_list += "wtv-uncompressed-filesize: " + uncompressed_size + "\n";
         this.download_list += "service-source-location: /webtv/content/" + source.substr(source.indexOf('-') + 1, source.indexOf(':/') - source.indexOf('-') - 1) + "d/" + source.substr(source.indexOf(':/') + 2) + "\n";        
-        if (original_filename) {
-            file = file.split('/');
-            file = file[file.length - 1];
-            path = path.replace(file, original_filename);
-        }
         this.download_list += "client-dest-location: " + path + "\n\n";
     }
 
