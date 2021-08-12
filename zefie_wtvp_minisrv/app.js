@@ -1167,7 +1167,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             }
         } else {
             // handle streaming POST
-            if (typeof socket_sessions[socket.id].post_data != "undefined" && headers) {
+            if (socket_sessions[socket.id].expecting_post_data && headers) {
                 socket_sessions[socket.id].headers = headers;
                 if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
                     new_header_obj = null;
@@ -1213,12 +1213,14 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     } else {
                         if (minisrv_config.config.debug_flags.debug) console.log(" # Unencrypted POST Content", "on", socket.id);
                     }
+                    socket_sessions[socket.id].expecting_post_data = false;
                     delete socket_sessions[socket.id].headers;
                     delete socket_sessions[socket.id].post_data;
                     delete socket_sessions[socket.id].post_data_length;
                     processURL(socket, headers);
                     return;
                 } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
+                    socket_sessions[socket.id].expecting_post_data = false;
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                     socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     // got too much data ? ... should not ever reach this code
