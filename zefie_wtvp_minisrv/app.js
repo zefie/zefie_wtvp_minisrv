@@ -711,6 +711,11 @@ async function sendToClient(socket, headers_obj, data) {
         }
     });
 
+    if (headers_obj["Connection"]) {
+        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
+            socket_sessions[socket.id].destroy_me = true;
+        }
+    }
 
     // send to client
     var toClient = null;
@@ -729,33 +734,20 @@ async function sendToClient(socket, headers_obj, data) {
         }
         if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.http_response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
     }
-
-    if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
-    if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
-    if (socket_sessions[socket.id].secure_buffer) delete socket_sessions[socket.id].secure_buffer;
-    if (socket_sessions[socket.id].buffer) delete socket_sessions[socket.id].buffer;
-    if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
-    if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
-    if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
-    if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
-    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
-    if (socket_sessions[socket.id].close_me) socket.end();
-    if (headers_obj["Connection"]) {
-        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
-            socket.destroy();
-        }
-    }
 }
 
 async function sendToSocket(socket, data, chunk_offset = 0) {
-    socket.setNoDelay(true);
     // buffer size = lesser of minisrv_config.config.chunk_size or size remaining
     var chunk_size = 16384;
     var can_write = true;
-    while (socket.bytesWritten != data.byteLength && can_write) {
-        var buffer_size = ((data.byteLength - chunk_offset) >= chunk_size) ? chunk_size : (data.byteLength - chunk_offset);
+    var data_left = 0;
+    while (data_left != data.byteLength && can_write) {
+        var data_left = (data.byteLength - chunk_offset);
+        if (data_left === 0) break;
+
+        var buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
         var chunk = new Buffer.alloc(buffer_size);
-        data.copy(chunk, 0, chunk_offset, (chunk_offset + buffer_size));
+        chunk_offset += data.copy(chunk, 0, chunk_offset, (chunk_offset + buffer_size));
         can_write = socket.write(chunk);
         if (!can_write) {
             socket.once('drain', function () {
@@ -763,8 +755,20 @@ async function sendToSocket(socket, data, chunk_offset = 0) {
             });
             break;
         }
-    }    
-    if (socket.bytesWritten == data.byteLength) socket.end();    
+    }
+    if (data_left == data.byteLength) {
+        if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+        if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
+        if (socket_sessions[socket.id].secure_buffer) delete socket_sessions[socket.id].secure_buffer;
+        if (socket_sessions[socket.id].buffer) delete socket_sessions[socket.id].buffer;
+        if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
+        if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
+        if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
+        if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
+        socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
+        if (socket_sessions[socket.id].close_me) socket.end();
+        if (socket_sessions[socket.id].destroy_me) socket.destroy();
+    }
 }
 
 function concatArrayBuffer(buffer1, buffer2) {
