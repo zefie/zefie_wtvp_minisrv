@@ -737,7 +737,6 @@ async function sendToClient(socket, headers_obj, data) {
 }
 
 async function sendToSocket(socket, data) {
-    // buffer size = lesser of minisrv_config.config.chunk_size or size remaining
     var chunk_size = 16384;
     var can_write = true;
     var expected_data_out = 0;
@@ -746,6 +745,7 @@ async function sendToSocket(socket, data) {
         if (socket.bytesWritten == expected_data_out) break;
 
         var data_left = (expected_data_out - socket.bytesWritten);
+        // buffer size = lesser of chunk_size or size remaining
         var buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
         var offset = (data.byteLength - data_left);
         var chunk = new Buffer.alloc(buffer_size);
