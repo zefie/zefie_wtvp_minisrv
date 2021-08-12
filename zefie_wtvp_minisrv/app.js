@@ -610,8 +610,10 @@ async function sendToClient(socket, headers_obj, data) {
     var compression_type = 0;
     if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
     if (socket_sessions[socket.id].request_headers.query) {
-        if (socket_sessions[socket.id].request_headers.query.dont_compress) {
-            compression_type = 0;
+        if (socket_sessions[socket.id].wtv_request_type == "download") {
+            if (socket_sessions[socket.id].request_headers.query.dont_compress) {
+                compression_type = 0;
+            }
         }
     }
 
