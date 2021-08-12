@@ -78,7 +78,9 @@ if (request_headers['wtv-request-type'] == 'download') {
                         break;
 
                     case "GET":
-                        wtvdl.get(update_list[k].file.replace(diskmap_group_data.base, ""), update_list[k].file, service_name + ":/" + update_list[k].location, diskmap_group_name, update_list[k].checksum, update_list[k].uncompressed_size || null, update_list[k].original_filename)
+                        var get_url = service_name + ":/" + update_list[k].location;
+                        if (update_list[k].compress === false) get_url += "?dont_compress=true";
+                        wtvdl.get(update_list[k].file.replace(diskmap_group_data.base, ""), update_list[k].file, get_url, diskmap_group_name, update_list[k].checksum, update_list[k].uncompressed_size || null, update_list[k].original_filename)
                         break;
                 }
             });

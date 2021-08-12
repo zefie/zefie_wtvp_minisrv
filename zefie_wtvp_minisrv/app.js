@@ -609,6 +609,11 @@ async function sendToClient(socket, headers_obj, data) {
     // small files actually get larger, so don't compress them
     var compression_type = 0;
     if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
+    if (socket_sessions[socket.id].request_headers.query) {
+        if (socket_sessions[socket.id].request_headers.query.dont_compress) {
+            compression_type = 0;
+        }
+    }
 
     // compress if needed
     if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0, 3) == "200") {
