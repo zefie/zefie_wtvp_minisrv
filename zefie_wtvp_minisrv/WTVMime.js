@@ -40,9 +40,9 @@ class WTVMime {
                         // if gzip is enabled...
                         if (this.minisrv_config.config.enable_gzip_compression || this.minisrv_config.config.force_compression_type) {
                             var is_bf0app = ssid_session.get("wtv-client-rom-type") == "bf0app";
-                            var is_minibrowser = (ssid_session.get("wtv-needs-upgrade") || ssid_session.get("wtv-used-8675309"));
+                            var is_oldBuild = this.wtvshared.isOldBuild(ssid_session);
                             var is_softmodem = ssid_session.get("wtv-client-rom-type").match(/softmodem/);
-                            if (!is_bf0app && ((!is_softmodem && !is_minibrowser) || (is_softmodem && !is_minibrowser))) {
+                            if (!is_bf0app && ((!is_softmodem && !is_oldBuild) || (is_softmodem && !is_oldBuild))) {
                                 // softmodem boxes do not appear to support gzip in the minibrowser
                                 // LC2 appears to support gzip even in the MiniBrowser
                                 // LC2 and newer approms appear to support gzip
@@ -73,10 +73,11 @@ class WTVMime {
                         else if (content_type == "application/json") compress_data = true;
                         if (compression_type == 2) {
                             // gzip only
-                            if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]$/)) compress_data = true; // s3m, mod, xm
-                            if (content_type.match(/^audio\/(x-)?[midi|wav|wave]$/)) compress_data = true; // midi & wav
+                            if (content_type.match(/^audio\/(x-)?(s3m|mod|xm)$/)) compress_data = true; // s3m, mod, xm
+                            if (content_type.match(/^audio\/(x-)?(midi|wav|wave|aif(f)?)$/)) compress_data = true; // midi & wav
                             if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms    
                             if (content_type.match(/^binary\/doom-data$/)) compress_data = true; // DOOM WADs
+                            if (content_type.match(/^wtv\/download-list$/)) compress_data = true; // WebTV Download List
                         }
                     }
                 }

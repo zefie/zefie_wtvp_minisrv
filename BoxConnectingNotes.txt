@@ -1,0 +1,16 @@
+- "Dialing toll-free" (hereby "ANI Number") is usually:
+  - 18006138199 (production
+  - 18004653537 (daily)
+  - 16506944611 (genesis/genpak)
+
+- If you have a enhanced 56k modem setup, do NOT let the ANI Number call answer anything above v34 (33600)
+
+- Production will look for a service at 10.0.0.1, and fall back to 10.0.0.2
+- Daily (debug or non-debug) will look for a service at 10.0.128.1
+- Builds default to their respective service (eg daily builds will try to connect to 10.0.128.1)
+
+- Once box has a tellyscript, service IP is retained.
+- Trigger ANI call by removing and restoring power, and choosing "Moved" or "New Number", don't always need to blast NV
+
+- PO Code 32768 to Blast NVRAM
+- PO Code 77437 to override ANI Number (and/or service number)

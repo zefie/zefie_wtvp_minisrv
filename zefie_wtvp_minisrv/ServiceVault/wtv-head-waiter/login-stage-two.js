@@ -128,7 +128,7 @@ wtv-fader-timeout: 900
 wtv-tourist-enabled: true`
 	headers += "\nwtv-relogin-url: wtv-head-waiter:/relogin?relogin=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
-	headers += "\nwtv-reconnect-url: wtv-head-waiter:/relogin?reconnect=true";
+	headers += "\nwtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
 	headers += "\nwtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
@@ -147,7 +147,8 @@ wtv-open-isp-disabled: false
 wtv-offline-mail-enable: false
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
-wtv-name-server: 8.8.8.8
-wtv-visit: ${home_url}
-Content-Type: text/html`;
+wtv-name-server: 8.8.8.8`;
+
+	if (!request_headers.query.reconnect) headers += "\nwtv-visit: " + home_url;
+	headers += "\nContent-Type: text/html";
 }
