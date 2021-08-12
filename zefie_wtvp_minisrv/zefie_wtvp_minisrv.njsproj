@@ -32,6 +32,9 @@
     <Content Include=".gitignore" />
     <Content Include="app.js" />
     <Content Include="config.json" />
+    <Content Include="diskmap_gen.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\http_pc\get.js" />
     <Content Include="ServiceVault\http_pc\index.js" />
     <Content Include="ServiceVault\wtv-1800\noflash.js" />
@@ -53,6 +56,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-disk\content\diskmaps\ModemFirmware.json" />
+    <Content Include="ServiceVault\wtv-disk\delete-group.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-disk\userstore.js">
       <SubType>Code</SubType>
     </Content>
@@ -216,23 +222,11 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\register.js" />
-    <Content Include="ServiceVault\wtv-register\ServeAgreementDeclinePage.js">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="ServiceVault\wtv-register\ServeLegal.js">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="ServiceVault\wtv-register\ValidateAccountInfo.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\ValidateAgreement.js" />
-    <Content Include="ServiceVault\wtv-register\ShowTOS.js">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="ServiceVault\wtv-register\ValidateReviewAccountInfo.js">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="ServiceVault\wtv-register\ValidateWelcome.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\splash.js" />

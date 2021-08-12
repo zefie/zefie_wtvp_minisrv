@@ -351,7 +351,7 @@ main()
     
     flush();
     
-    setprogresstext("Dialing your hacky modem...");
+    setprogresstext("Dialing HackTV...");
     setprogresspercentage(32);
     setprogressdirty(1);
     

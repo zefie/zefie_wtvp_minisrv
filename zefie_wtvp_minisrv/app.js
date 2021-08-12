@@ -98,7 +98,7 @@ function doErrorPage(code, data = null, pc_mode = false) {
             headers += "Content-Type: text/html\n";
             break;
     }
-    console.error("doErrorPage Called:", code, data);
+    console.error(" * doErrorPage Called:", code, data);
     return new Array(headers, data);
 }
 
@@ -577,33 +577,29 @@ async function sendToClient(socket, headers_obj, data) {
     // Add last modified if not a dynamic script
     if (socket_sessions[socket.id]) {
         if (socket_sessions[socket.id].request_headers) {
-            if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js") {
-                var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
-                if (last_modified) headers_obj["Last-Modified"] = last_modified;
-            }
-        }
-    }
-
-    if (content_length > 0) {
-        if (socket_sessions[socket.id].wtv_request_type == "download") {
-            if (headers_obj['Content-Type'] != "wtv/download-list") {
-                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.request_url).toLowerCase() == "gz") {
-                    // we need the checksum of the uncompressed data
-                    var gunzipped = zlib.gunzipSync(data);
-                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
-                    headers_obj['wtv-uncompressed-size'] = gunzipped.byteLength;
-                    gunzipped = null;
-                } else {
-                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(data)).toString(CryptoJS.enc.Hex).toLowerCase();
+            if (socket_sessions[socket.id].request_headers.service_file_path) {
+                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js") {
+                    var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
+                    if (last_modified) headers_obj["Last-Modified"] = last_modified;
                 }
             }
         }
     }
+   
 
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
     var compression_type = 0;
     if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
+    if (socket_sessions[socket.id].request_headers) {
+        if (socket_sessions[socket.id].request_headers.query) {
+            if (socket_sessions[socket.id].wtv_request_type == "download") {
+                if (socket_sessions[socket.id].request_headers.query.dont_compress) {
+                    compression_type = 0;
+                }
+            }
+        }
+    }
 
     // compress if needed
     if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0, 3) == "200") {
@@ -618,11 +614,11 @@ async function sendToClient(socket, headers_obj, data) {
                 break;
 
             case 2:
-                // zlib gzip implementation
-                headers_obj['Content-Encoding'] = 'gzip';
-                data = zlib.gzipSync(data, {
-                    'level': 9
-                });
+                // zlib DEFLATE implementation
+                var zlib_options = { 'level': 9 };
+                if (uncompressed_content_length > 4194304) zlib_options.strategy = 2;
+                headers_obj['Content-Encoding'] = 'deflate';
+                data = zlib.deflateSync(data, zlib_options);
                 break;
         }
 
@@ -637,7 +633,7 @@ async function sendToClient(socket, headers_obj, data) {
         }
         var compression_ratio = (uncompressed_content_length / compressed_content_length).toFixed(2);
         var compression_percentage = ((1 - (compressed_content_length / uncompressed_content_length)) * 100).toFixed(1);
-        if (uncompressed_content_length != compressed_content_length) if (minisrv_config.config.debug_flags.debug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_ratio, "Saved:", compression_percentage.toString() + "%");
+        if (uncompressed_content_length != compressed_content_length) if (minisrv_config.config.debug_flags.debug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_ratio, "~ Saved:", compression_percentage.toString() + "%");
     }
 
     // encrypt if needed
@@ -737,16 +733,22 @@ async function sendToClient(socket, headers_obj, data) {
 }
 
 async function sendToSocket(socket, data) {
-    // buffer size = lesser of minisrv_config.config.chunk_size or size remaining
     var chunk_size = 16384;
     var can_write = true;
+    var close_socket = false;
     var expected_data_out = 0;
     while ((socket.bytesWritten == 0 || socket.bytesWritten != expected_data_out) && can_write) {
         if (expected_data_out === 0) expected_data_out = data.byteLength + (socket_sessions[socket.id].socket_total_written || 0);
         if (socket.bytesWritten == expected_data_out) break;
 
         var data_left = (expected_data_out - socket.bytesWritten);
+        // buffer size = lesser of chunk_size or size remaining
         var buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
+        if (buffer_size < 0) {
+            socket.destroy();
+            close_socket = true;
+            break;
+        }
         var offset = (data.byteLength - data_left);
         var chunk = new Buffer.alloc(buffer_size);
         data.copy(chunk, 0, offset, (offset + buffer_size));
@@ -758,7 +760,7 @@ async function sendToSocket(socket, data) {
             break;
         }
     }
-    if (socket.bytesWritten == expected_data_out) {
+    if (socket.bytesWritten == expected_data_out || close_socket) {
         socket_sessions[socket.id].socket_total_written = socket.bytesWritten;
         if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
         if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
@@ -1161,7 +1163,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             }
         } else {
             // handle streaming POST
-            if (typeof socket_sessions[socket.id].post_data != "undefined" && headers) {
+            if (socket_sessions[socket.id].expecting_post_data && headers) {
                 socket_sessions[socket.id].headers = headers;
                 if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
                     new_header_obj = null;
@@ -1207,12 +1209,14 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     } else {
                         if (minisrv_config.config.debug_flags.debug) console.log(" # Unencrypted POST Content", "on", socket.id);
                     }
+                    socket_sessions[socket.id].expecting_post_data = false;
                     delete socket_sessions[socket.id].headers;
                     delete socket_sessions[socket.id].post_data;
                     delete socket_sessions[socket.id].post_data_length;
                     processURL(socket, headers);
                     return;
                 } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
+                    socket_sessions[socket.id].expecting_post_data = false;
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                     socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     // got too much data ? ... should not ever reach this code
@@ -1298,7 +1302,7 @@ async function cleanupSocket(socket) {
 
             if (ssid_sessions[socket.ssid].currentConnections() === 0) {
                 // clean up possible minibrowser session data
-                if (ssid_sessions[socket.ssid].get("wtv-needs-upgrade")) ssid_sessions[socket.ssid].delete("wtv-needs-upgrade");
+                if (ssid_sessions[socket.ssid].get("wtv-need-upgrade")) ssid_sessions[socket.ssid].delete("wtv-need-upgrade");
                 if (ssid_sessions[socket.ssid].get("wtv-used-8675309")) ssid_sessions[socket.ssid].delete("wtv-used-8675309");
 
                 // set timer to destroy entirety of session data if client does not return in X time
@@ -1370,32 +1374,6 @@ async function handleSocket(socket) {
     });
 }
 
-function integrateConfig(main, user) {
-    Object.keys(user).forEach(function (k) {
-        if (typeof (user[k]) == 'object' && user[k] != null) {
-            // new entry
-            if (!main[k]) main[k] = new Array();
-            // go down the rabbit hole
-            main[k] = integrateConfig(main[k], user[k]);
-        } else {
-            // update main config
-            main[k] = user[k];
-        }
-    });
-    return main;
-}
-
-function returnAbsolutePath(check_path) {
-    if (check_path.substring(0, 1) != path.sep && check_path.substring(1, 1) != ":") {
-        // non-absolute path, so use current directory as base
-        check_path = (__dirname + path.sep + check_path);
-    } else {
-        // already absolute path
-    }
-    return check_path;
-}
-
-
 function getGitRevision() {
     try {
         const rev = fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + "HEAD").toString().trim();
@@ -1414,46 +1392,24 @@ var git_commit = getGitRevision()
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 if (git_commit) console.log("**** Welcome to " + z_title + " (git " + git_commit + ") ****");
 else console.log("**** Welcome to " + z_title + " ****");
-console.log(" *** Reading global configuration...");
-try {
-    var minisrv_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "config.json"));
-    if (git_commit) {
-        minisrv_config.config.git_commit = git_commit;
-        delete this.git_commit;
-    }
-} catch (e) {
-    throw ("ERROR: Could not read config.json", e);
+
+const wtvshared = new WTVShared(); // creates minisrv_config
+var minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
+const wtvmime = new WTVMime(minisrv_config);
+
+if (git_commit) {
+    minisrv_config.config.git_commit = git_commit;
+    delete this.git_commit;
 }
 
-try {
-    if (fs.lstatSync(__dirname + "/user_config.json")) {
-        console.log(" *** Reading user configuration...");
-        try {
-            var minisrv_user_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "user_config.json"));
-        } catch (e) {
-            console.error("ERROR: Could not read user_config.json", e);
-            var throw_me = true;
-        }
-        // file exists and we read and parsed it, but the variable is undefined
-        // Likely a syntax parser error that did not trip the exception check above
-        try {
-            minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
-        } catch (e) {
-            console.error("ERROR: Could not read user_config.json", e);
-        }
-    }
-} catch (e) {
-    if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
-}
-
-if (throw_me) {
+if (!minisrv_config) {
     throw ("An error has occured while reading the configuration files.");
 }
 
 var service_vaults = new Array();
 if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
-        var service_vault = returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
+        var service_vault = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
         service_vaults.push(service_vault);
         console.log(" * Configured Service Vault at", service_vault, "with priority",(parseInt(k)+1));
     })
@@ -1462,7 +1418,7 @@ if (minisrv_config.config.ServiceVaults) {
 }
 
 if (minisrv_config.config.SessionStore) {
-    var SessionStore = returnAbsolutePath(minisrv_config.config.SessionStore);
+    var SessionStore = wtvshared.returnAbsolutePath(minisrv_config.config.SessionStore);
     console.log(" * Configured Session Storage at", SessionStore);
 } else {
     throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
@@ -1511,7 +1467,7 @@ if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config
 
 minisrv_config.version = require('./package.json').version;
 if (minisrv_config.config.error_log_file) {
-    var error_log_stream = fs.createWriteStream(returnAbsolutePath(minisrv_config.config.error_log_file), { flags: 'a' });
+    var error_log_stream = fs.createWriteStream(wtvshared.returnAbsolutePath(minisrv_config.config.error_log_file), { flags: 'a' });
     var process_stderr = process.stderr.write;
     var writeError = function() {
         process_stderr.apply(process.stderr, arguments);
@@ -1582,9 +1538,6 @@ bind_ports.forEach(function (v) {
 });
 initstring = initstring.substring(0, initstring.length - 2);
 
-
-const wtvshared = new WTVShared(minisrv_config);
-const wtvmime = new WTVMime(minisrv_config);
 
 console.log(" * Started server on ports " + initstring + "...")
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
