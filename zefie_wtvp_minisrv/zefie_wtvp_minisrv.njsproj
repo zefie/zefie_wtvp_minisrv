@@ -53,6 +53,9 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-disk\content\diskmaps\ModemFirmware.json" />
+    <Content Include="ServiceVault\wtv-disk\delete-group.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-disk\userstore.js">
       <SubType>Code</SubType>
     </Content>
