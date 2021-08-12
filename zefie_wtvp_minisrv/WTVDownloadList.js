@@ -101,12 +101,14 @@ class WTVDownloadList {
     /**
      * Adds a DELETE command to the download list
      * @param {string} path Non-absolute path of client destination file (relative to group base) if group defined, otherwise absolute file://Disk/ path to delete
-     * @param {string} group Group to which it belongs
+     * @param {string|null} group Group to which it belongs
+     * @param {string|null} original_filename Use this filename (useful if WTV GZ)
      */
-    delete(path, group = null) {
-        path = this.wtvshared.stripGzipFromPath(path);
+    delete(path, group = null, original_filename = null) {
+        path = this.checkOriginalName(path, original_filename);
         this.download_list += "DELETE " + path + "\n";
-        if (group !== null) this.download_list += "group: " + group + "\n\n";
+        if (group) this.download_list += "group: " + group + "\n\n";
+        else (this.download_list) += "\n";
     }
 
     /**
@@ -142,8 +144,9 @@ class WTVDownloadList {
      * @param {string} path Absolute file://Disk/ path of destination
      * @param {string} source wtv-url to fetch file from
      * @param {string} group Group this file belongs to
-     * @param {string} display Message to display while working on this file
-     * @param {string} checksum md5sum of the file
+     * @param {string|null} checksum md5sum of the file
+     * @param {string|null} uncompressed_size Uncompressed size of gzip file
+     * @param {string|null} original_filename Use this filename (useful if WTV GZ)
      * @param {string} file_permission File permissions
      */
     get(file, path, source, group, checksum = null, uncompressed_size = null, original_filename = null, file_permission = 'r') {
@@ -167,15 +170,53 @@ class WTVDownloadList {
     }
 
     /**
+     * Helper function for WTV GZIP, if original_name is set, use this filename instead of the name in the path
+     * @param {string} path
+     * @param {string} original_name
+     * @returns {string} Path, with filename replaces by original_name, or just path if original_name = null
+     */
+    checkOriginalName(path, original_name) {
+        if (original_name) {
+            var tmp = this.wtvshared.getFilePath(path);
+            if (tmp.length > 0) return tmp + "/" + original_name;
+            return original_name
+        } else return path;
+    }
+
+    getGroupDataFromClientPost(post_data) {
+        if (typeof post_data == 'string') post_data = post_data.split("\n\n");
+        var group_data = [];
+        var i = 0;
+        post_data.forEach(function (v) {
+            if (v.substr(0, 4) == "file") {
+                var block_split = v.split("\n");
+                var group_data_entry = {};
+                group_data_entry.path = block_split[0];
+                block_split.forEach(function (block_section) {
+                    if (block_section.indexOf(": ") > 0) {
+                        var block_section_split = block_section.split(": ");
+                        group_data_entry[block_section_split[0]] = block_section_split[1];
+                    }
+                });
+                group_data[group_data_entry.group] = group_data_entry;
+            }
+        });
+        return group_data;
+    }
+
+    /**
      * Adds a RENAME command to the download list
      * @param {string} srcfile Non-absolute path of client source file (relative to source group base)
      * @param {string} destfile Non-absolute path of client destination file (relative to destination group base)
      * @param {string} srcgroup Source Group
      * @param {string} destgroup Destination Group
+     * @param {string} original_filename Use this filename (useful if WTV GZ)
      */
-    rename(srcfile, destfile, srcgroup, destgroup) {
-        srcfile = this.wtvshared.stripGzipFromPath(srcfile);
-        destfile = this.wtvshared.stripGzipFromPath(destfile);
+    rename(srcfile, destfile, srcgroup, destgroup, original_filename = null) {
+        if (original_filename) {
+            srcfile = this.checkOriginalName(srcfile, original_filename);
+            destfile = this.checkOriginalName(srcfile, original_filename);
+        }
         this.download_list += "RENAME " + srcfile + "\n";
         this.download_list += "group: " + srcgroup + "-UPDATE\n";
         this.download_list += "destination-group: " + destgroup + "\n";
@@ -227,7 +268,7 @@ class WTVDownloadList {
     * @param {string|null} url Use your own URL for client:fetch?source= instead of our generated one
     * @returns {string} HTML Download Page
     */
-    getSyncPage(title, group, diskmap = null, main_message = null, message = null, force_update = null, success_url = null, fail_url = null, url = null) {
+    getSyncPage(title, group, diskmap = null, main_message = null, message = null, force_update = null, dont_delete_files = null, success_url = null, fail_url = null, url = null) {
         // Begin Set defaults
         if (main_message === null) main_message = "Your receiver is downloading files.";
 
@@ -235,7 +276,10 @@ class WTVDownloadList {
 
         if (force_update === null) force_update = false;
 
-        if (url === null) url = this.service_name + ":/sync?diskmap=" + escape(diskmap) + "&force=" + force_update;
+        if (url === null) url = this.service_name + ":/sync?diskmap=" + escape(diskmap);
+
+        if (force_update) url += "&force=" + force_update;
+        if (dont_delete_files) url += "&dont_delete_files=" + dont_delete_files;
 
         if (success_url === null) success_url = new this.clientShowAlert({
             'image': this.minisrv_config.config.service_logo,

@@ -4,12 +4,13 @@ if (request_headers.query.group) {
     if (request_headers['wtv-request-type']) {
         headers = "200 OK\nContent-Type: " + wtvdl.content_type;
         wtvdl.deleteGroup(request_headers.query.group);
+        wtvdl.deleteGroupUpdate(request_headers.query.group);
         data = wtvdl.getDownloadList();
     }
     var title = "Deleting group"
     var message = title + " " + request_headers.query.group;
     headers = "200 OK\nContent-Type: text/html"
-    data = wtvdl.getSyncPage(title, request_headers.query.group, "delete", message, message, null, "client:goback", "client:goback", "wtv-disk:/delete-group");
+    data = wtvdl.getSyncPage(title, request_headers.query.group, "delete", message, message, null, null, "client:goback", "client:goback", "wtv-disk:/delete-group");
 } else {
     headers = "200 OK\nContent-Type: text/html"
     data = `

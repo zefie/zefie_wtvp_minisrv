@@ -32,6 +32,9 @@
     <Content Include=".gitignore" />
     <Content Include="app.js" />
     <Content Include="config.json" />
+    <Content Include="diskmap_gen.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\http_pc\get.js" />
     <Content Include="ServiceVault\http_pc\index.js" />
     <Content Include="ServiceVault\wtv-1800\noflash.js" />
