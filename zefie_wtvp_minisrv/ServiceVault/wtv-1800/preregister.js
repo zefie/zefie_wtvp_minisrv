@@ -117,13 +117,14 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 
 	if (request_headers.query.reconnect) gourl = null;
 
-	if (!file_path != null && !minisrv_config.config.debug_flags.quiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
-
 	if (request_headers.query.guest_login) {
 		send_tellyscript = false;
 		if (gourl != null) gourl += "&guest_login=true"
 		if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 	}
+
+	if (!file_path != null && send_tellyscript && !minisrv_config.config.debug_flags.quiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
+
 
 	headers = "200 OK\n"
 	if (bf0app_update) headers += "minisrv-use-carriage-return: false\n";

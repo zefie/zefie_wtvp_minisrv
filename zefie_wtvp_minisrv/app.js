@@ -721,21 +721,58 @@ async function sendToClient(socket, headers_obj, data) {
     var toClient = null;
     if (typeof data == 'string') {
         toClient = headers + end_of_line + data;
-        socket.write(Buffer.from(toClient));
+        sendToSocket(socket, Buffer.from(toClient));
     } else if (typeof data == 'object') {
         if (minisrv_config.config.debug_flags.quiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
         if (socket_sessions[socket.id].secure_headers == true) {
             // encrypt headers
             if (minisrv_config.config.debug_flags.quiet) verbosity_mod += " with encrypted headers";
             var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + end_of_line);
-            socket.write(new Buffer.from(concatArrayBuffer(enc_headers, data)));
+            sendToSocket(socket, new Buffer.from(concatArrayBuffer(enc_headers, data)));
         } else {
-            socket.write(new Buffer.from(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
+            sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
         }
         if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.http_response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
     }
 }
 
+async function sendToSocket(socket, data) {
+    // buffer size = lesser of minisrv_config.config.chunk_size or size remaining
+    var chunk_size = 16384;
+    var can_write = true;
+    var expected_data_out = 0;
+    while ((socket.bytesWritten == 0 || socket.bytesWritten != expected_data_out) && can_write) {
+        if (expected_data_out === 0) expected_data_out = data.byteLength + (socket_sessions[socket.id].socket_total_written || 0);
+        if (socket.bytesWritten == expected_data_out) break;
+
+        var data_left = (expected_data_out - socket.bytesWritten);
+        var buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
+        var offset = (data.byteLength - data_left);
+        var chunk = new Buffer.alloc(buffer_size);
+        data.copy(chunk, 0, offset, (offset + buffer_size));
+        can_write = socket.write(chunk);
+        if (!can_write) {
+            socket.once('drain', function () {
+                sendToSocket(socket, data);
+            });
+            break;
+        }
+    }
+    if (socket.bytesWritten == expected_data_out) {
+        socket_sessions[socket.id].socket_total_written = socket.bytesWritten;
+        if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+        if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
+        if (socket_sessions[socket.id].secure_buffer) delete socket_sessions[socket.id].secure_buffer;
+        if (socket_sessions[socket.id].buffer) delete socket_sessions[socket.id].buffer;
+        if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
+        if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
+        if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
+        if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
+        socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
+        if (socket_sessions[socket.id].close_me) socket.end();
+        if (socket_sessions[socket.id].destroy_me) socket.destroy();
+    }
+}
 
 function concatArrayBuffer(buffer1, buffer2) {
     var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);

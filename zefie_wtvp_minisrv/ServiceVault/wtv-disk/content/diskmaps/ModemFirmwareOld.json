@@ -8,9 +8,9 @@
     "files": [
       {
         "file": "file://Disk/Browser/Modem_Firmware/Locale/en-US/modem_firmware.dat.gz",
-        "location": "content/Modem_Firmware/Locale/en-US/v90/modem_firmware.dat.gz"
+        "location": "content/Modem_Firmware/Locale/en-US/kflex/modem_firmware.dat.gz"
       },
-	  {
+      {
         "file": "file://Disk/Browser/Modem_Firmware/Locale/ja-JP/modem_firmware.dat.gz"
       }
    ]
