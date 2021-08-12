@@ -739,6 +739,7 @@ async function sendToClient(socket, headers_obj, data) {
 async function sendToSocket(socket, data) {
     var chunk_size = 16384;
     var can_write = true;
+    var close_socket = false;
     var expected_data_out = 0;
     while ((socket.bytesWritten == 0 || socket.bytesWritten != expected_data_out) && can_write) {
         if (expected_data_out === 0) expected_data_out = data.byteLength + (socket_sessions[socket.id].socket_total_written || 0);
@@ -747,6 +748,11 @@ async function sendToSocket(socket, data) {
         var data_left = (expected_data_out - socket.bytesWritten);
         // buffer size = lesser of chunk_size or size remaining
         var buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
+        if (buffer_size < 0) {
+            socket.destroy();
+            close_socket = true;
+            break;
+        }
         var offset = (data.byteLength - data_left);
         var chunk = new Buffer.alloc(buffer_size);
         data.copy(chunk, 0, offset, (offset + buffer_size));
@@ -758,7 +764,7 @@ async function sendToSocket(socket, data) {
             break;
         }
     }
-    if (socket.bytesWritten == expected_data_out) {
+    if (socket.bytesWritten == expected_data_out || close_socket) {
         socket_sessions[socket.id].socket_total_written = socket.bytesWritten;
         if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
         if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
