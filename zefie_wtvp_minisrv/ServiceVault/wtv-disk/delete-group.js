@@ -17,7 +17,7 @@ if (request_headers.query.group) {
 <head>
 <title>Delete a DiskMap Group</title>
 </head>
-<body bgcolor="black" text="gold" vlink"gold" alink="gold" link="gold">
+<body bgcolor="black" text="gold" vlink="gold" alink="gold" link="gold">
 <form action="delete-group">
 <input type="text" usestyle name="group">
 <input type="submit" usestyle value="Delete">
