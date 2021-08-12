@@ -146,16 +146,23 @@ class WTVDownloadList {
      * @param {string} checksum md5sum of the file
      * @param {string} file_permission File permissions
      */
-    get(file, path, source, group, checksum = null, uncompressed_size = null, file_permission = 'r') {
-        file = this.wtvshared.stripGzipFromPath(file);
+    get(file, path, source, group, checksum = null, uncompressed_size = null, original_filename = null, file_permission = 'r') {
+        if (original_filename) {
+            file = file.split('/');
+            var file_name = file[file.length - 1];
+            path = path.replace(file_name, original_filename);
+            file.pop();
+            if (file.length > 0) file = file.join('/') + '/' + original_filename;
+            else file = original_filename;
+        }
         this.download_list += "GET " + file + "\n";
+
         this.download_list += "group: " + group + "-UPDATE\n";
         this.download_list += "location: " + source + "\n";
         this.download_list += "file-permission: " + file_permission + "\n";
         if (checksum != null) this.download_list += "wtv-checksum: " + checksum + "\n";
         if (uncompressed_size != null) this.download_list += "wtv-uncompressed-filesize: " + uncompressed_size + "\n";
-        this.download_list += "service-source-location: /webtv/content/" + source.substr(source.indexOf('-') + 1, source.indexOf(':/') - source.indexOf('-') - 1) + "d/" + source.substr(source.indexOf(':/') + 2) + "\n";
-        path = this.wtvshared.stripGzipFromPath(path);
+        this.download_list += "service-source-location: /webtv/content/" + source.substr(source.indexOf('-') + 1, source.indexOf(':/') - source.indexOf('-') - 1) + "d/" + source.substr(source.indexOf(':/') + 2) + "\n";        
         this.download_list += "client-dest-location: " + path + "\n\n";
     }
 
@@ -241,7 +248,7 @@ class WTVDownloadList {
         if (fail_url === null) fail_url = new this.clientShowAlert({
             'image': this.minisrv_config.config.service_logo,
             'message': "Download failed...",
-            'buttonlabel1': "Okay...",
+            'buttonlabel1': "Fuck!",
             'buttonaction1': "client:goback",
             'noback': true,
         }).getURL();

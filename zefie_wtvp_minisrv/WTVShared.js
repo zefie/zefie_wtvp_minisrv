@@ -95,6 +95,16 @@ class WTVShared {
     }
 
     /**
+     * Returns a percentage
+     * @param {number} partialValue
+     * @param {number} totalValue
+     * @returns {number} percentage
+     */
+    getPercentage = function (partialValue, totalValue) {
+        return Math.floor((100 * partialValue) / totalValue);
+    }
+
+    /**
      * If the file ends with .gz, remove it
      * @param {string} path
      * @return {string} path without gz, or unmodified path if it isnt a gz

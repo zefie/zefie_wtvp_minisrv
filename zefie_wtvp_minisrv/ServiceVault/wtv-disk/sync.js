@@ -57,7 +57,7 @@ if (request_headers['wtv-request-type'] == 'download') {
                         break;
 
                     case "GET":
-                        wtvdl.get(update_list[k].file.replace(diskmap_data.base, ""), update_list[k].file, service_name + ":/" + update_list[k].location, diskmap_group_data, update_list[k].checksum)
+                        wtvdl.get(update_list[k].file.replace(diskmap_data.base, ""), update_list[k].file, service_name + ":/" + update_list[k].location, diskmap_group_data, update_list[k].checksum, update_list[k].uncompressed_size || null, update_list[k].original_filename)
                         break;
                 }
             });
@@ -188,6 +188,8 @@ if (request_headers['wtv-request-type'] == 'download') {
                 if (!fs.existsSync(post_match_file)) post_match_file = null;
             });
 
+            
+
             var post_match_file_lstat = fs.lstatSync(post_match_file);
             var post_match_file_data = new Buffer.from(fs.readFileSync(post_match_file, {
                 encoding: null,
@@ -196,11 +198,23 @@ if (request_headers['wtv-request-type'] == 'download') {
             diskmap_group_data.files[k].base = diskmap_group_data.base;
             diskmap_group_data.files[k].last_modified = (new Date(new Date(post_match_file_lstat.mtime).toUTCString()) / 1000);
             diskmap_group_data.files[k].content_length = post_match_file_lstat.size;
-            diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(post_match_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
             diskmap_group_data.files[k].action = (diskmap_group_data.files[k].action) ? diskmap_group_data.files[k].action.toUpperCase() : "GET";
 
+            if (wtvshared.getFileExt(post_match_file).toLowerCase() == "gz") {
+                // we need the checksum of the uncompressed data
+                var gunzipped = zlib.gunzipSync(post_match_file_data);
+                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
+                var gzip_fn_end = post_match_file_data.indexOf("\0", 10);
+                if (!diskmap_group_data.files[k].dont_extract_filename) {
+                    diskmap_group_data.files[k].original_filename = post_match_file_data.toString('utf8', 10, gzip_fn_end);
+                }
+                //diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
+                gunzipped = null;
+            } else {
+                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(post_match_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
+            }
+
             if (parseInt(diskmap_group_data.files[k].last_modified) > newest_file_epoch) newest_file_epoch = parseInt(diskmap_group_data.files[k].last_modified);
-            //if (!diskmap_group_data.files[k].display) diskmap_group_data.files[k].display = diskmap_group_data.display;
 
             diskmap_group_data.files[k].invalid = true;
             wtv_download_list.push(diskmap_group_data.files[k]);
@@ -271,6 +285,6 @@ if (request_headers['wtv-request-type'] == 'download') {
 } else if (request_headers.query.group && request_headers.query.diskmap) {
     var message = request_headers.query.message || "Retrieving files...";
     var main_message = request_headers.query.main_message || "Your receiver is downloading files.";
-    headers = "200 OK\nContent-Type: text/html";
+    headers = "200 OK\nwtv-connection-close: close\nConnection: close\nContent-Type: text/html";
     data = wtvdl.getSyncPage(message, request_headers.query.group, request_headers.query.diskmap, main_message, message, force_update)
 }
