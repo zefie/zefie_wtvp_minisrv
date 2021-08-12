@@ -73,8 +73,8 @@ class WTVMime {
                         else if (content_type == "application/json") compress_data = true;
                         if (compression_type == 2) {
                             // gzip only
-                            if (content_type.match(/^audio\/(x-)?[s3m|mod|xm]$/)) compress_data = true; // s3m, mod, xm
-                            if (content_type.match(/^audio\/(x-)?[midi|wav|wave]$/)) compress_data = true; // midi & wav
+                            if (content_type.match(/^audio\/(x-)?(s3m|mod|xm)$/)) compress_data = true; // s3m, mod, xm
+                            if (content_type.match(/^audio\/(x-)?(midi|wav|wave)$/)) compress_data = true; // midi & wav
                             if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms    
                             if (content_type.match(/^binary\/doom-data$/)) compress_data = true; // DOOM WADs
                         }
