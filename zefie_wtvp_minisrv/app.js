@@ -584,6 +584,8 @@ async function sendToClient(socket, headers_obj, data) {
         }
     }
 
+    //is this needed here?
+    /*
     if (content_length > 0) {
         if (socket_sessions[socket.id].wtv_request_type == "download") {
             if (headers_obj['Content-Type'] != "wtv/download-list") {
@@ -599,6 +601,7 @@ async function sendToClient(socket, headers_obj, data) {
             }
         }
     }
+    */
 
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
@@ -1378,32 +1381,6 @@ async function handleSocket(socket) {
     });
 }
 
-function integrateConfig(main, user) {
-    Object.keys(user).forEach(function (k) {
-        if (typeof (user[k]) == 'object' && user[k] != null) {
-            // new entry
-            if (!main[k]) main[k] = new Array();
-            // go down the rabbit hole
-            main[k] = integrateConfig(main[k], user[k]);
-        } else {
-            // update main config
-            main[k] = user[k];
-        }
-    });
-    return main;
-}
-
-function returnAbsolutePath(check_path) {
-    if (check_path.substring(0, 1) != path.sep && check_path.substring(1, 1) != ":") {
-        // non-absolute path, so use current directory as base
-        check_path = (__dirname + path.sep + check_path);
-    } else {
-        // already absolute path
-    }
-    return check_path;
-}
-
-
 function getGitRevision() {
     try {
         const rev = fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + "HEAD").toString().trim();
@@ -1422,46 +1399,24 @@ var git_commit = getGitRevision()
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 if (git_commit) console.log("**** Welcome to " + z_title + " (git " + git_commit + ") ****");
 else console.log("**** Welcome to " + z_title + " ****");
-console.log(" *** Reading global configuration...");
-try {
-    var minisrv_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "config.json"));
-    if (git_commit) {
-        minisrv_config.config.git_commit = git_commit;
-        delete this.git_commit;
-    }
-} catch (e) {
-    throw ("ERROR: Could not read config.json", e);
+
+const wtvshared = new WTVShared(); // creates minisrv_config
+var minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
+const wtvmime = new WTVMime(minisrv_config);
+
+if (git_commit) {
+    minisrv_config.config.git_commit = git_commit;
+    delete this.git_commit;
 }
 
-try {
-    if (fs.lstatSync(__dirname + "/user_config.json")) {
-        console.log(" *** Reading user configuration...");
-        try {
-            var minisrv_user_config = JSON.parse(fs.readFileSync(__dirname + path.sep + "user_config.json"));
-        } catch (e) {
-            console.error("ERROR: Could not read user_config.json", e);
-            var throw_me = true;
-        }
-        // file exists and we read and parsed it, but the variable is undefined
-        // Likely a syntax parser error that did not trip the exception check above
-        try {
-            minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
-        } catch (e) {
-            console.error("ERROR: Could not read user_config.json", e);
-        }
-    }
-} catch (e) {
-    if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
-}
-
-if (throw_me) {
+if (!minisrv_config) {
     throw ("An error has occured while reading the configuration files.");
 }
 
 var service_vaults = new Array();
 if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
-        var service_vault = returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
+        var service_vault = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
         service_vaults.push(service_vault);
         console.log(" * Configured Service Vault at", service_vault, "with priority",(parseInt(k)+1));
     })
@@ -1470,7 +1425,7 @@ if (minisrv_config.config.ServiceVaults) {
 }
 
 if (minisrv_config.config.SessionStore) {
-    var SessionStore = returnAbsolutePath(minisrv_config.config.SessionStore);
+    var SessionStore = wtvshared.returnAbsolutePath(minisrv_config.config.SessionStore);
     console.log(" * Configured Session Storage at", SessionStore);
 } else {
     throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
@@ -1519,7 +1474,7 @@ if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config
 
 minisrv_config.version = require('./package.json').version;
 if (minisrv_config.config.error_log_file) {
-    var error_log_stream = fs.createWriteStream(returnAbsolutePath(minisrv_config.config.error_log_file), { flags: 'a' });
+    var error_log_stream = fs.createWriteStream(wtvshared.returnAbsolutePath(minisrv_config.config.error_log_file), { flags: 'a' });
     var process_stderr = process.stderr.write;
     var writeError = function() {
         process_stderr.apply(process.stderr, arguments);
@@ -1590,9 +1545,6 @@ bind_ports.forEach(function (v) {
 });
 initstring = initstring.substring(0, initstring.length - 2);
 
-
-const wtvshared = new WTVShared(minisrv_config);
-const wtvmime = new WTVMime(minisrv_config);
 
 console.log(" * Started server on ports " + initstring + "...")
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";

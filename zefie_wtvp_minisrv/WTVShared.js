@@ -1,4 +1,4 @@
-/**
+/** 
  * Shared functions across all classes and apps
  */
 
@@ -9,7 +9,9 @@ class WTVShared {
     minisrv_config = [];
 
     constructor(minisrv_config) {
-        this.minisrv_config = minisrv_config;
+        if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig();
+        else this.minisrv_config = minisrv_config;
+
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
                 var splitString = this.split("");
@@ -19,6 +21,71 @@ class WTVShared {
             }
         }
     }
+
+    returnAbsolutePath(check_path) {
+        if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 1) != ":") {
+            // non-absolute path, so use current directory as base
+            check_path = (__dirname + this.path.sep + check_path);
+        } else {
+            // already absolute path
+        }
+        return check_path;
+    }
+
+
+    readMiniSrvConfig(user_config = true, notices = true) {
+        if (notices) console.log(" *** Reading global configuration...");
+        try {
+            var minisrv_config = JSON.parse(this.fs.readFileSync(__dirname + this.path.sep + "config.json"));
+        } catch (e) {
+            throw ("ERROR: Could not read config.json", e);
+        }
+
+        var integrateConfig = function(main, user) {
+            Object.keys(user).forEach(function (k) {
+                if (typeof (user[k]) == 'object' && user[k] != null) {
+                    // new entry
+                    if (!main[k]) main[k] = new Array();
+                    // go down the rabbit hole
+                    main[k] = integrateConfig(main[k], user[k]);
+                } else {
+                    // update main config
+                    main[k] = user[k];
+                }
+            });
+            return main;
+        }
+
+        if (user_config) {
+            try {
+                if (this.fs.lstatSync(__dirname + "/user_config.json")) {
+                    if (notices) console.log(" *** Reading user configuration...");
+                    try {
+                        var minisrv_user_config = JSON.parse(this.fs.readFileSync(__dirname + this.path.sep + "user_config.json"));
+                    } catch (e) {
+                        console.error("ERROR: Could not read user_config.json", e);
+                        var throw_me = true;
+                    }
+                    // file exists and we read and parsed it, but the variable is undefined
+                    // Likely a syntax parser error that did not trip the exception check above
+                    try {
+                        minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
+                    } catch (e) {
+                        console.error("ERROR: Could not read user_config.json", e);
+                    }
+                }
+            } catch (e) {
+                if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+            }
+        }
+
+        return minisrv_config;
+    }
+
+    getMiniSrvConfig() {
+        return this.minisrv_config;
+    }
+
 
     /**
      * Returns the Last-Modified date in Unix Timestamp format
@@ -109,13 +176,10 @@ class WTVShared {
      * @param {string} path
      * @return {string} path without gz, or unmodified path if it isnt a gz
      */
-    stripGzipFromPath(path) {
-        var path_split = path.split('.');
-        if (path_split[path_split.length - 1].toLowerCase() == "gz") {
-            path_split.pop();
-            path = path_split.join(".");
-        }
-        return path;
+    getFilePath(path) {
+        var path_split = path.split('/');
+        path_split.pop();
+        return path_split.join('/');
     }
 
     /**
