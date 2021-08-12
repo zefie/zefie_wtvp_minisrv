@@ -17,10 +17,8 @@ if (request_headers['wtv-request-type'] == 'download') {
         });
 
         // create WebTV Download List
-        if (diskmap_group_data.execute && diskmap_group_data.execute_when) {
-            if (diskmap_group_data.execute_when.toLowerCase().match(/start/)) {
-                wtvdl.execute(diskmap_group_data.execute);
-            }
+        if (diskmap_group_data.execute_start) {
+            wtvdl.execute(diskmap_group_data.execute_start);
         }
 
         console.log(diskmap_group_data.client_group_data);
@@ -101,10 +99,8 @@ if (request_headers['wtv-request-type'] == 'download') {
 
         }
 
-        if (diskmap_group_data.execute && diskmap_group_data.execute_when) {
-            if (diskmap_group_data.execute_when.toLowerCase().match(/end/)) {
-                wtvdl.execute(diskmap_group_data.execute);
-            }
+        if (diskmap_group_data.execute_end) {
+            wtvdl.execute(diskmap_group_data.execute_end);
         }
 
         if (files_to_send > 0) {
