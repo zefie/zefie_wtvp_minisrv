@@ -1123,23 +1123,24 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                         console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(got all expected", socket_sessions[socket.id].post_data_length, "bytes of data from client already)");
                         headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
-                        if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
+                        delete socket_sessions[socket.id].headers;
+                        delete socket_sessions[socket.id].post_data;
+                        delete socket_sessions[socket.id].post_data_length;
                         processURL(socket, headers);
+                    } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
+                        // got too much data ? ... should not ever reach this code (section 2)
+                        var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
+                        headers = errpage[0];
+                        data = errpage[1];
+                        sendToClient(socket, headers, data);
+                        return;
                     } else {
                         // expecting more data (see below)
                         socket_sessions[socket.id].expecting_post_data = true;
                         if (!socket_sessions[socket.id].post_data) socket_sessions[socket.id].post_data = '';
                         socket_sessions[socket.id].post_data += CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                         console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
-                    }
-                    if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
-                        // got too much data ? ... should not ever reach this code
-                        var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
-                        headers = errpage[0];
-                        data = errpage[1];
-                        sendToClient(socket, headers, data);
-                        return;
-                    }
+                    } 
                     return;
                 } else {
                     delete socket_sessions[socket.id].headers;
@@ -1204,8 +1205,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     delete socket_sessions[socket.id].post_data_length;
                     processURL(socket, headers);
                     return;
-                }
-                if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
+                } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                     socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     // got too much data ? ... should not ever reach this code
