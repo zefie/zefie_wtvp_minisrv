@@ -1,3 +1,4 @@
+var minisrv_service_file = true;
 
 var client_caps = null;
 
@@ -167,7 +168,7 @@ ${wtv_system_sysconfig_str}
 
 </body> </html>`;
 } else {
-	var errpage = doErrorPage(400);
+	var errpage = wtvshared.doErrorPage(400);
 	headers = errpage[0];
 	data = errpage[1];
 }

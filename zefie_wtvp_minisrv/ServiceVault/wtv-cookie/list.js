@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (socket.ssid) {
     if (ssid_sessions[socket.ssid]) {
 
@@ -8,7 +10,7 @@ if (socket.ssid) {
 }
 
 if (!headers) {
-    var errpage = doErrorPage(400)
+    var errpage = wtvshared.doErrorPage(400)
     headers = errpage[0];
     data = errpage[1];
 }

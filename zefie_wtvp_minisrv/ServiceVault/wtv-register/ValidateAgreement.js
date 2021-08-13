@@ -1,5 +1,7 @@
+var minisrv_service_file = true;
+
 if (!request_headers.query.registering) {
-    var errpage = doErrorPage(400);
+    var errpage = wtvshared.doErrorPage(400);
     headers = errpage[0];
     data = errpage[1];
 } else {

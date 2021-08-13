@@ -1,6 +1,6 @@
 {
   "config": {
-    "service_ip": "0.0.0.0",
+    "service_ip": "127.0.0.1",
     "ServiceVaults": [
       "UserServiceVault",
       "ServiceVault"
@@ -17,7 +17,7 @@
     "post_data_socket_timeout": 30,
     "error_log_file": "errors.log",
     "catchall_file_name": "catchall.js",
-    "enable_lzpf_compression": false,
+    "enable_lzpf_compression": true,
     "enable_gzip_compression": true,
     "pc_server_hidden_service": "http_pc",
     "pc_server_hidden_service_enabled": false,
@@ -59,7 +59,7 @@
       "flags": "0x00000040",
       "debug": false,
       "use_zefie_server": true,
-      "bf0app_default_rom": "content/artemis-webtv-000/build7181/daily-nondebug/bf0app-part000.rom",
+      "bf0app_default_rom": "content/artemis-webtv-000/build7588/daily-nondebug/bf0app-part000.rom",
       "catchall_file_name": "content-serve.js"
     },
     "wtv-setup": {

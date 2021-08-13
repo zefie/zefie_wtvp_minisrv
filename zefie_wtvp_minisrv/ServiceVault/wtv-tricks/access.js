@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 // Allow URL access outside our trusted minisrv
 
 if (request_headers.query.url) var url = request_headers.query.url;

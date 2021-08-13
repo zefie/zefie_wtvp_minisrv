@@ -1,45 +1,47 @@
-	var gourl = "wtv-head-waiter:/login?";
+var minisrv_service_file = true;
 
-	if (socket.ssid) {
-		if (ssid_sessions[socket.ssid].loadSessionData() == true) {
-			console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
-			ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
-		} else {
-			ssid_sessions[socket.ssid].session_data = {};
-			ssid_sessions[socket.ssid].setSessionData("registered", false);
-		}
-		if (ssid_sessions[socket.ssid].data_store) {
-			if (ssid_sessions[socket.ssid].data_store.sockets) {
-				var i = 0;
-				ssid_sessions[socket.ssid].data_store.sockets.forEach(function (k) {
-					if (typeof k != "undefined") {
-						if (k != socket) {
-							k.destroy();
-							ssid_sessions[socket.ssid].data_store.sockets.delete(k);
-							i++;
-						}
-					}
-				});
-				if (i > 0 && minisrv_config.config.debug_flags.debug) console.log(" # Closed", i, "previous sockets for", wtvshared.filterSSID(socket.ssid));
-			}
-		}
-		if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-			if (minisrv_config.config.debug_flags.debug) console.log(" # Recreating primary WTVSec login instance for", wtvshared.filterSSID(socket.ssid));
-			delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
-		}
+var gourl = "wtv-head-waiter:/login?";
 
-		ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
-		ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-		ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
+if (socket.ssid) {
+	if (ssid_sessions[socket.ssid].loadSessionData() == true) {
+		console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
+		ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
 	} else {
-		console.log(" * Something bad happened (we don't know the client ssid???)");
-		var errpage = doErrorPage(400)
-		headers = errpage[0];
-		data = errpage[1];
+		ssid_sessions[socket.ssid].session_data = {};
+		ssid_sessions[socket.ssid].setSessionData("registered", false);
+	}
+	if (ssid_sessions[socket.ssid].data_store) {
+		if (ssid_sessions[socket.ssid].data_store.sockets) {
+			var i = 0;
+			ssid_sessions[socket.ssid].data_store.sockets.forEach(function (k) {
+				if (typeof k != "undefined") {
+					if (k != socket) {
+						k.destroy();
+						ssid_sessions[socket.ssid].data_store.sockets.delete(k);
+						i++;
+					}
+				}
+			});
+			if (i > 0 && minisrv_config.config.debug_flags.debug) console.log(" # Closed", i, "previous sockets for", wtvshared.filterSSID(socket.ssid));
+		}
+	}
+	if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+		if (minisrv_config.config.debug_flags.debug) console.log(" # Recreating primary WTVSec login instance for", wtvshared.filterSSID(socket.ssid));
+		delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
 	}
 
-	if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
-	if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
+	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
+	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
+	if (request_headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
+} else {
+	console.log(" * Something bad happened (we don't know the client ssid???)");
+	var errpage = wtvshared.doErrorPage(400)
+	headers = errpage[0];
+	data = errpage[1];
+}
+
+if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
+if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
 
 if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
@@ -66,7 +68,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		} else {
 			romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 		}
-
+		var file_path = null;
 		switch (romtype) {
 			case "US-LC2-disk-0MB-8MB":
 			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
@@ -75,15 +77,30 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (ssid_sessions[socket.ssid].get("wtv-open-access")) var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
+				if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
 				else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				break;
+
+			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
+				if (wtvshared.isMiniBrowser()) {
+					prereg_contype = "text/tellyscript";
+					if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
+					else file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199.tok";
+				} else {
+					prereg_contype = "text/dialscript";
+					if (ssid_sessions[socket.ssid].get("wtv-lan") == "true") {
+						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_hsd.tok";
+					} else {
+						// todo OpenISP telly
+						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_normal.tok";
+                    }
+                }
 
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (ssid_sessions[socket.ssid].get("wtv-open-access")) var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_OISP.tok";
-				else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
+				if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_OISP.tok";
+				else file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
 				break;
 
 			// the following are not yet zefie generated and may have an unknown username/password attached
@@ -98,6 +115,11 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 			default:
 				data = '';
 				break;
+		}
+
+		if (socket.ssid.substr(0, 8) == "MSTVSIMU") {
+			prereg_contype = "text/dialscript";
+			var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_hsd.tok";
 		}
 	}
 
@@ -157,7 +179,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		request_is_async = true;
 		fs.readFile(file_path, null, function (err, file_read_data) {
 			if (err) {
-				var errmsg = doErrorPage(400);
+				var errmsg = wtvshared.doErrorPage(400);
 				headers = errmsg[0];
 				file_read_data = errmsg[1] + "\n" + err.toString();
 			}
@@ -165,7 +187,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		});
 	}
 } else {
-	var errpage = doErrorPage(400);
+	var errpage = wtvshared.doErrorPage(400);
 	headers = errpage[0];
 	data = errpage[1];
 }

@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 headers = `200 OK
 wtv-backgroundmusic-load-playlist: wtv-music:/get-playlist
 wtv-printer-model: -1,-1

@@ -8,51 +8,27 @@ class WTVFlashrom {
 	no_debug = false;
 	service_name = "";
 	minisrv_config = [];
+	wtvshared = null;
 
 
 	constructor(minisrv_config, service_vaults, service_name, use_zefie_server = true, bf0app_update = false, no_debug = false) {
+		var { WTVShared } = require('./WTVShared.js');
 		this.service_vaults = service_vaults;
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;
 		this.bf0app_update = bf0app_update;
 		this.no_debug = no_debug;
 		this.minisrv_config = minisrv_config;
+		this.wtvshared = new WTVShared(minisrv_config);
 	}
-
-
-	doErrorPage(code, data = null) {
-		var headers = null;
-		switch (code) {
-			case 404:
-				if (data === null) data = "The service could not find the requested page.";
-				headers = "404 " + data + "\r\n";
-				headers += "Content-Type: text/html\r\n";
-				break;
-			case 400:
-				if (data === null) data = "HackTV ran into a technical problem.";
-				headers = "400 " + data + "\r\n";
-				headers += "Content-Type: text/html\r\n";
-				break;
-			default:
-				// what we send when we did not detect a wtv-url.
-				// e.g. when a pc browser connects
-				headers = "HTTP/1.1 200 OK\r\n";
-				headers += "Content-Type: text/html\r\n";
-				break;
-		}
-		console.error("doErrorPage Called:", code, data);
-		return new Array(headers, data);
-	}
-
 
 	async doLocalFlashROM(flashrom_file_path, request_path, callback, info_only = false) {
 		// use local flashrom files;
-		console.log(info_only);
 		var self = this;
 		try {
 			this.fs.readFile(flashrom_file_path, null, function (err, data) {
 				if (err) {
-					errpage = doErrorPage(400)
+					errpage = wtvshared.doErrorPage(400)
 					var headers = errpage[0];
 					data = err.toString();
 					callback(data, headers);
@@ -65,7 +41,7 @@ class WTVFlashrom {
 				}
 			});
 		} catch (e) {
-			var errpage = doErrorPage(404, "The service could not find the requested ROM.")
+			var errpage = wtvshared.doErrorPage(404, "The service could not find the requested ROM.")
 			var headers = errpage[0];
 			var data = errpage[1];
 			callback(data, headers);
@@ -107,24 +83,25 @@ class WTVFlashrom {
 		flashrom_info.total_parts_size = data.readUInt32BE(32);
 		flashrom_info.percent_complete = ((((flashrom_info.byte_progress + flashrom_info.part_total_size) / flashrom_info.total_parts_size)) * 100).toFixed(1);
 
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Part Size  :", flashrom_info.part_total_size);
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Bytes Sent :", flashrom_info.byte_progress);
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Bytes Sent+:", flashrom_info.byte_progress + flashrom_info.part_total_size, "(" + flashrom_info.percent_complete + "% complete)");
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Total Size :", flashrom_info.total_parts_size);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Part Size  :", flashrom_info.part_total_size);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Bytes Sent :", flashrom_info.byte_progress);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Bytes Sent+:", flashrom_info.byte_progress + flashrom_info.part_total_size, "(" + flashrom_info.percent_complete + "% complete)");
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Total Size :", flashrom_info.total_parts_size);
 
 		// read current part number bit from part header
 		flashrom_info.part_number = data.readUInt16BE(28);
 
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Curr Part Number :", flashrom_info.part_number);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Curr Part Number :", flashrom_info.part_number);
 		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) == flashrom_info.total_parts_size) ? true : false;
 
 		if (flashrom_info.is_last_part) {
-			if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Curr Part is Last:", flashrom_info.is_last_part);
+			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Curr Part is Last:", flashrom_info.is_last_part);
 		} else {
 			flashrom_info.next_part_number = flashrom_info.part_number + 1;
-			if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Next Part Number :", flashrom_info.next_part_number);
+			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Next Part Number :", flashrom_info.next_part_number);
 		}
 
+		if (this.minisrv_config.config.debug_flags.debug && this.minisrv_config.config.debug_flags.quiet) console.log(" # Sending", (flashrom_info.is_last_part) ? "Last Flashrom" : "Flashrom", "Part", flashrom_info.part_number, "- Bytes Sent:", flashrom_info.byte_progress + flashrom_info.part_total_size, "of", flashrom_info.total_parts_size, "(" + flashrom_info.percent_complete + " % complete)");
 		// read current part display message from part header
 		flashrom_info.message = new Buffer.from(part_header.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
 		flashrom_info.rompath = `wtv-flashrom:/${path}`;
@@ -142,7 +119,6 @@ class WTVFlashrom {
 
 	async sendToClient(data, request_path, callback) {
 		var headers = "200 OK\n";
-		if (this.bf0app_update) headers += "minisrv-use-carriage-return: false\n";
 		var flashrom_info = this.getFlashromInfo(data, request_path)
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
@@ -193,15 +169,16 @@ class WTVFlashrom {
 					} else if (res.statusCode == 206) {
 						var data = self.getFlashromInfo(Buffer.from(data_hex, 'hex'), request_path);
 					} else if (res.statusCode == 404) {
-						var errpage = doErrorPage(404, "The service could not find the requested ROM on zefie's server.")
+						console.log(request_path);
+						var errpage = self.wtvshared.doErrorPage(404, "The service could not find the requested ROM on zefie's server.")
 						headers = errpage[0];
 						var data = errpage[1];
 					} else {
-						var errpage = doErrorPage(400)
+						var errpage = self.wtvshared.doErrorPage(400)
 						headers = errpage[0];
 						var data = errpage[1];
 					}
-					if (res.statusCode != 206) {
+					if (!headers && res.statusCode != 206) {
 						self.sendToClient(data, request_path, callback);
 					} else {
 						callback(data, headers);

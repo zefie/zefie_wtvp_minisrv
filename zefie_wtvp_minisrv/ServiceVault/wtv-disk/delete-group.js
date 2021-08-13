@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.query.group) {
     const WTVDownloadList = require("./WTVDownloadList.js");
     var wtvdl = new WTVDownloadList(minisrv_config, service_name);

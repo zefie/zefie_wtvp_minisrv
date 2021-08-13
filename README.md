@@ -1,7 +1,7 @@
 # wtv minisrv node.js
 
 The ***wtv minisrv***, or "***zefie_wtvp_minisrv***" project is a node.js project that provides a mini WebTV Server, aiming for full WTVP (WebTV Protocol) support.
-This open source server is in alpha status. Use at your own risk.
+This open source server is in beta status. Use at your own risk.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
@@ -14,22 +14,20 @@ This open source server is in alpha status. Use at your own risk.
 - WebTV cookie support (wtv-cookie) for HTTP(s)
 - Flashrom flashing support for all known units (including bf0app 'Old Classic')
 - Can flash anything on [Ultra Willies](https://wtv.zefie.com/willie.php) with optional `use_zefie_server` flag set on `wtv-flashrom` service.
-- `wtv-update:/sync` for Download-o-Rama style file downloading
+- `wtv-disk:/sync` for Download-o-Rama style file downloading
 - Custom Tellyscripts *(not yet customizable though)*
 - Flat file client session store and registration system
+- wtv-lzpf compression support by eMac (99.9%)
 
 ### Current issues:
-- wtv-cookie implementation is still partial
-- wtv-lzpf compression support is not yet reliable
-- Mis-configuring wtv-update:/sync DiskMaps may cause units to delete contents of partitions (need more info)
-- Satellite Receiver units reportedly cannot surf with http or https proxy. *(May be fixed by current partial wtv-cookie implementation)*
+- Mis-configuring wtv-disk:/sync DiskMaps may cause units to delete contents of partitions (need more info)
 
 ### Won't fix:
 - wtv-encryption stream breaks when two different sessions have the same SSID (eg spoofing, won't fix (production did it too))
 - ~~No intentions to support user accounts, registration, or any form of database system~~ *(I guess this was a lie, but we still don't use a database!)*
 
 ### Feature Todo:
-- wtv-lzpf support *(Milestone v1.0)*
+- wtv-setup and bgm support
 - TellyScript generation and/or manipulation without external dependancies
 - ~~wtv-cookie full support~~ ***Done [v0.9.13](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.13)***
 - ~~Flashrom flashing for bf0app old classic~~ ***Done [v0.9.9](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.9)***

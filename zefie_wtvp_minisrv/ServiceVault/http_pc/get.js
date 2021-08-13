@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.query.url) {
     if (request_headers.query.url.indexOf(":/") > 0) {
         var service_request = request_headers.query.url.split(":/")[0];
@@ -31,7 +33,7 @@ if (request_headers.query.url) {
 }
 
 if (!headers) {
-    var errpage = doErrorPage(500)
+    var errpage = wtvshared.doErrorPage(500)
     headers = errpage[0];
     data = errpage[1];
 }

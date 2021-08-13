@@ -75,9 +75,10 @@ class WTVMime {
                             // gzip only
                             if (content_type.match(/^audio\/(x-)?(s3m|mod|xm)$/)) compress_data = true; // s3m, mod, xm
                             if (content_type.match(/^audio\/(x-)?(midi|wav|wave|aif(f)?)$/)) compress_data = true; // midi & wav
+                            if (content_type.match(/^application\/karaoke$/)) compress_data = true; // midi karaoke
                             if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms    
                             if (content_type.match(/^binary\/doom-data$/)) compress_data = true; // DOOM WADs
-                            if (content_type.match(/^wtv\/download-list$/)) compress_data = true; // WebTV Download List
+                            if (content_type.match(/^wtv\/download-list$/)) compress_data = true; // WebTV Download List                            
                         }
                     }
                 }
@@ -179,6 +180,9 @@ class WTVMime {
             case "wad":
                 wtv_mime_type = "binary/doom-data";
                 break;
+            case "kar":
+                wtv_mime_type = "application/karaoke";
+                break;
             case "mp2":
             case "hsb":
             case "rmf":
@@ -190,6 +194,7 @@ class WTVMime {
         }
 
         modern_mime_type = this.mime.lookup(path);
+        if (modern_mime_type === false) modern_mime_type = "application/octet-stream";
         if (wtv_mime_type == "") wtv_mime_type = modern_mime_type;
         return new Array(wtv_mime_type, modern_mime_type);
     }

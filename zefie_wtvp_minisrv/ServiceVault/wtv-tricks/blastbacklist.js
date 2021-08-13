@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 headers = `200 OK
 wtv-expire-all: wtv-
 wtv-expire-all: http
