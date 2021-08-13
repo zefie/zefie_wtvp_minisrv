@@ -37,7 +37,7 @@ class WTVShared {
     }
 
     isOldBuild(ssid_session) {
-        if (this.isMiniBrowser(ssid_session) || ssid_session.get("wtv-system-version") < 3500) return true;
+        if (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < 3500) return true;
         return false;
     }
 
