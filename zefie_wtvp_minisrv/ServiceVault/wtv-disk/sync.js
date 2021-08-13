@@ -207,36 +207,38 @@ if (request_headers['wtv-request-type'] == 'download') {
         var wtv_download_list = new Array();
         var newest_file_epoch = version;
         Object.keys(diskmap_group_data.files).forEach(function (k) {
-            if (!diskmap_group_data.files[k].location) diskmap_group_data.files[k].location = diskmap_group_data.location + diskmap_group_data.files[k].file.replace(diskmap_group_data.base, "");
-            var post_match_file = null;
+            if (!diskmap_group_data.files[k].location) diskmap_group_data.files[k].location = wtvshared.makeSafePath(diskmap_group_data.location,diskmap_group_data.files[k].file.replace(diskmap_group_data.base, ""));
+            var diskmap_data_file = null;
             Object.keys(service_vaults).forEach(function (g) {
-                if (post_match_file != null) return;
-                post_match_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
-                if (!fs.existsSync(post_match_file)) post_match_file = null;
+                if (diskmap_data_file != null) return;
+                diskmap_data_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
+                if (!fs.existsSync(diskmap_data_file)) {
+                    console.error("Could not find a file for", diskmap_group_data.files[k].location, "(Last tried SV:", diskmap_data_file, ")");
+                }
             });
 
-                    var post_match_file_lstat = fs.lstatSync(post_match_file);
-            var post_match_file_data = new Buffer.from(fs.readFileSync(post_match_file, {
+            var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
+            var diskmap_file_data = new Buffer.from(fs.readFileSync(diskmap_data_file, {
                 encoding: null,
                 flags: 'r'
             }));
             diskmap_group_data.files[k].base = diskmap_group_data.base;
-            diskmap_group_data.files[k].last_modified = (new Date(new Date(post_match_file_lstat.mtime).toUTCString()) / 1000);
-            diskmap_group_data.files[k].content_length = post_match_file_lstat.size;
+            diskmap_group_data.files[k].last_modified = (new Date(new Date(diskmap_file_stat.mtime).toUTCString()) / 1000);
+            diskmap_group_data.files[k].content_length = diskmap_file_stat.size;
             diskmap_group_data.files[k].action = (diskmap_group_data.files[k].action) ? diskmap_group_data.files[k].action.toUpperCase() : "GET";            
 
-            if (wtvshared.getFileExt(post_match_file).toLowerCase() == "gz") {
-                // we need the checksum of the uncompressed data
-                var gunzipped = zlib.gunzipSync(post_match_file_data);
+            // we need the checksum of the uncompressed data
+            if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
+                var gunzipped = zlib.gunzipSync(diskmap_file_data);
                 diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
-                var gzip_fn_end = post_match_file_data.indexOf("\0", 10);
+                var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
                 if (!diskmap_group_data.files[k].dont_extract_filename) {
-                    diskmap_group_data.files[k].original_filename = post_match_file_data.toString('utf8', 10, gzip_fn_end);
+                    diskmap_group_data.files[k].original_filename = diskmap_file_data.toString('utf8', 10, gzip_fn_end);
                 }
                 diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
                 gunzipped = null;
             } else {
-                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(post_match_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
+                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
             }
 
             if (parseInt(diskmap_group_data.files[k].last_modified) > newest_file_epoch) newest_file_epoch = parseInt(diskmap_group_data.files[k].last_modified);
