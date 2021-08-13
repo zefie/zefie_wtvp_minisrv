@@ -585,25 +585,7 @@ async function sendToClient(socket, headers_obj, data) {
             }
         }
     }
-
-    //is this needed here?
-    /*
-    if (content_length > 0) {
-        if (socket_sessions[socket.id].wtv_request_type == "download") {
-            if (headers_obj['Content-Type'] != "wtv/download-list") {
-                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.request_url).toLowerCase() == "gz") {
-                    // we need the checksum of the uncompressed data
-                    var gunzipped = zlib.gunzipSync(data);
-                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
-                    headers_obj['wtv-uncompressed-size'] = gunzipped.byteLength;
-                    gunzipped = null;
-                } else {
-                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(data)).toString(CryptoJS.enc.Hex).toLowerCase();
-                }
-            }
-        }
-    }
-    */
+   
 
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
