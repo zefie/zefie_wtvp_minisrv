@@ -632,9 +632,9 @@ async function sendToClient(socket, headers_obj, data) {
                 break;
 
             case 2:
-                // zlib gzip implementation
-                headers_obj['Content-Encoding'] = 'gzip';
-                data = zlib.gzipSync(data);
+                // zlib DEFLATE implementation
+                headers_obj['Content-Encoding'] = 'deflate';
+                data = zlib.deflateSync(data, { 'level': 9 });
                 break;
         }
 
