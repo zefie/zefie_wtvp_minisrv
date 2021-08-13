@@ -66,7 +66,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		} else {
 			romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 		}
-
+		var file_path = null;
 		switch (romtype) {
 			case "US-LC2-disk-0MB-8MB":
 			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
@@ -75,15 +75,30 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (ssid_sessions[socket.ssid].get("wtv-open-access")) var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
+				if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
 				else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				break;
+
+			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
+				if (wtvshared.isMiniBrowser()) {
+					prereg_contype = "text/tellyscript";
+					if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
+					else file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199.tok";
+				} else {
+					prereg_contype = "text/dialscript";
+					if (ssid_sessions[socket.ssid].get("wtv-lan") == "true") {
+						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_hsd.tok";
+					} else {
+						// todo OpenISP telly
+						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_normal.tok";
+                    }
+                }
 
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (ssid_sessions[socket.ssid].get("wtv-open-access")) var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_OISP.tok";
-				else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
+				if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_OISP.tok";
+				else file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
 				break;
 
 			// the following are not yet zefie generated and may have an unknown username/password attached
@@ -98,6 +113,11 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 			default:
 				data = '';
 				break;
+		}
+
+		if (socket.ssid.substr(0, 8) == "MSTVSIMU") {
+			prereg_contype = "text/dialscript";
+			var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_hsd.tok";
 		}
 	}
 
