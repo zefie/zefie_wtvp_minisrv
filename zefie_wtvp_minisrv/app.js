@@ -615,8 +615,10 @@ async function sendToClient(socket, headers_obj, data) {
 
             case 2:
                 // zlib DEFLATE implementation
+                var zlib_options = { 'level': 9 };
+                if (uncompressed_content_length > 4194304) zlib_options.strategy = 2;
                 headers_obj['Content-Encoding'] = 'deflate';
-                data = zlib.deflateSync(data, { 'level': 9 });
+                data = zlib.deflateSync(data, zlib_options);
                 break;
         }
 
