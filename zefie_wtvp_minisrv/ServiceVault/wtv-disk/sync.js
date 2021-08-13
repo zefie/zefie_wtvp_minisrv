@@ -212,9 +212,7 @@ if (request_headers['wtv-request-type'] == 'download') {
             Object.keys(service_vaults).forEach(function (g) {
                 if (diskmap_data_file != null) return;
                 diskmap_data_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
-                if (!fs.existsSync(diskmap_data_file)) {
-                    console.error("Could not find a file for", diskmap_group_data.files[k].location, "(Last tried SV:", diskmap_data_file, ")");
-                }
+                if (!fs.existsSync(diskmap_data_file)) diskmap_data_file = null;
             });
 
             var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
