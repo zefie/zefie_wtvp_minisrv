@@ -222,23 +222,11 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\register.js" />
-    <Content Include="ServiceVault\wtv-register\ServeAgreementDeclinePage.js">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="ServiceVault\wtv-register\ServeLegal.js">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="ServiceVault\wtv-register\ValidateAccountInfo.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\ValidateAgreement.js" />
-    <Content Include="ServiceVault\wtv-register\ShowTOS.js">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="ServiceVault\wtv-register\ValidateReviewAccountInfo.js">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="ServiceVault\wtv-register\ValidateWelcome.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\splash.js" />

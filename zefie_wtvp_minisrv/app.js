@@ -1316,7 +1316,7 @@ async function cleanupSocket(socket) {
 
             if (ssid_sessions[socket.ssid].currentConnections() === 0) {
                 // clean up possible minibrowser session data
-                if (ssid_sessions[socket.ssid].get("wtv-needs-upgrade")) ssid_sessions[socket.ssid].delete("wtv-needs-upgrade");
+                if (ssid_sessions[socket.ssid].get("wtv-need-upgrade")) ssid_sessions[socket.ssid].delete("wtv-need-upgrade");
                 if (ssid_sessions[socket.ssid].get("wtv-used-8675309")) ssid_sessions[socket.ssid].delete("wtv-used-8675309");
 
                 // set timer to destroy entirety of session data if client does not return in X time
