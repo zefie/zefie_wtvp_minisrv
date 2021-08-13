@@ -166,7 +166,7 @@ class WTVShared {
         } else {
             // already absolute path
         }
-        return path;
+        return this.fixPathSlashes(path);
     }
 
     /**
@@ -206,11 +206,25 @@ class WTVShared {
      */
     makeSafePath(base, target) {
         target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-        if (this.path.sep != "/") target = target.replace(/\//g, this.path.sep);
         var targetPath = this.path.posix.normalize(target)
-        return base + this.path.sep + targetPath;
+        return this.fixPathSlashes(base + this.path.sep + targetPath);
     }
 
+    /**
+     * Corrects any / or \ differences, if any for file paths
+     * @param {string} path
+     * @returns {string} corrected path
+     */
+    fixPathSlashes(path) {
+        // fix slashes
+        if (this.path.sep == '/' && path.indexOf("\\") != -1) path = path.replace(/\\/g, this.path.sep);
+        else if (this.path.sep == "\\" && path.indexOf("/") != -1) path = path.replace(/\//g, this.path.sep);
+        
+        // remove double slashes
+        while (path.indexOf(this.path.sep + this.path.sep) != -1) path = path.replace(this.path.sep + this.path.sep, this.path.sep);
+
+        return path;
+    }
     /**
      * Makes sure an SSID is clean, and doesn't contain any exploitable characters
      * @param {string} ssid
