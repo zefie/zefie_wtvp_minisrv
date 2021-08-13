@@ -585,25 +585,7 @@ async function sendToClient(socket, headers_obj, data) {
             }
         }
     }
-
-    //is this needed here?
-    /*
-    if (content_length > 0) {
-        if (socket_sessions[socket.id].wtv_request_type == "download") {
-            if (headers_obj['Content-Type'] != "wtv/download-list") {
-                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.request_url).toLowerCase() == "gz") {
-                    // we need the checksum of the uncompressed data
-                    var gunzipped = zlib.gunzipSync(data);
-                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
-                    headers_obj['wtv-uncompressed-size'] = gunzipped.byteLength;
-                    gunzipped = null;
-                } else {
-                    headers_obj['wtv-checksum'] = CryptoJS.MD5(CryptoJS.lib.WordArray.create(data)).toString(CryptoJS.enc.Hex).toLowerCase();
-                }
-            }
-        }
-    }
-    */
+   
 
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
@@ -633,8 +615,10 @@ async function sendToClient(socket, headers_obj, data) {
 
             case 2:
                 // zlib DEFLATE implementation
+                var zlib_options = { 'level': 9 };
+                if (uncompressed_content_length > 4194304) zlib_options.strategy = 2;
                 headers_obj['Content-Encoding'] = 'deflate';
-                data = zlib.deflateSync(data, { 'level': 9 });
+                data = zlib.deflateSync(data, zlib_options);
                 break;
         }
 
