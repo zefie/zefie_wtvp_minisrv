@@ -199,6 +199,68 @@ class WTVShared {
         return path.reverse().split(".")[0].reverse();
     }
 
+    getLineFromFile(filename, line_no, callback) {
+        var stream = this.fs.createReadStream(filename, {
+            flags: 'r',
+            encoding: 'utf-8',
+            fd: null,
+            bufferSize: 64 * 1024
+        });
+
+
+        var fileData = '';
+        stream.on('data', function (data) {
+            fileData += data;
+
+            // The next lines should be improved
+            var lines = fileData.split("\n");
+
+            if (lines.length >= +line_no) {
+                stream.destroy();
+                callback(null, lines[+line_no]);
+            }
+        });
+
+        stream.on('error', function () {
+            callback('Error', null);
+        });
+
+        stream.on('end', function () {
+            callback('File end reached without finding line', null);
+        });
+    }
+
+    doErrorPage(code, data = null, pc_mode = false) {
+        var headers = null;
+        switch (code) {
+            case 404:
+                if (data === null) data = "The service could not find the requested page.";
+                if (pc_mode) headers = "404 Not Found\n";
+                else headers = code + " " + data + "\n";
+                headers += "Content-Type: text/html\n";
+                break;
+            case 400:
+            case 500:
+                if (data === null) data = "HackTV ran into a technical problem.";
+                if (pc_mode) headers = "500 Internal Server Error\n";
+                else headers = code + " " + data + "\n";
+                headers += "Content-Type: text/html\n";
+                break;
+            case 401:
+                if (data === null) data = "Access Denied.";
+                if (pc_mode) headers = "401 Access Denied\n";
+                else headers = code + " " + data + "\n";
+                headers += "Content-Type: text/html\n";
+                break;
+            default:
+                headers = code + " " + data + "\n";
+                headers += "Content-Type: text/html\n";
+                break;
+        }
+        console.error(" * doErrorPage Called:", code, data);
+        return new Array(headers, data);
+    }
+
     /**
      * Strips bad things from paths
      * @param {string} base Base path

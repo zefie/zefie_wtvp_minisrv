@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 const WTVDownloadList = require("./WTVDownloadList.js");
 var wtvdl = new WTVDownloadList(minisrv_config, service_name);
 
@@ -212,9 +214,7 @@ if (request_headers['wtv-request-type'] == 'download') {
             Object.keys(service_vaults).forEach(function (g) {
                 if (diskmap_data_file != null) return;
                 diskmap_data_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
-                if (!fs.existsSync(diskmap_data_file)) {
-                    console.error("Could not find a file for", diskmap_group_data.files[k].location, "(Last tried SV:", diskmap_data_file, ")");
-                }
+                if (!fs.existsSync(diskmap_data_file)) diskmap_data_file = null;
             });
 
             var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
@@ -298,20 +298,20 @@ if (request_headers['wtv-request-type'] == 'download') {
 
                     headers = "200 OK\nContent-Type: wtv/download-list";
                 } catch (e) {
-                    var errpage = doErrorPage(400);
+                    var errpage = wtvshared.doErrorPage(400);
                     headers = errpage[0];
                     data = errpage[1];
                     console.error(" # " + service_name+":/sync error", e);
                 }
             }
         } else {
-            var errpage = doErrorPage(404, "The requested DiskMap does not exist.");
+            var errpage = wtvshared.doErrorPage(404, "The requested DiskMap does not exist.");
             headers = errpage[0];
             data = errpage[1];
             if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
         }
     } else {
-        var errpage = doErrorPage(400);
+        var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");

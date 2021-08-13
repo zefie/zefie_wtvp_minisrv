@@ -1,6 +1,6 @@
 {
   "name": "zefie_wtvp_minisrv",
-  "version": "0.9.19",
+  "version": "0.9.21",
   "description": "WebTV Service (WTVP) Emulation Server",
   "main": "app.js",
   "homepage": "https://github.com/zefie/zefie_wtvp_minisrv",
@@ -26,7 +26,7 @@
     "url": "https://github.com/zefie/zefie_wtvp_minisrv.git"
   },
   "dependencies": {
-    "crypto-js": "^4.0.0",
+    "crypto-js": "^4.1.1",
     "easy-crc": "0.0.2",
     "endianness": "^8.0.2",
     "mime-types": "^2.1.31",

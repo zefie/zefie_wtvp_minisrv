@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 headers = `200 OK
 Connection: Close
 wtv-connection-close: true
@@ -43,6 +45,7 @@ Updating complete
 <img src="${service_name}:/ROMCache/S40H1.gif" width=560 height=6>
 <tr>
 <td width=104 height=10 valign=top align=left>
+
 <td width=20 valign=top align=left>
 <td width=67 valign=top align=left>
 <td width=20 valign=top align=left>

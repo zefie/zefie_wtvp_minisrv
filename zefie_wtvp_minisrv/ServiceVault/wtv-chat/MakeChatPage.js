@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 headers = "200 OK";
 if (request_headers.query.nick) headers += "\n" + ssid_sessions[socket.ssid].setIRCNick(request_headers.query.nick);
 headers += "\nContent-Type: text/html";
@@ -148,7 +150,7 @@ ${request_headers.query.channel}
 </body>
 </html>`;
 } else {
-    var errpage = doErrorPage("400 Chat requires host, port and channel arguments. Do not use the # on channels.");
+    var errpage = wtvshared.doErrorPage("400 Chat requires host, port and channel arguments. Do not use the # on channels.");
     headers = errpage[0];
     data = errpage[1];
 }

@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.post_data) {
     if (request_headers.query.partialPath || request_headers.query.path) {
         if (socket.ssid) {
@@ -15,7 +17,7 @@ if (request_headers.post_data) {
 }
 
 if (!headers) {
-    var errpage = doErrorPage(400)
+    var errpage = wtvshared.doErrorPage(400)
     headers = errpage[0];
     data = errpage[1];
 }

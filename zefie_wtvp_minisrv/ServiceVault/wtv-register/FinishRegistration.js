@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 headers = `300 Moved
 Connection: Close
 wtv-noback-all: wtv-register:

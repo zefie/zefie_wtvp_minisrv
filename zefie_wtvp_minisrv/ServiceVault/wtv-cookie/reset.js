@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (socket.ssid) {
     if (ssid_sessions[socket.ssid]) {
         ssid_sessions[socket.ssid].resetCookies();
@@ -19,7 +21,7 @@ Redirecting shortly... <a href="client:goback">Go Back</a>
 }
 
 if (!headers) {
-    var errpage = doErrorPage(400)
+    var errpage = wtvshared.doErrorPage(400)
     headers = errpage[0];
     data = errpage[1];
 }

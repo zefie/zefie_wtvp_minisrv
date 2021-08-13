@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 // write posted log data to disk. should be decrypted by this point (if it was encrypted) if the crypto stream didn't break
 
 request_is_async = true;

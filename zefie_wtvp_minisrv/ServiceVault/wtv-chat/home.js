@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 var irc_nick = "";
 headers = "200 OK";
 if (request_headers.query.nick) headers += "\n" + ssid_sessions[socket.ssid].setIRCNick(request_headers.query.nick);
