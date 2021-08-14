@@ -111,7 +111,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
             service_vault_file_path = wtvshared.makeSafePath(service_vault_dir, service_path);
-
+            console.log(service_vault_file_path);
             // deny access to catchall file name directly
             var service_path_split = service_path.split("/");
             var service_path_request_file = service_path_split[service_path_split.length - 1];
@@ -128,9 +128,15 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     }
                 }                
             }
+            var is_dir = false;
+            var file_exists = false;
             minisrv_catchall, service_path_split, service_path_request_file = null;
-
             if (fs.existsSync(service_vault_file_path)) {
+                file_exists = true;
+                is_dir = fs.lstatSync(service_vault_file_path).isDirectory()
+            }
+
+            if (file_exists && !is_dir) {
                 // file exists, read it and return it
                 service_vault_found = true;
                 request_is_async = true;
@@ -211,6 +217,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         while (service_check_dir.join(path.sep) != service_vault_dir) {
                             var catchall_file = service_check_dir.join(path.sep) + path.sep + minisrv_catchall_file_name;
                             if (fs.existsSync(catchall_file)) {
+                                service_vault_found = true;
                                 if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                 request_headers.service_file_path = catchall_file;
                                 var jscript_eval = fs.readFileSync(catchall_file).toString();
@@ -356,7 +363,7 @@ async function processURL(socket, request_headers) {
             }
             // assume webtv since there is a :/ in the GET
             var service_name = shortURL.split(':/')[0];
-            var urlToPath = service_name + path.sep + shortURL.split(':/')[1];
+            var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.filterSSID(request_headers)));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name);
@@ -521,7 +528,18 @@ function headerStringToObj(headers, response = false) {
             headers_obj.http_response = d.replace("\r", "");
         } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
             headers_obj.request = d.replace("\r", "");
-            headers_obj.request_url = decodeURI(d.split(' ')[1]).replace("\r", "");
+            var request_url = d.split(' ');
+            if (request_url.length > 2) {
+                request_url.shift();
+                request_url = request_url.join(" ");
+                if (request_url.indexOf("HTTP/") > 0) {
+                    var index = request_url.indexOf(" HTTP/");
+                    request_url = request_url.substring(0, index);
+                }
+            } else {
+                request_url = request_url[1];
+            }
+            headers_obj.request_url = decodeURI(request_url).replace("\r", "");
         } else if (d.indexOf(":") > 0) {
             var d_split = d.split(':');
             var header_name = d_split[0];
