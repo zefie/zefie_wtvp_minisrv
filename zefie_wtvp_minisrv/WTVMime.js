@@ -195,6 +195,7 @@ class WTVMime {
         }
 
         modern_mime_type = this.mime.lookup(path);
+        if (modern_mime_type === false) modern_mime_type = "application/octet-stream";
         if (wtv_mime_type == "") wtv_mime_type = modern_mime_type;
         return new Array(wtv_mime_type, modern_mime_type);
     }
