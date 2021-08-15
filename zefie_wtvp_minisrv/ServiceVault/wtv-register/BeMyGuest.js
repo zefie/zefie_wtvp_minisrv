@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (minisrv_config.config.allow_guests) {
     headers = `300 Moved
 Connection: Close

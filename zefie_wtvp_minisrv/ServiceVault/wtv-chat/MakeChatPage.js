@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 headers = "200 OK";
 if (request_headers.query.nick) headers += "\n" + ssid_sessions[socket.ssid].setIRCNick(request_headers.query.nick);
 headers += "\nContent-Type: text/html";

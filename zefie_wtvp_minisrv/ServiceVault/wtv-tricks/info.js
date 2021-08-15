@@ -1,3 +1,4 @@
+var minisrv_service_file = true;
 
 var client_caps = null;
 

@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 var error = '';
 if (request_headers.query.error) {
     switch (request_headers.query.error) {

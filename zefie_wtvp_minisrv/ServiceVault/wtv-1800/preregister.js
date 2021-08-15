@@ -1,45 +1,47 @@
-	var gourl = "wtv-head-waiter:/login?";
+var minisrv_service_file = true;
 
-	if (socket.ssid) {
-		if (ssid_sessions[socket.ssid].loadSessionData() == true) {
-			console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
-			ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
-		} else {
-			ssid_sessions[socket.ssid].session_data = {};
-			ssid_sessions[socket.ssid].setSessionData("registered", false);
-		}
-		if (ssid_sessions[socket.ssid].data_store) {
-			if (ssid_sessions[socket.ssid].data_store.sockets) {
-				var i = 0;
-				ssid_sessions[socket.ssid].data_store.sockets.forEach(function (k) {
-					if (typeof k != "undefined") {
-						if (k != socket) {
-							k.destroy();
-							ssid_sessions[socket.ssid].data_store.sockets.delete(k);
-							i++;
-						}
-					}
-				});
-				if (i > 0 && minisrv_config.config.debug_flags.debug) console.log(" # Closed", i, "previous sockets for", wtvshared.filterSSID(socket.ssid));
-			}
-		}
-		if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-			if (minisrv_config.config.debug_flags.debug) console.log(" # Recreating primary WTVSec login instance for", wtvshared.filterSSID(socket.ssid));
-			delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
-		}
+var gourl = "wtv-head-waiter:/login?";
 
-		ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
-		ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-		ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
+if (socket.ssid) {
+	if (ssid_sessions[socket.ssid].loadSessionData() == true) {
+		console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
+		ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
 	} else {
-		console.log(" * Something bad happened (we don't know the client ssid???)");
-		var errpage = doErrorPage(400)
-		headers = errpage[0];
-		data = errpage[1];
+		ssid_sessions[socket.ssid].session_data = {};
+		ssid_sessions[socket.ssid].setSessionData("registered", false);
+	}
+	if (ssid_sessions[socket.ssid].data_store) {
+		if (ssid_sessions[socket.ssid].data_store.sockets) {
+			var i = 0;
+			ssid_sessions[socket.ssid].data_store.sockets.forEach(function (k) {
+				if (typeof k != "undefined") {
+					if (k != socket) {
+						k.destroy();
+						ssid_sessions[socket.ssid].data_store.sockets.delete(k);
+						i++;
+					}
+				}
+			});
+			if (i > 0 && minisrv_config.config.debug_flags.debug) console.log(" # Closed", i, "previous sockets for", wtvshared.filterSSID(socket.ssid));
+		}
+	}
+	if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+		if (minisrv_config.config.debug_flags.debug) console.log(" # Recreating primary WTVSec login instance for", wtvshared.filterSSID(socket.ssid));
+		delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
 	}
 
-	if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
-	if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
+	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
+	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
+	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
+} else {
+	console.log(" * Something bad happened (we don't know the client ssid???)");
+	var errpage = doErrorPage(400)
+	headers = errpage[0];
+	data = errpage[1];
+}
+
+if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
+if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
 
 if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 	var prereg_contype = "text/html";

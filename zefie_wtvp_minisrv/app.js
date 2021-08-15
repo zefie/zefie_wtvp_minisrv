@@ -102,6 +102,17 @@ function doErrorPage(code, data = null, pc_mode = false) {
     return new Array(headers, data);
 }
 
+async function sendRawFile(socket, path) {
+    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
+    var contypes = wtvmime.getContentType(path);
+    var headers = "200 OK\n"
+    headers += "Content-Type: " + contypes[0] + "\n";
+    headers += "wtv-modern-content-type" + contypes[1];
+    fs.readFile(path, null, function (err, data) {
+        sendToClient(socket, headers, data);
+    });
+}
+
 async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name) {
     var headers, data = null;
     var request_is_async = false;
@@ -120,9 +131,9 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 else minisrv_catchall = minisrv_config.config.catchall_file_name || null;
                 if (minisrv_catchall) {
                     if (service_path_request_file == minisrv_catchall) {
+                        request_is_async = true;
                         var errpage = doErrorPage(401, "Access Denied");
-                        headers = errpage[0];
-                        data = errpage[1];
+                        sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
                 }                
@@ -136,18 +147,50 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
             }
 
             if (file_exists && !is_dir) {
-                // file exists, read it and return it
+                // file exists, read it and return it 
                 service_vault_found = true;
                 request_is_async = true;
-                if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
                 request_headers.service_file_path = service_vault_file_path;
-                var contypes = wtvmime.getContentType(service_vault_file_path);
-                headers = "200 OK\n"
-                headers += "Content-Type: " + contypes[0] + "\n";
-                headers += "wtv-modern-content-type" + contypes[1];
-                fs.readFile(service_vault_file_path, null, function (err, data) {
-                    sendToClient(socket, headers, data);
-                });
+                request_headers.raw_file = true;
+
+                // service parsed files, we might not want to expose our service source files so we can protect them with a flag on the first line
+                if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "js" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "txt") {
+                    if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "js") {
+                        wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
+                            if (!status) {
+                                if (line.match(/minisrv\_service\_file.*true/i)) {
+                                    var errpage = doErrorPage(403, "Access Denied");
+                                    sendToClient(socket, errpage[0], errpage[1]);
+                                } else {
+                                    sendRawFile(socket, service_vault_file_path);
+                                }
+                            } else {
+                                var errpage = doErrorPage(400);
+                                sendToClient(socket, errpage[0], errpage[1]);
+                            }
+                        });
+                    }
+
+                    if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "txt") {
+                        wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
+                            if (!status) {
+                                if (line.match(/^#!minisrv/i)) {
+                                    var errpage = doErrorPage(403, "Access Denied");
+                                    sendToClient(socket, errpage[0], errpage[1]);
+                                } else {
+                                    sendRawFile(socket, service_vault_file_path);
+                                }
+                            } else {
+                                var errpage = doErrorPage(400);
+                                sendToClient(socket, errpage[0], errpage[1]);
+                            }
+                        });
+                    }
+                } else {
+                    // not a potential service file, so save to send
+                    sendRawFile(socket, service_vault_file_path);
+                }
+
             } else if (fs.existsSync(service_vault_file_path + ".txt")) {
                 // raw text format, entire payload expected (headers and content)
                 service_vault_found = true;
@@ -595,7 +638,7 @@ async function sendToClient(socket, headers_obj, data) {
     if (socket_sessions[socket.id]) {
         if (socket_sessions[socket.id].request_headers) {
             if (socket_sessions[socket.id].request_headers.service_file_path) {
-                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js") {
+                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js" || socket_sessions[socket.id].request_headers.raw_file === true) {
                     var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
                     if (last_modified) headers_obj["Last-Modified"] = last_modified;
                 }

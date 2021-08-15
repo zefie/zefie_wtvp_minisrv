@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (socket.ssid) {
     if (request_headers.post_data) {
         if (ssid_sessions[socket.ssid]) {

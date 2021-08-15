@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.query.path) {
 var url = service_name + ":/get-lc2-page?path=" + request_headers.query.path;
 var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");

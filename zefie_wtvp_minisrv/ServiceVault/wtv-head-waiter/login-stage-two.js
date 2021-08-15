@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 var challenge_response, challenge_header = '';
 var gourl;
 

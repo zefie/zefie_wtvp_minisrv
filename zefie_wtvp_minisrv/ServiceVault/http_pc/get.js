@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.query.url) {
     if (request_headers.query.url.indexOf(":/") > 0) {
         var service_request = request_headers.query.url.split(":/")[0];

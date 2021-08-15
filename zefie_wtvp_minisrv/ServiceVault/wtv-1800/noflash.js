@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
 	var wtvsec_login = new WTVSec(minisrv_config);
 	wtvsec_login.IssueChallenge();

@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 // willie is just a graphical frontend to a list of ROMs
 // the rest of the scripts should work if you manually link to a ROM, and actually have it.
 

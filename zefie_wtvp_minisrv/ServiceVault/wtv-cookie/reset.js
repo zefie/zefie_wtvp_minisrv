@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (socket.ssid) {
     if (ssid_sessions[socket.ssid]) {
         ssid_sessions[socket.ssid].resetCookies();

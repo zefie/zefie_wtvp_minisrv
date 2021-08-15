@@ -1,4 +1,4 @@
-
+var minisrv_service_file = true;
 
 if (!request_headers.query.registering) {
     var errpage = doErrorPage(400);

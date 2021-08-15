@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (!request_headers.query.registering ||
     !request_headers.query.subscriber_name ||
     !request_headers.query.subscriber_username ||

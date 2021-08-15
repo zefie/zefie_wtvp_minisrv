@@ -93,7 +93,9 @@ data += `
 nexturl="${flashrom_info.next_rompath}"
 errorurl="${service_name}:/lc2-download-failed?"
 `
-		if (!flashrom_info.is_last_part) data += `blockurl = "${flashrom_info.rompath}"`;
+		if (!var minisrv_service_file = true;
+
+flashrom_info.is_last_part) data += `blockurl = "${flashrom_info.rompath}"`;
 
 		data += `
 lastblock="${flashrom_info.is_last_part}"
