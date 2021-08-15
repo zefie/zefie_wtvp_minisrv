@@ -41,7 +41,8 @@ class WTVMime {
                         if (this.minisrv_config.config.enable_gzip_compression || this.minisrv_config.config.force_compression_type) {
                             var is_bf0app = ssid_session.get("wtv-client-rom-type") == "bf0app";
                             var isOldBuild = this.wtvshared.isOldBuild(ssid_session);
-                            var is_softmodem = ssid_session.get("wtv-client-rom-type").match(/softmodem/);
+                            var is_softmodem = false;
+                            if (ssid_session.get("wtv-client-rom-type")) is_softmodem = ssid_session.get("wtv-client-rom-type").match(/softmodem/);
                             if (!is_bf0app && ((!is_softmodem && !isOldBuild) || (is_softmodem && !isOldBuild))) {
                                 // softmodem boxes do not appear to support gzip in the minibrowser
                                 // LC2 appears to support gzip even in the MiniBrowser
@@ -75,9 +76,10 @@ class WTVMime {
                             // gzip only
                             if (content_type.match(/^audio\/(x-)?(s3m|mod|xm)$/)) compress_data = true; // s3m, mod, xm
                             if (content_type.match(/^audio\/(x-)?(midi|wav|wave|aif(f)?)$/)) compress_data = true; // midi & wav
+                            if (content_type.match(/^application\/karaoke$/)) compress_data = true; // midi karaoke
                             if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms    
                             if (content_type.match(/^binary\/doom-data$/)) compress_data = true; // DOOM WADs
-                            if (content_type.match(/^wtv\/download-list$/)) compress_data = true; // WebTV Download List
+                            if (content_type.match(/^wtv\/download-list$/)) compress_data = true; // WebTV Download List                            
                         }
                     }
                 }
@@ -178,6 +180,9 @@ class WTVMime {
                 break;
             case "wad":
                 wtv_mime_type = "binary/doom-data";
+                break;
+            case "kar":
+                wtv_mime_type = "application/karaoke";
                 break;
             case "mp2":
             case "hsb":

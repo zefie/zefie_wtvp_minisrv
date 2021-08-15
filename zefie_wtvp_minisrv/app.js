@@ -106,12 +106,11 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     var headers, data = null;
     var request_is_async = false;
     var service_vault_found = false;
-    var service_path = service_vault_file_path;
+    var service_path = unescape(service_vault_file_path);
     try {
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
             service_vault_file_path = wtvshared.makeSafePath(service_vault_dir, service_path);
-            console.log(service_vault_file_path);
             // deny access to catchall file name directly
             var service_path_split = service_path.split("/");
             var service_path_request_file = service_path_split[service_path_split.length - 1];
