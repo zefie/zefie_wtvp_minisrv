@@ -150,7 +150,7 @@ ${request_headers.query.channel}
 </body>
 </html>`;
 } else {
-    var errpage = doErrorPage("400 Chat requires host, port and channel arguments. Do not use the # on channels.");
+    var errpage = wtvshared.doErrorPage("400 Chat requires host, port and channel arguments. Do not use the # on channels.");
     headers = errpage[0];
     data = errpage[1];
 }

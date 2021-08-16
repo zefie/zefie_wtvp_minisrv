@@ -33,7 +33,7 @@ if (request_headers.query.url) {
 }
 
 if (!headers) {
-    var errpage = doErrorPage(500)
+    var errpage = wtvshared.doErrorPage(500)
     headers = errpage[0];
     data = errpage[1];
 }

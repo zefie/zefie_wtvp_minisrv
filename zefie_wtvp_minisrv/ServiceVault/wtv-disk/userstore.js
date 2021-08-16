@@ -17,7 +17,7 @@ if (request_headers.post_data) {
 }
 
 if (!headers) {
-    var errpage = doErrorPage(400)
+    var errpage = wtvshared.doErrorPage(400)
     headers = errpage[0];
     data = errpage[1];
 }

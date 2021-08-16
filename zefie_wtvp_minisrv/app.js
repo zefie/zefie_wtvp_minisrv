@@ -71,35 +71,9 @@ function getServiceString(service, overrides = {}) {
     }
 }
 
+// passthrough for old scripts
 function doErrorPage(code, data = null, pc_mode = false) {
-    var headers = null;
-    switch (code) {
-        case 404:
-            if (data === null) data = "The service could not find the requested page.";
-            if (pc_mode) headers = "404 Not Found\n";
-            else headers = code + " "+ data + "\n";
-            headers += "Content-Type: text/html\n";
-            break;
-        case 400:
-        case 500:
-            if (data === null) data = "HackTV ran into a technical problem.";
-            if (pc_mode) headers = "500 Internal Server Error\n";
-            else headers = code + " " + data + "\n";
-            headers += "Content-Type: text/html\n";
-            break;
-        case 401:
-            if (data === null) data = "Access Denied.";
-            if (pc_mode) headers = "401 Access Denied\n";
-            else headers = code + " " + data + "\n";
-            headers += "Content-Type: text/html\n";
-            break;
-        default:
-            headers = code + " " + data + "\n";
-            headers += "Content-Type: text/html\n";
-            break;
-    }
-    console.error(" * doErrorPage Called:", code, data);
-    return new Array(headers, data);
+    return wtvshared.doErrorPage(code, data, pc_mode);
 }
 
 async function sendRawFile(socket, path) {
@@ -132,7 +106,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 if (minisrv_catchall) {
                     if (service_path_request_file == minisrv_catchall) {
                         request_is_async = true;
-                        var errpage = doErrorPage(401, "Access Denied");
+                        var errpage = wtvshared.doErrorPage(401, "Access Denied");
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
@@ -159,13 +133,13 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
                             if (!status) {
                                 if (line.match(/minisrv\_service\_file.*true/i)) {
-                                    var errpage = doErrorPage(403, "Access Denied");
+                                    var errpage = wtvshared.doErrorPage(403, "Access Denied");
                                     sendToClient(socket, errpage[0], errpage[1]);
                                 } else {
                                     sendRawFile(socket, service_vault_file_path);
                                 }
                             } else {
-                                var errpage = doErrorPage(400);
+                                var errpage = wtvshared.doErrorPage(400);
                                 sendToClient(socket, errpage[0], errpage[1]);
                             }
                         });
@@ -175,17 +149,17 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
                             if (!status) {
                                 if (line.match(/^#!minisrv/i)) {
-                                    var errpage = doErrorPage(403, "Access Denied");
+                                    var errpage = wtvshared.doErrorPage(403, "Access Denied");
                                     sendToClient(socket, errpage[0], errpage[1]);
                                 } else {
                                     sendRawFile(socket, service_vault_file_path);
                                 }
                             } else {
-                                var errpage = doErrorPage(400);
+                                var errpage = wtvshared.doErrorPage(400);
                                 sendToClient(socket, errpage[0], errpage[1]);
                             }
                         });
-                    }
+                    }er
                 } else {
                     // not a potential service file, so save to send
                     sendRawFile(socket, service_vault_file_path);
@@ -277,7 +251,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
             // either `request_is_async`, or `headers` and `data` MUST be defined by this point!
         });
     } catch (e) {
-        var errpage = doErrorPage(400);
+        var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1] + "<br><br>The interpreter said:<br><pre>" + e.toString() + "</pre>";
         console.error(" * Scripting error:",e);
@@ -285,12 +259,12 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     if (!request_is_async) {
         if (!service_vault_found) {
             console.error(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, ""));
-            var errpage = doErrorPage(404, null, socket.minisrv_pc_mode);
+            var errpage = wtvshared.doErrorPage(404, null, socket.minisrv_pc_mode);
             headers = errpage[0];
             data = errpage[1];
         }
         if (headers == null && !request_is_async) {
-            var errpage = doErrorPage(400, null, socket.minisrv_pc_mode);
+            var errpage = wtvshared.doErrorPage(400, null, socket.minisrv_pc_mode);
             headers = errpage[0];
             data = errpage[1];
             console.error(" * Scripting or Data error: Headers were not defined. (headers,data) as follows:")
@@ -378,7 +352,7 @@ async function processURL(socket, request_headers) {
                 } else {
                     // minimal pc mode to send error
                     socket.minisrv_pc_mode = true;
-                    var errpage = doErrorPage(401, "PC services are disabled on this server", socket.minisrv_pc_mode);
+                    var errpage = wtvshared.doErrorPage(401, "PC services are disabled on this server", socket.minisrv_pc_mode);
                     headers = errpage[0];
                     data = errpage[1]
                     socket_sessions[socket.id].close_me = true;
@@ -413,7 +387,7 @@ async function processURL(socket, request_headers) {
             doHTTPProxy(socket, request_headers);
         } else {
             // error reading headers (no request_url provided)
-            var errpage = doErrorPage(400);
+            var errpage = wtvshared.doErrorPage(400);
             headers = errpage[0];
             data = errpage[1]
             socket_sessions[socket.id].close_me = true;
@@ -514,11 +488,11 @@ async function doHTTPProxy(socket, request_headers) {
             });
         }).on('error', function (err) {
             var errpage, headers, data = null;
-            if (err.code == "ENOTFOUND") errpage = doErrorPage(400, `The publisher ${request_data.host} is unknown.`);
-            else if (err.message.indexOf("HostUnreachable") > 0) errpage = doErrorPage(400, `The publisher ${request_data.host} could not be reached.`);
+            if (err.code == "ENOTFOUND") errpage = wtvshared.doErrorPage(400, `The publisher ${request_data.host} is unknown.`);
+            else if (err.message.indexOf("HostUnreachable") > 0) errpage = wtvshared.doErrorPage(400, `The publisher ${request_data.host} could not be reached.`);
             else {
                 console.log(" * Unhandled Proxy Request Error:", err);
-                errpage = doErrorPage(400);
+                errpage = wtvshared.doErrorPage(400);
             }
             headers = errpage[0];
             data = errpage[1];
@@ -896,7 +870,7 @@ function checkSecurity(socket) {
         if (blacklist) console.log(" * Request from SSID", wtvshared.filterSSID(ssid), "(" + socket.remoteAddr + "), but that SSID is in the blacklist, rejecting.");
         else console.log(" * Request from SSID", wtvshared.filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
 
-        var errpage = doErrorPage(401, "Access to this service is denied.");
+        var errpage = wtvshared.doErrorPage(401, "Access to this service is denied.");
         out = errpage;
     }
 
@@ -1002,7 +976,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex.substring(header_length * 2));
                     if (enc_data.sigBytes > 0) {
                         if (!socket_sessions[socket.id].wtvsec) {
-                            var errpage = doErrorPage(400);
+                            var errpage = wtvshared.doErrorPage(400);
                             headers = errpage[0];
                             headers += "wtv-visit: client:relog\n";
                             data = errpage[1];
@@ -1137,7 +1111,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (minisrv_config.config.debug_flags.show_headers) console.log(secure_headers);
                         if (!secure_headers.request) {
                             socket_sessions[socket.id].secure = false;
-                            var errpage = doErrorPage(400);
+                            var errpage = wtvshared.doErrorPage(400);
                             headers = errpage[0];
                             data = errpage[1];
                             sendToClient(socket, headers, data);
@@ -1198,7 +1172,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         processURL(socket, headers);
                     } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                         // got too much data ? ... should not ever reach this code (section 2)
-                        var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
+                        var errpage = wtvshared.doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
                         headers = errpage[0];
                         data = errpage[1];
                         sendToClient(socket, headers, data);
@@ -1280,7 +1254,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                     socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     // got too much data ? ... should not ever reach this code
-                    var errpage = doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
+                    var errpage = wtvshared.doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
                     headers = errpage[0];
                     data = errpage[1];
                     sendToClient(socket, headers, data);
@@ -1298,7 +1272,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     var enc_data = CryptoJS.enc.Hex.parse(data_hex);
                     if (enc_data.sigBytes > 0) {
                         if (!socket_sessions[socket.id].wtvsec) {
-                            var errpage = doErrorPage(400);
+                            var errpage = wtvshared.doErrorPage(400);
                             var headers = errpage[0];
                             headers += "wtv-visit: client:relog\n";
                             data = errpage[1];

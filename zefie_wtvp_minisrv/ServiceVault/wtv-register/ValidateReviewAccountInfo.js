@@ -9,7 +9,7 @@ if (!request_headers.query.registering ||
     !ssid_sessions[socket.ssid] ||
     !socket.ssid
     ) {
-    var errpage = doErrorPage(400);
+    var errpage = wtvshared.doErrorPage(400);
     headers = errpage[0];
     data = errpage[1];
 } else {
@@ -20,7 +20,7 @@ if (!request_headers.query.registering ||
     ssid_sessions[socket.ssid].setSessionData("subscriber_userid", '1' + Math.floor(Math.random() * 1000000000000000000));
     ssid_sessions[socket.ssid].setSessionData("registered", true);
     if (!ssid_sessions[socket.ssid].storeSessionData(true)) {
-        var errpage = doErrorPage(400);
+        var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
     } else {

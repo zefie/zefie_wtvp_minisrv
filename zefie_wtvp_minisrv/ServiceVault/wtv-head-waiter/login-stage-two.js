@@ -63,7 +63,7 @@ else {
 		if (request_headers.query.skip_splash) var home_url = "wtv-home:/home?";
 		else var home_url = "wtv-home:/splash?";
 	} else if (!ssid_sessions[socket.ssid].getSessionData("registered")) {
-		var errpage = doErrorPage(400);
+		var errpage = wtvshared.doErrorPage(400);
 		headers = errpage[0];
 		data = errpage[1];
 	} else {

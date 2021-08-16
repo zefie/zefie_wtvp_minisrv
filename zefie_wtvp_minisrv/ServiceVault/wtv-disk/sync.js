@@ -298,20 +298,20 @@ if (request_headers['wtv-request-type'] == 'download') {
 
                     headers = "200 OK\nContent-Type: wtv/download-list";
                 } catch (e) {
-                    var errpage = doErrorPage(400);
+                    var errpage = wtvshared.doErrorPage(400);
                     headers = errpage[0];
                     data = errpage[1];
                     console.error(" # " + service_name+":/sync error", e);
                 }
             }
         } else {
-            var errpage = doErrorPage(404, "The requested DiskMap does not exist.");
+            var errpage = wtvshared.doErrorPage(404, "The requested DiskMap does not exist.");
             headers = errpage[0];
             data = errpage[1];
             if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
         }
     } else {
-        var errpage = doErrorPage(400);
+        var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");

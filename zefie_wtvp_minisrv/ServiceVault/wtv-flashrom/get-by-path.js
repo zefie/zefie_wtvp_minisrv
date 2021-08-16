@@ -30,7 +30,7 @@ if (request_headers.query.raw || bf0app_update) {
 		headers += "Content-type: text/html"
 		data = '';
 	} else {
-		var errpage = doErrorPage(404)
+		var errpage = wtvshared.doErrorPage(404)
 		headers = errpage[0];
 		data = errpage[1];
 	}

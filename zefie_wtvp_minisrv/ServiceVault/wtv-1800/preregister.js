@@ -35,7 +35,7 @@ if (socket.ssid) {
 	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
 } else {
 	console.log(" * Something bad happened (we don't know the client ssid???)");
-	var errpage = doErrorPage(400)
+	var errpage = wtvshared.doErrorPage(400)
 	headers = errpage[0];
 	data = errpage[1];
 }
@@ -179,7 +179,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		request_is_async = true;
 		fs.readFile(file_path, null, function (err, file_read_data) {
 			if (err) {
-				var errmsg = doErrorPage(400);
+				var errmsg = wtvshared.doErrorPage(400);
 				headers = errmsg[0];
 				file_read_data = errmsg[1] + "\n" + err.toString();
 			}
@@ -187,7 +187,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		});
 	}
 } else {
-	var errpage = doErrorPage(400);
+	var errpage = wtvshared.doErrorPage(400);
 	headers = errpage[0];
 	data = errpage[1];
 }

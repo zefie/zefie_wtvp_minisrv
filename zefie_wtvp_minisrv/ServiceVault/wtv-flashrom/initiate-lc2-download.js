@@ -13,7 +13,7 @@ var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 	headers += "Content-type: text/html";
 	data = '';
 } else {
-	var errpage = doErrorPage(400)
+	var errpage = wtvshared.doErrorPage(400)
 	headers = errpage[0];
 	data = errpage[1];
 }
