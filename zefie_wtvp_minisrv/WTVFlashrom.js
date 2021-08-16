@@ -84,24 +84,25 @@ class WTVFlashrom {
 		flashrom_info.total_parts_size = data.readUInt32BE(32);
 		flashrom_info.percent_complete = ((((flashrom_info.byte_progress + flashrom_info.part_total_size) / flashrom_info.total_parts_size)) * 100).toFixed(1);
 
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Part Size  :", flashrom_info.part_total_size);
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Bytes Sent :", flashrom_info.byte_progress);
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Bytes Sent+:", flashrom_info.byte_progress + flashrom_info.part_total_size, "(" + flashrom_info.percent_complete + "% complete)");
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Total Size :", flashrom_info.total_parts_size);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Part Size  :", flashrom_info.part_total_size);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Bytes Sent :", flashrom_info.byte_progress);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Bytes Sent+:", flashrom_info.byte_progress + flashrom_info.part_total_size, "(" + flashrom_info.percent_complete + "% complete)");
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Total Size :", flashrom_info.total_parts_size);
 
 		// read current part number bit from part header
 		flashrom_info.part_number = data.readUInt16BE(28);
 
-		if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Curr Part Number :", flashrom_info.part_number);
+		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Curr Part Number :", flashrom_info.part_number);
 		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) == flashrom_info.total_parts_size) ? true : false;
 
 		if (flashrom_info.is_last_part) {
-			if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Curr Part is Last:", flashrom_info.is_last_part);
+			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Curr Part is Last:", flashrom_info.is_last_part);
 		} else {
 			flashrom_info.next_part_number = flashrom_info.part_number + 1;
-			if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # Flashrom Next Part Number :", flashrom_info.next_part_number);
+			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Next Part Number :", flashrom_info.next_part_number);
 		}
 
+		if (this.minisrv_config.config.debug_flags.debug && this.minisrv_config.config.debug_flags.quiet) console.log(" # Sending", (flashrom_info.is_last_part) ? "Last" : "", "Flashrom Part", flashrom_info.part_number, "- Bytes Sent:", flashrom_info.byte_progress + flashrom_info.part_total_size, "(" + flashrom_info.percent_complete + " % complete)");
 		// read current part display message from part header
 		flashrom_info.message = new Buffer.from(part_header.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
 		flashrom_info.rompath = `wtv-flashrom:/${path}`;
