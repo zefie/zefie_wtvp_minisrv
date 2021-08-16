@@ -119,7 +119,6 @@ class WTVFlashrom {
 
 	async sendToClient(data, request_path, callback) {
 		var headers = "200 OK\n";
-		if (this.bf0app_update) headers += "minisrv-use-carriage-return: false\n";
 		var flashrom_info = this.getFlashromInfo(data, request_path)
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
