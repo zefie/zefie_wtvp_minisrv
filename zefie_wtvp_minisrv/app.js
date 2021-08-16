@@ -1044,7 +1044,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     if (!ssid_sessions[socket.ssid].data_store.wtvsec_login) {
                         ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-                        ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
+                        if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
                     } else {
@@ -1052,7 +1052,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (minisrv_config.config.debug_flags.debug) console.log(" # New ticket from client");
                             ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                             ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
-                            ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
+                            if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                         }
                     }
                 }
