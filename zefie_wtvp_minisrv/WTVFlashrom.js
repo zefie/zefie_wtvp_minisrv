@@ -102,7 +102,7 @@ class WTVFlashrom {
 			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Next Part Number :", flashrom_info.next_part_number);
 		}
 
-		if (this.minisrv_config.config.debug_flags.debug && this.minisrv_config.config.debug_flags.quiet) console.log(" # Sending", (flashrom_info.is_last_part) ? "Last Flashrom" : "Flashrom", "Part", flashrom_info.part_number, " - Bytes Sent: ", flashrom_info.byte_progress + flashrom_info.part_total_size, "of", flashrom_info.total_parts_size + "(" + flashrom_info.percent_complete + " % complete)");
+		if (this.minisrv_config.config.debug_flags.debug && this.minisrv_config.config.debug_flags.quiet) console.log(" # Sending", (flashrom_info.is_last_part) ? "Last Flashrom" : "Flashrom", "Part", flashrom_info.part_number, "- Bytes Sent: ", flashrom_info.byte_progress + flashrom_info.part_total_size, "of", flashrom_info.total_parts_size, "(" + flashrom_info.percent_complete + " % complete)");
 		// read current part display message from part header
 		flashrom_info.message = new Buffer.from(part_header.toString('hex').substring(36 * 2, 68 * 2), 'hex').toString('ascii').replace(/[^0-9a-z\ \.\-]/gi, "");
 		flashrom_info.rompath = `wtv-flashrom:/${path}`;
