@@ -32,7 +32,7 @@ if (socket.ssid) {
 
 	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
 	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-	ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"] || 1);
+	if (request_headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 } else {
 	console.log(" * Something bad happened (we don't know the client ssid???)");
 	var errpage = wtvshared.doErrorPage(400)
