@@ -24,7 +24,6 @@ class WTVFlashrom {
 
 	async doLocalFlashROM(flashrom_file_path, request_path, callback, info_only = false) {
 		// use local flashrom files;
-		console.log(info_only);
 		var self = this;
 		try {
 			this.fs.readFile(flashrom_file_path, null, function (err, data) {
@@ -179,7 +178,7 @@ class WTVFlashrom {
 						headers = errpage[0];
 						var data = errpage[1];
 					}
-					if (!headers) {
+					if (!headers && res.statusCode != 206) {
 						self.sendToClient(data, request_path, callback);
 					} else {
 						callback(data, headers);
