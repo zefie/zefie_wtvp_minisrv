@@ -22,7 +22,7 @@ async function processLC2DownloadPage(path, flashrom_info, numparts = null) {
 	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
 	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
 	if (!flashrom_info.part_number || !flashrom_info.is_last_part || !flashrom_info.rompath || !flashrom_info.next_rompath || !flashrom_info.is_bootrom) {
-		if (!flashrom_info.is_last_part || request_headers.query.last_part) {
+		if (!flashrom_info.is_last_part) {
 			flashrom_info.next_rompath = request_headers.request_url.replace(escape(request_headers.query.path), escape(flashrom_info.next_rompath.replace(service_name+":/","")));
 		}
 
@@ -93,8 +93,7 @@ data += `
 <upgradeblock width=280 height=15
 nexturl="${flashrom_info.next_rompath}"
 errorurl="${service_name}:/lc2-download-failed?"
-`
-		if (!flashrom_info.is_last_part) data += `blockurl = "${flashrom_info.rompath}"`;
+blockurl="${flashrom_info.rompath}"`;
 
 		data += `
 lastblock="${flashrom_info.is_last_part}"
