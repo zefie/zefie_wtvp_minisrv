@@ -159,7 +159,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                 sendToClient(socket, errpage[0], errpage[1]);
                             }
                         });
-                    }er
+                    }
                 } else {
                     // not a potential service file, so save to send
                     sendRawFile(socket, service_vault_file_path);
