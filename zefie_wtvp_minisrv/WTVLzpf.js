@@ -287,7 +287,8 @@ class WTVLzpf {
         this.match_index = 0;
         this.type_index = 0;
         this.checksum = 0;
-        this.ring_buffer.fill(0x00, 0, 0x2000)
+        this.filler_byte = 0x20
+        this.ring_buffer.fill(this.filler_byte, 0, 0x2000)
         this.flag_table.fill(0xFFFF, 0, 0x1000);
         this.encoded_data = [];
     }
@@ -441,7 +442,7 @@ class WTVLzpf {
         if (this.current_literal != 0x00) {
             this.AddByte((this.current_literal >>> 0x18) & 0xFF);
         }
-        this.AddByte(0x20);
+        this.AddByte(this.filler_byte);
 
         return Buffer.from(this.encoded_data);
     }
