@@ -438,7 +438,9 @@ class WTVLzpf {
         this.EncodeLiteral(0x08, (this.checksum << 0x18) & 0xFFFFFFFF);
 
         // End
-        this.AddByte((this.current_literal >>> 0x18) & 0xFF);
+        if (this.current_literal != 0x00) {
+            this.AddByte((this.current_literal >>> 0x18) & 0xFF);
+        }
         this.AddByte(0x20);
 
         return Buffer.from(this.encoded_data);
