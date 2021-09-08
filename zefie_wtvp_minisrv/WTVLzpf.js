@@ -1,12 +1,15 @@
 /**
-* Pure-JS implementation of WebTV's LZPF compression
-*
-* This is a port of my Lzpf compression code from my ROMFS Python tool
-* Originally reverse engineered from the box
-*
-* By: Eric MacDonald (eMac)
-* Modified By: zefie
-*/
+ * Pure-JS implementation of WebTV's LZPF compression
+ *
+ * This compression algorithm is based on LZP by Charles Bloom and was originally written for server to client communication by Andy McFadden
+ * This uses a (static) Huffman dictionary that was tuned for character occurances in a typical HTML page at the time (around 1996-1997).
+ *
+ * Andy McFadden: https://fadden.com/
+ * LZP: https://en.wikibooks.org/wiki/Data_Compression/Dictionary_compression#LZP
+ *
+ * Reverse engineered and ported by: Eric MacDonald (eMac)
+ * Modified By: zefie
+**/
 
 class WTVLzpf {
     // Note: currentlty doesn't offer optimal streaming support but this is good enough to meet perf demands at the scale we're at.
