@@ -393,12 +393,15 @@ class WTVLzpf {
             this.ring_buffer[i & 0x1FFF] = byte;
 
             if (this.match_index > 0) {
+                // Cozy time
                 if (byte != this.ring_buffer[this.ring_bufer_index] || this.match_index > 0x0127) {
+                    // End of matching.  Either we no longer match or we reached out limit.
                     code_length = this.matchEncode[this.match_index][1];
                     code = this.matchEncode[this.match_index][0];
                     this.match_index = 0;
                     this.type_index = 3;
                 } else {
+                    // Previous iteration found a match so we continue matching until we can't.
                     this.match_index = (this.match_index + 1) & 0x1FFF;
                     this.ring_bufer_index = (this.ring_bufer_index + 1) & 0x1FFF;
                     this.checksum = (this.checksum + byte) & 0xFFFF;
@@ -409,26 +412,33 @@ class WTVLzpf {
                 this.ring_bufer_index = 0xFFFF;
 
                 if (i >= 3) {
+                    // Start recoding data so we can lookup matches.
                     hash_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
                     this.ring_bufer_index = this.hash_table[hash_index];
                     this.hash_table[hash_index] = i & 0x1FFF;
                 } else {
+                    // The first three uncompressed bytes aren't used for the matching algorithm.
                     this.type_index++;
                 }
 
                 if (this.ring_bufer_index == 0xFFFF) {
+                    // We never seen this byte before so we encode it with our Huffman dictionary.
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
                 } else if (byte == this.ring_buffer[this.ring_bufer_index] && compress_data) {
+                    // Wow dude, a match has been found.  Let's switch get our own room in the next iteration to see if we match further.
                     this.match_index = 1;
                     this.ring_bufer_index = (this.ring_bufer_index + 1) & 0x1FFF;
                     this.type_index = 4;
                 } else {
+                    // We've seen these bytes before but the index in the ring buffer doesn't match so we revert to our neat Huffman dictionary
+                    // We add 1 flag bit of 0 to account for the fact we've had a hash table hit but no hit in the ring buffer.
                     code_length = this.nomatchEncode[byte][1] + 1;
                     code = this.nomatchEncode[byte][0] << 0x0F;
                 }
 
                 this.checksum = (this.checksum + byte) & 0xFFFF;
+                // We work on a 2-byte context so we store the last two bytes so we can do cool lookups with it
                 this.working_data = ((this.working_data * 0x0100) + byte) & 0xFFFFFFFF;
                 i++;
             }
