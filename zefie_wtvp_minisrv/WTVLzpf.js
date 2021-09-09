@@ -468,16 +468,15 @@ class WTVLzpf {
             }
         }
 
-        // Below is just metadata.  The compressed block is complete.
-
-        // Encode checksum
+        // Add checksum bits
         this.AddBits((this.checksum << 0x10) & 0xFFFFFFFF, 0x08);
         this.AddBits((this.checksum << 0x18) & 0xFFFFFFFF, 0x08);
 
-        // End
+        // If we have leftover bits then add it.
         if (this.current_bits != 0x00) {
             this.AddByte((this.current_bits >>> 0x18) & 0xFF);
         }
+
         this.AddByte(this.filler_byte);
 
         return Buffer.from(this.encoded_data);
