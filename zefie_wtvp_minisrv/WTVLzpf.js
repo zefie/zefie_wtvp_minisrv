@@ -20,8 +20,8 @@
 class WTVLzpf {
     // Note: currentlty doesn't offer optimal streaming support but this is good enough to meet perf demands at the scale we're at.
 
-    current_length = 0;
-    current_literal = 0;
+    current_bit_length = 0;
+    current_bits = 0;
     ring_bufer_index = 0xFFFF;
     working_data = 0;
     match_index = 0;
@@ -316,8 +316,8 @@ class WTVLzpf {
      * @returns {undefined}
      */
     clear() {
-        this.current_length = 0;
-        this.current_literal = 0;
+        this.current_bit_length = 0;
+        this.current_bits = 0;
         this.ring_bufer_index = 0xFFFF;
         this.working_data = 0;
         this.match_index = 0;
@@ -341,22 +341,24 @@ class WTVLzpf {
     }
 
     /**
-     * Encodes a literal onto the compressed byte array.
+     * Add bits onto the compressed bit stream.
+     * 
+     * When we reach 8 bits we push a byte onto the compressed byte array.
      *
-     * @param code_length {Number} bit length of the code
-     * @param code {Number} code to be encoded
+     * @param bits {Number} bits to add
+     * @param bit_length {Number} bit length
      *
      * @returns {undefined}
      */
-    EncodeLiteral(code_length, code) {
-        this.current_literal |= code >>> (this.current_length & 0x1F);
-        this.current_length += code_length;
+    AddBits(bits, bit_length) {
+        this.current_bits |= code >>> (this.current_bit_length & 0x1F);
+        this.current_bit_length += code_length;
 
-        while (this.current_length > 7) {
-            this.AddByte((this.current_literal >>> 0x18) & 0xFF);
+        while (this.current_bit_length > 7) {
+            this.AddByte((this.current_bits >>> 0x18) & 0xFF);
 
-            this.current_length -= 8;
-            this.current_literal = (this.current_literal << 8) & 0xFFFFFFFF;
+            this.current_bit_length -= 8;
+            this.current_bits = (this.current_bits << 8) & 0xFFFFFFFF;
         }
     }
 
@@ -432,7 +434,7 @@ class WTVLzpf {
             }
 
             if (code_length > 0) {
-                this.EncodeLiteral(code_length, code);
+                this.AddBits(code, code_length);
             }
         }
     }
@@ -449,32 +451,32 @@ class WTVLzpf {
         var code = -1;
 
         if (this.type_index == 2) {
-            this.EncodeLiteral(0x10, 0x00990000);
+            this.AddBits(0x00990000, 0x10);
         } else if (this.type_index >= 3) {
             if (this.type_index == 4) {
                 code_length = this.matchEncode[this.match_index][1];
                 code = this.matchEncode[this.match_index][0];
-                this.EncodeLiteral(code_length, code);
+                this.AddBits(code, code_length);
             }
 
             var hash_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
             var ring_bufer_index = this.hash_table[hash_index];
             if (ring_bufer_index == 0xFFFF) {
-                this.EncodeLiteral(0x10, 0x00990000);
+                this.AddBits(0x00990000, 0x10);
             } else {
-                this.EncodeLiteral(0x11, 0x004c8000);
+                this.AddBits(0x004C8000, 0x11);
             }
         }
 
         // Below is just metadata.  The compressed block is complete.
 
         // Encode checksum
-        this.EncodeLiteral(0x08, (this.checksum << 0x10) & 0xFFFFFFFF);
-        this.EncodeLiteral(0x08, (this.checksum << 0x18) & 0xFFFFFFFF);
+        this.AddBits((this.checksum << 0x10) & 0xFFFFFFFF, 0x08);
+        this.AddBits((this.checksum << 0x18) & 0xFFFFFFFF, 0x08);
 
         // End
-        if (this.current_literal != 0x00) {
-            this.AddByte((this.current_literal >>> 0x18) & 0xFF);
+        if (this.current_bits != 0x00) {
+            this.AddByte((this.current_bits >>> 0x18) & 0xFF);
         }
         this.AddByte(this.filler_byte);
 
