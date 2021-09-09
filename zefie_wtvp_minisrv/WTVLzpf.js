@@ -27,7 +27,7 @@ class WTVLzpf {
     match_index = 0;
     compression_mode = 0;
     checksum = 0;
-    this.filler_byte = 0x20
+    filler_byte = 0x20
     hash_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
     encoded_data = [];
