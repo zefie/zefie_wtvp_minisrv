@@ -22,12 +22,12 @@ class WTVLzpf {
 
     current_length = 0;
     current_literal = 0;
-    flag = 0xFFFF;
+    ring_bufer_index = 0xFFFF;
     working_data = 0;
     match_index = 0;
     type_index = 0;
     checksum = 0;
-    flag_table = new Uint16Array(0x1000)
+    hash_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
     encoded_data = [];
 
@@ -141,10 +141,10 @@ class WTVLzpf {
      * 
      * When we find a byte match in the ring buffer we use this dictionary to encode the length of the matched bytes.
      * 
-     * - These are intentionally 32-bit.  The leftmost bit is 1 in each of these to tell the decoder to use match decoding.
-     * - LZP flag bits are used to encode the position where the matched bytes start.
+     * - These are intentionally 32-bit.  The leftmost flag bit is 1 in each of these to tell the decoder to use match decoding.
+     * - LZP hash bits are used to encode the position where the matched bytes start.
      * - We're allowed to match up to 298 bytes before we can't encode more (we need an entry in this dictionary for each byte more).
-     * - We can reach for matches 65KB behind the current LZ cursor (65KB is the ring buffer size and highest a 16-bit flag can reach).
+     * - We can reach for matches 65KB behind the current LZ cursor (65KB is the ring buffer size and highest a 16-bit hash can reach).
     **/
     matchEncode = [
         /* [MATCH CODE, MATCH CODE BIT LENGTH] */
@@ -318,14 +318,14 @@ class WTVLzpf {
     clear() {
         this.current_length = 0;
         this.current_literal = 0;
-        this.flag = 0xFFFF;
+        this.ring_bufer_index = 0xFFFF;
         this.working_data = 0;
         this.match_index = 0;
         this.type_index = 0;
         this.checksum = 0;
         this.filler_byte = 0x20
         this.ring_buffer.fill(this.filler_byte, 0, 0x2000)
-        this.flag_table.fill(0xFFFF, 0, 0x1000);
+        this.hash_table.fill(0xFFFF, 0, 0x1000);
         this.encoded_data = [];
     }
 
@@ -384,7 +384,7 @@ class WTVLzpf {
         var uncompressed_len = unencoded_data.byteLength;
 
         var i = 0;
-        var flags_index = 0;
+        var hash_index = 0;
         while (i < uncompressed_len) {
             var code_length = -1;
             var code = -1;
@@ -393,35 +393,35 @@ class WTVLzpf {
             this.ring_buffer[i & 0x1FFF] = byte;
 
             if (this.match_index > 0) {
-                if (byte != this.ring_buffer[this.flag] || this.match_index > 0x0127) {
+                if (byte != this.ring_buffer[this.ring_bufer_index] || this.match_index > 0x0127) {
                     code_length = this.matchEncode[this.match_index][1];
                     code = this.matchEncode[this.match_index][0];
                     this.match_index = 0;
                     this.type_index = 3;
                 } else {
                     this.match_index = (this.match_index + 1) & 0x1FFF;
-                    this.flag = (this.flag + 1) & 0x1FFF;
+                    this.ring_bufer_index = (this.ring_bufer_index + 1) & 0x1FFF;
                     this.checksum = (this.checksum + byte) & 0xFFFF;
                     this.working_data = ((this.working_data * 0x0100) + byte) & 0xFFFFFFFF;
                     i++;
                 }
             } else {
-                this.flag = 0xFFFF;
+                this.ring_bufer_index = 0xFFFF;
 
                 if (i >= 3) {
-                    flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
-                    this.flag = this.flag_table[flags_index];
-                    this.flag_table[flags_index] = i & 0x1FFF;
+                    hash_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
+                    this.ring_bufer_index = this.hash_table[hash_index];
+                    this.hash_table[hash_index] = i & 0x1FFF;
                 } else {
                     this.type_index++;
                 }
 
-                if (this.flag == 0xFFFF) {
+                if (this.ring_bufer_index == 0xFFFF) {
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
-                } else if (byte == this.ring_buffer[this.flag] && compress_data) {
+                } else if (byte == this.ring_buffer[this.ring_bufer_index] && compress_data) {
                     this.match_index = 1;
-                    this.flag = (this.flag + 1) & 0x1FFF;
+                    this.ring_bufer_index = (this.ring_bufer_index + 1) & 0x1FFF;
                     this.type_index = 4;
                 } else {
                     code_length = this.nomatchEncode[byte][1] + 1;
@@ -459,9 +459,9 @@ class WTVLzpf {
                 this.EncodeLiteral(code_length, code);
             }
 
-            var flags_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
-            var flag = this.flag_table[flags_index];
-            if (flag == 0xFFFF) {
+            var hash_index = (this.working_data >>> 0x0B ^ this.working_data) & 0x0FFF;
+            var ring_bufer_index = this.hash_table[hash_index];
+            if (ring_bufer_index == 0xFFFF) {
                 this.EncodeLiteral(0x10, 0x00990000);
             } else {
                 this.EncodeLiteral(0x11, 0x004c8000);
