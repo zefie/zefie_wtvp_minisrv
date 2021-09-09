@@ -351,8 +351,8 @@ class WTVLzpf {
      * @returns {undefined}
      */
     AddBits(bits, bit_length) {
-        this.current_bits |= code >>> (this.current_bit_length & 0x1F);
-        this.current_bit_length += code_length;
+        this.current_bits |= bits >>> (this.current_bit_length & 0x1F);
+        this.current_bit_length += bit_length;
 
         while (this.current_bit_length > 7) {
             this.AddByte((this.current_bits >>> 0x18) & 0xFF);
