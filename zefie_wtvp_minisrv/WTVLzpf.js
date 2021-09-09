@@ -34,16 +34,16 @@ class WTVLzpf {
     /**
      * This is used to encode (one-byte) literals with no previous tracked occurence.
      * 
-     * Bytes with best compression: SPACE and LF and e"/<>Tainoprst
-     * Bytes with good compression: TAB and ,-.1=ABCDEFGHILNOPRSbcdfghlmuw
-     * Bytes that don't change the length of the bit stream: 024:MW_kvy
-     * (The rest will increase the length of bit stream)
+     * - Bytes with best compression: SPACE and LF and e"/<>Tainoprst
+     * - Bytes with good compression: TAB and ,-.1=ABCDEFGHILNOPRSbcdfghlmuw
+     * - Bytes that don't change the length of the bit stream: 024:MW_kvy
+     * - The rest will increase the length of bit stream
      * 
-     * I don't know what process they used to build this dictionary.
-     * I assume they frequency-scanned a bunch of HTML files they had.
+     * I don't know what process they used to build this dictionary. I assume they 
+     * frequency-scanned a bunch of HTML files they had.
      *
-     * Using ISO-8859-1 chracter encoding.
-     * Didn't seem like they used a different dictionary for Japan builds (ISO-2022-JP).
+     * Using ISO-8859-1 chracter encoding. Didn't seem like they used a different 
+     * dictionary for Japan builds (ISO-2022-JP).
     **/
     nomatchEncode = [
         /* [FLATTENED HUFFMAN CODE, CODE BIT LENGTH] */
