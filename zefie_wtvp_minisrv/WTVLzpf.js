@@ -308,7 +308,7 @@ class WTVLzpf {
      * @returns {undefined}
      */
     constructor() {
-        this.clear();
+    this.reset();
     }
 
     /**
@@ -316,7 +316,7 @@ class WTVLzpf {
      *
      * @returns {undefined}
      */
-    clear() {
+    reset() {
         this.current_bit_length = 0;
         this.current_bits = 0;
         this.ring_bufer_index = 0xFFFF;
@@ -368,7 +368,7 @@ class WTVLzpf {
      * @returns {undefined} Lzpf compression data
      */
     Begin() {
-        this.clear();
+        this.reset();
     }
 
     /**
