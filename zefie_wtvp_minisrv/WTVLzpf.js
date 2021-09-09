@@ -25,7 +25,7 @@ class WTVLzpf {
     ring_bufer_index = 0xFFFF;
     working_data = 0;
     match_index = 0;
-    type_index = 0;
+    compression_mode = 0;
     checksum = 0;
     this.filler_byte = 0x20
     hash_table = new Uint16Array(0x1000)
@@ -322,7 +322,7 @@ class WTVLzpf {
         this.ring_bufer_index = 0xFFFF;
         this.working_data = 0;
         this.match_index = 0;
-        this.type_index = 0;
+        this.compression_mode = 0;
         this.checksum = 0;
         this.ring_buffer.fill(this.filler_byte, 0, 0x2000)
         this.hash_table.fill(0xFFFF, 0, 0x1000);
@@ -399,7 +399,7 @@ class WTVLzpf {
                     code_length = this.matchEncode[this.match_index][1];
                     code = this.matchEncode[this.match_index][0];
                     this.match_index = 0;
-                    this.type_index = 3;
+                    this.compression_mode = 3;
                 } else {
                     // Previous iteration found a match so we continue matching until we can't.
                     this.match_index = (this.match_index + 1) & 0x1FFF;
@@ -418,7 +418,7 @@ class WTVLzpf {
                     this.hash_table[hash_index] = i & 0x1FFF;
                 } else {
                     // The first three uncompressed bytes aren't used for the matching algorithm.
-                    this.type_index++;
+                    this.compression_mode++;
                 }
 
                 if (this.ring_bufer_index == 0xFFFF) {
@@ -429,7 +429,7 @@ class WTVLzpf {
                     // Wow dude, a match has been found.  Let's switch get our own room in the next iteration to see if we match further.
                     this.match_index = 1;
                     this.ring_bufer_index = (this.ring_bufer_index + 1) & 0x1FFF;
-                    this.type_index = 4;
+                    this.compression_mode = 4;
                 } else {
                     // We've seen these bytes before but the index in the ring buffer doesn't match so we revert to our neat Huffman dictionary
                     // We add 1 flag bit of 0 to account for the fact we've had a hash table hit but no hit in the ring buffer.
@@ -452,7 +452,7 @@ class WTVLzpf {
     /**
      * Ends a compression stream.
      *
-     * @param type_index {Number} the end type used to finalize
+     * @param compression_mode {Number} the end type used to finalize
      *
      * @returns {Buffer} Lzpf compression data
      */
@@ -460,10 +460,10 @@ class WTVLzpf {
         var code_length = -1;
         var code = -1;
 
-        if (this.type_index == 2) {
+        if (this.compression_mode == 2) {
             this.AddBits(0x00990000, 0x10);
-        } else if (this.type_index >= 3) {
-            if (this.type_index == 4) {
+        } else if (this.compression_mode >= 3) {
+            if (this.compression_mode == 4) {
                 code_length = this.matchEncode[this.match_index][1];
                 code = this.matchEncode[this.match_index][0];
                 this.AddBits(code, code_length);
