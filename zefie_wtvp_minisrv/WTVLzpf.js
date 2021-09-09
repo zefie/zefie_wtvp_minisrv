@@ -4,8 +4,11 @@
  * This compression algorithm is based on LZP by Charles Bloom and was originally written for server to client communication by Andy McFadden
  * This uses a (static) Huffman dictionary that was tuned for character occurances in a typical HTML page at the time (around 1996-1997).
  *
- * Andy McFadden: https://fadden.com/
- * LZP: https://en.wikibooks.org/wiki/Data_Compression/Dictionary_compression#LZP
+ * Andy McFadden: 
+ *  https://fadden.com/
+ * LZP: 
+ *  https://cbloom.com/src/index_lz.html
+ *  https://en.wikibooks.org/wiki/Data_Compression/Dictionary_compression#LZP
  *
  * I wouldn't recommend using LZPF on anything but HTML and other text-based data (unless the data has many repeating bytes)
  * LZPF can be replaced with gzip for LC2 and newer boxes.  Classic is stuck with LZPF.
