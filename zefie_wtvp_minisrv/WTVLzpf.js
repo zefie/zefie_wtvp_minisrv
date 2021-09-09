@@ -27,6 +27,7 @@ class WTVLzpf {
     match_index = 0;
     type_index = 0;
     checksum = 0;
+    this.filler_byte = 0x20
     hash_table = new Uint16Array(0x1000)
     ring_buffer = new Uint8Array(0x2000)
     encoded_data = [];
@@ -323,7 +324,6 @@ class WTVLzpf {
         this.match_index = 0;
         this.type_index = 0;
         this.checksum = 0;
-        this.filler_byte = 0x20
         this.ring_buffer.fill(this.filler_byte, 0, 0x2000)
         this.hash_table.fill(0xFFFF, 0, 0x1000);
         this.encoded_data = [];
