@@ -1,6 +1,6 @@
 {
   "config": {
-    "service_ip": "0.0.0.0",
+    "service_ip": "127.0.0.1",
     "ServiceVaults": [
       "UserServiceVault",
       "ServiceVault"
