@@ -339,7 +339,7 @@ async function processURL(socket, request_headers) {
             shortURL_split.shift();
             var shortURL_service_path = shortURL_split.join(":");
             shortURL = shortURL_service_name + ":/" + shortURL_service_path;
-        } else if (shortURL.indexOf(":") == -1 && request_headers.request.indexOf("HTTP/1") > 0) {
+        } else if (shortURL.indexOf(":") == -1 && request_headers.request.indexOf("HTTP/1") > 0 && socket.ssid == null) {
             if (request_headers.Host) {
                 if (minisrv_config.config.pc_server_hidden_service_enabled) {
                     // browsers typically send a Host header
@@ -1364,6 +1364,7 @@ async function cleanupSocket(socket) {
 async function handleSocket(socket) {
     // create unique socket id with client address and port
     socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
+    socket.ssid = null;
     socket_sessions[socket.id] = [];
     socket.minisrv_pc_mode = false;
     socket.setEncoding('hex'); //set data encoding (Text: 'ascii', 'utf8' ~ Binary: 'hex', 'base64' (do not trust 'binary' encoding))
