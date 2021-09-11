@@ -40,11 +40,11 @@ class WTVLzpf {
      * - Bytes that don't change the length of the bit stream: 024:MW_kvy
      * - The rest will increase the length of bit stream
      * 
-     * I don't know what process they used to build this dictionary. I assume they 
+     * I don't know what process they used to build this table. I assume they 
      * frequency-scanned a bunch of HTML files they had.
      *
      * Using ISO-8859-1 chracter encoding. Didn't seem like they used a different 
-     * dictionary for Japan builds (ISO-2022-JP).
+     * table for Japan builds (ISO-2022-JP).
     **/
     nomatchEncode = [
         /* [FLATTENED HUFFMAN CODE, CODE BIT LENGTH] */
@@ -138,13 +138,13 @@ class WTVLzpf {
 
 
     /**
-     * This is the dictionary that reduces the size based on repeated patterns in the file.
+     * This is the table that reduces the size based on repeated patterns in the file.
      * 
-     * When we find a byte match in the ring buffer we use this dictionary to encode the length of the matched bytes.
+     * When we find a byte match in the ring buffer we use this table to encode the length of the matched bytes.
      * 
      * - These are intentionally 32-bit.  The leftmost flag bit is 1 in each of these to tell the decoder to use match decoding.
      * - LZP hash bits are used to encode the position where the matched bytes start.
-     * - We're allowed to match up to 298 bytes before we can't encode more (we need an entry in this dictionary for each byte more).
+     * - We're allowed to match up to 298 bytes before we can't encode more (we need an entry in this table for each byte more).
      * - We can reach for matches 65KB behind the current LZ cursor (65KB is the ring buffer size and highest a 16-bit hash can reach).
     **/
     matchEncode = [
@@ -422,7 +422,7 @@ class WTVLzpf {
                 }
 
                 if (this.ring_bufer_index == 0xFFFF) {
-                    // We never seen this byte before so we encode it with our Huffman dictionary.
+                    // We never seen this byte before so we encode it with our Huffman table.
                     code_length = this.nomatchEncode[byte][1];
                     code = this.nomatchEncode[byte][0] << 0x10;
                 } else if (byte == this.ring_buffer[this.ring_bufer_index] && compress_data) {
@@ -431,7 +431,7 @@ class WTVLzpf {
                     this.ring_bufer_index = (this.ring_bufer_index + 1) & 0x1FFF;
                     this.compression_mode = 4;
                 } else {
-                    // We've seen these bytes before but the index in the ring buffer doesn't match so we revert to our neat Huffman dictionary
+                    // We've seen these bytes before but the index in the ring buffer doesn't match so we revert to our neat Huffman table
                     // We add 1 flag bit of 0 to account for the fact we've had a hash table hit but no hit in the ring buffer.
                     code_length = this.nomatchEncode[byte][1] + 1;
                     code = this.nomatchEncode[byte][0] << 0x0F;
