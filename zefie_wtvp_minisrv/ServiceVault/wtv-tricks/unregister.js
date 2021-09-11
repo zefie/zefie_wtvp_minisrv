@@ -43,5 +43,4 @@ data += `</head>
 ${message}
 </body>
 </html>
-
 `;
