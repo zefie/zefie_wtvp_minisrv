@@ -483,7 +483,7 @@ class WTVLzpf {
         this.AddBits((this.checksum << 0x18) & 0xFFFFFFFF, 0x08);
 
         // If we have leftover bits then add it.
-        if (this.current_bits != 0x00) {
+        if (this.current_bit_length > 0) {
             this.AddByte((this.current_bits >>> 0x18) & 0xFF);
         }
 
