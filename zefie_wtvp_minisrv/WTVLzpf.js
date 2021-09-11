@@ -43,8 +43,8 @@ class WTVLzpf {
      * I don't know what process they used to build this table. I assume they 
      * frequency-scanned a bunch of HTML files they had.
      *
-     * Using ISO-8859-1 chracter encoding. Didn't seem like they used a different 
-     * table for Japan builds (ISO-2022-JP).
+     * Using Windows-1252 (based off of ISO-8859-1) chracter encoding to fill in this table. Didn't
+     * seem like they used a different table for Japan builds (ISO-2022-JP).
     **/
     nomatchEncode = [
         /* [FLATTENED HUFFMAN CODE, CODE BIT LENGTH] */
