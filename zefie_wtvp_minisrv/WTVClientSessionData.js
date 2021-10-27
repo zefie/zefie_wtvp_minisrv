@@ -345,8 +345,7 @@ class WTVClientSessionData {
     }
 
     isMiniBrowser() {
-        if (this.data_store['wtv-need-upgrade'] || this.data_store['wtv-used-8675309']) return true;
-        return false;
+        return (this.data_store['wtv-need-upgrade'] || this.data_store['wtv-used-8675309']) ? true : false;
     }
 
     currentConnections() {

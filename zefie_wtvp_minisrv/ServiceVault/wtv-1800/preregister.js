@@ -82,7 +82,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
-				if (wtvshared.isMiniBrowser()) {
+				if (wtvshared.isMiniBrowser(ssid_sessions[socket.ssid])) {
 					prereg_contype = "text/tellyscript";
 					if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
 					else file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199.tok";
@@ -93,8 +93,9 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 					} else {
 						// todo OpenISP telly
 						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_normal.tok";
-                    }
-                }
+					}
+				}
+				break;
 
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
