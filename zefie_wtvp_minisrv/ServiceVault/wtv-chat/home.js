@@ -109,7 +109,7 @@ Chat Home (Testing)
 <table>
 <tr>
 <td abswidth="120">Server:</td>
-<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || "chat.irchat.tv"}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || "irc.libera.chat"}"></td>
 </tr>
 
 <tr>
