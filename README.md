@@ -43,7 +43,7 @@ This open source server is in beta status. Use at your own risk.
 - Verify you are in the same directory as `app.js`, then run `npm install`
 - Check any configuration. Create your override `user_config.json`. Especally `service_ip`. See [user_config_README.md](user_config_README.md) and [user_config.example.json](zefie_wtvp_minisrv/user_config.example.json) for more information.
   - **Note:** The intended use is for all custom config to be in `user_config.json` and any custom service files to go in `UserServiceVault`.  If you do not care about potential issues with future `git pull`, and will manually add new upstream `config.json` entries, you could use the standard `ServiceVault` and `config.json`
-- Run `node app.js`
+- Run `npm start`
 - If you have trouble running it on Windows, try a Linux machine, Windows may need a full development enviroment or extra steps.
 - Test with a WebTV Viewer or connect with a real box
 - To connect with a real box, you will need to open ports in your firewall and have a way to connect your WebTV (and preferably reroute 10.0.0.1 to the server)
