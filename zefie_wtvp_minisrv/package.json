@@ -6,7 +6,7 @@
   "homepage": "https://github.com/zefie/zefie_wtvp_minisrv",
   "license": "GPL3",
   "scripts": {
-    "start": "node app.js",
+    "start": "node --openssl-legacy-provider app.js",
     "test": "node test.js"
   },
   "author": {
@@ -29,7 +29,7 @@
     "crypto-js": "^4.1.1",
     "easy-crc": "0.0.2",
     "endianness": "^8.0.2",
-    "mime-types": "^2.1.31",
+    "mime-types": "^2.1.33",
     "proxy-agent": "^5.0.0",
     "strftime": "^0.10.0"
   }
