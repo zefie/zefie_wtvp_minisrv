@@ -83,7 +83,9 @@ class WTVShared {
                     }
                 }
             } catch (e) {
-                if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+                if (minisrv_config.config.debug_flags) {
+                    if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+                }
             }
         }
 
