@@ -1,4 +1,4 @@
-FROM node:current-alpine
+FROM node:lts-alpine3.11
 
 RUN apk add git bash
 RUN npm install -g npm@latest 2>/dev/null > /dev/null
