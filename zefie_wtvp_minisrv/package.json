@@ -6,7 +6,8 @@
   "homepage": "https://github.com/zefie/zefie_wtvp_minisrv",
   "license": "GPL3",
   "scripts": {
-    "start": "node --openssl-legacy-provider app.js",
+    "start": "node app.js",
+    "start17": "node --openssl-legacy-provider app.js",
     "test": "node test.js"
   },
   "author": {
