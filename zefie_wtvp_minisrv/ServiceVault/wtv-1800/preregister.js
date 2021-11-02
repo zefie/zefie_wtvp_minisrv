@@ -93,8 +93,9 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 					} else {
 						// todo OpenISP telly
 						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_normal.tok";
-                    }
-                }
+					}
+				}
+				break;
 
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
