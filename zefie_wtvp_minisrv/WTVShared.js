@@ -33,12 +33,11 @@ class WTVShared {
     }
 
     isMiniBrowser(ssid_session) {
-        return (ssid_session.get("wtv-need-upgrade") || ssid_session.get("wtv-used-8675309"));
+        return (ssid_session.get("wtv-need-upgrade") || ssid_session.get("wtv-used-8675309")) ? true : false;
     }
 
     isOldBuild(ssid_session) {
-        if (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < 3500) return true;
-        return false;
+        return (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < 3500) ? true : false;
     }
 
     readMiniSrvConfig(user_config = true, notices = true) {
