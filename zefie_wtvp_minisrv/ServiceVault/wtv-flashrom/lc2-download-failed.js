@@ -44,7 +44,7 @@ Content-type: text/html`
 
 data = `<html>
 <head>
-    <display switchtowebmode nooptions nostatus skipback clearback>
+    <display switchtowebmode nooptions nostatus>
         <title>Update failed</title>
 </head>
 
