@@ -395,5 +395,4 @@ class WTVClientSessionData {
     }
 }
 
-
 module.exports = WTVClientSessionData;

@@ -31,12 +31,13 @@ function go() {
 	location.href=document.access.url.value;
 }
 </script>
-<b>Welcome to ${z_title}`;
+<b>Welcome to ${minisrv_config.config.service_name}`;
 if (ssid_sessions[socket.ssid].getSessionData("registered")) data += ", " + ssid_sessions[socket.ssid].getSessionData("subscriber_username") + "!";
-data += "</b><br>";
-if (minisrv_config.config.git_commit) data += `<div width="540" align="right"><font size="-4"><i>git revision  ${minisrv_config.config.git_commit}</i></small></font></div><br>`;
+data += `</b><br>
+<div width="540" align="right">
+<font size="-4"><i>
+minisrv v${minisrv_config.version}${(minisrv_config.config.git_commit) ? ' git-'+minisrv_config.config.git_commit : ''}, hosted by ${minisrv_config.config.service_owner}</i></small></font></div><br>
 
-data += `
 <hr>
 <b>Status</b>: ${cryptstatus} (${compstatus})<br>
 <b>Connection Speed</b>: &rate;
@@ -45,7 +46,7 @@ data += `
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
 <li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
-<li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
+<li><a href="wtv-setup:/setup">Setup (Including BG Music)</a></li>
 `;
 if (ssid_sessions[socket.ssid].hasCap("client-can-do-chat")) {
 	data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
