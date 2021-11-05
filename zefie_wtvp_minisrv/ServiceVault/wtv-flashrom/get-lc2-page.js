@@ -9,19 +9,23 @@ if (!request_headers.query.path) {
 	headers = errpage[0];
 	data = errpage[1];
 } else {	
-	var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, true);
+	var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, (minisrv_config.services[service_name].debug ? false : true));
 	var request_path = request_headers.query.path;
 
 	// read flashrom header info into array using WTVFlashrom class	
 	wtvflashrom.getFlashromMeta(request_path, function (data) {
-		processLC2DownloadPage(request_headers.query.path, data, (request_headers.query.numparts || null));
+		processLC2DownloadPage(request_headers.query.path, data, (request_headers.query.numparts ? request_headers.query.numparts : null));
 	});
 }
 
 async function processLC2DownloadPage(path, flashrom_info, numparts = null) {
 	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
 	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
-	if (!flashrom_info.part_number || !flashrom_info.is_last_part || !flashrom_info.rompath || !flashrom_info.next_rompath || !flashrom_info.is_bootrom) {
+	console.log(flashrom_info);
+	if (parseInt(flashrom_info.part_number) >= 0 && flashrom_info.rompath && flashrom_info.next_rompath) {
+		if (!flashrom_info.message && flashrom_info.is_bootrom) {
+			flashrom_info.message = "BootRom Part " + (flashrom_info.part_number + 1) + " of " + flashrom_info.part_count;
+        }
 		if (!flashrom_info.is_last_part) {
 			flashrom_info.next_rompath = request_headers.request_url.replace(escape(request_headers.query.path), escape(flashrom_info.next_rompath.replace(service_name+":/","")));
 		}
@@ -80,7 +84,7 @@ Your WebTV Unit is being<br>updated automatically.
 <p> <font size=+1>
 This will take a while, and<br>then you can use your WebTV again.
 `;
-		if (flashrom_info.is_bootrom && flashrom_info.part_number == 16) {
+		if (flashrom_info.is_bootrom && flashrom_info.part_number == (flashrom_info.part_count - 1)) {
 			data += `<p>
 	The system will pause for about 30 seconds at the end of this
 	update.  Please <strong>do not</strong> interrupt the system
@@ -90,7 +94,7 @@ This will take a while, and<br>then you can use your WebTV again.
 data += `
 </font>
 <br><br><br><br><br>
-<upgradeblock width=280 height=15
+<upgradeblock width=250 height=15
 nexturl="${flashrom_info.next_rompath}"
 errorurl="${service_name}:/lc2-download-failed?"
 blockurl="${flashrom_info.rompath}"`;
