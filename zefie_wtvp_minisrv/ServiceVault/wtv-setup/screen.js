@@ -56,16 +56,18 @@ Television
 <td abswidth=20>
 <TR>
 <td>
-<td WIDTH=170 HEIGHT=244 VALIGN=top ALIGN=left>
+<td WIDTH=300 HEIGHT=244 VALIGN=top ALIGN=left>
 <br><font size="-1">
 <A HREF="wtv-setup:/center-display" selected><BLACKFACE>Center</BLACKFACE></A><BR>
 <FONT SIZE="-1">Center WebTV on your screen</FONT><BR>`;
-// TODO: figure out which versions still support this
-/*
-<spacer type=block width=1 height=5><BR>
+
+// old classic apparently can do Screen Border
+if (ssid_sessions[socket.ssid].get("wtv-client-rom-type") == "bf0app") {
+    data += `<spacer type=block width=1 height=5><BR>
 <A HREF="wtv-setup:/screen-border" selected><BLACKFACE>Border</BLACKFACE></A><BR>
-<FONT SIZE="-1">Change the color of the screen border</FONT><BR>
-*/
+<FONT SIZE="-1">Change the color of the screen border</FONT><BR>`;
+}
+
 data += `
 <TD WIDTH=20>
 <TD WIDTH=500 VALIGN=top ALIGN=left>
