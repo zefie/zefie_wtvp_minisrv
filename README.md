@@ -27,8 +27,8 @@ This open source server is in beta status. Use at your own risk.
 - ~~No intentions to support user accounts, registration, or any form of database system~~ *(I guess this was a lie, but we still don't use a database!)*
 
 ### Feature Todo:
-- wtv-setup and bgm support
 - TellyScript generation and/or manipulation without external dependancies
+- ~~wtv-setup and bgm support~~ ***Done [v0.9.23](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.23)***
 - ~~wtv-cookie full support~~ ***Done [v0.9.13](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.13)***
 - ~~Flashrom flashing for bf0app old classic~~ ***Done [v0.9.9](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.9)***
 - ~~SSID/IP black/whitelisting (including tying SSID to an IP or multiple IPs)~~ ***Done [v0.9.4](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.4)***
