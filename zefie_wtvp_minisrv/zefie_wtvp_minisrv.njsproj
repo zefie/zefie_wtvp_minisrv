@@ -230,7 +230,40 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\splash.js" />
+    <Content Include="ServiceVault\wtv-setup\adjust-brightness.js" />
+    <Content Include="ServiceVault\wtv-setup\adjust-contrast.js" />
+    <Content Include="ServiceVault\wtv-setup\adjust-display-intro.js" />
+    <Content Include="ServiceVault\wtv-setup\adjust-sharpness.js" />
+    <Content Include="ServiceVault\wtv-setup\center-display.js" />
+    <Content Include="ServiceVault\wtv-setup\choose-bg-songs.js" />
+    <Content Include="ServiceVault\wtv-setup\get-playlist.js" />
     <Content Include="ServiceVault\wtv-setup\get.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\keyboard.js" />
+    <Content Include="ServiceVault\wtv-setup\phone-advanced.js" />
+    <Content Include="ServiceVault\wtv-setup\phone-basic.js" />
+    <Content Include="ServiceVault\wtv-setup\phone-call-wait-thresh.js" />
+    <Content Include="ServiceVault\wtv-setup\phone-call-waiting.js" />
+    <Content Include="ServiceVault\wtv-setup\phone-reset.js" />
+    <Content Include="ServiceVault\wtv-setup\phone.js" />
+    <Content Include="ServiceVault\wtv-setup\reset-musicobj.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\screen-border.js" />
+    <Content Include="ServiceVault\wtv-setup\screen.js" />
+    <Content Include="ServiceVault\wtv-setup\serve-billing-overview.js" />
+    <Content Include="ServiceVault\wtv-setup\set-bg.js" />
+    <Content Include="ServiceVault\wtv-setup\set.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\setup.js" />
+    <Content Include="ServiceVault\wtv-setup\sound.js" />
+    <Content Include="ServiceVault\wtv-setup\text.js" />
+    <Content Include="ServiceVault\wtv-setup\validate-bg-song-category.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\validate-screen-border.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-star\ROMCache\HackTVLogoJewel.gif" />
@@ -264,6 +297,9 @@
     <Content Include="ServiceVault\wtv-home\splash.js" />
     <Content Include="ServiceVault\wtv-log\log.js" />
     <Content Include="test.js" />
+    <Content Include="WTVBGMusic.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="WTVClientSessionData.js">
       <SubType>Code</SubType>
     </Content>
