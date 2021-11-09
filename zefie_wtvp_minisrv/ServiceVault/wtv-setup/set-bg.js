@@ -53,7 +53,7 @@ ${categoryName}
 </td><td colspan="3">
 <table cellspacing="0" cellpadding="0">
 <tbody><tr>
-<td absheight="80" valign="center">
+${(musicList.length > 14) ? '<td absheight="50" valign="center">' : '<td absheight="80" valign="center">'}
 <font size="+2" color="E7CE4A"><blackface><shadow>
 ${categoryName}
 </shadow></blackface></font></td></tr><tr><td>
@@ -71,8 +71,7 @@ Choose the songs that you'd like to include.
 <input type="hidden" autosubmit="onLeave">
 `;
 	var songsListed = 0;
-	var numSongs = musicList.length;
-	var divide = Math.round(numSongs / 2, 0);
+	var divide = Math.round(musicList.length / 2, 0);
 	Object.keys(musicList).forEach(function (k) {
 		if (songsListed == divide) {
 			data += `</td ><td width="20">
@@ -82,9 +81,12 @@ Choose the songs that you'd like to include.
 <tbody><tr>
 <td valign="top">
 <input type="checkbox" name="enableSong" value=${musicList[k]['id']}${(wtvbgm.isSongEnabled(musicList[k]['id'])) ? ' checked="checked"' : ''}>
-</td><td valign="bottom">
-<a href=${musicList[k]['url']}?wtv-title=${escape(musicList[k]['title'])}>${musicList[k]['title']}</a>
+</td><td valign="bottom">`;
+		if (musicList[k]['title'].length > 12 && musicList[k]['title'].length < 18) data += `<font size="-1">`;
+		if (musicList[k]['title'].length > 18) data += `<font size="-2">`;
+		data += `<a href=${musicList[k]['url']}?wtv-title=${escape(musicList[k]['title'])}>${musicList[k]['title']}</a>
 </td></tr></tbody></table>`;
+		if (musicList[k]['title'].length > 12) data += `</font>`;
 		songsListed++;
 	});
 

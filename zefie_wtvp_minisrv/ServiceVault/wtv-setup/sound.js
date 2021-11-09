@@ -111,7 +111,11 @@ action="client:SetSetupValue" selected &wtv-muzac-on;${canDoMuzac ? '' : 'disabl
 <TD>
 <TD COLSPAN=3 VALIGN=top ALIGN=right>
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
-<INPUT name="chooseMusicStyles" value="Choose Music Styles" WIDTH=195 action="wtv-setup:/choose-bg-songs"
+
+<INPUT name="resetMusicStyles" value="Reset Defaults" WIDTH=145 action="wtv-setup:/reset-musicobj"
+TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button1" USESTYLE WIDTH=103>
+<spacer type=block WIDTH=4 HEIGHT=1>
+<INPUT name="chooseMusicStyles" value="Choose Music" WIDTH=145 action="wtv-setup:/choose-bg-songs"
 TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button1" USESTYLE WIDTH=103>
 <spacer type=block WIDTH=4 HEIGHT=1>
 <INPUT name="Done" value="Done" WIDTH=103

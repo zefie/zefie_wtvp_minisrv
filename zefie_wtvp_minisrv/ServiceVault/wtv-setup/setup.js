@@ -81,7 +81,7 @@ for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
 <TR>
 <td>
 <font size="-1">
-<td WIDTH=150 HEIGHT=244 VALIGN=top ALIGN=left>
+<td WIDTH=160 HEIGHT=244 VALIGN=top ALIGN=left>
 <br><font size="-1"><blackface>
 <img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
 <a href="wtv-setup:/mail">Mail/Discuss</a><BR>
