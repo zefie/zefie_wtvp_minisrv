@@ -17,6 +17,7 @@
     "post_data_socket_timeout": 30,
     "error_log_file": "errors.log",
     "catchall_file_name": "catchall.js",
+    "hide_incomplete_features": true,
     "enable_lzpf_compression": true,
     "enable_gzip_compression": true,
     "pc_server_hidden_service": "http_pc",

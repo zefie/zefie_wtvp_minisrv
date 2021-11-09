@@ -45,7 +45,7 @@ data += `
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
 <li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
-<li><a href="wtv-music:/demo/index">MIDI Music Demo</a></li>
+<li><a href="wtv-setup:/setup">Setup (Including BG Music)</a></li>
 `;
 if (ssid_sessions[socket.ssid].hasCap("client-can-do-chat")) {
 	data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
