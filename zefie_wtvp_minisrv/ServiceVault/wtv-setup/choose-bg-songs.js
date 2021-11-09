@@ -114,11 +114,16 @@ data += `
 </td></tr><tr>
 <td>
 </td><td colspan="3" valign="top" align="right">
+<table><tc><td>
+<form action="wtv-setup:/reset-musicobj">
+<font size="-1" color="#E7CE4A"><shadow>
+<input type="SUBMIT" borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Reset to Defaults" name="Reset" usestyle="" width="203">
+</shadow></font></form></td><td>
 <form action="wtv-setup:/sound">
 <font size="-1" color="#E7CE4A"><shadow>
-<input type="button" onclick="location.href='wtv-setup:/reset-musicobj'" borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Reset to Defaults" name="Reset" usestyle="" width="203">
 <input type="SUBMIT" borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Done" name="Done" usestyle="" width="103">
 </shadow></font></form>
+</td></tc></table>
 </td><td>
 </td></tr></tbody></table>
 </display></display></body></html>`;
