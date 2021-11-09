@@ -18,7 +18,9 @@ class WTVBGMusic {
         "World",
         "Upbeat",
         "Mellow",
-        "Underground"
+        "Underground",
+        "Video Games",
+        "zefie's Choice"
     ]
     musiclist_classic = {
         "100": {
@@ -420,6 +422,134 @@ class WTVBGMusic {
         "1108": {
             "title": "Xess",
             "url": "wtv-music:\/music\/newmusic\/pop2\/xess.mid"
+        },
+        "1500": {
+            "title": "Stickerbrush Symphony",
+            "url": "wtv-music:\/music\/vidgame\/bramble.mid"
+        },
+        "1501": {
+            "title": "Dearly Beloved",
+            "url": "wtv-music:\/music\/vidgame\/DearlyBeloved.mid"
+        },
+        "1502": {
+            "title": "Night of Fate",
+            "url": "wtv-music:\/music\/vidgame\/NightofFate.mid"
+        },
+        "1503": {
+            "title": "SimCity SNES",
+            "url": "wtv-music:\/music\/vidgame\/city.mid"
+        },
+        "1504": {
+            "title": "Mt. Gagazat",
+            "url": "wtv-music:\/music\/vidgame\/Gagazat_Mt.mid"
+        },
+        "1505": {
+            "title": "Terranigma Remix",
+            "url": "wtv-music:\/music\/vidgame\/Terranigma_Remix.mid"
+        },
+        "1506": {
+            "title": "Lufia World Map",
+            "url": "wtv-music:\/music\/vidgame\/luf1map.mid"
+        },
+        "1507": {
+            "title": "Lufia Doom Fortress",
+            "url": "wtv-music:\/music\/vidgame\/luf1fortress.mid"
+        },
+        "1508": {
+            "title": "Zelda Underworld Remix",
+            "url": "wtv-music:\/music\/vidgame\/Zelda_I_-_Underworld_Theme.mid"
+        },
+        "1509": {
+            "title": "Tetris Theme",
+            "url": "wtv-music:\/music\/vidgame\/tetris.mid"
+        },
+        "1510": {
+            "title": "Sonic 3 Competition",
+            "url": "wtv-music:\/music\/vidgame\/competit.mid"
+        },
+        "1511": {
+            "title": "Balamb Garden",
+            "url": "wtv-music:\/music\/vidgame\/Whatever_FF8_Balamb_GARDEN.mid"
+        },
+        "1512": {
+            "title": "SeeD",
+            "url": "wtv-music:\/music\/vidgame\/Whatever_FF8_SeeD.mid"
+        },
+        "1513": {
+            "title": "Oil Drum Alley",
+            "url": "wtv-music:\/music\/vidgame\/dkc.mid"
+        },
+        "1514": {
+            "title": "The King of Speed",
+            "url": "wtv-music:\/music\/vidgame\/Daytona_USA_-_The_King_of_Speed.mid"
+        },
+        "1515": {
+            "title": "Let's Go Away",
+            "url": "wtv-music:\/music\/vidgame\/Lets_Go_Away-Intermediate_Track.mid"
+        },
+        "1600": {
+            "title": "I Love You Always Forever",
+            "url": "wtv-music:\/music\/zefie\/I_Love_You_Always_Forever.mid"
+        },
+        "1601": {
+            "title": "Only Happy When it Rains",
+            "url": "wtv-music:\/music\/zefie\/only_happy_when_it_rains.mid"
+        },
+        "1602": {
+            "title": "Halloween",
+            "url": "wtv-music:\/music\/zefie\/Halloween.mid"
+        },
+        "1603": {
+            "title": "Cool",
+            "url": "wtv-music:\/music\/zefie\/cool.mid"
+        },
+        "1604": {
+            "title": "Black Celebration",
+            "url": "wtv-music:\/music\/zefie\/gothmusic1.mid"
+        },
+        "1605": {
+            "title": "Save Yourself",
+            "url": "wtv-music:\/music\/zefie\/StabbingWestward_SaveYourself.mid"
+        },
+        "1606": {
+            "title": "Oh Starry Night",
+            "url": "wtv-music:\/music\/zefie\/starnite.mid"
+        },
+        "1607": {
+            "title": "Blue Monday",
+            "url": "wtv-music:\/music\/zefie\/bluemonday.mid"
+        },
+        "1608": {
+            "title": "Another Day in Paradise",
+            "url": "wtv-music:\/music\/zefie\/anotherdayinparadise.mid"
+        },
+        "1609": {
+            "title": "Goin' Down the Fast Way",
+            "url": "wtv-music:\/music\/zefie\/new.mid"
+        },
+        "1610": {
+            "title": "Take On Me",
+            "url": "wtv-music:\/music\/zefie\/takeonme.mid"
+        },
+        "1611": {
+            "title": "Better Off Alone",
+            "url": "wtv-music:\/music\/zefie\/betteroffalone.mid"
+        },
+        "1612": {
+            "title": "Runaway Train",
+            "url": "wtv-music:\/music\/zefie\/RunawayTrain.mid"
+        },
+        "1613": {
+            "title": "Shout",
+            "url": "wtv-music:\/music\/zefie\/shout.mid"
+        },
+        "1614": {
+            "title": "Scatman",
+            "url": "wtv-music:\/music\/zefie\/scatman.mid"
+        },
+        "1615": {
+            "title": "Please Don't Go",
+            "url": "wtv-music:\/music\/zefie\/PleaseDontGo.mid"
         }
     };
     musiclist_rmf = {
@@ -982,6 +1112,134 @@ class WTVBGMusic {
         "1411": {
             "title": "Shibuya-ku",
             "url": "wtv-music:\/MusicCache\/headspace\/RMF\/ambient\/shibuya-ku.rmf"
+        },
+        "1500": {
+            "title": "Stickerbrush Symphony",
+            "url": "wtv-music:\/music\/vidgame\/bramble.mid"
+        },
+        "1501": {
+            "title": "Dearly Beloved",
+            "url": "wtv-music:\/music\/vidgame\/DearlyBeloved.mid"
+        },
+        "1502": {
+            "title": "Night of Fate",
+            "url": "wtv-music:\/music\/vidgame\/NightofFate.mid"
+        },
+        "1503": {
+            "title": "SimCity SNES",
+            "url": "wtv-music:\/music\/vidgame\/city.mid"
+        },
+        "1504": {
+            "title": "Mt. Gagazat",
+            "url": "wtv-music:\/music\/vidgame\/Gagazat_Mt.mid"
+        },
+        "1505": {
+            "title": "Terranigma Remix",
+            "url": "wtv-music:\/music\/vidgame\/Terranigma_Remix.mid"
+        },
+        "1506": {
+            "title": "Lufia World Map",
+            "url": "wtv-music:\/music\/vidgame\/luf1map.mid"
+        },
+        "1507": {
+            "title": "Lufia Doom Fortress",
+            "url": "wtv-music:\/music\/vidgame\/luf1fortress.mid"
+        },
+        "1508": {
+            "title": "Zelda Underworld Remix",
+            "url": "wtv-music:\/music\/vidgame\/Zelda_I_-_Underworld_Theme.mid"
+        },
+        "1509": {
+            "title": "Tetris Theme",
+            "url": "wtv-music:\/music\/vidgame\/tetris.mid"
+        },
+        "1510": {
+            "title": "Sonic 3 Competition",
+            "url": "wtv-music:\/music\/vidgame\/competit.mid"
+        },
+        "1511": {
+            "title": "Balamb Garden",
+            "url": "wtv-music:\/music\/vidgame\/Whatever_FF8_Balamb_GARDEN.mid"
+        },
+        "1512": {
+            "title": "SeeD",
+            "url": "wtv-music:\/music\/vidgame\/Whatever_FF8_SeeD.mid"
+        },
+        "1513": {
+            "title": "Oil Drum Alley",
+            "url": "wtv-music:\/music\/vidgame\/dkc.mid"
+        },
+        "1514": {
+            "title": "The King of Speed",
+            "url": "wtv-music:\/music\/vidgame\/Daytona_USA_-_The_King_of_Speed.mid"
+        },
+        "1515": {
+            "title": "Let's Go Away",
+            "url": "wtv-music:\/music\/vidgame\/Lets_Go_Away-Intermediate_Track.mid"
+        },
+        "1600": {
+            "title": "I Love You Always Forever",
+            "url": "wtv-music:\/music\/zefie\/I_Love_You_Always_Forever.mid"
+        },
+        "1601": {
+            "title": "Only Happy When it Rains",
+            "url": "wtv-music:\/music\/zefie\/only_happy_when_it_rains.mid"
+        },
+        "1602": {
+            "title": "Halloween",
+            "url": "wtv-music:\/music\/zefie\/Halloween.mid"
+        },
+        "1603": {
+            "title": "Cool",
+            "url": "wtv-music:\/music\/zefie\/cool.mid"
+        },
+        "1604": {
+            "title": "Black Celebration",
+            "url": "wtv-music:\/music\/zefie\/gothmusic1.mid"
+        },
+        "1605": {
+            "title": "Save Yourself",
+            "url": "wtv-music:\/music\/zefie\/StabbingWestward_SaveYourself.mid"
+        },
+        "1606": {
+            "title": "Oh Starry Night",
+            "url": "wtv-music:\/music\/zefie\/starnite.mid"
+        },
+        "1607": {
+            "title": "Blue Monday",
+            "url": "wtv-music:\/music\/zefie\/bluemonday.mid"
+        },
+        "1608": {
+            "title": "Another Day in Paradise",
+            "url": "wtv-music:\/music\/zefie\/anotherdayinparadise.mid"
+        },
+        "1609": {
+            "title": "Goin' Down the Fast Way",
+            "url": "wtv-music:\/music\/zefie\/new.mid"
+        },
+        "1610": {
+            "title": "Take On Me",
+            "url": "wtv-music:\/music\/zefie\/takeonme.mid"
+        },
+        "1611": {
+            "title": "Better Off Alone",
+            "url": "wtv-music:\/music\/zefie\/betteroffalone.mid"
+        },
+        "1612": {
+            "title": "Runaway Train",
+            "url": "wtv-music:\/music\/zefie\/RunawayTrain.mid"
+        },
+        "1613": {
+            "title": "Shout",
+            "url": "wtv-music:\/music\/zefie\/shout.mid"
+        },
+        "1614": {
+            "title": "Scatman",
+            "url": "wtv-music:\/music\/zefie\/scatman.mid"
+        },
+        "1615": {
+            "title": "Weird",
+            "url": "wtv-music:\/music\/zefie\/weird.mid"
         }
     };
 
@@ -1009,7 +1267,7 @@ class WTVBGMusic {
             // set up defaults
             if (this.session_data.hasCap("client-can-do-rmf")) {
                 // rmf
-                music_obj.enableCategories = ["1", "2", "3", "7", "12", "13"];
+                music_obj.enableCategories = ["1", "2", "3", "7", "12", "13", "15", "16"];
                 music_obj.enableSongs = [
                     "100", "101", "102", "104", "107", "109",
                     "205", "206", "207", "211",
@@ -1024,11 +1282,13 @@ class WTVBGMusic {
                     "1100", "1101", "1102", "1103", "1104",
                     "1201", "1202", "1203", "1204",
                     "1300", "1302",
-                    "1400", "1401"
+                    "1400", "1401",
+                    "1500", "1503", "1505", "1507", "1511", "1513", "1514",
+                    "1600", "1603", "1607", "1609", "1612", "1614"
                 ];
             } else {
                 // classic
-                music_obj.enableCategories = ["1", "2", "8"];
+                music_obj.enableCategories = ["1", "2", "8", "15", "16"];
                 music_obj.enableSongs = [
                     "100", "101", "102", "104",
                     "200", "205", "207", "209", "211",
@@ -1040,10 +1300,12 @@ class WTVBGMusic {
                     "800", "801", "802", "803", "804",
                     "900", "901", "902", "903", "904",
                     "1000", "1002", "1004", "1005", "1006",
-                    "1100", "1101", "1102", "1103", "1104"
+                    "1100", "1101", "1102", "1103", "1104",
+                    "1500", "1503", "1505", "1507", "1511", "1513", "1514",
+                    "1600", "1603", "1607", "1609", "1612", "1614"
                 ];
             }
-            this.session_data.setSessionData("wtv-bgmusic", Object.assign({}, music_obj));
+            this.session_data.setSessionData("wtv-bgmusic", music_obj);
             this.session_data.saveSessionData();
         }
         return music_obj;
@@ -1101,13 +1363,15 @@ class WTVBGMusic {
     }
 
     getCategoryList() {
-        var categories = [];
+        var enabledCategories = [];
         var self = this;
         Object.keys(self.categories).forEach(function (k) {
             var songList = self.getCategorySongList(parseInt(k) + 1);
-            if (songList.length > 0) categories[k] = self.categories[k];
+            if (songList.length > 0) enabledCategories.push({
+                "id": parseInt(k) + 1, "name": self.categories[k]
+            });
         });
-        return categories.filter(value => Object.keys(value).length !== 0);
+        return enabledCategories.filter(value => Object.keys(value.name).length !== 0);
     }
 
 

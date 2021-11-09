@@ -3,6 +3,9 @@ var minisrv_service_file = true;
 var WTVBGMusic = require("./WTVBGMusic.js");
 var wtvbgm = new WTVBGMusic(minisrv_config, ssid_sessions[socket.ssid])
 
+var catsListed = 0;
+var categories = wtvbgm.getCategoryList();
+var divide = Math.round(categories.length / 2, 0);
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -51,7 +54,7 @@ Background music styles
 </td><td colspan="3">
 <table cellspacing="0" cellpadding="0">
 <tbody><tr>
-<td absheight="80" valign="center">
+${(categories.length > 14) ? '<td absheight="50" valign="center">' : '<td absheight="80" valign="center">'}
 <font size="+2" color="E7CE4A"><blackface><shadow>
 Background music styles
 </shadow></blackface></font></td></tr><tr><td>
@@ -67,14 +70,10 @@ Choose a style name to see the songs for that style.
 <form action="/validate-bg-song-category">
 <input type="hidden" autosubmit="onLeave">
 `;
-var catsListed = 0;
-var categories = wtvbgm.getCategoryList();
-var numCats = categories.length;
-var divide = Math.round(numCats / 2, 0);
 
 Object.keys(categories).forEach(function (k) {
-	var pubcat = parseInt(k) + 1;
-	var songsInCat = wtvbgm.getCategorySongList(pubcat);
+	var catID = categories[k].id;
+	var songsInCat = wtvbgm.getCategorySongList(catID);
 	if (songsInCat.length > 0) {
 		if (catsListed == divide) {
 			data += `</td ><td width="20">
@@ -83,9 +82,9 @@ Object.keys(categories).forEach(function (k) {
 		data += `<table>
 <tbody><tr>
 <td valign="top">
-<input type="checkbox" name="enableCategory" value=${pubcat}${(wtvbgm.isCategoryEnabled(pubcat)) ? ' checked="checked"' : ''}>
+<input type="checkbox" name="enableCategory" value=${catID}${(wtvbgm.isCategoryEnabled(catID)) ? ' checked="checked"' : ''}>
 </td><td valign="bottom">
-<a href="wtv-setup:/set-bg?category=${pubcat}">${categories[k]}</a><br>
+<a href="wtv-setup:/set-bg?category=${catID}">${categories[k].name}</a><br>
 </td></tr></tbody></table>`;
 		catsListed++;
 	}
@@ -114,16 +113,10 @@ data += `
 </td></tr><tr>
 <td>
 </td><td colspan="3" valign="top" align="right">
-<table><tc><td>
-<form action="wtv-setup:/reset-musicobj">
-<font size="-1" color="#E7CE4A"><shadow>
-<input type="SUBMIT" borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Reset to Defaults" name="Reset" usestyle="" width="203">
-</shadow></font></form></td><td>
 <form action="wtv-setup:/sound">
 <font size="-1" color="#E7CE4A"><shadow>
 <input type="SUBMIT" borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Done" name="Done" usestyle="" width="103">
 </shadow></font></form>
-</td></tc></table>
 </td><td>
 </td></tr></tbody></table>
 </display></display></body></html>`;
