@@ -83,13 +83,9 @@ for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
 <font size="-1">
 <td WIDTH=150 HEIGHT=244 VALIGN=top ALIGN=left>
 <br><font size="-1"><blackface>
-`;
-// Mail
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="${notImplementedAlert}"><strike>Mail</strike></a><BR>
+<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
+<a href="wtv-setup:/mail">Mail/Discuss</a><BR>
 <spacer type=block width=1 height=5><BR>`;
-}
 // password
 if (!minisrv_config.config.hide_incomplete_features) {
 	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
@@ -131,13 +127,10 @@ data += `
 <a href="wtv-setup:/phone")">Dialing</a><BR>
 
 <TD WIDTH=20>
-<TD WIDTH=500 VALIGN=top ALIGN=left>
-<spacer type=block width=6 height=14><font size="2"><br>`;
-// mail
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<strike>Signature and more</strike><BR>
+<TD WIDTH=300 VALIGN=top ALIGN=left>
+<spacer type=block width=6 height=14><font size="2"><br>
+Signature <strike>and more</strike><BR>
 <spacer type=block width=6 height=5><font size="2"><br>`;
-}
 // password
 if (!minisrv_config.config.hide_incomplete_features) {
 	data += `<strike>Change your password</strike><BR>

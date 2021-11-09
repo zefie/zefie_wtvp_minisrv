@@ -241,6 +241,8 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-setup\keyboard.js" />
+    <Content Include="ServiceVault\wtv-setup\mail-signature.js" />
+    <Content Include="ServiceVault\wtv-setup\mail.js" />
     <Content Include="ServiceVault\wtv-setup\phone-advanced.js" />
     <Content Include="ServiceVault\wtv-setup\phone-basic.js" />
     <Content Include="ServiceVault\wtv-setup\phone-call-wait-thresh.js" />
@@ -263,6 +265,7 @@
     <Content Include="ServiceVault\wtv-setup\validate-bg-song-category.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-setup\validate-mail-signature.js" />
     <Content Include="ServiceVault\wtv-setup\validate-screen-border.js">
       <SubType>Code</SubType>
     </Content>
