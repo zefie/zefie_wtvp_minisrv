@@ -68,22 +68,27 @@ Choose a style name to see the songs for that style.
 <input type="hidden" autosubmit="onLeave">
 `;
 var catsListed = 0;
-var numCats = wtvbgm.categories.length;
+var categories = wtvbgm.getCategoryList();
+var numCats = categories.length;
 var divide = Math.round(numCats / 2, 0);
-Object.keys(wtvbgm.categories).forEach(function (k) {
-	if (catsListed == divide) {
-		data += `</td ><td width="20">
-</td><td width="198" valign="top" align="left">`;
-	}
+
+Object.keys(categories).forEach(function (k) {
 	var pubcat = parseInt(k) + 1;
-	data += `<table>
+	var songsInCat = wtvbgm.getCategorySongList(pubcat);
+	if (songsInCat.length > 0) {
+		if (catsListed == divide) {
+			data += `</td ><td width="20">
+</td><td width="198" valign="top" align="left">`;
+		}
+		data += `<table>
 <tbody><tr>
 <td valign="top">
 <input type="checkbox" name="enableCategory" value=${pubcat}${(wtvbgm.isCategoryEnabled(pubcat)) ? ' checked="checked"' : ''}>
 </td><td valign="bottom">
-<a href="wtv-setup:/set-bg?category=${pubcat}">${wtvbgm.categories[k]}</a><br>
+<a href="wtv-setup:/set-bg?category=${pubcat}">${categories[k]}</a><br>
 </td></tr></tbody></table>`;
-	catsListed++;
+		catsListed++;
+	}
 });
 
 data += `

@@ -1077,7 +1077,8 @@ class WTVBGMusic {
         return null;
     }
 
-    getCategoryList(category) {
+
+    getCategorySongList(category) {
         if (this.session_data.hasCap("client-can-do-rmf")) {
             // use rmf list
             var musiclist = this.musiclist_rmf;
@@ -1098,6 +1099,17 @@ class WTVBGMusic {
         });
         return songList.filter(value => Object.keys(value).length !== 0);
     }
+
+    getCategoryList() {
+        var categories = [];
+        var self = this;
+        Object.keys(self.categories).forEach(function (k) {
+            var songList = self.getCategorySongList(parseInt(k) + 1);
+            if (songList.length > 0) categories[k] = self.categories[k];
+        });
+        return categories.filter(value => Object.keys(value).length !== 0);
+    }
+
 
     getCategoryName(category) {
         return this.categories[parseInt(category) - 1];
