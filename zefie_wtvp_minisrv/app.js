@@ -867,11 +867,24 @@ function checkSecurity(socket) {
     };
 
     var rejectSSIDConnection = function (ssid, blacklist) {
-        if (blacklist) console.log(" * Request from SSID", wtvshared.filterSSID(ssid), "(" + socket.remoteAddr + "), but that SSID is in the blacklist, rejecting.");
-        else console.log(" * Request from SSID", wtvshared.filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
-
-        var errpage = wtvshared.doErrorPage(401, "Access to this service is denied.");
-        out = errpage;
+        var rejectReason = null;
+        if (blacklist) {
+            rejectReason = ssid + " is in the blacklist.";
+            console.log(" * Request from SSID", wtvshared.filterSSID(ssid), "(" + socket.remoteAddress + "), but that SSID is in the blacklist, rejecting.");
+        } else {
+            rejectReason = ssid + " is not in the whitelist.";
+            console.log(" * Request from SSID", wtvshared.filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
+        }
+        if (fs.existsSync(__dirname + '/ServiceDeps/TOS.html')) {
+            var tosErrorPage = fs.readFileSync(__dirname + '/ServiceDeps/TOS.html').toString();
+            out = new Array(`200 Goodbye
+wtv-service: reset
+Connection: close
+Content-type: text/html`, tosErrorPage.replace('\$\{REASON\}', rejectReason));
+        } else {
+            var errpage = wtvshared.doErrorPage(401, "Access to this service is denied.");
+            out = errpage;
+        }
     }
 
     var checkSSIDIPWhitelist = function (ssid, blacklist) {
@@ -1016,6 +1029,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 socket_sessions[socket.id].close_me = true;
                 headers = failed_security[0];
                 data = failed_security[1];
+                sendToClient(socket, headers, data);
+                return;
             }
 
             if (headers["wtv-capability-flags"] != null) {
