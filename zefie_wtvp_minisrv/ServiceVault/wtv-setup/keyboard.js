@@ -56,9 +56,22 @@ Keyboard settings
 Keyboard
 </table>
 <td abswidth=20>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+<td abswidth=20>
+<tr><td colspan=4 height=8></td></tr>
 <TR>
 <td>
-<td WIDTH=198 HEIGHT=250 VALIGN=top ALIGN=left>
+<td WIDTH=198 HEIGHT=238 VALIGN=top ALIGN=left>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td absheight=195 valign=top>
@@ -107,14 +120,14 @@ if (kbvalue == "alphabetical") {
 <TD COLSPAN=4 HEIGHT=0 VALIGN=top ALIGN=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
 <spacer type=block width=436 height=1>
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
 <spacer type=block width=436 height=1>
 <TR>
 <TD>

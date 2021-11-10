@@ -50,14 +50,27 @@ Text size
 <td colspan=3>
 <table cellspacing=0 cellpadding=0>
 <tr>
-<td valign=center absheight=80>
+<td valign=center absheight=76>
 <font size="+2" color="E7CE4A"><blackface><shadow>
 Text size
 </table>
 <td abswidth=20>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+<td abswidth=20>
 <TR>
 <td>
 <td WIDTH=198 HEIGHT=250 VALIGN=top ALIGN=left>
+<spacer type=block height=8 width=1>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td absheight=195 valign=top>
@@ -69,6 +82,7 @@ text presented as graphics or WebTV pages like this one.
 </table>
 <TD WIDTH=20>
 <TD WIDTH=198 VALIGN=top ALIGN=left>
+<spacer type=block height=8 width=1>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td align=left>
@@ -83,17 +97,14 @@ Your text size is <b>&fsize;</b>.
 </form>
 <TR>
 <TD>
-<TD COLSPAN=4 HEIGHT=0 VALIGN=top ALIGN=left>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
 <spacer type=block width=436 height=1>
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
 <spacer type=block width=436 height=1>
 <TR>
 <TD>

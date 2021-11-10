@@ -81,10 +81,10 @@ for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
 <TR>
 <td>
 <font size="-1">
-<td WIDTH=160 HEIGHT=244 VALIGN=top ALIGN=left>
+<td WIDTH=150 HEIGHT=244 VALIGN=top ALIGN=left>
 <br><font size="-1"><blackface>
 <img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/mail">Mail/Discuss</a><BR>
+<a href="wtv-setup:/mail">Mail</a><BR>
 <spacer type=block width=1 height=5><BR>`;
 // password
 if (!minisrv_config.config.hide_incomplete_features) {
@@ -158,11 +158,11 @@ if (!minisrv_config.config.hide_incomplete_features) {
 Connecting to WebTV<BR>
 
 
-
-
+<tr>
+<td colspan=4 height=2>
 <tr>
 <TD>
-<td colspan=4 height=3 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
 <spacer type=block width=436 height=1>
 <tr>
 <TD>

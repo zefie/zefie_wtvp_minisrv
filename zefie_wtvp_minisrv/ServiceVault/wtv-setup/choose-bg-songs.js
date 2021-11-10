@@ -54,19 +54,33 @@ Background music styles
 </td><td colspan="3">
 <table cellspacing="0" cellpadding="0">
 <tbody><tr>
-${(categories.length > 14) ? '<td absheight="50" valign="center">' : '<td absheight="80" valign="center">'}
+<td absheight="80" valign="center">
 <font size="+2" color="E7CE4A"><blackface><shadow>
 Background music styles
-</shadow></blackface></font></td></tr><tr><td>
-Choose the styles you'd like to hear. 
+</shadow></blackface></font>
+${(categories.length > 14) ? '<br><font size="-2">' : '<br>'}
+Choose the styles you'd like to hear. <br>
 Choose a style name to see the songs for that style.
-</td></tr><tr>
-<td height="15">
+${(categories.length > 14) ? '</font>' : ''}
+</td></tr>
+<td height="0">
 </form></td></tr></tbody></table>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+
 </td><td abswidth="20">
 </td></tr><tr>
-<td>
-</td><td width="198" valign="top" height="196" align="left">
+<td colspan=4 height=8 width=1></td><tr><td>
+</td><td width="198" valign="top" height="238" align="left">
 <form action="/validate-bg-song-category">
 <input type="hidden" autosubmit="onLeave">
 `;
@@ -97,14 +111,14 @@ data += `
 </td><td colspan="4" valign="top" height="0" align="left">
 </td></tr><tr>
 <td>
-</td><td colspan="4" valign="middle" height="2" bgcolor="2B2B2B" align="center">
+</td><td colspan="3" valign="middle" height="2" bgcolor="2B2B2B" align="center">
 <img src="wtv-home:/ROMCache/Spacer.gif" width="436" height="1">
 </td></tr><tr>
 <td>
 </td><td colspan="4" valign="top" height="1" align="left">
 </td></tr><tr>
 <td>
-</td><td colspan="4" valign="top" height="2" bgcolor="0D0D0D" align="left">
+</td><td colspan="3" valign="top" height="2" bgcolor="0D0D0D" align="left">
 <img src="wtv-home:/ROMCache/Spacer.gif" width="436" height="1">
 </td></tr><tr>
 <td>
