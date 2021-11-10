@@ -35,6 +35,10 @@
     <Content Include="diskmap_gen.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_OpenISP_56k.tok" />
+    <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_WTV_18006138199.detok.txt" />
+    <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_WTV_18006138199.tok" />
+    <Content Include="ServiceDeps\TOS.html" />
     <Content Include="ServiceVault\http_pc\get.js" />
     <Content Include="ServiceVault\http_pc\index.js" />
     <Content Include="ServiceVault\wtv-1800\noflash.js" />
@@ -335,6 +339,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="ServiceDeps\" />
+    <Folder Include="ServiceDeps\premade_tellyscripts\" />
+    <Folder Include="ServiceDeps\premade_tellyscripts\LC2\" />
     <Folder Include="ServiceVault\" />
     <Folder Include="ServiceVault\http_pc\" />
     <Folder Include="ServiceVault\wtv-chat\" />
