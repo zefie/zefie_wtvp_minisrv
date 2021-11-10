@@ -55,9 +55,22 @@ hspace=0 vspace=0>
 Center the screen
 </table>
 <td abswidth=20>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+<td abswidth=20>
 <TR>
 <td>
 <td WIDTH=198 HEIGHT=244 VALIGN=top ALIGN=left>
+<spacer type=block height=24 width=1>
 You can adjust the position of WebTV pages on your screen using these arrows. This is useful if WebTV looks off-center on your television.
 <TD WIDTH=20>
 <TD WIDTH=198 VALIGN=top ALIGN=left>
@@ -81,17 +94,17 @@ You can adjust the position of WebTV pages on your screen using these arrows. Th
 <TD>
 <TR>
 <TD>
-<TD COLSPAN=4 HEIGHT=7 VALIGN=top ALIGN=left>
+<TD COLSPAN=4 HEIGHT=2 VALIGN=top ALIGN=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
 <img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
 <img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
 <TR>
 <TD>

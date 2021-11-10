@@ -18,7 +18,15 @@ ${categoryName}
 </title>
 <bgsound src="/sounds/silence.aiff" loop="">
 </head><body vspace="0" hspace="0" fontsize="large" vlink="36d5ff" text="#42CC55" link="36d5ff" bgcolor="#191919"><display>
-
+<script type="text/javascript">
+	var pageTitle = "${categoryName}";
+	function showTitle(title) {
+		document.title = pageTitle + " - " + title;
+	}
+	function clearTitle() {
+		document.title = pageTitle;
+	}
+</script>
 <sidebar width="110"> <table cellspacing="0" cellpadding="0" bgcolor="452a36">
 <tbody><tr>
 <td colspan="3" abswidth="104" absheight="4">
@@ -53,19 +61,35 @@ ${categoryName}
 </td><td colspan="3">
 <table cellspacing="0" cellpadding="0">
 <tbody><tr>
-${(musicList.length > 14) ? '<td absheight="50" valign="center">' : '<td absheight="80" valign="center">'}
+<td absheight="80" valign="center">
 <font size="+2" color="E7CE4A"><blackface><shadow>
 ${categoryName}
-</shadow></blackface></font></td></tr><tr><td>
+</shadow></blackface></font>
+<br><font size="-2">
 Choose the songs that you'd like to include.
-</td></tr><tr>
-<td height="15">
+</font>
+</td></tr>
+<tr>
+<td height="0">
 <input type="hidden" name="category" value="1">
 </form></td></tr></tbody></table>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
 </td><td abswidth="20">
-</td></tr><tr>
+</td></tr>
+<tr><td colspan=4 height=8 width=1></td></tr>
+<tr>
 <td>
-</td><td width="198" valign="top" height="201" align="left">
+</td><td width="198" valign="top" height="238" align="left">
 <form action="validate-bg-song-category">
 <input type="hidden" name="category" value="${request_headers.query.category}">
 <input type="hidden" autosubmit="onLeave">
@@ -82,11 +106,14 @@ Choose the songs that you'd like to include.
 <td valign="top">
 <input type="checkbox" name="enableSong" value=${musicList[k]['id']}${(wtvbgm.isSongEnabled(musicList[k]['id'])) ? ' checked="checked"' : ''}>
 </td><td valign="bottom">`;
-		if (musicList[k]['title'].length > 12 && musicList[k]['title'].length < 18) data += `<font size="-1">`;
-		if (musicList[k]['title'].length > 18) data += `<font size="-2">`;
-		data += `<a href=${musicList[k]['url']}?wtv-title=${escape(musicList[k]['title'])}>${musicList[k]['title']}</a>
+		var strLenLimit = 16;
+		if (musicList.length > 14) strLenLimit = 20;
+		var songTitle = musicList[k]['title'];
+		if (songTitle.length > strLenLimit) songTitle = musicList[k]['title'].substr(0, strLenLimit - 3) + "...";
+		if (musicList.length > 14) data += '<font size="-2">';
+		data += `<a href="${musicList[k]['url']}?wtv-title=${escape(musicList[k]['title'])}" onmouseout="clearTitle()" onmouseover="showTitle('${musicList[k]['title'].replace(/\'/g, "\\'")}')">${songTitle}</a>
 </td></tr></tbody></table>`;
-		if (musicList[k]['title'].length > 12) data += `</font>`;
+		if (musicList.length > 14) data += '</font>';
 		songsListed++;
 	});
 
@@ -96,17 +123,17 @@ Choose the songs that you'd like to include.
 </td><td>
 </td></tr><tr>
 <td>
-</td><td colspan="4" valign="top" height="7" align="left">
+</td><td colspan="4" valign="top" height="0" align="left">
 </td></tr><tr>
 <td>
-</td><td colspan="4" valign="middle" height="2" bgcolor="2B2B2B" align="center">
+</td><td colspan="3" valign="middle" height="2" bgcolor="2B2B2B" align="center">
 <img src="wtv-home:/ROMCache/Spacer.gif" width="436" height="1">
 </td></tr><tr>
 <td>
 </td><td colspan="4" valign="top" height="1" align="left">
 </td></tr><tr>
 <td>
-</td><td colspan="4" valign="top" height="2" bgcolor="0D0D0D" align="left">
+</td><td colspan="3" valign="top" height="2" bgcolor="0D0D0D" align="left">
 <img src="wtv-home:/ROMCache/Spacer.gif" width="436" height="1">
 </td></tr><tr>
 <td>

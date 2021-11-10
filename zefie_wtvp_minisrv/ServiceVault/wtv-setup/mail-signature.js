@@ -53,13 +53,26 @@ Mail signature setup
 Mail signature
 </table>
 <td abswidth=20>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+<td abswidth=20>
 <TR>
 <td>
-<td colspan=2 WIDTH=416 HEIGHT=118 VALIGN=top ALIGN=left>
+<td colspan=3 WIDTH=416 HEIGHT=98 VALIGN=top ALIGN=left>
+<spacer type=block height=24 width=1>
 Type a short text <B>signature</B> here and it will be added to the end of each mail message you send.
 <TR>
 <TD>
-<TD colspan=2 WIDTH=416 HEIGHT=118 VALIGN=top ALIGN=left>
+<TD colspan=3 WIDTH=416 HEIGHT=118 VALIGN=top ALIGN=left>
 <FORM method="POST" action="/validate-mail-signature">
 <INPUT type=hidden autosubmit=onleave>
 <TEXTAREA name="mail_signature"
@@ -67,7 +80,7 @@ action="/validate-mail-signature"
 selected
 bgcolor="#191919" text="#44cc55"
 cursor=#cc9933
-cols=45 rows=4
+cols=45 rows=5
 autoactivate
 nosoftbreaks
 maxlength=4096
@@ -75,17 +88,17 @@ font=proportional>${ssid_sessions[socket.ssid].getSessionData("subscriber_signat
 </FORM>
 <TR>
 <TD>
-<TD COLSPAN=4 HEIGHT=7 VALIGN=top ALIGN=left>
+<TD COLSPAN=4 HEIGHT=30 VALIGN=top ALIGN=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
 <img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
 <img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
 <TR>
 <TD>

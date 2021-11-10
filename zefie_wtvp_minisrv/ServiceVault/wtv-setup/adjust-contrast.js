@@ -55,9 +55,22 @@ Contrast or picture
 Contrast or picture
 </table>
 <td abswidth=20>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+<td abswidth=20>
 <TR>
 <td>
 <td WIDTH=198 HEIGHT=236 VALIGN=top ALIGN=left>
+<spacer type=block height=2 width=1>
 <p>Start with your TV's 
 <i>contrast</i> or <i>picture</i> 
 at a medium setting.
@@ -76,17 +89,17 @@ seems to bend, try lowering your TV's
 </table>
 <TR>
 <TD>
-<TD COLSPAN=4 HEIGHT=14 VALIGN=top ALIGN=left>
+<TD COLSPAN=4 HEIGHT=10 VALIGN=top ALIGN=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
 <spacer type=block width=436 height=1>
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
 <spacer type=block width=436 height=1>
 <TR>
 <TD>

@@ -55,6 +55,19 @@ Dialing options
 Dialing options
 </table>
 <td abswidth=20>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+<td abswidth=20>
+<tr><td colspan=4 height=10></td></tr>
 <TR>
 <td>
 
@@ -65,11 +78,11 @@ Dialing options
 <td WIDTH=198 HEIGHT=206 VALIGN=top ALIGN=left>
 <A HREF="wtv-setup:/phone-basic" selected><BLACKFACE>Basic</BLACKFACE></A><BR>
 <FONT SIZE="-1">Use tone/pulse dialing or choose a dialing prefix</FONT><BR>
-<spacer type=block WIDTH=1 HEIGHT=30><BR>
+<spacer type=block WIDTH=1 HEIGHT=12><BR>
 <A HREF="wtv-setup:/phone-call-waiting"><BLACKFACE>Call waiting</BLACKFACE></A><BR>
 <FONT SIZE="-1">Call waiting can be turned off automatically</FONT><BR>
 <spacer type=block WIDTH=1 HEIGHT=12><BR>
-<A HREF="client:GoToBYOISPIntro"><BLACKFACE>Use an ISP</BLACKFACE></A><BR>
+<A HREF="${ssid_sessions[socket.ssid].get("wtv-open-access") ? 'file://rom/HTMLs/ConfigureBYOISP.html' : 'client:GoToBYOISPIntro'}"><BLACKFACE>Use an ISP</BLACKFACE></A><BR>
 <FONT SIZE="-1">Save money if you dial long distance to WebTV</FONT><BR>
 
 <TD WIDTH=20>
@@ -83,17 +96,17 @@ Dialing options
 
 <TR>
 <TD>
-<TD COLSPAN=4 HEIGHT=44 VALIGN=top ALIGN=left>
+<TD COLSPAN=4 HEIGHT=29 VALIGN=top ALIGN=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
 <spacer type=block width=436 height=1>
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
 <spacer type=block width=436 height=1>
 <TR>
 <TD>

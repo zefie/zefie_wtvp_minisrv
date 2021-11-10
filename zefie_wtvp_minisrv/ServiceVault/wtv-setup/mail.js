@@ -57,12 +57,22 @@ Mail settings
 <td abswidth=20>
 <TR>
 <td>
-
-
-
+<tr>
+<TD>
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
+<spacer type=block width=436 height=1>
+<tr>
+<TD>
+<td colspan=3 height=1 valign=top align=left>
+<tr>
+<TD>
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+<spacer type=block width=436 height=1>
+<td abswidth=20>
 <tr>
 <td>
 <td WIDTH=198 HEIGHT=206 VALIGN=top ALIGN=left>
+<spacer type=block height=24 width=1>
 <!--
 <A HREF="JavaScript:alert('This feature is not available.')" selected><BLACKFACE>Extras</BLACKFACE></A><BR>
 <FONT SIZE="-1">Additional features for storing, addressing, and replying to mail</FONT><BR>
@@ -94,22 +104,22 @@ Mail settings
 <TD>
 <TD COLSPAN=4 HEIGHT=9 VALIGN=top ALIGN=left>
 <!-- remove later -->
-<spacer type=block WIDTH=1 HEIGHT=44>
+<spacer type=block WIDTH=1 HEIGHT=40>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
+<td colspan=3 height=2 valign=middle align=center bgcolor="2B2B2B">
 <!-- <spacer type=block width=436 height=1> -->
 <spacer type=block width=456 height=1>
 <tr>
 <TD>
-<td colspan=4 height=1 valign=top align=left>
+<td colspan=3 height=1 valign=top align=left>
 <tr>
 <TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
+<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
 <spacer type=block width=436 height=1>
 <TR>
 <TD>
-<TD COLSPAN=4 HEIGHT=4 VALIGN=top ALIGN=left>
+<TD COLSPAN=3 HEIGHT=4 VALIGN=top ALIGN=left>
 <TR>
 <TD>
 <TD COLSPAN=2 VALIGN=top ALIGN=left>
