@@ -368,3 +368,4 @@ FodyWeavers.xsd
 /zefie_wtvp_minisrv/ServiceLogPost/*.log
 /zefie_wtvp_minisrv/SessionStore/*.json
 /zefie_wtvp_minisrv/SessionStore/*/
+/zefie_wtvp_minisrv/ServiceVault/http_pc/viewergen/viewers/HackTV.zip

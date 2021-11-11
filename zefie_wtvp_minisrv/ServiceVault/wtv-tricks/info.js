@@ -3,26 +3,26 @@ var minisrv_service_file = true;
 var client_caps = null;
 
 if (socket.ssid != null) {
-	if (ssid_sessions[socket.ssid].capabilities) {
-		client_caps = ssid_sessions[socket.ssid].capabilities;
+	if (session_data.capabilities) {
+		client_caps = session_data.capabilities;
 	}
 }
 if (client_caps) {
 	headers = `200 OK
 Content-Type: text/html`
 
-
+	var service_ip = minisrv_config.config.service_ip
 	var client_label = "TODO";
 	var boot_client_label = "TODO";
 	var wtv_system_sysconfig_str = "TODO";
 
 
-	var wtv_system_version = ssid_sessions[socket.ssid].get("wtv-system-version");
-	var wtv_client_bootrom_version = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version");
-	var wtv_client_serial_number = wtvshared.filterSSID(ssid_sessions[socket.ssid].get("wtv-client-serial-number"));
-	var wtv_client_rom_type = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
-	var wtv_system_chipversion_str = ssid_sessions[socket.ssid].get("wtv-system-chipversion");
-	var wtv_system_sysconfig_hex = parseInt(ssid_sessions[socket.ssid].get("wtv-system-sysconfig")).toString(16);
+	var wtv_system_version = session_data.get("wtv-system-version");
+	var wtv_client_bootrom_version = session_data.get("wtv-client-bootrom-version");
+	var wtv_client_serial_number = wtvshared.filterSSID(session_data.get("wtv-client-serial-number"));
+	var wtv_client_rom_type = session_data.get("wtv-client-rom-type");
+	var wtv_system_chipversion_str = session_data.get("wtv-system-chipversion");
+	var wtv_system_sysconfig_hex = parseInt(session_data.get("wtv-system-sysconfig")).toString(16);
 
 	var capabilities_table = new WTVClientCapabilities().capabilities_table;
 
@@ -58,7 +58,7 @@ Content-Type: text/html`
 <tr>
 		<td valign=top align=right width=150><shadow>Service:</shadow>
 		<td width=10>
-		<td valign=top>${z_title}
+		<td valign=top>${minisrv_version_string}
 <tr>
 		<td valign=top align=right><shadow>Client:</shadow>
 		<td width=10>
@@ -82,19 +82,19 @@ Content-Type: text/html`
 		<td width=10>
 		<td valign=top>${socket.remoteAddress}
 `;
-	if (ssid_sessions[socket.ssid].getSessionData("registered")) {
+	if (session_data.getSessionData("registered")) {
 		data += `<tr>
 		<td valign=top align=right><shadow>Subscriber Name:</shadow>
 		<td width=10>
-		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_name")}
+		<td valign=top>${session_data.getSessionData("subscriber_name")}
 <tr>
 		<td valign=top align=right><shadow>Subscriber Username:</shadow>
 		<td width=10>
-		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_username")}
+		<td valign=top>${session_data.getSessionData("subscriber_username")}
 <tr>
 		<td valign=top align=right><shadow>Subscriber Contact:</shadow>
 		<td width=10>
-		<td valign=top>${ssid_sessions[socket.ssid].getSessionData("subscriber_contact")} (${ssid_sessions[socket.ssid].getSessionData("subscriber_contact_method")})`;
+		<td valign=top>${session_data.getSessionData("subscriber_contact")} (${session_data.getSessionData("subscriber_contact_method")})`;
 	} else {
 		data += `<tr>
 		<td valign=top align=right><shadow>Unregistered Guest:</shadow>
@@ -113,7 +113,7 @@ Content-Type: text/html`
 		<td width=10>
 		<td valign=top>&modem;
 `;
-	if (ssid_sessions[socket.ssid].get("wtv-need-upgrade")) {
+	if (session_data.get("wtv-need-upgrade")) {
 		data += `<tr>
 		<td valign=top align=right><shadow>Mini-browser:</shadow>
 		<td width=10>

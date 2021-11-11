@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
 headers = "200 OK";
-if (request_headers.query.nick) headers += "\n" + ssid_sessions[socket.ssid].setIRCNick(request_headers.query.nick);
+if (request_headers.query.nick) headers += "\n" + session_data.setIRCNick(request_headers.query.nick);
 headers += "\nContent-Type: text/html";
 
 if (request_headers.query.host && request_headers.query.port && request_headers.query.channel) {

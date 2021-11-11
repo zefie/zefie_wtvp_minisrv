@@ -5,16 +5,16 @@ if (!request_headers.query.registering) {
     headers = errpage[0];
     data = errpage[1];
 } else {
-    const WTVRegister = require("./WTVRegister.js")
+    const WTVRegister = require(classPath + "/WTVRegister.js")
     var wtvr = new WTVRegister(minisrv_config, SessionStore);
     var errpage = null;
     if (!request_headers.query.registering) errpage = wtvshared.doErrorPage(400);
     else if (!request_headers.query.subscriber_name) errpage = wtvshared.doErrorPage(400, "Please enter your name. This can be your real name, or your well-known online alias.");
     else if (!request_headers.query.subscriber_username) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
-    else if (request_headers.query.subscriber_username.length < 5) errpage = wtvshared.doErrorPage(400, "Please choose a username with 5 or more characters.");
-    else if (request_headers.query.subscriber_username.length > 16) errpage = wtvshared.doErrorPage(400, "Please choose a username with 16 or less characters.");
+    else if (request_headers.query.subscriber_username.length < minisrv_config.config.user_accounts.min_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.min_username_length + "</b> or more characters.");
+    else if (request_headers.query.subscriber_username.length > minisrv_config.config.user_accounts.max_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.max_username_length + "</b> or less characters.");
     else if (!wtvr.checkUsernameSanity(request_headers.query.subscriber_username)) errpage = wtvshared.doErrorPage(400, "The username you have chosen contains invalid characters. Please choose a username with only <b>letters</b>, <b>numbers</b>, <b>_</b> or <b>-</b>. Also, please be sure your username begins with a letter.");
-    else if (!wtvr.checkUsernameAvailable(request_headers.query.subscriber_username, ssid_sessions)) errpage = wtvshared.doErrorPage(400, "The username you have selected is already in use. Please select another username.");
+    else if (!wtvr.checkUsernameAvailable(request_headers.query.subscriber_username)) errpage = wtvshared.doErrorPage(400, "The username you have selected is already in use. Please select another username.");
     else if (!request_headers.query.subscriber_contact) errpage = wtvshared.doErrorPage(400, "Please enter your contact information.");
     else if (request_headers.query.subscriber_contact_method == "") errpage = wtvshared.doErrorPage(400, "Please select the type of contact information you provided.");
 
@@ -28,7 +28,7 @@ if (!request_headers.query.registering) {
 wtv-noback-all: wtv-register:
 Content-Type: text/html`;
         var title = "Account Review";
-        var isOldBuild = wtvshared.isOldBuild(ssid_sessions[socket.ssid]);
+        var isOldBuild = wtvshared.isOldBuild(session_data);
         var main_data = '';
         if (!isOldBuild) main_data += `<table cellspacing=0 cellpadding=0 border=0 width=560 bgcolor=#171726>
 <tr><td>`;

@@ -41,7 +41,7 @@ data = `<html>
 <td><a href="client:showservices">Show Services</a>
 <td width = 25>
 `;
-if (ssid_sessions[socket.ssid].getSessionData("registered")) data += `<td><a href="wtv-tricks:/unregister">Unregister This Box</a>`;
+if (session_data.getSessionData("registered")) data += `<td><a href="wtv-tricks:/unregister">Unregister This Box</a>`;
 else data += `<td><a href="wtv-tricks:/register">Register This Box</a>`
 
 data += `

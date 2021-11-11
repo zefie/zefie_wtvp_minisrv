@@ -1,5 +1,5 @@
 var minisrv_service_file = true;
-var canDoMuzac = ssid_sessions[socket.ssid].hasCap('client-can-do-muzac');
+var canDoMuzac = session_data.hasCap('client-can-do-muzac');
 
 headers = `200 OK
 Connection: Keep-Alive

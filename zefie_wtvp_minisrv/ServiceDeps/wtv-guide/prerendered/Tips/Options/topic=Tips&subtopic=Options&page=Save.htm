@@ -1,0 +1,72 @@
+<html><head><title>The Options panel</title><link rel="next" href="images/help/tips/options-plus-all-msn.jpg"><displaynoscroll><script language='Javascript'>function noBackHelp(gvnStr) {	str = ( "wtv-guide:/nobackSubtopic?topic=Tips&subtopic=Options&endUrl=" + escape(gvnStr) )
+location.href = str;
+}
+function goToHelpUrl(gvnTop,gvnSub,gvnPag) {	str = getHelpUrl(gvnTop,gvnSub,gvnPag);
+goToUrl(str);
+}
+function goToFAQURL(targetURL) {	document.location = targetURL;
+}
+function goToUrl(gvnStr) {	document.pageInfo.action=gvnStr;
+document.pageInfo.submit();
+}
+function goToHelpCenter(gvnStr) {	document.helpCenterInfo.action= ("http://127.0.0.1/HelpCenter/" + gvnStr);
+document.helpCenterInfo.submit();
+}
+function goBackToUrl(gvnStr, wholeString) {	/*
+If the URL is at the beginning of any item in the backlist,
+go back to it. If not, just go to it. If wholeString is
+specified, it looks for perfect matches of the whole string.
+Remove wtv-token from the URL because it changes, inscrutably, from page to page and is probably no longer what it was when you were first referred to help.
+*/
+ind = gvnStr.indexOf("wtv-token");
+if (ind > -1) {	gvnStr = gvnStr.substring(0,ind);
+}
+window.message("gvnStr=" + gvnStr);
+foundInBackList = false;
+for (i=history.length; i--; i>0 ) {	if ( wholeString != null ) {	testStr = history[i];
+} else {	str = history[i];
+testStr = str.substring(0, gvnStr.length);
+}
+if ( testStr == gvnStr ) {	i++;
+foundInBackList = true;
+break;
+}
+}
+if (foundInBackList == true) {	history.go(i-history.length);
+} else {	goToUrl(gvnStr);
+}
+}
+function getHelpUrl(gvnTop,gvnSub,gvnPag) {	if (gvnTop == 'Index')
+tmpStr = ('wtv-guide:/help?topic=' + gvnTop);
+else
+tmpStr = ('wtv-guide:/help?topic=' + gvnTop);
+if (gvnSub != "")
+tmpStr += ('&subtopic=' + gvnSub);
+if (gvnPag != "")
+tmpStr += ('&page=' + gvnPag);
+return tmpStr;
+}
+function endDiploma() {	location.href = document.pageInfo.doneUrl.value;
+}
+function noBackDiploma() {	noBackHelp(document.pageInfo.doneUrl.value);
+}
+</script></head><body	hspace=0 vspace=0text=D2D2D3link=D2D2D3vlink=D2D2D3fontsize=mediumbgcolor=2D3131><form name='helpCenterInfo' method='get'><input type='hidden' name="userName" value="jarhead"><input type='hidden' name="ACHinfo" value="true"><input type='hidden' name="boxKind" value="Derby"><input type='hidden' name="canMail" value="true"><input type='hidden' name="tryItLabel" value=""><input type='hidden' name="tryItUrl" value=""></form><form name='pageInfo' method='post'><input type='hidden' name="showLinksToSettings" value="yes"> <input type='hidden' name="showTryIt" value="yes"> <input type='hidden' name="doneUrl" value=""> <input type='hidden' name='codesets' value=''> <input type='hidden' name="appName" value=""><input type='hidden' name="remoteTypeFromDB" value="icx"><input type='hidden' name="payment-method" value="webtv-billing-code"><input type='hidden' name="show-metered-pricing" value="false"><input type='hidden' name="hc-showACHinfo" value="true"><input type='hidden' name="leaveTopicsPage"><input type='hidden' name="leaveIndexPage"><input type='hidden' name="leaveBasicsMenu"><input type='hidden' name="leaveBasicsAnswer"><input type='hidden' name="leaveInstructMenu"><input type='hidden' name="leaveInstructSubtopic"></form><script>referer = history[history.length-2];referer = referer.substring(0,100);document.pageInfo.leaveTopicsPage.value = "wtv-home:/home?version=2.9";document.pageInfo.leaveIndexPage.value = "wtv-guide:/help?topic=Index&subtopic=Main&page=1";document.pageInfo.leaveBasicsMenu.value = "wtv-guide:/help?topic=Index&subtopic=Main&page=1";document.pageInfo.leaveBasicsAnswer.value = "wtv-guide:/help?topic=Index&subtopic=Main&page=1";document.pageInfo.leaveInstructMenu.value = "wtv-guide:/help?topic=Index&subtopic=Main&page=1";document.pageInfo.leaveInstructSubtopic.value= "wtv-guide:/help?topic=Index&subtopic=Main&page=1";</script><form> <table cellspacing=0 cellpadding=0><tr><td colspan=4 width=560 height=80 bgcolor=5A5A52 valign=top><table	width=560 height=80 background="wtv-guide:/images/help/common/helpBannerImage.gif" cellspacing=0 cellpadding=0><tr><td width=107 height=80 valign=top rowspan=2><spacer type=vertical height=7><br><spacer type=horizontal width=7><a href='wtv-home:/home'><img src="wtv-home:/ROMCache/WebTVLogoJewel.gif" width=87 height=67></a><td width=453 valign=top><spacer type=vertical height=48><br><spacer type=horizontal width=90><font size=+3 color=D6D6D6><blackface>The Options panel&nbsp;</blackface></font></table><tr><td width=15 bgcolor=5A5A52><td width=15 bgColor=2D3131 valign=top><table bgcolor=5A5A52 cellpadding=0 cellspacing=0 width=5 height=5><tr><td height=1 width=1><td width=1><td width=1><td width=1><td width=1><tr><td colspan=3 height=1><td bgcolor=2D3131 colspan=2><tr><td colspan=2 height=1><td bgcolor=2D3131 colspan=3><tr><td height=2><td bgcolor=2D3131 colspan=4></table><td width=518 height=25 bgColor=2D3131 gradColor=141A19 gradAngle=90 align=right><table cellspacing=0 cellpadding=0><tr><td width=30 align=right valign=middle><img src=wtv-center:/images/custombuttonbg.gif><spacer type=horizontal width=5><td href="javascript:goBackToUrl(getHelpUrl('Index','Main','1'))"><spacer type=vertical size=1><BR><font size=-1 color=E6CD4A><B>Main Help Index</B><td width=30 align=right valign=middle><img src=wtv-center:/images/custombuttonbg.gif><spacer type=horizontal width=5><td href="http://127.0.0.1/index1.asp"><spacer type=vertical size=1><BR><font size=-1 color=E6CD4A><B>Find an answer</B></table><td width=12 bgcolor=141A19><img width=1 height=1 src="wtv-mail:/update-light-wtv-token-2966159041-25330EC3C28D82512E2EDF0A2B59D425"><tr><td bgcolor=5A5A52><td><td width=518 height=234 valign=top><table cellpadding=0 cellspacing=0 height=234 width=518><tr><td height=15><tr><td valign=top>If you want to visit a Web page again
+later, choose <b>save</b> to add the
+page to your <b>favorites</b>.
+<p>
+For more about favorites, choose this link:
+<spacer type=vertical height=12><br>
+<table	cellpadding=0
+cellspacing=8
+bgcolor=141A19
+href="wtv-guide:/help?topic=Favorites&subtopic=Index">
+<tr>
+<td height=20>
+<font color=FFE99B><b>&#128;
+<td>
+<font color=FFE99B><b>About favorites
+<td>
+&nbsp;
+</table>
+<td><td valign=top><table width=267 height=200 background='images/help/tips/options-plus-all-msn.jpg' cellpadding=0 cellspacing=0><tr><td width=1 rowspan=3 bgcolor=000000><td width=267 colspan=2 height=1 bgcolor=000000><td width=1 rowspan=3 bgcolor=000000><tr><td valign=top><spacer type=vertical height=75><br><spacer type=horizontal width=130><img src='images/help/common/arrowDR.gif' width=55 height=79><tr><td height=1 bgcolor=000000></table><td><tr><td width=236 height=1><td width=15><td width=267></table><td><tr><td bgcolor=5A5A52><td colspan=3 valign=top height=45 align=right><script>function doContinue() {
+goToHelpUrl('Tips','Options','Send');}</script><font color=ffcf69><shadow><input type=button usestylewidth="110"action="javascript:doContinue()"value="Continue"borderimage="file://ROM/Borders/ButtonBorder2.bif"selected></shadow></font><spacer type=horizontal width=20></table></form></body>

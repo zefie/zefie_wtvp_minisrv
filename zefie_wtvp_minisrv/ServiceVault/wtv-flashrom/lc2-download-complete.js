@@ -1,8 +1,6 @@
 var minisrv_service_file = true;
 
 headers = `200 OK
-Connection: Close
-wtv-connection-close: true
 Content-type: text/html`
 
 data = `<html>
@@ -64,7 +62,7 @@ Updating complete
 <font size=+1>
 The update is complete.<br>
 <p><font size=+1>Choose <b>Connect Now</b> if you<br>want to connect to ${minisrv_config.config.service_name}.
-	<p><font size=+1>Press the <b>power</b> button to switch<br>off your unit.
+	<p><font size=+1>Press the <b>power</b> button to switch<br>off your ${session_data.getBoxName()}.
 </font>
 <tr>
 <td width=104 valign=middle align=center>

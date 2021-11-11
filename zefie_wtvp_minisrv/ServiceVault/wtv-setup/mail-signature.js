@@ -84,7 +84,7 @@ cols=45 rows=5
 autoactivate
 nosoftbreaks
 maxlength=4096
-font=proportional>${ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || ""}</TEXTAREA></FORM></TD>
+font=proportional>${session_data.getSessionData("subscriber_signature") || ""}</TEXTAREA></FORM></TD>
 </FORM>
 <TR>
 <TD>

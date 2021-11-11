@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
-const WTVDownloadList = require("./WTVDownloadList.js");
-var wtvdl = new WTVDownloadList(minisrv_config, service_name);
+var diskmap = Object.getCaseInsensitiveKey(request_headers.query, "DiskMap");
+var wtvdl = new WTVDisk(minisrv_config, service_name);
 
 var force_update = (request_headers.query.force == "true") ? true : false;
 var no_delete = (request_headers.query.dont_delete_files == "true") ? true : false;
@@ -22,8 +22,6 @@ if (request_headers['wtv-request-type'] == 'download') {
         if (diskmap_group_data.execute_start) {
             wtvdl.execute(diskmap_group_data.execute_start);
         }
-
-        console.log(diskmap_group_data.client_group_data);
 
         // delete groups if force, or group is invalid
         if (diskmap_group_data.client_group_data) {
@@ -209,7 +207,7 @@ if (request_headers['wtv-request-type'] == 'download') {
         var wtv_download_list = new Array();
         var newest_file_epoch = version;
         Object.keys(diskmap_group_data.files).forEach(function (k) {
-            if (!diskmap_group_data.files[k].location) diskmap_group_data.files[k].location = wtvshared.makeSafePath(diskmap_group_data.location,diskmap_group_data.files[k].file.replace(diskmap_group_data.base, ""));
+            if (!diskmap_group_data.files[k].location) diskmap_group_data.files[k].location = wtvshared.makeSafePath(diskmap_group_data.location,diskmap_group_data.files[k].file.replace(diskmap_group_data.base, ""), true);
             var diskmap_data_file = null;
             Object.keys(service_vaults).forEach(function (g) {
                 if (diskmap_data_file != null) return;
@@ -217,34 +215,36 @@ if (request_headers['wtv-request-type'] == 'download') {
                 if (!fs.existsSync(diskmap_data_file)) diskmap_data_file = null;
             });
 
-            var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
-            var diskmap_file_data = new Buffer.from(fs.readFileSync(diskmap_data_file, {
-                encoding: null,
-                flags: 'r'
-            }));
-            diskmap_group_data.files[k].base = diskmap_group_data.base;
-            diskmap_group_data.files[k].last_modified = (new Date(new Date(diskmap_file_stat.mtime).toUTCString()) / 1000);
-            diskmap_group_data.files[k].content_length = diskmap_file_stat.size;
-            diskmap_group_data.files[k].action = (diskmap_group_data.files[k].action) ? diskmap_group_data.files[k].action.toUpperCase() : "GET";            
+            if (diskmap_data_file) {
+                var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
+                var diskmap_file_data = new Buffer.from(fs.readFileSync(diskmap_data_file, {
+                    encoding: null,
+                    flags: 'r'
+                }));
+                diskmap_group_data.files[k].base = diskmap_group_data.base;
+                diskmap_group_data.files[k].last_modified = (new Date(new Date(diskmap_file_stat.mtime).toUTCString()) / 1000);
+                diskmap_group_data.files[k].content_length = diskmap_file_stat.size;
+                diskmap_group_data.files[k].action = (diskmap_group_data.files[k].action) ? diskmap_group_data.files[k].action.toUpperCase() : "GET";
 
-            // we need the checksum of the uncompressed data
-            if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
-                var gunzipped = zlib.gunzipSync(diskmap_file_data);
-                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
-                var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
-                if (!diskmap_group_data.files[k].dont_extract_filename) {
-                    diskmap_group_data.files[k].original_filename = diskmap_file_data.toString('utf8', 10, gzip_fn_end);
+                // we need the checksum of the uncompressed data
+                if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
+                    var gunzipped = zlib.gunzipSync(diskmap_file_data);
+                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
+                    var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
+                    if (!diskmap_group_data.files[k].dont_extract_filename) {
+                        diskmap_group_data.files[k].original_filename = diskmap_file_data.toString('utf8', 10, gzip_fn_end);
+                    }
+                    diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
+                    gunzipped = null;
+                } else {
+                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
                 }
-                diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
-                gunzipped = null;
-            } else {
-                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
+
+                if (parseInt(diskmap_group_data.files[k].last_modified) > newest_file_epoch) newest_file_epoch = parseInt(diskmap_group_data.files[k].last_modified);
+
+                diskmap_group_data.files[k].invalid = true;
+                wtv_download_list.push(diskmap_group_data.files[k]);
             }
-
-            if (parseInt(diskmap_group_data.files[k].last_modified) > newest_file_epoch) newest_file_epoch = parseInt(diskmap_group_data.files[k].last_modified);
-
-            diskmap_group_data.files[k].invalid = true;
-            wtv_download_list.push(diskmap_group_data.files[k]);
         });
         // check to see if client says they have this version
         diskmap_group_data.version = newest_file_epoch;
@@ -264,11 +264,11 @@ if (request_headers['wtv-request-type'] == 'download') {
         return output_data;
     }
 
-    if (request_headers.query.diskmap && request_headers.query.group) {
+    if (diskmap && request_headers.query.group) {
         var diskmap_json_file = null;
         Object.keys(service_vaults).forEach(function (g) {
             if (diskmap_json_file != null) return;
-            diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + request_headers.query.diskmap + ".json";
+            diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
             if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
         });
 
@@ -285,7 +285,6 @@ if (request_headers['wtv-request-type'] == 'download') {
                     diskmap_data = diskmap_data[request_headers.query.group];
                     if (!diskmap_data.location) {
                         Object.keys(diskmap_data).forEach(function (k) {
-                            console.log(diskmap_data[k]);
                             if (diskmap_data[k]) {
                                 diskmap_data[k].version = (new Date(new Date(json_stats.mtime).toUTCString()) / 1000);
                                 data += processGroup(request_headers.query.group, diskmap_data[k], k, diskmap_data.version);
@@ -316,9 +315,9 @@ if (request_headers['wtv-request-type'] == 'download') {
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
     }
-} else if (request_headers.query.group && request_headers.query.diskmap) {
+} else if (request_headers.query.group && diskmap) {
     var message = request_headers.query.message || "Retrieving files...";
     var main_message = request_headers.query.main_message || "Your receiver is downloading files.";
-    headers = "200 OK\nwtv-connection-close: close\nConnection: close\nContent-Type: text/html";
-    data = wtvdl.getSyncPage(message, request_headers.query.group, request_headers.query.diskmap, main_message, message, force_update, no_delete);
+    headers = "200 OK\nContent-Type: text/html\nwtv-expire-all: wtv-disk:";
+    data = wtvdl.getSyncPage(message, request_headers.query.group, diskmap, main_message, message, force_update, no_delete);
 }
