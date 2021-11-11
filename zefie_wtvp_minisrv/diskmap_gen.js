@@ -1,7 +1,7 @@
 const process = require('process');
 const fs = require('fs');
 const path = require('path');
-var { WTVShared, clientShowAlert } = require("./WTVShared.js");
+var { WTVShared, clientShowAlert } = require(classPath + "/WTVShared.js");
 
 const wtvshared = new WTVShared(); // creates minisrv_config
 var minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config

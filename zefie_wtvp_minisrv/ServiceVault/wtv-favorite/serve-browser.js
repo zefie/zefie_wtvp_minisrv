@@ -1,0 +1,237 @@
+var minisrv_service_file = true;
+
+var favoritenum = 0;
+
+var foldername = request_headers.query.favorite_folder_name;
+
+var favarray = session_data.favstore.listFavorites(foldername);
+
+var folder_array = session_data.favstore.getFolders();
+
+var folderid = folder_array.indexOf(foldername);
+
+var numoffolders = folder_array.length;
+
+favoritenum = Object.keys(favarray).length;
+
+headers = `200 OK
+Connection: Keep-Alive
+Content-Type: text/html
+wtv-expire-all: wtv-favorite:/serve-
+wtv-expire-all: wtv-favorite:/favorite
+`
+
+
+data = `<html><head>
+<title>
+Favorites
+</title>
+</head><body fontsize="large" vspace="0" hspace="0" vlink="189cd6" text="44cc55" link="189cd6" bgcolor="191919"><display>
+<sidebar width="109" height="384">
+<table cellspacing="0" cellpadding="0" bgcolor="284a52">
+<tbody><tr><td absheight="196" valign="top">
+<table absheight="196" cellspacing="0" cellpadding="0">
+<tbody><tr>
+<td width="100%" valign="top" height="50%">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr>
+<td colspan="3" absheight="1" width="100%">
+</td></tr><tr>
+<td abswidth="6">
+</td><td absheight="79" width="100%" align="center">
+<table href="wtv-home:/home" absheight="79" width="100%" cellspacing="0" cellpadding="0">
+<tbody><tr>
+<td width="100%" align="center">
+<img src="wtv-home:/ROMCache/WebTVLogoJewel.gif" width="87" height="67">
+</td></tr></tbody></table>
+</td><td abswidth="5">
+</td></tr><tr><td colspan="3" absheight="2" width="100%" bgcolor="1f3136">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr><tr><td colspan="3" absheight="1" width="100%">
+</td></tr><tr><td colspan="3" absheight="2" width="100%" bgcolor="436f79">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">	</td></tr><tr><td absheight="32" colspan="3" width="100%">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td abswidth="5" absheight="26">
+</td><td abswidth="93"><table abswidth="93" href="wtv-favorite:/favorite" cellspacing="0" cellpadding="0">
+<tbody><tr><td>
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td><shadow><font size="-1" color="E7CE4A">
+ Folders
+</font></shadow></td></tr></tbody></table>
+</td></tr></tbody></table>
+</td><td abswidth="6">
+</td></tr><tr><td colspan="3" absheight="2" width="104" bgcolor="1f3136">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr><tr><td absheight="1">
+</td></tr><tr><td colspan="3" absheight="2" width="104" bgcolor="436f79">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table>
+</td></tr><tr><td absheight="32" colspan="3" width="100%">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td abswidth="5" absheight="26">
+</td><td abswidth="93"><table abswidth="93" href="wtv-favorite:/serve-organize-favorites?favorite_folder_name=${foldername}" cellspacing="0" cellpadding="0">
+<tbody><tr><td>
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td><shadow><font size="-1" color="E7CE4A">
+ Organize
+</font></shadow></td></tr></tbody></table>
+</td></tr></tbody></table>
+</td><td abswidth="6">
+</td></tr><tr><td colspan="3" absheight="2" width="104" bgcolor="1f3136">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr><tr><td absheight="1">
+</td></tr><tr><td colspan="3" absheight="2" width="104" bgcolor="436f79">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table>
+</td></tr><tr><td absheight="32" colspan="3" width="100%">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td abswidth="5" absheight="26">
+</td><td abswidth="93">
+<table abswidth="93" href="wtv-guide:/quickhelp?title=Favorites" cellspacing="0" cellpadding="0">
+<tbody><tr><td>
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td><shadow><font size="-1" color="E7CE4A">
+ Help
+</font></shadow></td></tr></tbody></table>
+</td></tr></tbody></table>
+</td><td abswidth="6">
+</td></tr><tr><td colspan="3" absheight="2" width="104" bgcolor="1f3136">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr><tr><td absheight="1">
+</td></tr><tr><td colspan="3" absheight="2" width="104" bgcolor="436f79">
+<img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td><td abswidth="5" background="ROMCache/Shadow.gif"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr><tr><td absheight="188" valign="top">
+<table absheight="188" cellspacing="0" cellpadding="0">
+<tbody><tr><td width="100%"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
+</td><td valign="bottom" align="right"><img src="ROMCache/FavoritesBanner.gif" width="50" height="188">
+</td></tr></tbody></table>
+</td><td abswidth="5" background="ROMCache/Shadow.gif"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table>
+</sidebar>
+<table width="451" cellspacing="0" cellpadding="0" bgcolor="2b2b2b">
+<tbody><tr>
+<td width="4" height="16"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr><tr>
+<td width="4" height="12"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td><td width="16"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td><td><table width="428" cellspacing="0" cellpadding="0">
+<tbody><tr>
+<td align="left">
+<shadow><blackface><font color="e7ce4a">Favorites for ${session_data.getSessionData("subscriber_username") || "You"}
+</font><shadow><blackface>
+</blackface></shadow></blackface></shadow></td></tr></tbody></table>
+</td></tr><tr>
+<td width="4" height="14"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table>
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td valign="top" align="left">
+<table width="221" cellspacing="0" cellpadding="0">`
+if (folderid !== 0)
+{ 
+	data += `
+<tbody><tr><td width="221" valign="middle" height="42" background="ROMCache/LeftTopWithPreviousTab.gif" align="left">
+<table width="100%" cellspacing="0" cellpadding="0">
+<tbody><tr><td width="10"> </td><td width="20" valign="top" height="28" align="left">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td height="1">
+</td></tr><tr><td height="20">
+<table href="wtv-favorite:/serve-browser?favorite_folder_name=${folder_array[folderid - 1]}&backward=selected" width="20" height="20" cellspacing="0" cellpadding="0">`
+} else {
+	data += `
+	<tbody><tr><td width="221" valign="middle" height="42" background="ROMCache/LeftTop.gif" align="left">
+<table width="100%" cellspacing="0" cellpadding="0">
+<tbody><tr><td width="10"> </td><td width="20" valign="top" height="28" align="left">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td height="1">
+</td></tr><tr><td height="20">
+<table width="20" height="20" cellspacing="0" cellpadding="0">`
+} 
+data += `
+<tbody><tr><td> 
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td><td width="10"> </td><td height="20" align="center">
+<font size="-1" color="#E6CD4A">
+<limittext value="${foldername}" width="140">
+</limittext></font>
+</td><td width="20">
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td><td valign="top" align="left">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td>
+<table abswidth="178" cellspacing="0" cellpadding="0">
+<tbody><tr><td absheight="20" bgcolor="2b2b2b"> 
+</td></tr><tr><td abswidth="178" valign="middle" height="22" background="ROMCache/MiddleTop.gif" align="left">
+</td></tr></tbody></table>
+</td><td>
+<table abswidth="52" cellspacing="0" cellpadding="0">`
+if (folderid !== numoffolders - 1)
+{
+	data += `<table abswidth="52" cellspacing="0" cellpadding="0" background="ROMCache/FarRightTopWithNextTab.gif">
+<tbody><tr><td width="20" valign="middle" height="42" align="left">
+</td><td width="25" valign="top" height="28" align="right">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td height="8">
+</td></tr><tr><td height="20">
+<table href="wtv-favorite:/serve-browser?favorite_folder_name=${folder_array[folderid + 1]}&amp;forward=selected" selected="" width="20" height="20" cellspacing="0" cellpadding="0">
+<tbody><tr><td>&nbsp;
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td><td width="7" valign="middle" height="40" align="left">
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td width="5" height="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table>`
+} else {
+	data += `<tbody><tr></tr></tbody></table><table abswidth="52" cellspacing="0" cellpadding="0" background="ROMCache/FarRightTop.gif">
+<tbody><tr><td width="20" valign="middle" height="42" align="left">
+</td><td width="25" valign="middle" height="42" align="left">
+</td><td width="7" valign="middle" height="40" align="left">
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td width="5" height="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table></table>`
+} data += `
+
+<table cellspacing="0" cellpadding="0" bgcolor="191919">
+</table><table cellspacing="0" cellpadding="0">
+</table><table cellspacing="0" cellpadding="0">
+<tbody><tr><td absheight="106" width="5"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td><td width="15">`;
+
+// favorite loop
+Object.keys(favarray).forEach(function (k) {
+	var url = decodeURIComponent(favarray[k].url);
+	data += `</td><td abswidth="139" valign="top">
+<table href="${url}" bgcolor="191919">
+<tbody><tr><td abswidth="139" align="center">`;
+	if (favarray[k].imagetype == "url")
+		data += `<img src="${favarray[k].image}" width="70" vspace="5" height="52"><br>`;
+	else
+		data += `<img src="get-thumbnail?folder=${favarray[k].folder}&id=${favarray[k].id}" width="70" vspace="5" height="52"><br>`;
+	data += `<table cellspacing="0" cellpadding="0">
+<tbody><tr><td maxlines="2" align="center"><font size="-1" color="#189CD6">
+${favarray[k].title}
+<br>
+</font>
+</td></tr></tbody></table>
+</td></tr></tbody></table>`;
+	if ((parseInt(k) + 1) % 3 == 0) {
+		// every 3 objects
+		data += `</td></tr></tbody></table>
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td absheight="106" width="5"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td><td width="15">`;
+	}
+});
+
+data += `</display></body></html>`;

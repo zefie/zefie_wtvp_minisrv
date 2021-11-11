@@ -1,5 +1,4 @@
 var minisrv_service_file = true;
-var { WTVShared, clientShowAlert } = require("./WTVShared.js");
 
 var notImplementedAlert = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
@@ -63,7 +62,7 @@ hspace=0 vspace=0
 <td valign=center absheight=80>
 <shadow><blackface><font color="e7ce4a" font size="+1">
 Settings
-for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
+for ${session_data.getSessionData("subscriber_username") || "You"}
 </font><blackface><shadow>
 </table>
 <tr>
@@ -86,11 +85,13 @@ for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
 <img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
 <a href="wtv-setup:/mail">Mail</a><BR>
 <spacer type=block width=1 height=5><BR>`;
-// password
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="${notImplementedAlert}"><strike>Password</strike></a><BR>
+
+if (minisrv_config.config.passwords) {
+	if (minisrv_config.config.passwords.enabled) {
+		data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
+<a href="wtv-setup:/edit-password">Password</a><BR>
 <spacer type=block width=1 height=5><BR>`;
+	}
 }
 
 data += `
@@ -114,29 +115,28 @@ data += `
 <img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
 <a href="wtv-setup:/keyboard">Keyboard</a><BR>
 <spacer type=block width=1 height=5><BR>`;
-// extra users
-if (!minisrv_config.config.hide_incomplete_features) {
+
+if (session_data.user_id == 0) {
 	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="${notImplementedAlert}"><strike>Extra users</strike></a><BR>
+<a href="wtv-setup:/accounts">Extra Users</a><BR>
 <spacer type=block width=1 height=5><BR>`;
 }
 
 data += `
-
 <img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/phone")">Dialing</a><BR>
+<a href="wtv-setup:/messenger">Messenger</a><BR>
+<spacer type=block width=1 height=5><BR>
+<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
+<a href="wtv-setup:/phone">Dialing</a><BR>
 
 <TD WIDTH=20>
 <TD WIDTH=300 VALIGN=top ALIGN=left>
 <spacer type=block width=6 height=14><font size="2"><br>
 Signature <strike>and more</strike><BR>
-<spacer type=block width=6 height=5><font size="2"><br>`;
-// password
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<strike>Change your password</strike><BR>
-<spacer type=block width=6 height=5><font size="2"><br>`;
-}
-data += `Options for your TV<BR>
+<spacer type=block width=6 height=5><font size="2"><br>
+Change your password<BR>
+<spacer type=block width=6 height=5><font size="2"><br>
+Options for your TV<BR>
 <spacer type=block width=6 height=5><font size="2"><br>
 Make text bigger or smaller<BR>
 <spacer type=block width=6 height=5><font size="2"><br>
@@ -147,14 +147,15 @@ if (!minisrv_config.config.hide_incomplete_features) {
 	data += `<strike>Change how you print</strike><BR>
 <spacer type=block width=6 height=5><font size="2"><br>`;
 }
-data += `Choose an on-screen keyboard<BR>
-<spacer type=block width=6 height=5><font size="2"><br>`;
-// extra users
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<strike>Add, change, or remove users</strike><BR>
-<spacer type=block width=6 height=6><font size="2"><br>`;
+data += `Choose an on-screen keyboard<BR>`;
+if (session_data.user_id == 0) {
+	data += `<spacer type=block width=6 height=5><font size="2"><br>
+Add, change, or remove users<BR>`;
 }
-	data += `
+data += `<spacer type=block width=6 height=5><font size="2"><br>
+Configure Messenger<BR>`;
+
+data += `<spacer type=block width=6 height=6><font size="2"><br>
 Connecting to WebTV<BR>
 
 

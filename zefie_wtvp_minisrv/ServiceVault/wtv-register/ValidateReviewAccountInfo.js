@@ -5,21 +5,34 @@ if (!request_headers.query.registering ||
     !request_headers.query.subscriber_username ||
     !request_headers.query.subscriber_contact ||
     !request_headers.query.subscriber_contact_method ||
-    !ssid_sessions[socket.ssid].session_store ||
-    !ssid_sessions[socket.ssid] ||
+    !session_data.session_store ||
+    !session_data ||
     !socket.ssid
     ) {
     var errpage = wtvshared.doErrorPage(400);
     headers = errpage[0];
     data = errpage[1];
 } else {
-    ssid_sessions[socket.ssid].setSessionData("subscriber_name", request_headers.query.subscriber_name);
-    ssid_sessions[socket.ssid].setSessionData("subscriber_username", request_headers.query.subscriber_username);
-    ssid_sessions[socket.ssid].setSessionData("subscriber_contact", request_headers.query.subscriber_contact);
-    ssid_sessions[socket.ssid].setSessionData("subscriber_contact_method", request_headers.query.subscriber_contact_method);
-    ssid_sessions[socket.ssid].setSessionData("subscriber_userid", '1' + Math.floor(Math.random() * 1000000000000000000));
-    ssid_sessions[socket.ssid].setSessionData("registered", true);
-    if (!ssid_sessions[socket.ssid].storeSessionData(true)) {
+    session_data.setSessionData("subscriber_name", request_headers.query.subscriber_name);
+    session_data.setSessionData("subscriber_username", request_headers.query.subscriber_username);
+    session_data.setSessionData("subscriber_contact", request_headers.query.subscriber_contact);
+    session_data.setSessionData("subscriber_contact_method", request_headers.query.subscriber_contact_method);
+    session_data.setSessionData("subscriber_userid", 0);
+    session_data.setSessionData("registered", true);
+    var mailstore_exists = session_data.mailstore.mailstoreExists();
+    var mailbox_exists = false;
+    if (!mailstore_exists) mailstore_exists = session_data.mailstore.createMailstore();
+    if (mailstore_exists) {
+        if (!session_data.mailstore.mailboxExists(0)) {
+            // mailbox does not yet exist, create it
+            mailbox_exists = session_data.mailstore.createMailbox(0);
+        }
+        if (mailbox_exists) {
+            // Just created Inbox for the first time, so create the welcome message
+            session_data.mailstore.createWelcomeMessage();
+        }
+    }
+    if (!session_data.saveSessionData(true, true)) {
         var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];

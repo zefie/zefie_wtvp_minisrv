@@ -8,6 +8,7 @@ ServiceLogPost/*_*
 
 # Large files not pertaining to the service code
 UserServiceVault/*-*
+UserServiceVault/*_*
 package-lock.json
 
 
@@ -369,3 +370,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# minisrv error log file
+errors.log

@@ -1,9 +1,9 @@
 var minisrv_service_file = true;
 
 if (socket.ssid) {
-    if (ssid_sessions[socket.ssid]) {
+    if (session_data) {
 
-        data = ssid_sessions[socket.ssid].listCookies();
+        data = session_data.listCookies();
         headers = "200 OK\n";
         headers += "Content-Type: text/plain";
     }

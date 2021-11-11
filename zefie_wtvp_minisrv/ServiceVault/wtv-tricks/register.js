@@ -3,7 +3,7 @@ var minisrv_service_file = true;
 headers = `200 OK
 Content-Type: text/html`;
 
-if (ssid_sessions[socket.ssid].getSessionData("registered")) {
+if (session_data.getSessionData("registered")) {
     var redirect = [10, "client:goback?"];
     var message = "Error: Your box is already registered. If you would like to re-register, you must first unregister.";
 } else if (request_headers.query.confirm_register) {

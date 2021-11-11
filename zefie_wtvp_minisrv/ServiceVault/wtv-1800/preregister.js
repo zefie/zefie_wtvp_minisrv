@@ -3,21 +3,21 @@ var minisrv_service_file = true;
 var gourl = "wtv-head-waiter:/login?";
 
 if (socket.ssid) {
-	if (ssid_sessions[socket.ssid].loadSessionData() == true) {
+	if (session_data.loadSessionData() == true) {
 		console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
-		ssid_sessions[socket.ssid].setSessionData("registered", (ssid_sessions[socket.ssid].getSessionData("registered") == true) ? true : false);
+		session_data.setSessionData("registered", (session_data.getSessionData("registered") == true) ? true : false);
 	} else {
-		ssid_sessions[socket.ssid].session_data = {};
-		ssid_sessions[socket.ssid].setSessionData("registered", false);
+		session_data.session_data = {};
+		session_data.setSessionData("registered", false);
 	}
-	if (ssid_sessions[socket.ssid].data_store) {
-		if (ssid_sessions[socket.ssid].data_store.sockets) {
+	if (session_data.data_store) {
+		if (session_data.data_store.sockets) {
 			var i = 0;
-			ssid_sessions[socket.ssid].data_store.sockets.forEach(function (k) {
+			session_data.data_store.sockets.forEach(function (k) {
 				if (typeof k != "undefined") {
 					if (k != socket) {
 						k.destroy();
-						ssid_sessions[socket.ssid].data_store.sockets.delete(k);
+						session_data.data_store.sockets.delete(k);
 						i++;
 					}
 				}
@@ -25,14 +25,14 @@ if (socket.ssid) {
 			if (i > 0 && minisrv_config.config.debug_flags.debug) console.log(" # Closed", i, "previous sockets for", wtvshared.filterSSID(socket.ssid));
 		}
 	}
-	if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+	if (session_data.data_store.wtvsec_login) {
 		if (minisrv_config.config.debug_flags.debug) console.log(" # Recreating primary WTVSec login instance for", wtvshared.filterSSID(socket.ssid));
-		delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
+		delete session_data.data_store.wtvsec_login;
 	}
 
-	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
-	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
-	if (request_headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
+	session_data.data_store.wtvsec_login = session_data.createWTVSecSession();
+	session_data.data_store.wtvsec_login.IssueChallenge();
+	if (request_headers["wtv-incarnation"]) session_data.data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 } else {
 	console.log(" * Something bad happened (we don't know the client ssid???)");
 	var errpage = wtvshared.doErrorPage(400)
@@ -40,33 +40,33 @@ if (socket.ssid) {
 	data = errpage[1];
 }
 
-if (request_headers.query.relogin && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "relogin=true";
-if (request_headers.query.reconnect && ssid_sessions[socket.ssid].getSessionData("registered")) gourl += "reconnect=true";
+if (request_headers.query.relogin && session_data.getSessionData("registered")) gourl += "relogin=true";
+if (request_headers.query.reconnect && session_data.getSessionData("registered")) gourl += "reconnect=true";
 
-if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
+if (session_data.data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
 
 	if (request_headers.query.relogin) { // relogin
-		ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = null; // clear old ticket
+		session_data.data_store.wtvsec_login.ticket_b64 = null; // clear old ticket
 	}
 
 	// if relogin and wtv-script-id != 0, skip tellyscript
-	ssid_sessions[socket.ssid].set("wtv-open-access", (request_headers['wtv-open-access'] == "true") ? true : false);
+	session_data.set("wtv-open-access", (request_headers['wtv-open-access'] == "true") ? true : false);
 	var file_path = null;
 	var bf0app_update = false;
-	var romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+	var romtype = session_data.get("wtv-client-rom-type");
 	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin);
-	var wtv_script_id = parseInt(ssid_sessions[socket.ssid].get("wtv-script-id"));
-	var bootrom = ssid_sessions[socket.ssid].get("wtv-client-bootrom-version");
+	var wtv_script_id = parseInt(session_data.get("wtv-script-id"));
+	var bootrom = session_data.get("wtv-client-bootrom-version");
 	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscript = false;
 	if (send_tellyscript) {
 		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
 			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)
 			if (send_telly_to_ssid) {
-				romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+				romtype = session_data.get("wtv-client-rom-type");
 			}
 		} else {
-			romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+			romtype = session_data.get("wtv-client-rom-type");
 		}
 		var file_path = null;
 		switch (romtype) {
@@ -77,22 +77,23 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
-				else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199.tok";
+				if (session_data.get("wtv-open-access")) file_path = __dirname + "/" +
+					+ "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
+				else var file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
-				if (wtvshared.isMiniBrowser(ssid_sessions[socket.ssid])) {
+				if (wtvshared.isMiniBrowser(session_data)) {
 					prereg_contype = "text/tellyscript";
-					if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_OpenISP_56k.tok";
-					else file_path = __dirname + "/ServiceDeps/premade_tellyscripts/LC2/LC2_WTV_18006138199.tok";
+					if (session_data.get("wtv-open-access")) file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
+					else file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				} else {
 					prereg_contype = "text/dialscript";
-					if (ssid_sessions[socket.ssid].get("wtv-lan") == "true") {
-						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_hsd.tok";
+					if (session_data.get("wtv-lan") == "true") {
+						file_path = ServiceDeps + "/wtv-1800/tellyscripts/UTV/utv_hsd.tok";
 					} else {
 						// todo OpenISP telly
-						file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_normal.tok";
+						file_path = ServiceDeps + "/wtv-1800/tellyscripts/UTV/utv_normal.tok";
 					}
 				}
 				break;
@@ -100,8 +101,8 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (ssid_sessions[socket.ssid].get("wtv-open-access")) file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_OISP.tok";
-				else file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
+				if (session_data.get("wtv-open-access")) file_path = ServiceDeps + "/wtv-1800/tellyscripts/bf0app/bf0app_OISP.tok";
+				else file_path = ServiceDeps + "/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
 				break;
 
 			// the following are not yet zefie generated and may have an unknown username/password attached
@@ -109,8 +110,8 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 			case "JP-Fiji":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (ssid_sessions[socket.ssid].get("wtv-open-access")) var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/FIJI/dc_production_normal.tok";
-				else var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/FIJI/dc_production_normal.tok";
+				if (session_data.get("wtv-open-access")) var file_path = ServiceDeps + "/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok";
+				else var file_path = ServiceDeps + "/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok";
 				break;
 
 			default:
@@ -120,7 +121,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 
 		if (socket.ssid.substr(0, 8) == "MSTVSIMU") {
 			prereg_contype = "text/dialscript";
-			var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/UTV/utv_hsd.tok";
+			var file_path = ServiceDeps + "/wtv-1800/tellyscripts/UTV/utv_hsd.tok";
 		}
 	}
 
@@ -129,9 +130,9 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		// assume old classic in flash mode, override user setting and send tellyscript
 		// because it is required to proceed in flash mode
 		prereg_contype = "text/tellyscript";
-		var file_path = __dirname + "/ServiceDeps/premade_tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
+		var file_path = ServiceDeps + "/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
 		var bf0app_update = true;
-		ssid_sessions[socket.ssid].set("bf0app_update", bf0app_update);
+		session_data.set("bf0app_update", bf0app_update);
 	}
 
 	if (request_headers["wtv-ticket"] && !request_headers.query.reconnect) {
@@ -150,9 +151,10 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 
 
 	headers = "200 OK\n"
+	headers += "minisrv-no-mail-count: true\n";
 	if (bf0app_update) headers += "minisrv-use-carriage-return: false\n";
 	headers += "Connection: Keep-Alive\n";
-	headers += "wtv-initial-key: " + ssid_sessions[socket.ssid].data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
+	headers += "wtv-initial-key: " + session_data.data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
 	headers += "Content-Type: " + prereg_contype + "\n";
 	if (!request_headers.query.reconnect) headers += "wtv-service: reset\n";
 	if (!bf0app_update) headers += getServiceString('wtv-1800') + "\n";
@@ -162,8 +164,8 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 
 	if (bf0app_update) headers += getServiceString('wtv-star', { "no_star_word": true }) + "\n";
 	else headers += getServiceString('wtv-star') + "\n";
-	if (request_headers.query.reconnect && !ssid_sessions[socket.ssid].getSessionData("registered")) headers += getServiceString('wtv-register') + "\n";
-	headers += getServiceString('wtv-flashrom') + "\n";
+	if (request_headers.query.reconnect && !session_data.getSessionData("registered") && !session_data.lockdown) headers += getServiceString('wtv-register') + "\n";
+	if (!session_data.lockdown) headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {
 		headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
@@ -171,7 +173,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 		headers += "\n";
 	}
 	if (gourl != null) headers += "wtv-visit: " + gourl + "\n";
-	if (!bf0app_update && ssid_sessions[socket.ssid].get("wtv-open-access")) headers += "wtv-open-isp-disabled: false\n";
+	if (!bf0app_update && session_data.get("wtv-open-access")) headers += "wtv-open-isp-disabled: false\n";
 	headers += "wtv-client-time-zone: GMT -0000\n";
 	headers += "wtv-client-time-dst-rule: GMT\n"
 	headers += "wtv-client-date: " + strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + " GMT";

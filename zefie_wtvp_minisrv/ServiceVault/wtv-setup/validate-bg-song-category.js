@@ -1,9 +1,9 @@
-if (request_headers.query && ssid_sessions[socket.ssid]) {
+var minisrv_service_file = true;
+
+if (request_headers.query && session_data) {
 
     if (request_headers.request_url.indexOf('?') >= 0) {
         var category = (request_headers.query.category) ? request_headers.query.category : null;
-        var WTVBGMusic = require("./WTVBGMusic.js");
-        var wtvbgm = new WTVBGMusic(minisrv_config, ssid_sessions[socket.ssid])
         var music_obj = wtvbgm.getMusicObj();
         var old_music_obj = Object.assign({}, music_obj);
 
@@ -40,8 +40,8 @@ if (request_headers.query && ssid_sessions[socket.ssid]) {
     music_obj = Object.assign({}, music_obj)
     if ((Object.keys(music_obj.enableCategories).length != Object.keys(old_music_obj.enableCategories).length) || (Object.keys(music_obj.enableSongs).length != Object.keys(old_music_obj.enableSongs).length)) {
         // something changed
-        ssid_sessions[socket.ssid].setSessionData("wtv-bgmusic", music_obj);
-        ssid_sessions[socket.ssid].saveSessionData();
+        session_data.setSessionData("wtv-bgmusic", music_obj);
+        session_data.saveSessionData();
         headers = `200 OK
 Content-type: text/html
 wtv-backgroundmusic-load-playlist: wtv-setup:/get-playlist`;

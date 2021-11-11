@@ -1,7 +1,6 @@
 var minisrv_service_file = true;
 
-var WTVBGMusic = require("./WTVBGMusic.js");
-var wtvbgm = new WTVBGMusic(minisrv_config, ssid_sessions[socket.ssid])
+const wtvbgm = new WTVBGMusic(minisrv_config, session_data);
 
 var catsListed = 0;
 var categories = wtvbgm.getCategoryList();

@@ -22,10 +22,6 @@ This open source server is in beta status. Use at your own risk.
 ### Current issues:
 - Mis-configuring wtv-disk:/sync DiskMaps may cause units to delete contents of partitions (need more info)
 
-### Won't fix:
-- wtv-encryption stream breaks when two different sessions have the same SSID (eg spoofing, won't fix (production did it too))
-- ~~No intentions to support user accounts, registration, or any form of database system~~ *(I guess this was a lie, but we still don't use a database!)*
-
 ### Feature Todo:
 - TellyScript generation and/or manipulation without external dependancies
 - ~~wtv-setup and bgm support~~ ***Done [v0.9.23](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.9.23)***

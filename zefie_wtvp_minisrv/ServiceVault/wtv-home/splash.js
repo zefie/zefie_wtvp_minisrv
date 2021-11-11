@@ -20,16 +20,17 @@ data = `<html>
 <img src="${minisrv_config.config.service_splash_logo}">
 <br><br><br>
 <p><br>
-<p><br>
-<table border>
-<tr><td width=150>
-Mini service
+<p><br>`;
+if (minisrv_config.config.show_detailed_splash) {
+    data += `<table border>
 <tr><td>
-zefie minisrv v${minisrv_config.version}`;
-if (minisrv_config.config.git_commit) data += " (git " + minisrv_config.config.git_commit + ")";
+${minisrv_config.config.service_name} Mini Service hosted by ${minisrv_config.config.service_owner}
+<tr><td>
+minisrv v${minisrv_config.version} ${(minisrv_config.config.git_commit) ? '(git ' + minisrv_config.config.git_commit + ')' : ''}
+<tr><td>Connected: &rate;
+</table>`;
+}
 data += `
-<tr><td>&rate;
-</table>
 </center>
 </body>
 </html>`;

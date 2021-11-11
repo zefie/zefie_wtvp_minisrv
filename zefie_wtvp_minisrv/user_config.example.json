@@ -3,6 +3,10 @@
 		"service_ip": "192.168.1.8",
 		"service_name": "WebTV",
 		"service_logo": "WebTVLogoJewel.gif",
+		"service_owner": "A Cool Dude",
+		"service_owner_account": "CoolDude",
+		"service_owner_contact": "CoolDudeTweets",
+		"service_owner_contact_method": "Twitter",
 		"service_splash_logo": "file://ROM/images/SplashLogo1.gif",
 		"ServiceVaults": [
 			"UserServiceVault",
@@ -31,6 +35,15 @@
 				"8100000000000000"
 			]
 		},
+		"wtv-admin": {
+			"authorized_ssids": {
+				"8100000000000000": [
+					"192.168.1.0/24",
+					"127.0.0.1"
+				]
+			},
+			"password": "my-secure-password"
+		},
 		"wtv-log": {
 			"write_logs_to_disk": true
 		},
@@ -45,6 +58,35 @@
 		},
 		"wtv-music": {
 			"disabled": true
+		},
+		"wtv-author": {
+			"enable_multi_query": true
+		},
+		"wtv-news": {
+			"disabled": false,
+			"upstream_address": "192.168.11.8",
+			"upstream_port": 1699,
+			"upstream_auth": {
+				"username": "not_yet",
+				"password": "implemented"
+			}
+		}
+	},
+	"favorites": {
+		"folder_templates": {
+			"Personal": [
+				{
+					"title": "The Midnight Archive",
+					"url": "http://archive.midnightchanne.net/",
+					"image_type": "url",
+					"image": "canned/midnightchannel.gif"
+				},
+				{
+					"title": "WebTV/MSNTV Secrets",
+					"url": "http://turdinc.kicks-ass.net/Msntv/",
+					"image_type": "url",
+					"image": "canned/mattman69.gif"
+				}
+			]
 		}
 	}
-}
