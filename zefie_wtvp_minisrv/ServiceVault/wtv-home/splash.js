@@ -22,13 +22,11 @@ data = `<html>
 <p><br>
 <p><br>
 <table border>
-<tr><td width=150>
-Mini service
 <tr><td>
-zefie minisrv v${minisrv_config.version}`;
-if (minisrv_config.config.git_commit) data += " (git " + minisrv_config.config.git_commit + ")";
-data += `
-<tr><td>&rate;
+${minisrv_config.config.service_name} Mini Service hosted by ${minisrv_config.config.service_owner}
+<tr><td>
+minisrv v${minisrv_config.version} ${(minisrv_config.config.git_commit) ? '(git '+minisrv_config.config.git_commit+')' : ''}
+<tr><td>Connected: &rate;
 </table>
 </center>
 </body>
