@@ -22,6 +22,7 @@
     "enable_gzip_compression": true,
     "pc_server_hidden_service": "http_pc",
     "pc_server_hidden_service_enabled": false,
+    "show_detailed_splash": true,
     "show_diskmap": false,
     "allow_guests": true
   },
