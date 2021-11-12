@@ -80,9 +80,9 @@ Updating now
 <td width=20 valign=middle align=center>
 <td colspan=9 width=100 height=258 valign=top align=left>
 <font size=+1>
-Your WebTV Unit is being<br>updated automatically.
+Your ${ssid_sessions[socket.ssid].getBoxName()} is being<br>updated automatically.
 <p> <font size=+1>
-This will take a while, and<br>then you can use your WebTV again.
+This will take a while, and<br>then you can use your ${ssid_sessions[socket.ssid].getBoxName()} again.
 `;
 		if (flashrom_info.is_bootrom && flashrom_info.part_number == (flashrom_info.part_count - 1)) {
 			data += `<p>

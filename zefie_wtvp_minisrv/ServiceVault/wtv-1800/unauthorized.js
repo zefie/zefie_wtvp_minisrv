@@ -1,4 +1,7 @@
-<html>
+headers = `200 OK
+Content-type: text/html`;
+
+data = `<html>
 <head>
 <title>
 Access Denied
@@ -48,7 +51,7 @@ Access Denied
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
 <td colspan=9 width=100 height=258 valign=top align=left>
-<font size=-1>You are not authorized to use this service. <p>Reason: ${REASON} </font>
+<font size=-1>You are not authorized to use this service. <p>Reason: ${ssid_sessions[socket.ssid].lockdownReason}</font>
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
@@ -89,4 +92,4 @@ type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/Butto
 <td width=20 valign=middle align=center>
 </table>
 </body>
-</html>
+</html>`;

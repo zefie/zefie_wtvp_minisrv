@@ -24,7 +24,9 @@
     "pc_server_hidden_service_enabled": false,
     "show_detailed_splash": true,
     "show_diskmap": false,
-    "allow_guests": true
+    "unauthorized_url": "wtv-1800:/unauthorized?",
+    "allow_guests": true,
+    "domain_name": "wtv.zefie.com"
   },
   "services": {
     "wtv-head-waiter": {

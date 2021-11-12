@@ -93,7 +93,7 @@ data = `<html>
                     We ran into a technical problem while updating
                     your unit. (Error: ${error})
                     Choose <b>Try Again</b> to try again now.
-                    <p><font size=+1>Press the <b>power</b> button to switch off your unit.
+                    <p><font size=+1>Press the <b>power</b> button to switch off your ${ssid_sessions[socket.ssid].getBoxName()}.
         <tr>
             <td width=104 valign=middle align=center>
             <td width=20 valign=middle align=center>

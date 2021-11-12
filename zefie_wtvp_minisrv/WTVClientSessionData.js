@@ -14,6 +14,10 @@ class WTVClientSessionData {
     minisrv_config = [];
     wtvshared = null;
     wtvmime = null;
+    lockdown = null;
+    lockdownReason = null;
+    lockdownWhitelist = null;
+    clientAddress = null;
 
     constructor(minisrv_config, ssid) {
         if (!minisrv_config) throw ("minisrv_config required");
@@ -22,10 +26,19 @@ class WTVClientSessionData {
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
-
+        this.lockdown = false;
         this.ssid = ssid;
         this.data_store = new Array();
         this.session_store = {};
+        this.lockdownWhitelist = [
+            "wtv-1800:/preregister",
+            "wtv-head-waiter:/login",
+            "wtv-head-waiter:/relogin",
+            "wtv-head-waiter:/login-stage-two",
+            "wtv-head-waiter:/bad-disk",
+            "wtv-log:/log"
+        ];
+        this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
     }
 
     /**
@@ -393,6 +406,159 @@ class WTVClientSessionData {
         if (key === null) throw ("ClientSessionData.delete(): invalid key provided");
         delete this.data_store[key];
     }
+
+    getBoxName() {
+        switch (this.get("wtv-client-rom-type")) {
+            case "US-DTV-disk-0MB-16MB-softmodem-CPU5230":
+            case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
+                return "UltimateTV Satellite receiver";
+
+            case "US-WEBSTAR-disk-0MB-8MB-softmodem-CPU5230":
+            case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
+                return "WebTV Satellite receiver";
+
+            case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
+            case "US-LC2-disk-0MB-8MB":
+            case "US-LC2-flash-2MB-8MB":
+            case "JP-LC2-disk-0MB-8MB":
+            case "JP-LC2-flash-2MB-8MB":
+            case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
+            case "US-LC2-flash-2MB-8MB-softmodem-CPU5230 ":
+            case "US-LC2-disk-0MB-8MB-CPU5230":
+            case "US-LC2-flash-2MB-8MB-CPU5230":
+            case "JP-LC2-disk-0MB-8MB-CPU5230":
+            case "JP-LC2-disk-0MB-16MB-CPU5230":
+            case "JP-LC2-flash-2MB-8MB-CPU5230":
+                return "WebTV Plus receiver";
+
+            default:
+                return "WebTV Internet receiver";
+        }
+    }
+
+    checkSecurity() {
+        var self = this;
+        var rejectReason = null;
+        var ip2long = function (ip) {
+            var components;
+
+            if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
+                var iplong = 0;
+                var power = 1;
+                for (var i = 4; i >= 1; i -= 1) {
+                    iplong += power * parseInt(components[i]);
+                    power *= 256;
+                }
+                return iplong;
+            }
+            else return -1;
+        };
+
+        var isInSubnet = function (ip, subnet) {
+            var mask, base_ip, long_ip = ip2long(ip);
+            if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip2long(mask[1])) >= 0)) {
+                var freedom = Math.pow(2, 32 - parseInt(mask[2]));
+                return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+            }
+            else return false;
+        };
+
+        var rejectSSIDConnection = function (blacklist) {
+            if (blacklist) {
+                rejectReason = self.ssid + " is in the blacklist.";
+                console.log(" * Request from SSID", self.wtvshared.filterSSID(self.ssid), "(" + self.clientAddress + "), but that SSID is in the blacklist.");
+            } else {
+                rejectReason = self.ssid + " is not in the whitelist.";
+                console.log(" * Request from SSID", self.wtvshared.filterSSID(self.ssid), "(" + self.clientAddress + "), but that SSID is not in the whitelist.");
+            }
+        }
+
+        var checkSSIDIPWhitelist = function (ssid, blacklist) {
+            var ssid_access_list_ip_override = false;
+            if (self.minisrv_config.config.ssid_ip_allow_list) {
+                if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid]) {
+                    Object.keys(self.minisrv_config.config.ssid_ip_allow_list[self.ssid]).forEach(function (k) {
+                        if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k].indexOf('/') > 0) {
+                            if (isInSubnet(self.clientAddress, self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k])) {
+                                // remoteAddr is in allowed subnet
+                                ssid_access_list_ip_override = true;
+                            }
+                        } else {
+                            if (self.clientAddress == self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k]) {
+                                // remoteAddr directly matches IP
+                                ssid_access_list_ip_override = true;
+                            }
+                        }
+                    });
+                    if (!ssid_access_list_ip_override) rejectSSIDConnection(self.ssid, blacklist);
+                } else {
+                    rejectSSIDConnection(blacklist);
+                }
+            } else {
+                rejectSSIDConnection(blacklist);
+            }
+            if (ssid_access_list_ip_override && self.minisrv_config.config.debug_flags.debug) console.log(" * Request from disallowed SSID", wtvshared.filterSSID(ssid), "was allowed due to IP address whitelist");
+        }
+
+        // process whitelist first
+        if (self.ssid && self.minisrv_config.config.ssid_allow_list) {
+            var ssid_is_in_whitelist = self.minisrv_config.config.ssid_allow_list.findIndex(element => element == self.ssid);
+            if (ssid_is_in_whitelist == -1) {
+                // no whitelist match, but lets see if the remoteAddress is allowed
+                checkSSIDIPWhitelist(self.ssid, false);
+            }
+        }
+
+        // now check blacklist
+        if (self.ssid && self.minisrv_config.config.ssid_block_list) {
+            var ssid_is_in_blacklist = self.minisrv_config.config.ssid_block_list.findIndex(element => element == self.ssid);
+            if (ssid_is_in_blacklist != -1) {
+                // blacklist match, but lets see if the remoteAddress is allowed
+                checkSSIDIPWhitelist(self.ssid, true);
+            }
+        }
+        if (rejectReason === null) {
+            // Passed Security
+            return true;
+        } else {
+            // Failed security
+            this.enableLockdown(rejectReason);
+            return false;
+        }
+    }
+
+
+    isAuthorized(url) {
+        // not in lockdown so just return true
+        if (!this.lockdown) return true;
+
+        // in lockdown, check whitelisted urls
+        var self = this;
+        var authorized = false;
+        Object.keys(this.lockdownWhitelist).forEach(function (k) {
+            if (self.lockdownWhitelist[k].substring(0, url.length) == url) authorized = true;
+        });
+        return authorized;
+    }
+
+    enableLockdown(reason) {
+        this.lockdown = true;
+        this.lockdownReason = reason;
+    }
+
+    disableLockdown() {
+        this.lockdown = false;
+        this.lockdownReason = null;
+    }
+
+    setClientAddress(addr) {
+        this.clientAddress = addr;
+    }
+
+    getClientAddress() {
+        return this.clientAddress;
+    }
+
 }
 
 module.exports = WTVClientSessionData;

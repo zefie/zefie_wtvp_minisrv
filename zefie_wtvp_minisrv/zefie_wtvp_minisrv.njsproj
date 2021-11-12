@@ -38,7 +38,6 @@
     <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_OpenISP_56k.tok" />
     <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_WTV_18006138199.detok.txt" />
     <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_WTV_18006138199.tok" />
-    <Content Include="ServiceDeps\TOS.html" />
     <Content Include="ServiceVault\http_pc\get.js" />
     <Content Include="ServiceVault\http_pc\index.js" />
     <Content Include="ServiceVault\wtv-1800\noflash.js" />
@@ -88,6 +87,7 @@
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\up-arrows.swf" />
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\WebTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-flashrom\willie.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\bad-disk.js" />
     <Content Include="ServiceVault\wtv-head-waiter\relogin.js">
       <SubType>Code</SubType>
     </Content>
@@ -234,6 +234,7 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-register\splash.js" />
+    <Content Include="ServiceVault\wtv-1800\unauthorized.js" />
     <Content Include="ServiceVault\wtv-setup\adjust-brightness.js" />
     <Content Include="ServiceVault\wtv-setup\adjust-contrast.js" />
     <Content Include="ServiceVault\wtv-setup\adjust-display-intro.js" />

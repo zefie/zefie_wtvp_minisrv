@@ -297,6 +297,7 @@ async function processURL(socket, request_headers) {
         } else {
             shortURL = unescape(request_headers.request_url);
         }
+
         if (request_headers['wtv-request-type']) socket_sessions[socket.id].wtv_request_type = request_headers['wtv-request-type'];
 
         if (request_headers.post_data) {
@@ -361,6 +362,23 @@ async function processURL(socket, request_headers) {
                 }
             }
         }
+        // check security
+        if (!ssid_sessions[socket.ssid].isAuthorized(shortURL)) {
+            // lockdown mode and URL not authorized
+            //socket_sessions[socket.id].close_me = true;
+            headers = "300 Unauthorized\n";
+            headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
+            data = "";
+            sendToClient(socket, headers, data);
+            console.log(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
+            return;
+        }
+
+        if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks")) {
+            // psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
+            ssid_sessions[socket.ssid].lockdown = true;
+        }
+
 
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
             var ssid = socket.ssid;
@@ -840,101 +858,6 @@ function moveObjectElement(currentKey, afterKey, obj) {
     if (next !== -1) return result; else return obj;
 }
 
-function checkSecurity(socket) {
-    var out = null;
-    var ip2long = function (ip) {
-        var components;
-
-        if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
-            var iplong = 0;
-            var power = 1;
-            for (var i = 4; i >= 1; i -= 1) {
-                iplong += power * parseInt(components[i]);
-                power *= 256;
-            }
-            return iplong;
-        }
-        else return -1;
-    };
-
-    var isInSubnet = function (ip, subnet) {
-        var mask, base_ip, long_ip = ip2long(ip);
-        if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = ip2long(mask[1])) >= 0)) {
-            var freedom = Math.pow(2, 32 - parseInt(mask[2]));
-            return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
-        }
-        else return false;
-    };
-
-    var rejectSSIDConnection = function (ssid, blacklist) {
-        var rejectReason = null;
-        if (blacklist) {
-            rejectReason = ssid + " is in the blacklist.";
-            console.log(" * Request from SSID", wtvshared.filterSSID(ssid), "(" + socket.remoteAddress + "), but that SSID is in the blacklist, rejecting.");
-        } else {
-            rejectReason = ssid + " is not in the whitelist.";
-            console.log(" * Request from SSID", wtvshared.filterSSID(socket.ssid), "(" + socket.remoteAddress + "), but that SSID is not in the whitelist, rejecting.");
-        }
-        if (fs.existsSync(__dirname + '/ServiceDeps/TOS.html')) {
-            var tosErrorPage = fs.readFileSync(__dirname + '/ServiceDeps/TOS.html').toString();
-            out = new Array(`200 Goodbye
-wtv-service: reset
-Connection: close
-Content-type: text/html`, tosErrorPage.replace('\$\{REASON\}', rejectReason));
-        } else {
-            var errpage = wtvshared.doErrorPage(401, "Access to this service is denied.");
-            out = errpage;
-        }
-    }
-
-    var checkSSIDIPWhitelist = function (ssid, blacklist) {
-        var ssid_access_list_ip_override = false;
-        if (minisrv_config.config.ssid_ip_allow_list) {
-            if (minisrv_config.config.ssid_ip_allow_list[socket.ssid]) {
-                Object.keys(minisrv_config.config.ssid_ip_allow_list[socket.ssid]).forEach(function (k) {
-                    if (minisrv_config.config.ssid_ip_allow_list[socket.ssid][k].indexOf('/') > 0) {
-                        if (isInSubnet(socket.remoteAddress, minisrv_config.config.ssid_ip_allow_list[socket.ssid][k])) {
-                            // remoteAddr is in allowed subnet
-                            ssid_access_list_ip_override = true;
-                        }
-                    } else {
-                        if (socket.remoteAddress == minisrv_config.config.ssid_ip_allow_list[socket.ssid][k]) {
-                            // remoteAddr directly matches IP
-                            ssid_access_list_ip_override = true;
-                        }
-                    }
-                });
-                if (!ssid_access_list_ip_override) rejectSSIDConnection(socket.ssid, blacklist);
-            } else {
-                rejectSSIDConnection(socket.ssid, blacklist);
-            }
-        } else {
-            rejectSSIDConnection(socket.ssid, blacklist);
-        }
-        if (ssid_access_list_ip_override && minisrv_config.config.debug_flags.debug) console.log(" * Request from disallowed SSID", wtvshared.filterSSID(ssid), "was allowed due to IP address whitelist");
-    }
-
-    // process whitelist first
-    if (socket.ssid && minisrv_config.config.ssid_allow_list) {
-        var ssid_is_in_whitelist = minisrv_config.config.ssid_allow_list.findIndex(element => element == socket.ssid);
-        if (ssid_is_in_whitelist == -1) {
-            // no whitelist match, but lets see if the remoteAddress is allowed
-            checkSSIDIPWhitelist(socket.ssid, false);
-        }
-    }
-
-    // now check blacklist
-    if (socket.ssid && minisrv_config.config.ssid_block_list) {
-        var ssid_is_in_blacklist = minisrv_config.config.ssid_block_list.findIndex(element => element == socket.ssid);
-        if (ssid_is_in_blacklist != -1) {
-            // blacklist match, but lets see if the remoteAddress is allowed
-            checkSSIDIPWhitelist(socket.ssid, true);
-        }
-    }
-
-    // Passed Security
-    return out;
-}
 
 function isUnencryptedString(string, verbose = false) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 
@@ -1019,19 +942,12 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         ssid_sessions[socket.ssid].SaveIfRegistered();
                     }
                     if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
-                    ssid_sessions[socket.ssid].ssid = socket.ssid;
                     ssid_sessions[socket.ssid].data_store.sockets.add(socket);
                 }
             }
 
-            var failed_security = checkSecurity(socket);
-            if (failed_security) {
-                socket_sessions[socket.id].close_me = true;
-                headers = failed_security[0];
-                data = failed_security[1];
-                sendToClient(socket, headers, data);
-                return;
-            }
+            if (!ssid_sessions[socket.ssid].getClientAddress()) ssid_sessions[socket.ssid].setClientAddress(socket.remoteAddress);
+            ssid_sessions[socket.ssid].checkSecurity();
 
             if (headers["wtv-capability-flags"] != null) {
                 if (!ssid_sessions[socket.ssid]) {

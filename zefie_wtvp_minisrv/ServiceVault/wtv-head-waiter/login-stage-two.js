@@ -53,7 +53,10 @@ Content-type: text/html`;
 	data = '';
 }
 else {
-	if (request_headers.query.guest_login && minisrv_config.config.allow_guests) {
+	if (ssid_sessions[socket.ssid].lockdown) {
+		home_url = minisrv_config.config.unauthorized_url;
+	}
+	else if (request_headers.query.guest_login && minisrv_config.config.allow_guests) {
 		var namerand = Math.floor(Math.random() * 100000);
 		var nickname = (minisrv_config.config.service_name + '_' + namerand)
 		var human_name = nickname;
@@ -89,42 +92,66 @@ wtv-expire-all: client:closeallpanels
 wtv-transition-override: off
 wtv-force-lightweight-targets: webtv.net:/
 wtv-smartcard-inserted-message: Contacting service
-wtv-bypass-proxy: false
+wtv-bypass-proxy: false`;
+	if (!ssid_sessions[socket.ssid].lockdown) {
+		headers += `
 wtv-offline-user-list: ${offline_user_list}
 wtv-messenger-authorized: ${messenger_authorized}
-wtv-messenger-enable: ${messenger_enabled}
+wtv-messenger-enable: ${messenger_enabled}`;
+	}
+	headers += `
 wtv-noback-all: wtv-
 wtv-service: reset
-`+ getServiceString('all', { "exceptions": ["wtv-register"] }) + `
+`;
+	if (!ssid_sessions[socket.ssid].lockdown) {
+		headers += getServiceString('all', { "exceptions": ["wtv-register"] });
+	} else {
+		headers += getServiceString('wtv-1800') + "\n";
+		headers += getServiceString('wtv-head-waiter') + "\n";
+		headers += getServiceString('wtv-star') + "\n";
+	}
+	headers += `
+wtv-ticket: ${wtvsec_login.ticket_b64}`;
+	if (!ssid_sessions[socket.ssid].lockdown) {
+		headers += `
 user-id: ${userid}
 wtv-human-name: ${human_name}
 ${ssid_sessions[socket.ssid].setIRCNick(nickname)}
-wtv-domain: wtv.zefie.com
-wtv-input-timeout: 14400
-wtv-ticket: ${wtvsec_login.ticket_b64}
+wtv-domain: ${minisrv_config.config.domain_name}
 wtv-messagewatch-checktimeoffset: off
 wtv-input-timeout: 14400
-wtv-connection-timeout: 90
-wtv-fader-timeout: 900
-wtv-smartcard-inserted-message: Contacting service
-wtv-inactive-timeout: 0
-wtv-connection-timeout: 90
-wtv-show-time-enabled: true
-wtv-fader-timeout: 900
-wtv-tourist-enabled: true`
+wtv-connection-timeout: 1440
+wtv-fader-timeout: 1440
+wtv-inactive-timeout: 1440`;
+	} else {
+		headers += `
+user-id: 0
+wtv-human-name: Unauthorized User
+wtv-domain: ${minisrv_config.config.domain_name}
+wtv-input-timeout: 30
+wtv-connection-timeout: 60
+wtv-fader-timeout: 60
+wtv-inactive-timeout: 60`;
+	}
+
 	headers += "\nwtv-relogin-url: wtv-head-waiter:/relogin?relogin=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
+
 	headers += "\nwtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
+
 	headers += "\nwtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
 	if (request_headers.query.guest_login) headers += "&guest_login=true";
-	headers += "\nwtv-allow-dsc: true";
-	headers += "\nwtv-home-url: wtv-home:/home?";
 
-	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect) {
+	if (!ssid_sessions[socket.ssid].lockdown) headers += "\nwtv-home-url: wtv-home:/home?";	
+
+	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !ssid_sessions[socket.ssid].lockdown)
 		headers += "\nwtv-settings-url: wtv-setup:/get";
-	}
+
 	headers += `
+wtv-show-time-enabled: true
+wtv-allow-dsc: true
+wtv-tourist-enabled: true
 wtv-log-url: wtv-log:/log
 wtv-ssl-log-url: wtv-log:/log
 wtv-ssl-timeout: 240
