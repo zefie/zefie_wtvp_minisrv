@@ -32,6 +32,7 @@
     "endianness": "^8.0.2",
     "mime-types": "^2.1.33",
     "proxy-agent": "^5.0.0",
-    "strftime": "^0.10.0"
+    "strftime": "^0.10.0",
+    "uuid": "^8.3.2"
   }
 }

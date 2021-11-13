@@ -8,6 +8,7 @@ class WTVClientSessionData {
     ssid = null;
     data_store = null;
     session_store = null;
+    mailstore = null;
     login_security = null;
     capabilities = null;
     session_storage = "";
@@ -23,6 +24,7 @@ class WTVClientSessionData {
         if (!minisrv_config) throw ("minisrv_config required");
         var WTVShared = require('./WTVShared.js')['WTVShared'];
         var WTVMime = require('./WTVMime.js');
+        var WTVMail = require('./WTVMail.js');
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
@@ -39,6 +41,7 @@ class WTVClientSessionData {
             "wtv-log:/log"
         ];
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
+        this.mailstore = new WTVMail(minisrv_config, ssid, this);
     }
 
     /**
@@ -61,6 +64,8 @@ class WTVClientSessionData {
     storeUserStoreFile(path, data, last_modified = null, overwrite = true) {
         var store_dir = this.getUserStoreDirectory();
         if (!store_dir) return false; // unregistered
+        // FileStore
+        store_dir += "FileStore" + this.path.sep;
         var result = false;        
         var path_split = path.split('/');
         var file_name = path_split.pop();
@@ -89,6 +94,8 @@ class WTVClientSessionData {
     getUserStoreFile(path) {
         var store_dir = this.getUserStoreDirectory();
         if (!store_dir) return false; // unregistered
+        // FileStore
+        store_dir += "FileStore" + this.path.sep;
         var store_dir_path = this.wtvshared.makeSafePath(store_dir, path.replace('/', this.path.sep));
         if (this.fs.existsSync(store_dir_path)) return this.fs.readFileSync(store_dir_path);
         else return false;
@@ -557,6 +564,10 @@ class WTVClientSessionData {
 
     getClientAddress() {
         return this.clientAddress;
+    }
+
+    setMailstore(mailstore) {
+        this.mailstore = mailstore;
     }
 
 }

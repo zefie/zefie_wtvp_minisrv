@@ -91,6 +91,10 @@
     <Content Include="ServiceVault\wtv-head-waiter\relogin.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-mail\DiplomaMail.js" />
+    <Content Include="ServiceVault\wtv-mail\listmail.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-music\demo\hacktv4.gif" />
     <Content Include="ServiceVault\wtv-music\demo\index.html" />
     <Content Include="ServiceVault\wtv-music\demo\midi\acey.mid" />
@@ -325,6 +329,9 @@
     <Content Include="WTVLzpf.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="WTVMail.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="WTVMime.js">
       <SubType>Code</SubType>
     </Content>
@@ -345,6 +352,8 @@
     <Folder Include="ServiceDeps\premade_tellyscripts\LC2\" />
     <Folder Include="ServiceVault\" />
     <Folder Include="ServiceVault\http_pc\" />
+    <Folder Include="ServiceVault\wtv-guide\" />
+    <Folder Include="ServiceVault\wtv-mail\" />
     <Folder Include="ServiceVault\wtv-chat\" />
     <Folder Include="ServiceVault\wtv-chat\images\" />
     <Folder Include="ServiceVault\wtv-cookie\" />

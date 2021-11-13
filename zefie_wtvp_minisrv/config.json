@@ -7,6 +7,7 @@
     ],
     "SessionStore": "SessionStore",
     "service_owner": "a minisrv user",
+    "service_owner_account": "minisrvuser",
     "service_name": "WebTV",
     "service_logo": "WebTVLogoJewel.gif",
     "service_splash_logo": "file://ROM/images/SplashLogo1.gif",
@@ -71,6 +72,10 @@
       "flags": "0x00000010",
       "connections": 3
     },
+    "wtv-music": {
+      "port": 1656,
+      "connections": 3
+    },
     "wtv-cookie": {
       "port": 1619,
       "connections": 1
@@ -81,6 +86,10 @@
     },
     "wtv-disk": {
       "port": 1635,
+      "connections": 3
+    },
+    "wtv-mail": {
+      "port": 1608,
       "connections": 3
     },
     "http": {
@@ -101,8 +110,8 @@
       "external_proxy_port": 1080,
       "flags": "0x00000001"
     },
-    "wtv-music": {
-      "port": 1656,
+    "wtv-guide": {
+      "port": 1621,
       "connections": 3
     }
   }
