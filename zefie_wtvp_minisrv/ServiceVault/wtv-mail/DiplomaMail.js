@@ -54,8 +54,7 @@ Welcome to Mail&nbsp;
 <td>
 <td valign=top>
 In Mail, you can exchange typed messages&#151;called
-<i>e-mail</i>&#151;with anyone in the world who has an e-mail
-address. This is your e-mail address:
+<i>m-mail</i>&#151;with anyone who is on ${minisrv_config.config.service_name}, as well as anyone using other compatible MiniSrvs around the world. This is your m-mail address:
 <blockquote>
 <b>${ssid_sessions[socket.ssid].getSessionData("subscriber_username")}@${minisrv_config.config.service_name}</b>
 </blockquote>
@@ -79,10 +78,10 @@ choose this link:
 </table>
 <tr>
 <td valign=top height=55 align=right>
-<form>
+<form method="POST" action="wtv-mail:/listmail">
+<input type="hidden" name="intro_seen"  value="true">
 <font color=ffcf69><shadow>
-<input type=button usestyle borderimage="file://ROM/Borders/ButtonBorder2.bif"
-action="wtv-mail:/listmail"
+<input type=submit usestyle borderimage="file://ROM/Borders/ButtonBorder2.bif"
 value="Begin"
 width='110'
 selected>

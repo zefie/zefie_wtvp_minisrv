@@ -8,57 +8,66 @@ function mail_end_error(msg) {
     data = errpage[1];
 }
 
-// check if mailstore exists (returns null if guest)
-mailstore_exists = ssid_sessions[socket.ssid].mailstore.mailstoreExists();
+var intro_seen = ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen();
+if (!intro_seen && !request_headers.query.intro_seen) {
+    // user is trying to bypass the intro screen
+    headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
+} else {
+    if (!intro_seen && request_headers.query.intro_seen) {
+        // User has come from intro 
+        ssid_sessions[socket.ssid].mailstore.setMailIntroSeen(true);
+    }
+    // check if mailstore exists (returns null if guest)
+    mailstore_exists = ssid_sessions[socket.ssid].mailstore.mailstoreExists();
 
-// create mailstore if it doesnt exist (also returns null if guest)
-if (!mailstore_exists) mailstore_exists = ssid_sessions[socket.ssid].mailstore.createMailstore();
+    // create mailstore if it doesnt exist (also returns null if guest)
+    if (!mailstore_exists) mailstore_exists = ssid_sessions[socket.ssid].mailstore.createMailstore();
 
-if (mailstore_exists) {
-    // mailstore exists and user is not guest
+    if (mailstore_exists) {
+        // mailstore exists and user is not guest
 
-    var default_limit = (minisrv_config.services[service_name].messages_per_page) ? minisrv_config.services[service_name].messages_per_page : 25; // user config or 25
-    var mailbox = (request_headers.query.mailbox) ? parseInt(request_headers.query.mailbox) : 0;
-    var limit = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : default_limit;
-    var reverse_sort = (request_headers.query.reverse_sort) ? true : false;
-    var page = (request_headers.query.page) ? parseInt(request_headers.query.page) : 0;
+        var default_limit = (minisrv_config.services[service_name].messages_per_page) ? minisrv_config.services[service_name].messages_per_page : 25; // user config or 25
+        var mailbox = (request_headers.query.mailbox) ? parseInt(request_headers.query.mailbox) : 0;
+        var limit = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : default_limit;
+        var reverse_sort = (request_headers.query.reverse_sort) ? true : false;
+        var page = (request_headers.query.page) ? parseInt(request_headers.query.page) : 0;
 
-    // get mailbox name
-    var mailbox_name = ssid_sessions[socket.ssid].mailstore.getMailboxById(parseInt(mailbox));
+        // get mailbox name
+        var mailbox_name = ssid_sessions[socket.ssid].mailstore.getMailboxById(parseInt(mailbox));
 
-    // if false or null, then mailbox is invalid
-    if (!mailbox_name) {
-        mail_end_error("Invalid Mailbox ID");
-    } else {
-        // mailboxid is ok
-        if (!ssid_sessions[socket.ssid].mailstore.mailboxExists(mailbox)) {
-            // mailbox does not yet exist, create it
-            var mailbox_exists = ssid_sessions[socket.ssid].mailstore.createMailbox(mailbox);
-            if (!mailbox_exists) {
-                // failed to create mailbox for some reason
-                mail_end_error();
-            } else {
-                if (mailbox === 0) {
-                    // Just created Inbox for the first time, so create the welcome message
-                    ssid_sessions[socket.ssid].mailstore.createWelcomeMessage();
+        // if false or null, then mailbox is invalid
+        if (!mailbox_name) {
+            mail_end_error("Invalid Mailbox ID");
+        } else {
+            // mailboxid is ok
+            if (!ssid_sessions[socket.ssid].mailstore.mailboxExists(mailbox)) {
+                // mailbox does not yet exist, create it
+                var mailbox_exists = ssid_sessions[socket.ssid].mailstore.createMailbox(mailbox);
+                if (!mailbox_exists) {
+                    // failed to create mailbox for some reason
+                    mail_end_error();
+                } else {
+                    if (mailbox === 0) {
+                        // Just created Inbox for the first time, so create the welcome message
+                        ssid_sessions[socket.ssid].mailstore.createWelcomeMessage();
+                    }
                 }
             }
-        }
-        var message_list = ssid_sessions[socket.ssid].mailstore.listMessages(mailbox, limit, reverse_sort, (page * limit))
-        var total_message_count = ssid_sessions[socket.ssid].mailstore.countMessages(mailbox);
-        var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
-        var notImplementedAlert = new clientShowAlert({
-            'image': minisrv_config.config.service_logo,
-            'message': "This feature is not available.",
-            'buttonlabel1': "Okay",
-            'buttonaction1': "client:donothing",
-            'noback': true,
-        }).getURL();
+            var message_list = ssid_sessions[socket.ssid].mailstore.listMessages(mailbox, limit, reverse_sort, (page * limit))
+            var total_message_count = ssid_sessions[socket.ssid].mailstore.countMessages(mailbox);
+            var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
+            var notImplementedAlert = new clientShowAlert({
+                'image': minisrv_config.config.service_logo,
+                'message': "This feature is not available.",
+                'buttonlabel1': "Okay",
+                'buttonaction1': "client:donothing",
+                'noback': true,
+            }).getURL();
 
-        headers = `200 OK
+            headers = `200 OK
 Content-type: text/html`;
 
-        data = `<sendpanel action="wtv-mail:/sendmail"
+            data = `<sendpanel action="wtv-mail:/sendmail"
 message="Write a new e-mail message"
 label="Write">
 <savepanel
@@ -94,7 +103,7 @@ label="View saved e-mail messages">
 <tr>
 <td width=10 height=26>
 <td width=89 valign=middle>
-<table cellspacing=0 cellpadding=0 href="${notImplementedAlert}"
+<table cellspacing=0 cellpadding=0 href="wtv-mail:/sendmail"
 >
 <tr>
 <td height=1>
@@ -107,7 +116,7 @@ label="View saved e-mail messages">
 <tr>
 <td width=10 height=26>
 <td width=89 valign=middle>
-<table cellspacing=0 cellpadding=0 href="wtv-mail:/folders"
+<table cellspacing=0 cellpadding=0 href="${notImplementedAlert}"
 >
 <tr>
 <td height=1>
@@ -178,33 +187,23 @@ label="View saved e-mail messages">
 <td height=80>
 <img src="wtv-mail:/content/images/Mail.gif" width=87 height=45>
 `;
-        var icon_image = null;
-        switch (mailbox_name) {
-            case "Inbox":
-                switch (total_message_count) {
-                    case 0:
-                        icon_image = "OpenMailbox0.gif";
-                        break;
-                    case 1:
-                        icon_image = "OpenMailbox1.gif";
-                        break;
-                    default:
-                        icon_image = "OpenMailbox2.gif";
-                        break;
-                }
-                break;
-            case "Sent":
-                icon_image = "MailboxSent.gif";
-                break;
-            case "Trash":
-                icon_image = "MailboxDiscard.gif";
-                break;
-            default:
-                icon_image = "MailboxStorage.gif";
-                break;
-        }
+            var icon_image = null;
+            switch (mailbox_name) {
+                case "Inbox":
+                    icon_image = ssid_sessions[socket.ssid].mailstore.getMailboxIcon();
+                    break;
+                case "Sent":
+                    icon_image = "MailboxSent.gif";
+                    break;
+                case "Trash":
+                    icon_image = "MailboxDiscard.gif";
+                    break;
+                default:
+                    icon_image = "MailboxStorage.gif";
+                    break;
+            }
 
-        data += `
+            data += `
 <img src="wtv-mail:/content/images/${icon_image}" width=74 height=45 >
 <td width=250 align=left><font sizerange=small>
 </table>
@@ -243,9 +242,9 @@ label="View saved e-mail messages">
 <spacer type=horizontal size=13>
 <td bgcolor=#171726 width="438" valign="top">
 <spacer type=vertical size=13><br>`;
-        if (message_list) {
+            if (message_list) {
 
-            data += `
+                data += `
 <font sizerange=medium> ${total_message_count} e-mail message${(total_message_count != 1) ? 's' : ''} for
 <table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
@@ -266,10 +265,10 @@ ${username}@${minisrv_config.config.service_name}
 <spacer type=vertical size=1>
 <hr width=422 align=left>
 `;
-            Object.keys(message_list).forEach(function (k) {
-                var message = message_list[k];
-                console.log(message);
-                data += `<spacer type=vertical size=5>
+                Object.keys(message_list).forEach(function (k) {
+                    var message = message_list[k];
+                    console.log(message);
+                    data += `<spacer type=vertical size=5>
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td href="readmail?message_id=${message.id}#next" id="id${message.id}" selected>
@@ -289,25 +288,25 @@ ${(message.subject) ? message.subject : "(No Subject)"}
 <td abswidth=47 maxlines=1>
 <font color=#7A9FCC>
 `;
-                var message_date = new Date(message.date * 1000);
-                data += (message_date.getMonth() + 1) + "/" + message_date.getDate() + "\n";
-                data += `
+                    var message_date = new Date(message.date * 1000);
+                    data += (message_date.getMonth() + 1) + "/" + message_date.getDate() + "\n";
+                    data += `
 </font>
 </table>
 <tr>
 <td height=5>`;
-            });
-        } else {
-            data += `
+                });
+            } else {
+                data += `
 <font sizerange=medium> No ${(mailbox_name == "Inbox") ? `new e-mail messages for<table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
 ${username}@${minisrv_config.config.service_name}
 </TD></TR>
-</TABLE>` : 'e-mail messages in mailbox '+mailbox_name}
+</TABLE>` : 'e-mail messages in mailbox ' + mailbox_name}
 </font><br>
 `;
-        }
-data += `
+            }
+            data += `
 <spacer type=vertical size=6>
 </table>
 </body>
@@ -315,7 +314,8 @@ data += `
 `;
 
 
+        }
+    } else {
+        mail_end_error("Access Denied");
     }
-} else {
-    mail_end_error("Access Denied");
 }

@@ -95,6 +95,12 @@
     <Content Include="ServiceVault\wtv-mail\listmail.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-mail\readmail.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-mail\sendmail.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-music\demo\hacktv4.gif" />
     <Content Include="ServiceVault\wtv-music\demo\index.html" />
     <Content Include="ServiceVault\wtv-music\demo\midi\acey.mid" />

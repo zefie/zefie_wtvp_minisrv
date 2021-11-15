@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.query && ssid_sessions[socket.ssid]) {
     ssid_sessions[socket.ssid].setSessionData("subscriber_signature", (request_headers.query.mail_signature) ? request_headers.query.mail_signature : "");
     ssid_sessions[socket.ssid].saveSessionData();

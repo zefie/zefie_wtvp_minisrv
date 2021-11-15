@@ -13,18 +13,20 @@ class WTVMail {
     wtvshared = null;
     wtvmime = null;
     wtvclient = null;
+    WTVClientSessionData = null;
     mailstore_dir = null;
     is_guest = null;
     mailboxes = null;
 
-    constructor(minisrv_config, ssid, WTVClientSessionData) {
+    constructor(minisrv_config, ssid, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
         var WTVShared = require('./WTVShared.js')['WTVShared'];
         var WTVMime = require('./WTVMime.js');
+        var WTVClientSessionData = require('./WTVClientSessionData.js');
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
-        this.wtvclient = WTVClientSessionData;
+        this.wtvclient = wtvclient;
         this.is_guest = !this.wtvclient.isRegistered();
         this.ssid = ssid;
         this.unread_mail = this.wtvclient.getSessionData("subscriber_unread_mail") ? this.wtvclient.getSessionData("subscriber_unread_mail") : 0;
@@ -36,6 +38,15 @@ class WTVMail {
             "Trash"
         ];
     }
+
+    checkMailIntroSeen() {
+        return (this.wtvclient.getSessionData("subscriber_mail_intro_seen")) ? this.wtvclient.getSessionData("subscriber_mail_intro_seen") : false;
+    }
+
+    setMailIntroSeen(seen) {
+        this.wtvclient.setSessionData("subscriber_mail_intro_seen", (seen) ? true : false);
+    }
+
 
     mailstoreExists() {
         if (!this.isguest) {
@@ -102,7 +113,7 @@ class WTVMail {
     }
 
 
-    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, date = null, known_sender = false) {
+    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false) {
         if (this.createMailbox(mailboxid)) {
             if (!date) date = Math.floor(Date.now() / 1000);
 
@@ -117,7 +128,8 @@ class WTVMail {
                 "date": date,
                 "subject": subject,
                 "body": msgbody,
-                "known_sender": known_sender
+                "known_sender": known_sender,
+                "signature": signature
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
@@ -149,7 +161,7 @@ class WTVMail {
         var to_name = this.wtvclient.getSessionData("subscriber_name");
         var subj = "Welcome to " + this.minisrv_config.config.service_name;
         var msg = "poop";
-        return this.createMessage(0, from_addr, to_addr, msg, subj, from_name, to_name, null, true);
+        return this.createMessage(0, from_addr, to_addr, msg, subj, from_name, to_name, null, null, true);
     }
 
     getMessage(mailboxid, messageid) {
@@ -173,6 +185,11 @@ class WTVMail {
         }
         return false;
     }
+
+    checkMessageIdSanity(messageid) {
+        return /^[A-Za-z0-9\-]{36}$/.test(messageid);
+    }
+
 
     listMessages(mailboxid, limit, reverse_sort = false, offset = 0) {
         if (this.createMailbox(mailboxid)) {
@@ -212,6 +229,116 @@ class WTVMail {
         var messages = this.listMessages(mailboxid, false);
         return (messages.length) ? messages.length : 0;
     }
+
+    getMailboxIcon() {
+        var icon_image = null;
+        switch (this.countMessages(0)) {
+            case 0:
+                icon_image = "OpenMailbox0.gif";
+                break;
+            case 1:
+                icon_image = "OpenMailbox1.gif";
+                break;
+            default:
+                icon_image = "OpenMailbox2.gif";
+                break;
+        }
+        return icon_image;
+    }
+
+    checkUserExists(username) {
+        // returns the user's SSID if true, false if not
+        var username_match = false;
+        var return_val = false;
+        this.fs.readdirSync(this.minisrv_config.config.SessionStore).forEach(file => {
+            if (!file.match(/.*\.json/ig)) return;
+            if (username_match) return;
+            try {
+                var temp_session_data_file = this.fs.readFileSync(this.minisrv_config.config.SessionStore + this.path.sep + file, 'Utf8');
+                var temp_session_data = JSON.parse(temp_session_data_file);
+                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) return_val = temp_session_data.subscriber_username;
+            } catch (e) {
+                console.error(" # Error parsing Session Data JSON", file, e);
+            }
+        });
+        return return_val;
+    }
+
+    getUserMailstore(username) {
+        var ssid = this.checkUserExists(username);
+        if (ssid) {
+            var user_wtvsession = new this.WTVClientSessionData(this.minisrv_config, ssid);
+            var user_mailstore = new WTVMail(this.minisrv_config, ssid, user_wtvsession)
+            return user_mailstore;
+        }
+        return false;
+    }
+
+    sendMessageToAddr(from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null) {
+        if (!to_addr.indexOf('@')) {
+            return "The m-mail address <strong>" + to_addr + "</strong> is not a valid m-mail address.<br><br>An m-mail address should look like:<br>: <strong>zefie@ZefieTV</strong>";
+        }
+        var username = to_addr.split("@")[0];
+        var dest_minisrv = to_addr.split("@")[1];
+
+        // local only for now
+        if (dest_minisrv.toLowerCase() !== this.minisrv_config.config.service_name.toLowerCase()) {
+            return "The m-mail address <strong>" + to_addr + "</strong> is not supported by this MiniSrv.";
+        }
+
+        // find user if local
+        if (dest_minisrv.toLowerCase() === this.minisrv_config.config.service_name.toLowerCase()) {
+            var dest_user_mailstore = getUserMailstore(to_addr);
+            // user does not exist
+            if (!dest_user_mailstore) return "The user <strong>" + username + "</strong> does not exist on MiniSrv <strong>" + dest_minisrv + "</strong>";
+
+            // check if the destination user's Inbox exists yet
+            if (!dest_user_mailstore.mailboxExists(0)) {
+                // mailbox does not yet exist, create it
+                var mailbox_exists = dest_user_mailstore.createMailbox(mailbox);
+                // Just created Inbox for the first time, so create the welcome message
+                if (mailbox_exists) dest_user_mailstore.createWelcomeMessage();
+            }
+            // if the mailbox exists, deliver the message
+            if (dest_user_mailstore.mailboxExists(0)) createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature);
+            else return "There was an internal error sending the message to <strong>" + to_addr + "</strong>. Please try again later";
+
+            // clean up
+            dest_user_mailstore = null;
+            return true;
+        }
+        return "Unknown error";
+    }
+
+    getMessageMailboxId(messageid) {
+        // returns the mailbox id of which the message was found for the current user
+        var self = this;
+        var mailboxid = false;
+        if (this.checkMessageIdSanity(messageid)) {
+            if (this.mailstoreExists()) {
+                this.fs.readdirSync(this.mailstore_dir).forEach(mailbox => {
+                    if (mailboxid) return;
+                    this.fs.readdirSync(this.mailstore_dir + self.path.sep + mailbox).forEach(file => {
+                        if (!file.match(/.*\.zmsg/ig)) return;
+                        if (mailboxid) return;
+                        if (file.indexOf(messageid) !== -1) mailboxid = mailbox;
+                    });
+                });
+            }
+        }
+        return mailboxid;
+    }
+
+    getMessageByID(messageid) {
+        var mailbox_name = this.getMessageMailboxId(messageid);
+        if (!mailbox_name) return false;
+
+        var mailboxid = this.mailboxes.findIndex((value) => value == mailbox_name);
+
+        if (mailboxid !== false) return this.getMessage(mailboxid, messageid);
+        return null;
+    }
+
 }
 
 module.exports = WTVMail;

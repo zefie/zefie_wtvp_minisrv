@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.query && ssid_sessions[socket.ssid]) {
 
     if (request_headers.request_url.indexOf('?') >= 0) {

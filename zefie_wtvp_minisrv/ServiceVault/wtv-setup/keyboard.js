@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+
 var settings_obj = ssid_sessions[socket.ssid].getSessionData("wtv-setup");
 if (settings_obj === null) settings_obj = {};
 

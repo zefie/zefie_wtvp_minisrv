@@ -273,6 +273,10 @@ class WTVShared {
         return this.fixPathSlashes(base + this.path.sep + targetPath);
     }
 
+    makeSafeUsername(username) {
+        return username.replace(/^([A-Za-z0-9\-\_]{5,16})$/, '');
+    }
+
     /**
      * Corrects any / or \ differences, if any for file paths
      * @param {string} path

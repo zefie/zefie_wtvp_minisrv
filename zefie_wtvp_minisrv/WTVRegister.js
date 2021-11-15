@@ -36,7 +36,7 @@ class WTVRegister {
             try {
                 var temp_session_data_file = this.fs.readFileSync(this.session_store_dir + this.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
-                if (temp_session_data.subscriber_username == username) username_match = true;
+                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) username_match = true;
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", file, e);
                 username_match = true;

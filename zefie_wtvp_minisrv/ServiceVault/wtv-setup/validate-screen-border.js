@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 if (request_headers.query) {
     if (request_headers.query.shade) {
         headers = `300 OK

@@ -1,3 +1,5 @@
+var minisrv_service_file = true;
+
 var music_obj = {};
 ssid_sessions[socket.ssid].setSessionData("wtv-bgmusic", music_obj);
 ssid_sessions[socket.ssid].saveSessionData();

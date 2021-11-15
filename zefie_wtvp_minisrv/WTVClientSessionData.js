@@ -388,11 +388,13 @@ class WTVClientSessionData {
         if (key === null) throw ("ClientSessionData.set(): invalid key provided");
         if (typeof (this.session_store) === 'undefined') this.session_store = new Array();
         this.session_store[key] = value;
+        this.SaveIfRegistered();
     }
 
     deleteSessionData(key) {
         if (key === null) throw ("ClientSessionData.delete(): invalid key provided");
         delete this.session_store[key];
+        this.SaveIfRegistered();
     }
 
 
@@ -407,11 +409,13 @@ class WTVClientSessionData {
         if (key === null) throw ("ClientSessionData.set(): invalid key provided");
         if (typeof (this.data_store) === 'undefined') this.data_store = new Array();
         this.data_store[key] = value;
+        this.SaveIfRegistered();
     }
 
     delete(key) {
         if (key === null) throw ("ClientSessionData.delete(): invalid key provided");
         delete this.data_store[key];
+        this.SaveIfRegistered();
     }
 
     getBoxName() {

@@ -30,6 +30,7 @@
     "crypto-js": "^4.1.1",
     "easy-crc": "0.0.2",
     "endianness": "^8.0.2",
+    "html-entities": "^2.3.2",
     "mime-types": "^2.1.33",
     "proxy-agent": "^5.0.0",
     "strftime": "^0.10.0",

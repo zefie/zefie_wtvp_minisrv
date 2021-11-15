@@ -6,16 +6,17 @@ const zlib = require('zlib');
 const http = require('http');
 const https = require('https');
 const strftime = require('strftime'); // used externally by service scripts
+const html_entities = require('html-entities'); // used externally by service scripts
 const net = require('net');
 const CryptoJS = require('crypto-js');
 const { crc16 } = require('easy-crc');
 const process = require('process');
-var WTVSec = require('./WTVSec.js');
-var WTVLzpf = require('./WTVLzpf.js');
-var WTVClientCapabilities = require('./WTVClientCapabilities.js');
-var WTVClientSessionData = require('./WTVClientSessionData.js');
-var WTVMime = require("./WTVMime.js");
-var { WTVShared, clientShowAlert } = require("./WTVShared.js");
+const WTVSec = require('./WTVSec.js');
+const WTVLzpf = require('./WTVLzpf.js');
+const WTVClientCapabilities = require('./WTVClientCapabilities.js');
+const WTVClientSessionData = require('./WTVClientSessionData.js');
+const WTVMime = require("./WTVMime.js");
+const { WTVShared, clientShowAlert } = require("./WTVShared.js");
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
