@@ -486,23 +486,26 @@ async function doHTTPProxy(socket, request_headers) {
 
                 console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers.request}`)
                 res.headers.http_response = res.statusCode + " " + res.statusMessage;
-                res.headers["wtv-connection-close"] = false;
                 // header pass-through whitelist, case insensitive comparsion to server, however, you should
                 // specify the header case as you intend for the client
                 var headers = stripHeaders(res.headers, [
-                    'Server',
                     'Connection',
+                    'Server',
                     'Date',
                     'Content-Type',
-                    'Content-length',
                     'Cookie',
                     'Location',
                     'Accept-Ranges',
                     'Last-Modified'
                 ]);
+                headers["wtv-http-proxy"] = true;
+                if (headers['Connection']) {
+                    if (headers['Connection'].toLowerCase().indexOf('close') !== -1) {
+                        headers["wtv-connection-close"] = true;
+                    }
+                }
                 if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
                 if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
-                headers["wtv-http-proxy"] = true;
                 sendToClient(socket, headers, Buffer.from(data_hex,'hex'));
             });
         }).on('error', function (err) {
@@ -536,7 +539,13 @@ function stripHeaders(headers_obj, whitelist) {
     // compare regardless of case
     Object.keys(whitelist).forEach(function (k) {
         Object.keys(headers_obj).forEach(function (j) {
-            if (whitelist[k].toLowerCase() == j.toLowerCase()) whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
+            if (whitelist[k].toLowerCase() == j.toLowerCase()) {
+                // if header = connection, strip 'upgrade'
+                if (j.toLowerCase() == "connection") {
+                    headers_obj[j] = headers_obj[j].replace("Upgrade", "").replace(",", "").trim();
+                }
+                whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
+            }
         });
     });
 
@@ -605,7 +614,7 @@ async function sendToClient(socket, headers_obj, data) {
         socket.destroy();
         return;
     }
-    var wtv_connection_close = headers_obj["wtv-connection-close"];
+    var wtv_connection_close = (headers_obj["wtv-connection-close"]) ? true : false;
     if (typeof (headers_obj["wtv-connection-close"]) != 'undefined') delete headers_obj["wtv-connection-close"];
 
     // add Connection header if missing, default to Keep-Alive
@@ -761,7 +770,7 @@ async function sendToClient(socket, headers_obj, data) {
     });
 
     if (headers_obj["Connection"]) {
-        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close == "true") {
+        if (headers_obj["Connection"].toLowerCase() == "close" && wtv_connection_close) {
             socket_sessions[socket.id].destroy_me = true;
         }
     }
@@ -866,7 +875,7 @@ function isUnencryptedString(string, verbose = false) {
     // in unencrypted headers, and returns true only if every character in the string matches
     // the regex. Once we know the string is binary, we can better process it with the
     // raw base64 or hex data in processRequest() below.
-    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*\@\#\\]{8,})$/.test(string);
+    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*\@\#\\\!]{8,})$/.test(string);
 }
 
 async function processRequest(socket, data_hex, skipSecure = false, encryptedRequest = false) {
@@ -904,7 +913,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     // its not a POST and it failed the isUnencryptedString test, so we think this is an encrypted blob
                     if (socket_sessions[socket.id].secure != true) {
                         // first time so reroll sessions
-                        if (minisrv_config.config.debug_flags.debug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
+//                        if (minisrv_config.config.debug_flags.debug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
                         socket_sessions[socket.id].wtvsec = new WTVSec(minisrv_config);
                         socket_sessions[socket.id].wtvsec.IssueChallenge();
                         socket_sessions[socket.id].wtvsec.SecureOn();
@@ -947,6 +956,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
             }
 
+            if (!ssid_sessions[socket.ssid] || !socket.ssid) return headers;
             if (!ssid_sessions[socket.ssid].getClientAddress()) ssid_sessions[socket.ssid].setClientAddress(socket.remoteAddress);
             ssid_sessions[socket.ssid].checkSecurity();
 
