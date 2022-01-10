@@ -129,7 +129,8 @@ class WTVMail {
                 "subject": subject,
                 "body": msgbody,
                 "known_sender": known_sender,
-                "signature": signature
+                "signature": signature,
+                "unread": true
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
@@ -176,6 +177,8 @@ class WTVMail {
 
             if (message_data_raw) {
                 var message_data = JSON.parse(message_data_raw);
+                message_data.mailbox_path = mailbox_path;
+                message_data.message_file = message_file;
                 if (message_data) {
                     message_data.id = messageid;
                     return message_data;
@@ -184,6 +187,21 @@ class WTVMail {
             }
         }
         return false;
+    }
+
+    updateMessage(message_data) {
+        // encode message into json
+        var message_out = new Object();
+        Object.assign(message_out, message_data);
+        delete message_out.mailbox_path;
+        delete message_out.message_file;
+        var result = this.fs.writeFileSync(message_data.mailbox_path + this.path.sep + message_data.message_file, JSON.stringify(message_out));
+        if (!result) return false;
+
+        // rely on filesystem times for sorting as it is quicker then reading every file
+        var file_timestamp = new Date(message_data.date * 1000);
+        fs.utimesSync(message_file, Date.now(), file_timestamp);
+        if (!result) console.error(" WARNING: Setting timestamp on " + message_file + " failed, mail dates will be inaccurate.");
     }
 
     checkMessageIdSanity(messageid) {
@@ -339,6 +357,14 @@ class WTVMail {
         return null;
     }
 
+    setMessageReadStatus(messageid, read = true) {
+        var message = this.getMessageByID(messageid);
+        if (!message) return false;
+
+        message.unread = !read;
+        this.updateMessage(message);
+        return true;
+    }
 }
 
 module.exports = WTVMail;

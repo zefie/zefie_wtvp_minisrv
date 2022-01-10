@@ -21,6 +21,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         if (!message) {
             mail_end_error("Invalid Message ID");
         } else {
+            ssid_sessions[socket.ssid].mailstore.setMessageReadStatus(messageid);
             var notImplementedAlert = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "This feature is not available.",

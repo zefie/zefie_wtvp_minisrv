@@ -5,7 +5,6 @@ if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
 } else {
-
     var doClientError = function (msg) {
         var clientErrorMsg = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
