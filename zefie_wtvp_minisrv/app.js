@@ -55,9 +55,9 @@ function getServiceString(service, overrides = {}) {
         var out = "";
         Object.keys(minisrv_config.services).forEach(function (k) {
             if (overrides.exceptions) {
-                    Object.keys(overrides.exceptions).forEach(function (j) {
-                        if (k != overrides.exceptions[j]) out += minisrv_config.services[k].toString(overrides) + "\n";
-                    });
+                Object.keys(overrides.exceptions).forEach(function (j) {
+                    if (k != overrides.exceptions[j]) out += minisrv_config.services[k].toString(overrides) + "\n";
+                });
             } else {
                 out += minisrv_config.services[k].toString(overrides) + "\n";
             }
@@ -111,7 +111,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
-                }                
+                }
             }
             var is_dir = false;
             var file_exists = false;
@@ -226,7 +226,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 if (minisrv_config.config.catchall_file_name) {
                     var minisrv_catchall_file_name = null;
                     if (minisrv_config.services[service_name]) minisrv_catchall_file_name = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
-                    else  minisrv_catchall_file_name = minisrv_config.config.catchall_file_name || null;
+                    else minisrv_catchall_file_name = minisrv_config.config.catchall_file_name || null;
                     if (minisrv_catchall_file_name) {
                         var service_check_dir = service_vault_file_path.split(path.sep);
                         service_check_dir.pop(); // pop filename
@@ -255,7 +255,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1] + "<br><br>The interpreter said:<br><pre>" + e.toString() + "</pre>";
-        console.error(" * Scripting error:",e);
+        console.error(" * Scripting error:", e);
     }
     if (!request_is_async) {
         if (!service_vault_found) {
@@ -291,7 +291,7 @@ async function processURL(socket, request_headers) {
                     var qraw_split = qraw[i].split("=");
                     if (qraw_split.length == 2) {
                         var k = qraw_split[0];
-                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g,"%20"));
+                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
                     }
                 }
             }
@@ -417,7 +417,7 @@ async function processURL(socket, request_headers) {
 
 async function doHTTPProxy(socket, request_headers) {
     var request_type = (request_headers.request_url.substring(0, 5) == "https") ? "https" : "http";
-    if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() +" Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.filterSSID(request_headers)));
+    if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.filterSSID(request_headers)));
     switch (request_type) {
         case "https":
             var proxy_agent = https;
@@ -485,7 +485,26 @@ async function doHTTPProxy(socket, request_headers) {
                 var data_hex = Buffer.concat(data).toString('hex');
 
                 console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers.request}`)
-                res.headers.http_response = res.statusCode + " " + res.statusMessage;
+                // an http response error is not a request error, and will come here under the 'end' event rather than an 'error' event.
+                switch (res.statusCode) {
+                    case 404:
+                        res.headers.http_response = res.statusCode + " The publisher can&#146;t find the page requested.";
+                        break;
+
+                    case 401:
+                    case 403:
+                        res.headers.http_response = res.statusCode + " The publisher of that page has not authorized you to use it.";
+                        break;
+
+                    case 500:
+                        res.headers.http_response = res.statusCode + " The publisher of that page can&#146;t be reached.";
+                        break;
+
+                    default:
+                        res.headers.http_response = res.statusCode + " " + res.statusMessage;
+                        break;
+                }
+
                 // header pass-through whitelist, case insensitive comparsion to server, however, you should
                 // specify the header case as you intend for the client
                 var headers = stripHeaders(res.headers, [
@@ -506,12 +525,14 @@ async function doHTTPProxy(socket, request_headers) {
                 }
                 if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
                 if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
-                sendToClient(socket, headers, Buffer.from(data_hex,'hex'));
+                sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
             });
         }).on('error', function (err) {
+            // severe errors, such as unable to connect.
             var errpage, headers, data = null;
-            if (err.code == "ENOTFOUND") errpage = wtvshared.doErrorPage(400, `The publisher ${request_data.host} is unknown.`);
-            else if (err.message.indexOf("HostUnreachable") > 0) errpage = wtvshared.doErrorPage(400, `The publisher ${request_data.host} could not be reached.`);
+            if (err.code == "ENOTFOUND" || err.message.indexOf("HostUnreachable") > 0) {
+                errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
+            }
             else {
                 console.log(" * Unhandled Proxy Request Error:", err);
                 errpage = wtvshared.doErrorPage(400);
@@ -647,7 +668,7 @@ async function sendToClient(socket, headers_obj, data) {
             }
         }
     }
-   
+
 
     // if box can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
@@ -739,21 +760,21 @@ async function sendToClient(socket, headers_obj, data) {
         headers_obj['http_response'] = "HTTP/1.0 " + headers_obj['http_response'];
     }
 
-/*    // wtv-request-type download wants minimal headers?
-    if (data.byteLength > 0) {
-        if (socket_sessions[socket.id].wtv_request_type == "download") {
-            if (headers_obj['Content-Type'] != "wtv/download-list") {
-                // minimalize headers
-                var new_headers = { "http_response": headers_obj['http_response'].split(" ")[0] + " " }
-                if (headers_obj['wtv-encrypted']) new_headers['wtv-encrypted'] = headers_obj['wtv-encrypted'];
-                new_headers["content-type"] = headers_obj['Content-Type'];
-                new_headers["content-length"] = headers_obj['Content-length'];
-                
-                headers_obj = new_headers;
+    /*    // wtv-request-type download wants minimal headers?
+        if (data.byteLength > 0) {
+            if (socket_sessions[socket.id].wtv_request_type == "download") {
+                if (headers_obj['Content-Type'] != "wtv/download-list") {
+                    // minimalize headers
+                    var new_headers = { "http_response": headers_obj['http_response'].split(" ")[0] + " " }
+                    if (headers_obj['wtv-encrypted']) new_headers['wtv-encrypted'] = headers_obj['wtv-encrypted'];
+                    new_headers["content-type"] = headers_obj['Content-Type'];
+                    new_headers["content-length"] = headers_obj['Content-length'];
+                    
+                    headers_obj = new_headers;
+                }
             }
-        }
-    }    
-*/
+        }    
+    */
     // header object to string
     if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing headers on socket ID", socket.id, (await wtvshared.filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
@@ -913,7 +934,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     // its not a POST and it failed the isUnencryptedString test, so we think this is an encrypted blob
                     if (socket_sessions[socket.id].secure != true) {
                         // first time so reroll sessions
-//                        if (minisrv_config.config.debug_flags.debug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
+                        //                        if (minisrv_config.config.debug_flags.debug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
                         socket_sessions[socket.id].wtvsec = new WTVSec(minisrv_config);
                         socket_sessions[socket.id].wtvsec.IssueChallenge();
                         socket_sessions[socket.id].wtvsec.SecureOn();
@@ -1125,7 +1146,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (!socket_sessions[socket.id].post_data) socket_sessions[socket.id].post_data = '';
                         socket_sessions[socket.id].post_data += CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                         console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
-                    } 
+                    }
                     return;
                 } else {
                     delete socket_sessions[socket.id].headers;
@@ -1133,7 +1154,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     delete socket_sessions[socket.id].post_data_length;
                     processURL(socket, headers);
                     return;
-                } 
+                }
             } else {
                 socket_sessions[socket.id].headers = headers;
             }
@@ -1262,13 +1283,13 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         }
                     }
                 }
-            } 
+            }
         }
-    }    
+    }
 }
 
 async function cleanupSocket(socket) {
-    try {        
+    try {
         if (socket_sessions[socket.id]) {
             if (!minisrv_config.config.debug_flags.quiet) console.log(" * Cleaning up disconnected socket", socket.id);
             delete socket_sessions[socket.id];
@@ -1357,7 +1378,7 @@ function getGitRevision() {
         if (rev.indexOf(':') === -1) {
             return rev;
         } else {
-            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.substring(5)).toString().trim().substring(0,8) + "-" + rev.split('/').pop();
+            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.substring(5)).toString().trim().substring(0, 8) + "-" + rev.split('/').pop();
         }
     } catch (e) {
         return null;
@@ -1388,7 +1409,7 @@ if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
         var service_vault = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
         service_vaults.push(service_vault);
-        console.log(" * Configured Service Vault at", service_vault, "with priority",(parseInt(k)+1));
+        console.log(" * Configured Service Vault at", service_vault, "with priority", (parseInt(k) + 1));
     })
 } else {
     throw ("ERROR: No Service Vaults defined!");
@@ -1446,7 +1467,7 @@ minisrv_config.version = require('./package.json').version;
 if (minisrv_config.config.error_log_file) {
     var error_log_stream = fs.createWriteStream(wtvshared.returnAbsolutePath(minisrv_config.config.error_log_file), { flags: 'a' });
     var process_stderr = process.stderr.write;
-    var writeError = function() {
+    var writeError = function () {
         process_stderr.apply(process.stderr, arguments);
         if (error_log_stream) error_log_stream.write.apply(error_log_stream, arguments);
     }
@@ -1518,4 +1539,4 @@ initstring = initstring.substring(0, initstring.length - 2);
 
 console.log(" * Started server on ports " + initstring + "...")
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
-console.log(" * Listening on", listening_ip_string,"~","Service IP:", service_ip);
+console.log(" * Listening on", listening_ip_string, "~", "Service IP:", service_ip);
