@@ -55,6 +55,19 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             }
             var message_list = ssid_sessions[socket.ssid].mailstore.listMessages(mailbox, limit, reverse_sort, (page * limit))
             var total_message_count = ssid_sessions[socket.ssid].mailstore.countMessages(mailbox);
+            var total_unread_message_count = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(mailbox);
+
+            var message_list_string = null;
+            if (total_message_count == 0) {
+                message_list_string = "No new mail messages for ";
+            } else {
+                if (total_unread_message_count > 0) {
+                    message_list_string = total_unread_message_count + " new mail message" + ((total_message_count != 1) ? 's' : '') + ", " + total_message_count + " mail message" + ((total_message_count != 1) ? 's' : '') + " for ";
+                } else {                   
+                    message_list_string = total_message_count + " mail message" + ((total_message_count != 1) ? 's' : '') + " for ";
+                }
+            }
+
             var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
             var notImplementedAlert = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
@@ -245,7 +258,7 @@ label="View saved e-mail messages">
             if (message_list) {
 
                 data += `
-<font sizerange=medium> ${total_message_count} e-mail message${(total_message_count != 1) ? 's' : ''} for
+<font sizerange=medium> ${message_list_string}
 <table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
 ${username}@${minisrv_config.config.service_name}
@@ -267,7 +280,13 @@ ${username}@${minisrv_config.config.service_name}
 `;
                 Object.keys(message_list).forEach(function (k) {
                     var message = message_list[k];
+                    var message_font_open = "<font color=#7A9FCC>";
+                    var message_font_close = "</font>";
                     console.log(message);
+                    if (message.unread) {
+                        message_font_open = `<b><font color=#99E6FF>`;
+                        message_font_close = "</font></b>"
+                    }
                     data += `<spacer type=vertical size=5>
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
@@ -276,22 +295,22 @@ ${username}@${minisrv_config.config.service_name}
 <tr>
 <td abswidth=20 align=center valign=middle>${(message.known_sender) ? '<img height=10 width=10 src="wtv-mail:/content/images/dot.gif">' : ''}
 <td abswidth=130 maxlines=1>
-<font color=#7A9FCC>
+${message_font_open}
 ${(message.from_name) ? message.from_name : message.from_addr}
-</font>
+${message_font_close}
 <td abswidth=5>
 <td abswidth=225 maxlines=1>
-<font color=#7A9FCC>
+${message_font_open}
 ${(message.subject) ? message.subject : "(No Subject)"}
-</font>
+${message_font_close}
 <td abswidth=5>
 <td abswidth=47 maxlines=1>
-<font color=#7A9FCC>
+${message_font_open}
 `;
                     var message_date = new Date(message.date * 1000);
                     data += (message_date.getMonth() + 1) + "/" + message_date.getDate() + "\n";
                     data += `
-</font>
+${message_font_close}
 </table>
 <tr>
 <td height=5>`;

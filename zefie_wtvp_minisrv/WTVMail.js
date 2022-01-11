@@ -248,6 +248,15 @@ class WTVMail {
         return (messages.length) ? messages.length : 0;
     }
 
+    countUnreadMessages(mailboxid) {
+        var messages = this.listMessages(mailboxid, false);
+        var unread = 0;
+        Object.keys(messages).forEach(function (k) {
+            if (k.unread) unread++;
+        });
+        return unread;
+    }
+
     getMailboxIcon() {
         var icon_image = null;
         switch (this.countMessages(0)) {
