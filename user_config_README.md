@@ -103,3 +103,16 @@ The `wtv-1800` example above shows how you could override the default port for a
 		}
 ```
 The `wtv-music` example above shows how you could disable a default service without modifying `config.json`
+
+```
+		"http": {
+			"wtv-explanation": {
+				"401": "wtv-guide:/errors/invalidauth",
+				"403": "wtv-guide:/errors/unauthorized",
+				"404": "wtv-guide:/errors/notfound"
+			}
+		}
+```
+The `http` example above shows how you could add a custom "Explain" button to the error message shown for a specific HTTP error. 
+This only applies to "http" and "https" sources (you do not need to define it in both, it will apply to both). Does not apply to 
+wtv-services. You can add an explain button to any HTTP code, not just the examples above.

@@ -523,6 +523,13 @@ async function doHTTPProxy(socket, request_headers) {
                         headers["wtv-connection-close"] = true;
                     }
                 }
+
+                if (minisrv_config.services['http']['wtv-explanation']) {
+                    if (minisrv_config.services['http']['wtv-explanation'][res.statusCode]) {
+                        headers['wtv-explanation-url'] = minisrv_config.services['http']['wtv-explanation'][res.statusCode];
+                    }
+                }
+
                 if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
                 if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
                 sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
