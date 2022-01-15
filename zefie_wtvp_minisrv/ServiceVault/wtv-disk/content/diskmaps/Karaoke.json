@@ -1,0 +1,159 @@
+{
+	"Karaoke": {
+		"base": "file://Disk/Music/karaoke/",
+		"location": "content/Music/karaoke/",
+		"service_owned": true,
+		"files": [
+			{
+				"file": "file://Disk/Music/karaoke/images/europe00.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/europe01.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/europe02.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/europe03.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/europe04.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/flower00.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/flower01.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/france00.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/france01.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/france02.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/france03.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar0.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar1.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar10.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar11.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar12.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar13.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar14.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar15.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar16.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar17.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar18.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar19.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar2.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar20.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar21.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar22.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar23.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar24.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar25.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar26.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar27.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar28.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar29.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar3.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/kar4.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/landscape02.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/landscape03.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/landscape04.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/landscape05.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/mountain00.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/mountain02.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/mountain03.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/sunset00.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/sunset01.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/sunset02.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/tree01.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/water.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/waterfall00.jpg"
+			},
+			{
+				"file": "file://Disk/Music/karaoke/images/wfish.jpg"
+			}
+		]
+	}
+}
