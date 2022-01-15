@@ -1,5 +1,6 @@
 var minisrv_service_file = true;
 
+var diskmap = Object.getCaseInsensitiveKey(request_headers.query, "DiskMap");
 const WTVDownloadList = require("./WTVDownloadList.js");
 var wtvdl = new WTVDownloadList(minisrv_config, service_name);
 
@@ -264,11 +265,11 @@ if (request_headers['wtv-request-type'] == 'download') {
         return output_data;
     }
 
-    if (request_headers.query.diskmap && request_headers.query.group) {
+    if (diskmap && request_headers.query.group) {
         var diskmap_json_file = null;
         Object.keys(service_vaults).forEach(function (g) {
             if (diskmap_json_file != null) return;
-            diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + request_headers.query.diskmap + ".json";
+            diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
             if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
         });
 
@@ -316,9 +317,9 @@ if (request_headers['wtv-request-type'] == 'download') {
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
     }
-} else if (request_headers.query.group && request_headers.query.diskmap) {
+} else if (request_headers.query.group && diskmap) {
     var message = request_headers.query.message || "Retrieving files...";
     var main_message = request_headers.query.main_message || "Your receiver is downloading files.";
     headers = "200 OK\nwtv-connection-close: close\nConnection: close\nContent-Type: text/html";
-    data = wtvdl.getSyncPage(message, request_headers.query.group, request_headers.query.diskmap, main_message, message, force_update, no_delete);
+    data = wtvdl.getSyncPage(message, request_headers.query.group, diskmap, main_message, message, force_update, no_delete);
 }
