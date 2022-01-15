@@ -49,6 +49,19 @@ if (!String.prototype.reverse) {
     }
 }
 
+// add .getCaseInsensitiveKey() to all JavaScript Objects in this application {
+// works for service vault scripts too.
+
+if (!Object.prototype.getCaseInsensitiveKey) {
+    Object.prototype.getCaseInsensitiveKey = function (object_name, key_name) {
+        var foundKey = Object.keys(object_name).find(key => key.toLowerCase() === key_name.toLowerCase()) || null;
+        if (foundKey) {
+            // found a key
+            return object_name[foundKey];
+        } else return null;
+    }
+}
+
 function getServiceString(service, overrides = {}) {
     // used externally by service scripts
     if (service === "all") {
