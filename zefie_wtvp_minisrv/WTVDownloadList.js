@@ -292,7 +292,7 @@ class WTVDownloadList {
         if (fail_url === null) fail_url = new this.clientShowAlert({
             'image': this.minisrv_config.config.service_logo,
             'message': "Download failed...",
-            'buttonlabel1': "Fuck!",
+            'buttonlabel1': "Okay",
             'buttonaction1': "client:goback",
             'noback': true,
         }).getURL();
