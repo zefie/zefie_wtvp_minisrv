@@ -574,6 +574,36 @@ class WTVClientSessionData {
         this.mailstore = mailstore;
     }
 
+    getManufacturer(url = false) {
+        var isPlus = this.hasCap("client-has-tv-experience")
+        var romtype = this.get("wtv-client-rom-type");
+        var brandId = this.ssid.charAt(8)
+
+        if (brandId == 0)
+            if (url && romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
+                return "Sony/DirecTV";
+            else
+                return "Sony";
+        else if (brandId == 1)
+            if (url && isPlus == true)
+                return "Philips-Plus";
+            else
+                return "Philips";
+        else if (brandId == 4)
+            return "Mitsubishi";
+        else if (brandId == 5)
+            return "Philips-Mont";
+        else if (brandId == 7)
+            return "Samsung";
+        else if (brandId == 9)
+            if (url && romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
+                return "Thomson/DirecTV";
+            else
+                return "Thomson";
+        else
+            return "WebTV";
+    }
+
 }
 
 module.exports = WTVClientSessionData;
