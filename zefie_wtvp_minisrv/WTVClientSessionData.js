@@ -596,10 +596,13 @@ class WTVClientSessionData {
         else if (brandId == 7)
             return "Samsung";
         else if (brandId == 9)
-            if (url && romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
-                return "Thomson/DirecTV";
+            if (url)
+                if (romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
+                    return "Thomson/DirecTV";
+                else
+                    return "Thomson";
             else
-                return "Thomson";
+                return "RCA";
         else
             return "WebTV";
     }
