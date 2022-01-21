@@ -18,8 +18,8 @@ class WTVMail {
     is_guest = null;
     mailboxes = null;
 
-    static msgFileExt = ".zmsg";
-    static trashMailboxName = "Trash";
+    msgFileExt = ".zmsg";
+    trashMailboxName = "Trash";
 
     constructor(minisrv_config, ssid, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
@@ -241,7 +241,7 @@ class WTVMail {
                     else return a.time - b.time;
                 })
                 .map(function (v) {
-                    if (v.name.substring((v.name.length - this.msgFileExt.length)) === this.msgFileExt) return v.name.substring(0, (v.name.length - 5));
+                    if (v.name.substring((v.name.length - self.msgFileExt.length)) === self.msgFileExt) return v.name.substring(0, (v.name.length - 5));
                 });
 
             if (files.length == 0) return false; // no messages
@@ -362,7 +362,7 @@ class WTVMail {
                 this.fs.readdirSync(this.mailstore_dir).every(mailbox => {
                     if (mailboxid) return false;
                     this.fs.readdirSync(this.mailstore_dir + self.path.sep + mailbox).every(file => {
-                        var regexSearch = ".*\." + this.msgFileExt;
+                        var regexSearch = ".*" + this.msgFileExt;
                         var re = new RegExp(regexSearch, "ig");
                         if (!file.match(re)) return true;
                         if (file.indexOf(messageid) !== -1) mailboxid = mailbox;
