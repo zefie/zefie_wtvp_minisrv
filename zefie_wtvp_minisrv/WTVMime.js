@@ -24,7 +24,6 @@ class WTVMime {
         }
     }
 
-
     shouldWeCompress(ssid_session, headers_obj) {
         var compress_data = false;
         var compression_type = 0; // no compression
@@ -74,11 +73,9 @@ class WTVMime {
                         else if (content_type == "application/json") compress_data = true;
                         if (compression_type == 2) {
                             // gzip only
-                            if (content_type.match(/^audio\/(x-)?(s3m|mod|xm)$/)) compress_data = true; // s3m, mod, xm
-                            if (content_type.match(/^audio\/(x-)?(midi|wav|wave|aif(f)?)$/)) compress_data = true; // midi & wav
+                            if (content_type.match(/^audio\/(x-)?(s3m|mod|xm|midi|wav|wave|aif(f)?))$/)) compress_data = true; // s3m, mod, xm, midi & wav
                             if (content_type.match(/^application\/karaoke$/)) compress_data = true; // midi karaoke
-                            if (content_type.match(/^binary\/x-wtv-approm$/)) compress_data = true; // approms    
-                            if (content_type.match(/^binary\/doom-data$/)) compress_data = true; // DOOM WADs
+                            if (content_type.match(/^binary\/(x-wtv-approm|doom-data)/)) compress_data = true; // approms and DOOM WADs
                             if (content_type.match(/^wtv\/download-list$/)) compress_data = true; // WebTV Download List                            
                         }
                     }

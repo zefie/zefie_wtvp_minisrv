@@ -379,7 +379,6 @@ async function processURL(socket, request_headers) {
         // check security
         if (!ssid_sessions[socket.ssid].isAuthorized(shortURL)) {
             // lockdown mode and URL not authorized
-            //socket_sessions[socket.id].close_me = true;
             headers = "300 Unauthorized\n";
             headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
             data = "";
@@ -393,11 +392,11 @@ async function processURL(socket, request_headers) {
             ssid_sessions[socket.ssid].lockdown = true;
         }
 
-
-        if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') < 0) {
+        // Check URL for :/, but not :// (to differentiate wtv urls)
+        if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') == -1) {
             var ssid = socket.ssid;
             if (ssid == null) {
-                // prevent possible injection attacks via SSID and filesystem SessionStore
+                // prevent possible injection attacks via malformed SSID and filesystem SessionStore
                 ssid = wtvshared.makeSafeSSID(request_headers["wtv-client-serial-number"]);
                 if (ssid == "") ssid = null;
             }
@@ -466,6 +465,7 @@ async function doHTTPProxy(socket, request_headers) {
             }
         }
 
+        // RFC7239
         if (socket.remoteAddress != "127.0.0.1") {
             options.headers["X-Forwarded-For"] = socket.remoteAddress;
         }
@@ -476,10 +476,13 @@ async function doHTTPProxy(socket, request_headers) {
         }
 
         if (minisrv_config.services[request_type].use_external_proxy && minisrv_config.services[request_type].external_proxy_port) {
+            // configure connection to an external proxy
             if (minisrv_config.services[request_type].external_proxy_is_socks) {
+                // configure connection to remote socks proxy
                 var ProxyAgent = require('proxy-agent');
                 options.agent = new ProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
             } else {
+                // configure connection to remote http proxy
                 var proxy_agent = http;
                 options.host = minisrv_config.services[request_type].external_proxy_host;
                 options.port = minisrv_config.services[request_type].external_proxy_port;
@@ -535,12 +538,16 @@ async function doHTTPProxy(socket, request_headers) {
                     'Last-Modified'
                 ]);
                 headers["wtv-http-proxy"] = true;
+
+                // if Connection: close header, set our internal variable to close the socket
                 if (headers['Connection']) {
                     if (headers['Connection'].toLowerCase().indexOf('close') !== -1) {
                         headers["wtv-connection-close"] = true;
                     }
                 }
 
+                // if a wtv-explaination is defined for an error code (except 200), define the header here to
+                // show the 'Explain' button on the client error ShowAlert
                 if (minisrv_config.services['http']['wtv-explanation']) {
                     if (minisrv_config.services['http']['wtv-explanation'][res.statusCode]) {
                         headers['wtv-explanation-url'] = minisrv_config.services['http']['wtv-explanation'][res.statusCode];
@@ -612,7 +619,6 @@ function headerStringToObj(headers, response = false) {
     headers_obj_pre.forEach(function (d) {
         if (/^SECURE ON/.test(d) && !response) {
             headers_obj.secure = true;
-            //socket_sessions[socket.id].secure_headers = true;
         } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response) {
             headers_obj.http_response = d.replace("\r", "");
         } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
