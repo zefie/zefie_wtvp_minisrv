@@ -466,6 +466,10 @@ async function doHTTPProxy(socket, request_headers) {
             }
         }
 
+        if (socket.remoteAddress != "127.0.0.1") {
+            options.headers["X-Forwarded-For"] = socket.remoteAddress;
+        }
+
         if (request_headers.post_data) {
             if (request_headers["Content-type"]) options.headers["Content-type"] = request_headers["Content-type"];
             if (request_headers["Content-length"]) options.headers["Content-length"] = request_headers["Content-length"];
