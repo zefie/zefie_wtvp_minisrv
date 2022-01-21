@@ -366,6 +366,26 @@ class WTVMail {
         return null;
     }
 
+    moveMailMessage(messageid, dest_mailbox_id) {
+        // returns true if successful, false if failed.
+        var currentMailbox = getMessageMailboxId(messageid);
+
+        // Same mailbox
+        if (dest_mailbox_id == currentMailbox) return false;
+
+        // Invalid destination mailbox ID
+        if (dest_mailbox_id > (mailboxes.length - 1) || dest_mailbox_id < 0) return false;
+
+
+        var currentMailFile = getMailboxStoreDir(currentMailbox) + this.path.sep + messageid + ".zmsg";
+        var destMailFile = getMailboxStoreDir(dest_mailbox_id) + this.path.sep + messageid + ".zmsg";
+
+        // File exists
+        if (fs.existsSync(destMailFile)) return false;
+
+        return fs.rename(currentMailFile, destMailFile);
+    }
+
     setMessageReadStatus(messageid, read = true) {
         var message = this.getMessageByID(messageid);
         if (!message) return false;
