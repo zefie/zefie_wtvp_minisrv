@@ -73,7 +73,7 @@ class WTVMime {
                         else if (content_type == "application/json") compress_data = true;
                         if (compression_type == 2) {
                             // gzip only
-                            if (content_type.match(/^audio\/(x-)?(s3m|mod|xm|midi|wav|wave|aif(f)?))$/)) compress_data = true; // s3m, mod, xm, midi & wav
+                            if (content_type.match(/^audio\/(x-)?(s3m|mod|xm|midi|wav|wave|aif(f)?)$/)) compress_data = true; // s3m, mod, xm, midi & wav
                             if (content_type.match(/^application\/karaoke$/)) compress_data = true; // midi karaoke
                             if (content_type.match(/^binary\/(x-wtv-approm|doom-data)/)) compress_data = true; // approms and DOOM WADs
                             if (content_type.match(/^wtv\/download-list$/)) compress_data = true; // WebTV Download List                            
