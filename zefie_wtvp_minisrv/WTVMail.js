@@ -18,6 +18,9 @@ class WTVMail {
     is_guest = null;
     mailboxes = null;
 
+    static msgFileExt = ".zmsg";
+    static trashMailboxName = "Trash";
+
     constructor(minisrv_config, ssid, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
         var WTVShared = require('./WTVShared.js')['WTVShared'];
@@ -35,7 +38,7 @@ class WTVMail {
             "Inbox",
             "Sent",
             "Saved",
-            "Trash"
+            this.trashMailboxName
         ];
     }
 
@@ -88,6 +91,18 @@ class WTVMail {
         return (mailboxid < this.mailboxes.length - 1) ? this.mailboxes[mailboxid] : false;
     }
 
+    getMailboxByName(mailbox_name) {
+        var mailbox_id = false;
+        this.mailboxes.every(function (v, k) {
+            if (v.toLowerCase() == mailbox_name.toLowerCase()) {
+                mailbox_id = k;
+                return false;
+            }
+            return true;
+        });
+        return mailbox_id;
+    }
+
     getMailboxStoreDir(mailboxid) {
         if (this.mailboxExists(mailboxid)) {
             var mailbox_name = this.getMailboxById(mailboxid);
@@ -118,7 +133,8 @@ class WTVMail {
             if (!date) date = Math.floor(Date.now() / 1000);
 
             var mailbox_path = this.getMailboxStoreDir(mailboxid);
-            var message_file = this.createMessageID() + ".zmsg";
+            var message_id = this.createMessageID();
+            var message_file = messageid + this.msgFileExt;
             var message_file_out = mailbox_path + message_file;
             var message_data = {
                 "from_addr": from_addr,
@@ -134,7 +150,7 @@ class WTVMail {
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
-                    console.log(" * ERROR: Message with this UUID already exists (should never happen). Message lost.");
+                    console.log(" * ERROR: Message with this UUID (" + messageid + ") already exists (should never happen). Message lost.");
                     return false;
                 }
 
@@ -168,7 +184,7 @@ class WTVMail {
     getMessage(mailboxid, messageid) {
         if (this.createMailbox(mailboxid)) {
             var mailbox_path = this.getMailboxStoreDir(mailboxid);
-            var message_file = messageid + ".zmsg";
+            var message_file = messageid + this.msgFileExt;
             var message_file_in = mailbox_path + this.path.sep + message_file;
             var message_data_raw = null;
 
@@ -225,7 +241,7 @@ class WTVMail {
                     else return a.time - b.time;
                 })
                 .map(function (v) {
-                    if (v.name.substring((v.name.length - 5)) === ".zmsg") return v.name.substring(0, (v.name.length - 5));
+                    if (v.name.substring((v.name.length - this.msgFileExt.length)) === this.msgFileExt) return v.name.substring(0, (v.name.length - 5));
                 });
 
             if (files.length == 0) return false; // no messages
@@ -343,13 +359,16 @@ class WTVMail {
         var mailboxid = false;
         if (this.checkMessageIdSanity(messageid)) {
             if (this.mailstoreExists()) {
-                this.fs.readdirSync(this.mailstore_dir).forEach(mailbox => {
-                    if (mailboxid) return;
-                    this.fs.readdirSync(this.mailstore_dir + self.path.sep + mailbox).forEach(file => {
-                        if (!file.match(/.*\.zmsg/ig)) return;
-                        if (mailboxid) return;
+                this.fs.readdirSync(this.mailstore_dir).every(mailbox => {
+                    if (mailboxid) return false;
+                    this.fs.readdirSync(this.mailstore_dir + self.path.sep + mailbox).every(file => {
+                        var regexSearch = ".*\." + this.msgFileExt;
+                        var re = new RegExp(regexSearch, "ig");
+                        if (!file.match(re)) return true;
                         if (file.indexOf(messageid) !== -1) mailboxid = mailbox;
+                        return false;
                     });
+                    return true;
                 });
             }
         }
@@ -377,13 +396,29 @@ class WTVMail {
         if (dest_mailbox_id > (mailboxes.length - 1) || dest_mailbox_id < 0) return false;
 
 
-        var currentMailFile = getMailboxStoreDir(currentMailbox) + this.path.sep + messageid + ".zmsg";
-        var destMailFile = getMailboxStoreDir(dest_mailbox_id) + this.path.sep + messageid + ".zmsg";
+        var currentMailFile = getMailboxStoreDir(currentMailbox) + this.path.sep + messageid + this.msgFileExt;
+        var destMailFile = getMailboxStoreDir(dest_mailbox_id) + this.path.sep + messageid + this.msgFileExt;
 
         // File exists
         if (fs.existsSync(destMailFile)) return false;
 
         return fs.rename(currentMailFile, destMailFile);
+    }
+
+    deleteMessage(messageid) {
+        var currentMailbox = getMessageMailboxId(messageid);
+        var trashMailbox = getMailboxByName(this.trashMailboxName);
+        if (currentMailbox != trashMailbox) {
+            // if not in the trash, move it to trash
+            return moveMailMessage(messageid, trashMailbox);
+        } else {
+            // if its already in the trash, delete it forever
+            var currentMailFile = getMailboxStoreDir(trashMailbox) + this.path.sep + messageid + this.msgFileExt;
+            if (this.fs.fileExistsSync(currentMailFile))
+                return this.fs.unlink(currentMailFile);
+            else
+                return false;
+        }
     }
 
     setMessageReadStatus(messageid, read = true) {
