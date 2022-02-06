@@ -18,6 +18,7 @@ class WTVClientSessionData {
     lockdown = null;
     lockdownReason = null;
     lockdownWhitelist = null;
+    baddisk = false;
     clientAddress = null;
 
     constructor(minisrv_config, ssid) {

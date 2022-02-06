@@ -2,7 +2,10 @@ var minisrv_service_file = true;
 
 ssid_sessions[socket.ssid].disableLockdown();
 
-data += `<html>
+headers = `200 OK
+Content-type: text/html`;
+
+data = `<html>
 <head> 
 <display switchtowebmode nooptions nostatus skipback clearback> <title>Please Call</title> 
 </head> 

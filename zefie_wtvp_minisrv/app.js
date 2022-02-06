@@ -388,8 +388,11 @@ async function processURL(socket, request_headers) {
         }
 
         if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks")) {
-            // psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
-            ssid_sessions[socket.ssid].lockdown = true;
+            if (!ssid_sessions[socket.ssid].baddisk) {
+                // psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
+                ssid_sessions[socket.ssid].lockdown = true;
+                ssid_sessions[socket.ssid].baddisk = true;
+            }
         }
 
         // Check URL for :/, but not :// (to differentiate wtv urls)
