@@ -16,7 +16,7 @@ if (!errpage) {
 }
 
 if (!errpage) {
-    if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + " account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.");
+    if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + ` account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.`);
     else if (!request_headers.query.user_name) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
 }
 

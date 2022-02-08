@@ -67,7 +67,8 @@ Subscriber:
 <P>`;
     var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
 
-    if (Object.keys(accounts).length > 1) data += "Additional users:</B></FONT>";
+    var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
+    if (num_accounts > 1) data += "Additional users:</B></FONT>";
 
     data += "<TD WIDTH=20><TD WIDTH=198 VALIGN=top ALIGN=left>";
 
@@ -77,18 +78,18 @@ Subscriber:
 </B></FONT>
 <P>`;
 
-    if (Object.keys(accounts).length > 1) {
+    if (num_accounts > 1) {
         delete accounts.subscriber;
         for (const [key, value] of Object.entries(accounts)) {
             data += `<FONT COLOR="189CD6"><B>
 <A HREF="wtv-setup:/edit-user-begin?user_id=${key.replace("user", '')}">${value.subscriber_username}</A>
+</B></FONT><BR>
+
 `;
 
         };
     }
     data += `
-</B></FONT>
-<BR>
 <TR>
 <TD>
 <TD COLSPAN=4 HEIGHT=4 VALIGN=top ALIGN=left>
@@ -111,11 +112,11 @@ Subscriber:
 <TD COLSPAN=3 VALIGN=top ALIGN=right>
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
 <INPUT action="/remove-users?user-count=x"
-name="RemoveUser" value="Remove User" WIDTH=140 ${(Object.keys(accounts).length <= 1) ? 'USESTYLE' : 'disabled="disabled" text=gray' }
+name="RemoveUser" value="Remove User" WIDTH=140 ${(num_accounts >= 1) ? 'USESTYLE' : 'disabled="disabled" text=gray' }
 TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button1" WIDTH=103>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
-<INPUT action="/add-user?user_count=${Object.keys(accounts).length}"
-name="AddUser" value="Add User" WIDTH=120 ${(Object.keys(accounts).length >= minisrv_config.config.user_accounts.max_users_per_account) ? 'disabled="disabled" text=gray' : 'USESTYLE'}
+<INPUT action="/add-user?user_count=${num_accounts}"
+name="AddUser" value="Add User" WIDTH=120 ${(num_accounts >= minisrv_config.config.user_accounts.max_users_per_account) ? 'disabled="disabled" text=gray' : 'USESTYLE'}
 TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button2" WIDTH=103>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
 <INPUT action="client:goback"
