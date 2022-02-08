@@ -1,6 +1,7 @@
 const { lib } = require('crypto-js');
 const CryptoJS = require('crypto-js');
 const WTVMail = require('./WTVMail.js')
+const WTVSec = require('./WTVSec.js');
 class WTVClientSessionData {
 
     fs = require('fs');
@@ -54,10 +55,31 @@ class WTVClientSessionData {
     }
 
 
-    switchUserID(user_id, update_mail = true) {
+    switchUserID(user_id, update_mail = true, update_ticket = true) {
         this.user_id = user_id;
         this.loadSessionData();
         this.mailstore = new WTVMail(this.minisrv_config, this.ssid, this)
+        if (this.data_store.wtvsec_login && update_ticket) this.setTicketData('user_id', user_id);
+    }
+
+    setTicketData(key, value) {
+        if (this.data_store.wtvsec_login) this.data_store.wtvsec_login.setTicketData(key, value);
+        else return false;
+
+        return true;
+    }
+
+    getTicketData(key) {
+        if (this.data_store.wtvsec_login) return this.data_store.wtvsec_login.getTicketData(key);
+
+        return false;
+    }
+
+    deleteTicketData(key) {
+        if (this.data_store.wtvsec_login) this.data_store.wtvsec_login.deleteTicketData(key);
+        else return false;
+
+        return true;
     }
 
     findFreeUserSlot() {

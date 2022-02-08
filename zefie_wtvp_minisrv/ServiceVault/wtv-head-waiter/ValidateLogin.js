@@ -71,9 +71,8 @@ minisrv-no-mail-count: true
 Content-Type: text/html`;
 	if (client_challenge_response) {
 		headers += `
-wtv-encrypted: true
-wtv-ticket: ${wtvsec_login.ticket_b64}
-`;
+wtv-encrypted: true`;
+		if (wtvsec_login) ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket = true;
 	}
 	if (limitedLoginRegistered) gourl = "wtv-head-waiter:/password?";
 	headers += `

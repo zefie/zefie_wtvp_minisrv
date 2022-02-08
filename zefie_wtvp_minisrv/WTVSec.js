@@ -32,6 +32,8 @@ class WTVSec {
     hRC4_Key2 = null;
     RC4Session = new Array();
     minisrv_config = [];
+    update_ticket = false;
+    ticket_store = {};
 
     /**
      * 
@@ -41,7 +43,7 @@ class WTVSec {
      * @param {Boolean} minisrv_config.config.debug_flags.debug Enable debugging
      * 
      */
-    constructor(minisrv_config, wtv_incarnation = 1) {   
+    constructor(minisrv_config, wtv_incarnation = 1) {
         this.minisrv_config = minisrv_config;
         this.initial_shared_key = CryptoJS.enc.Base64.parse(this.initial_shared_key_b64);
 
@@ -87,11 +89,15 @@ class WTVSec {
      */
     PrepareTicket() {
         // store last challenge response in ticket
-        var ticket_data = this.challenge_raw;
+        if (this.minisrv_config.config.debug_flags.debug) console.log(" * Preparing a new ticket with ticket_store:", this.ticket_store)
+        var ticket_data_raw = this.challenge_raw;
         try {
-            var ticket_data_enc = CryptoJS.DES.encrypt(ticket_data, this.initial_shared_key, {
+            var ticket_data = ticket_data_raw.toString(CryptoJS.enc.Hex) + CryptoJS.enc.Utf8.parse(JSON.stringify(this.ticket_store)).toString(CryptoJS.enc.Hex);
+
+            ticket_data_raw = CryptoJS.enc.Hex.parse(ticket_data);
+            var ticket_data_enc = CryptoJS.DES.encrypt(ticket_data_raw, this.initial_shared_key, {
                 mode: CryptoJS.mode.ECB,
-                padding: CryptoJS.pad.NoPadding
+                padding: CryptoJS.pad.Pkcs7
             });
             // create a copy of WordArray since concat modifies the original
             var challenge_signed_key = this.DuplicateWordArray(this.challenge_signed_key);
@@ -103,6 +109,17 @@ class WTVSec {
         return this.ticket_b64;
     }
 
+    tryDecodeJSON(json_string) {
+        var out;
+        try {
+            out = JSON.parse(json_string);
+        } catch (e) {
+            console.log(e);
+            out = {};
+        }
+        return out;
+    }
+
     /**
      * Decodes a wtv-ticket to set up this instance
      * 
@@ -112,6 +129,7 @@ class WTVSec {
         var ticket_hex = CryptoJS.enc.Base64.parse(ticket_b64).toString(CryptoJS.enc.Hex);
         var challenge_key = CryptoJS.enc.Hex.parse(ticket_hex.substring(0, 16));
         var challenge_enc = CryptoJS.enc.Hex.parse(ticket_hex.substring(16));
+
         var ticket_dec = CryptoJS.DES.decrypt(
             {
                 ciphertext: challenge_enc
@@ -119,11 +137,46 @@ class WTVSec {
             this.initial_shared_key,
             {
                 mode: CryptoJS.mode.ECB,
-                padding: CryptoJS.pad.NoPadding
+                padding: CryptoJS.pad.Pkcs7
             }
         );
-        this.ProcessChallenge(ticket_dec.toString(CryptoJS.enc.Base64), challenge_key);
-        console.log(" * Decoded session from wtv-ticket");
+        var data_offset = 216; // (108 * 2);
+        var challenge_code = ticket_dec.toString().substring(0, data_offset);
+        var challenge_code_b64 = CryptoJS.enc.Hex.parse(challenge_code).toString(CryptoJS.enc.Base64);
+        if ((ticket_dec.sigBytes * 2) >= challenge_code.length) {
+            var ticket_data_dec = CryptoJS.enc.Hex.parse(ticket_dec.toString().substring(data_offset)).toString(CryptoJS.enc.Utf8);
+            this.ticket_store = this.tryDecodeJSON(ticket_data_dec);
+        } else {
+            this.ticket_store = {};
+        }
+
+        this.ProcessChallenge(challenge_code_b64, challenge_key);
+        if (this.minisrv_config.config.debug_flags.debug) console.log(" * Decoded session from wtv-ticket with ticket_store:", this.ticket_store);
+    }
+
+    getTicketData(key = null) {
+        if (typeof (this.ticket_store) === 'session_store') return null;
+        else if (key === null) return this.ticket_store;
+        else return null;
+    }
+
+    setTicketData(key, value) {
+        if (key === null) throw ("WTVSec.ssetTicketDataet(): invalid key provided");
+        if (typeof (this.ticket_store) === 'undefined') this.ticket_store = {};
+        this.ticket_store[key] = value;
+        if (this.ticket_b64) this.PrepareTicket();
+        this.update_ticket = true;
+    }
+
+    deleteTicketData(key) {
+        if (key === null) throw ("WTVSec.deleteTicketData(): invalid key provided");
+        if (typeof (this.ticket_store) === 'undefined') {
+            this.ticket_store = {};
+            return;
+        }
+        delete this.ticket_store[key];
+        if (this.ticket_b64) this.PrepareTicket();
+        this.update_ticket = true;
     }
 
     /**

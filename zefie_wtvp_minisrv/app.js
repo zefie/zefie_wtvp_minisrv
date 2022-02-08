@@ -405,19 +405,6 @@ Location: " + minisrv_config.config.unauthorized_url`;
             return;
         }
 
-        /*
-        if (ssid_sessions[socket.ssid].isRegistered(false) && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login', true)) {
-            if (!ssid_sessions[socket.ssid].getSessionData("subscriber_username")) {
-                headers = `300 Session Error
-Location: client:relogin`;
-                data = "";
-                sendToClient(socket, headers, data);
-                console.log(" * Session error: Asking client to relogin via socket ID", socket.id);
-                return;
-            }
-        }
-        */
-
         // Check URL for :/, but not :// (to differentiate wtv urls)
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') == -1) {
             var ssid = socket.ssid;
@@ -802,6 +789,7 @@ async function sendToClient(socket, headers_obj, data) {
         if (headers_obj["secure"]) delete headers_obj["secure"];
     }
 
+
     // calculate content length
     // make sure we are using our Content-length and not one set in a script.
     if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
@@ -809,13 +797,14 @@ async function sendToClient(socket, headers_obj, data) {
 
     headers_obj["Content-length"] = content_length;
 
+    // Send wtv-ticket if it has been flagged as updated
     if (ssid_sessions[socket.ssid]) {
         if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
             if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64) {
-                if (ssid_sessions[socket.ssid].data_store.update_ticket) {
+                if (ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket) {
                     headers_obj["wtv-ticket"] = ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64;
                     headers_obj = moveObjectElement("wtv-ticket", "Connection", headers_obj);
-                    ssid_sessions[socket.ssid].data_store.update_ticket = false;
+                    ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket = false;
                 }
             }
         }
@@ -1077,13 +1066,22 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
-                    } else {
-                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"]) {
-                            if (minisrv_config.config.debug_flags.debug) console.log(" # New ticket from client");
-                            ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
-                            ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
-                            if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
+                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id) {
+                            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id > 0)
+                                ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
                         }
+                    } else {
+                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"])
+                            if (!ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket) {
+                                if (minisrv_config.config.debug_flags.debug) console.log(" # New ticket from client");
+                                ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
+                                ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
+                                if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
+                                if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id > 0) {
+                                    if (ssid_sessions[socket.ssid].user_id != ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id)
+                                        switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
+                                }
+                            }
                     }
                 }
             }

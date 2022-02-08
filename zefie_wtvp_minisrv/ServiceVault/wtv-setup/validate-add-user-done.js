@@ -30,6 +30,7 @@ if (errpage) {
     var freeUserId = ssid_sessions[socket.ssid].findFreeUserSlot(ssid_sessions[socket.ssid]);
     if (freeUserId) {
         userSession.user_id = freeUserId;
+        userSession.setSessionData("subscriber_userid", freeUserId);
         userSession.setSessionData("subscriber_name", request_headers.query.display_name);
         userSession.setSessionData("subscriber_username", request_headers.query.user_name);
         userSession.setSessionData("registered", true);
