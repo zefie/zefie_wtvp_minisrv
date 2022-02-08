@@ -405,6 +405,7 @@ Location: " + minisrv_config.config.unauthorized_url`;
             return;
         }
 
+        /*
         if (ssid_sessions[socket.ssid].isRegistered(false) && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login', true)) {
             if (!ssid_sessions[socket.ssid].getSessionData("subscriber_username")) {
                 headers = `300 Session Error
@@ -415,7 +416,7 @@ Location: client:relogin`;
                 return;
             }
         }
-
+        */
 
         // Check URL for :/, but not :// (to differentiate wtv urls)
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') == -1) {
