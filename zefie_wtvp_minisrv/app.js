@@ -1529,14 +1529,14 @@ if (minisrv_config.config.error_log_file) {
     process.stderr.write = writeError
 }
 
-if (minisrv_config.config.passwords) {
-    if (minisrv_config.config.passwords.enabled) {
-        if (!minisrv_config.config.passwords.encryption_key) {
-            console.log(" * WARNING: passwords.encryption_key not defined, using default. Consider setting a unique key before setting passwords.");
-            console.log(" * WARNING: Changing the encryption key after users have set passwords will invalidate and lock out all users who have set passwords, without your manual intervention.");
-            minisrv_config.config.passwords.encryption_key = minisrv_config.config.passwords.default_encryption_key;
-        }
-    }
+// sanity
+if (minisrv_config.config.user_accounts.max_users_per_account < 1) {
+    console.log(" * WARNING: user_accounts.max_users_per_account should be at least 1, we have set it to 1.");
+    minisrv_config.config.user_accounts.max_users_per_account = 1;
+}
+if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
+    console.log(" * WARNING: user_accounts.max_users_per_account should be less than 99, we have set it to 99.");
+    minisrv_config.config.user_accounts.max_users_per_account = 99;
 }
 
 process.on('uncaughtException', function (err) {

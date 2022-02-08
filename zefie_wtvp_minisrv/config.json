@@ -37,8 +37,7 @@
       "enabled": true,
       "min_length": 5,
       "max_length": 32,
-      "form_size": 16,
-      "default_encryption_key": "S4WZvVfoQ77fovegdO7olln0P0ZNAMWe"
+      "form_size": 16
     }
   },
   "services": {

@@ -10,7 +10,7 @@ else if (request_headers.query.user_name.length < minisrv_config.config.user_acc
 else if (request_headers.query.user_name.length > minisrv_config.config.user_accounts.max_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with " + minisrv_config.config.user_accounts.max_length + " or less characters.");
 else if (!wtvr.checkUsernameSanity(request_headers.query.user_name)) errpage = wtvshared.doErrorPage(400, "The username you have chosen contains invalid characters. Please choose a username with only <b>letters</b>, <b>numbers</b>, <b>_</b> or <b>-</b>. Also, please be sure your username begins with a letter.");
 else if (!wtvr.checkUsernameAvailable(request_headers.query.user_name, ssid_sessions)) errpage = wtvshared.doErrorPage(400, "The username you have selected is already in use. Please select another username.");
-else if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + " account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.");
+else if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + ` account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.`);
 
 
 

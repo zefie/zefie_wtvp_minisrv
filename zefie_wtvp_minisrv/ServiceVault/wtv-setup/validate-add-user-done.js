@@ -17,15 +17,15 @@ if (!errpage) {
 }
 
 if (!errpage) {
-    if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + " account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.");
+    if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + ` account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.`);
     else if (!request_headers.query.user_name) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
-    else if (!request_headers.query.display_name) request_headers.query.display_name = request_headers.query.username;
 }
 
 if (errpage) {
     headers = errpage[0];
     data = errpage[1];
 } else {
+    if (!request_headers.query.display_name) request_headers.query.display_name = request_headers.query.username;
     userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
     var freeUserId = ssid_sessions[socket.ssid].findFreeUserSlot(ssid_sessions[socket.ssid]);
     if (freeUserId) {
@@ -33,10 +33,10 @@ if (errpage) {
         userSession.setSessionData("subscriber_name", request_headers.query.display_name);
         userSession.setSessionData("subscriber_username", request_headers.query.user_name);
         userSession.setSessionData("registered", true);
-        mailstore_exists = userSession.mailstore.mailstoreExists();
+        var mailstore_exists = userSession.mailstore.mailstoreExists();
         if (!mailstore_exists) mailstore_exists = userSession.mailstore.createMailstore();
         if (mailstore_exists) {
-            if (!userSession.mailstore.mailboxExists(mailbox)) {
+            if (!userSession.mailstore.mailboxExists(0)) {
                 // mailbox does not yet exist, create it
                 var mailbox_exists = userSession.mailstore.createMailbox(0);
                 if (mailbox_exists) {
@@ -55,6 +55,7 @@ if (errpage) {
 
             headers = `300 OK
 Content-type: text/html
+wtv-expire: wtv-setup:/accounts
 Location: wtv-setup:/accounts`;
         }
     }    
