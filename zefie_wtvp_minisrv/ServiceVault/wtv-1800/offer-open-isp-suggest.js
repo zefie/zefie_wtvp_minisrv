@@ -10,6 +10,7 @@ if (request_headers["wtv-ticket"]) {
 
 headers = `200 OK
 Connection: Keep-Alive
+minisrv-no-mail-count: true
 wtv-expire-all: wtv-
 wtv-open-isp-disabled: false
 wtv-visit: `+ gourl + `

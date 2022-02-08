@@ -27,7 +27,19 @@
     "show_diskmap": false,
     "unauthorized_url": "wtv-1800:/unauthorized?",
     "allow_guests": true,
-    "domain_name": "wtv.zefie.com"
+    "domain_name": "wtv.zefie.com",
+    "user_accounts": {
+      "max_users_per_account": 6,
+      "min_username_length": 5,
+      "max_username_length": 18
+    },
+    "passwords": {
+      "enabled": true,
+      "min_length": 5,
+      "max_length": 32,
+      "form_size": 16,
+      "default_encryption_key": "S4WZvVfoQ77fovegdO7olln0P0ZNAMWe"
+    }
   },
   "services": {
     "wtv-head-waiter": {

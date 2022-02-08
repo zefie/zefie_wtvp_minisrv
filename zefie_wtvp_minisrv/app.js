@@ -395,6 +395,17 @@ async function processURL(socket, request_headers) {
             }
         }
 
+        if (!ssid_sessions[socket.ssid].isUserLoggedIn() && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
+            // lockdown mode and URL not authorized
+            headers = "300 Unauthorized\n";
+            headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
+            data = "";
+            sendToClient(socket, headers, data);
+            console.log(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
+            return;
+        }
+
+
         // Check URL for :/, but not :// (to differentiate wtv urls)
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') == -1) {
             var ssid = socket.ssid;
@@ -670,6 +681,17 @@ async function sendToClient(socket, headers_obj, data) {
     }
     var wtv_connection_close = (headers_obj["wtv-connection-close"]) ? true : false;
     if (typeof (headers_obj["wtv-connection-close"]) != 'undefined') delete headers_obj["wtv-connection-close"];
+
+    if (!headers_obj['minisrv-no-mail-count']) {
+        if (ssid_sessions[socket.ssid]) {
+            if (ssid_sessions[socket.ssid].mailstore) {
+                headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0);
+            }
+        }
+    } else {
+        if (headers_obj['wtv-mail-count']) delete headers_obj['wtv-mail-count'];
+        delete headers_obj['minisrv-no-mail-count'];
+    }
 
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
@@ -1505,6 +1527,16 @@ if (minisrv_config.config.error_log_file) {
         if (error_log_stream) error_log_stream.write.apply(error_log_stream, arguments);
     }
     process.stderr.write = writeError
+}
+
+if (minisrv_config.config.passwords) {
+    if (minisrv_config.config.passwords.enabled) {
+        if (!minisrv_config.config.passwords.encryption_key) {
+            console.log(" * WARNING: passwords.encryption_key not defined, using default. Consider setting a unique key before setting passwords.");
+            console.log(" * WARNING: Changing the encryption key after users have set passwords will invalidate and lock out all users who have set passwords, without your manual intervention.");
+            minisrv_config.config.passwords.encryption_key = minisrv_config.config.passwords.default_encryption_key;
+        }
+    }
 }
 
 process.on('uncaughtException', function (err) {

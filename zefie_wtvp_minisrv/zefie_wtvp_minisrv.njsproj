@@ -88,9 +88,12 @@
     <Content Include="ServiceVault\wtv-flashrom\ROMCache\WebTVLogoJewel.gif" />
     <Content Include="ServiceVault\wtv-flashrom\willie.js" />
     <Content Include="ServiceVault\wtv-head-waiter\bad-disk.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\choose-user.js" />
+    <Content Include="ServiceVault\wtv-head-waiter\password.js" />
     <Content Include="ServiceVault\wtv-head-waiter\relogin.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-head-waiter\ValidateLogin.js" />
     <Content Include="ServiceVault\wtv-mail\DiplomaMail.js" />
     <Content Include="ServiceVault\wtv-mail\listmail.js">
       <SubType>Code</SubType>
@@ -245,12 +248,19 @@
     </Content>
     <Content Include="ServiceVault\wtv-register\splash.js" />
     <Content Include="ServiceVault\wtv-1800\unauthorized.js" />
+    <Content Include="ServiceVault\wtv-setup\accounts.js" />
+    <Content Include="ServiceVault\wtv-setup\add-user-name.js" />
+    <Content Include="ServiceVault\wtv-setup\add-user-password.js" />
+    <Content Include="ServiceVault\wtv-setup\add-user.js" />
     <Content Include="ServiceVault\wtv-setup\adjust-brightness.js" />
     <Content Include="ServiceVault\wtv-setup\adjust-contrast.js" />
     <Content Include="ServiceVault\wtv-setup\adjust-display-intro.js" />
     <Content Include="ServiceVault\wtv-setup\adjust-sharpness.js" />
     <Content Include="ServiceVault\wtv-setup\center-display.js" />
     <Content Include="ServiceVault\wtv-setup\choose-bg-songs.js" />
+    <Content Include="ServiceVault\wtv-setup\edit-password.js" />
+    <Content Include="ServiceVault\wtv-setup\edit-user-begin.js" />
+    <Content Include="ServiceVault\wtv-setup\edit-user-name.js" />
     <Content Include="ServiceVault\wtv-setup\get-playlist.js" />
     <Content Include="ServiceVault\wtv-setup\get.js">
       <SubType>Code</SubType>
@@ -277,9 +287,15 @@
     <Content Include="ServiceVault\wtv-setup\setup.js" />
     <Content Include="ServiceVault\wtv-setup\sound.js" />
     <Content Include="ServiceVault\wtv-setup\text.js" />
+    <Content Include="ServiceVault\wtv-setup\validate-add-user-done.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\validate-add-user.js" />
     <Content Include="ServiceVault\wtv-setup\validate-bg-song-category.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-setup\validate-change-name.js" />
+    <Content Include="ServiceVault\wtv-setup\validate-change-password.js" />
     <Content Include="ServiceVault\wtv-setup\validate-mail-signature.js" />
     <Content Include="ServiceVault\wtv-setup\validate-screen-border.js">
       <SubType>Code</SubType>

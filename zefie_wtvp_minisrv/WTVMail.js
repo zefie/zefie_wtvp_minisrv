@@ -134,7 +134,7 @@ class WTVMail {
 
             var mailbox_path = this.getMailboxStoreDir(mailboxid);
             var message_id = this.createMessageID();
-            var message_file = messageid + this.msgFileExt;
+            var message_file = message_id + this.msgFileExt;
             var message_file_out = mailbox_path + message_file;
             var message_data = {
                 "from_addr": from_addr,

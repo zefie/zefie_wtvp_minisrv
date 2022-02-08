@@ -10,7 +10,7 @@ data = `
 <HTML>
 <HEAD>
 <TITLE>
-Your WebTV account
+Your ${minisrv_config.config.service_name} account
 </TITLE>
 <DISPLAY noscroll>
 </HEAD>
@@ -51,36 +51,28 @@ Your WebTV account
 <tr>
 <td valign=center absheight=80>
 <font size="+2" color="E7CE4A"><blackface><shadow>
-Your WebTV account
+Your ${minisrv_config.config.service_name} account
 </table>
 <td abswidth=20>
 <TR>
 <td>
 <td WIDTH=198 HEIGHT=236 VALIGN=top ALIGN=left>
-<A HREF="JavaScript:alert('This feature is not available.')"><BLACKFACE>Subscriber info</BLACKFACE></A><BR>
+<A HREF="wtv-setup:/edit-user-begin?user_id=0"><BLACKFACE>Subscriber info</BLACKFACE></A><BR>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=1><BR>
-<FONT SIZE="-1">Change your address, phone number, and password</FONT><BR>
+<FONT SIZE="-1">Change your display name and/or password</FONT><BR>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=11><BR>
-<A HREF="JavaScript:alert('This feature is not available.')"><BLACKFACE>How you pay</BLACKFACE></A><BR>
+<A HREF="wtv-setup:/accounts"><BLACKFACE>Additional Users</BLACKFACE></A><BR>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=1><BR>
-<FONT SIZE="-1">Change the way you pay for WebTV service</FONT><BR>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=11><BR>
-<A HREF="JavaScript:alert('This feature is not available.')"><BLACKFACE>ISP options</BLACKFACE></A><BR>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=1><BR>
-<FONT SIZE="-1">Save money if you dial long-distance to WebTV</FONT><BR>
+<FONT SIZE="-1">Manage additional user accounts</FONT><BR>
 <TD WIDTH=20>
 <TD WIDTH=198 VALIGN=top ALIGN=left>
-<A HREF="JavaScript:alert('This feature is not available.')"><BLACKFACE>Billing statement</BLACKFACE></A><BR>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=1><BR>
-<FONT SIZE="-1">For your account</FONT><BR>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=11><BR>
 <A HREF="wtv-home:/Credits-Legal"><BLACKFACE>Terms of service</BLACKFACE></A><BR>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=1><BR>
 <FONT SIZE="-1">Rules and regulations</FONT><BR>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=11><BR>
 <A HREF="wtv-home:/Credits-Privacy"><BLACKFACE>Privacy policy</BLACKFACE></A><BR>
 <IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=1><BR>
-<FONT SIZE="-1">Your personal information</FONT><BR>
+<FONT SIZE="-1">How we use your personal information</FONT><BR>
 
 <TR>
 <TD>
@@ -102,7 +94,7 @@ Your WebTV account
 <TR>
 <TD>
 <TD COLSPAN=3 VALIGN=top ALIGN=right>
-<FORM action="client:goback">
+<FORM action="wtv-setup:/setup">
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
 <INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Done NAME="Done" USESTYLE WIDTH=103>
 </SHADOW></FONT></FORM>
