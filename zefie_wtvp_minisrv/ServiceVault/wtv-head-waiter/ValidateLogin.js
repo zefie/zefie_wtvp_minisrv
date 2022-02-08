@@ -75,7 +75,6 @@ wtv-encrypted: true
 wtv-ticket: ${wtvsec_login.ticket_b64}
 `;
 	}
-	console.log(ssid_sessions[socket.ssid])
 	if (limitedLoginRegistered) gourl = "wtv-head-waiter:/password?";
 	headers += `
 wtv-visit: ${gourl}`;

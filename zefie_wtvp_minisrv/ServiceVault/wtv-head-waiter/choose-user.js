@@ -86,7 +86,19 @@ for (const [key, value] of Object.entries(accounts)) {
     if (key == "subscriber") data += `<font size=+1><b>${value['subscriber_username']}</b></font></a>`;
     else data += `<font size=+1>${value['subscriber_username']}</font>`
     data += "<td width=15><td nowrap>	<font color=42BD52>";
-    data += "<!-- do mailcheck here -->" // todo
+    var userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
+    userSession.user_id = user_id;
+
+    var mailcount = 0;
+    if (userSession.mailstore.mailstoreExists()) {
+        if (userSession.mailstore.mailboxExists(0)) {
+            mailcount = userSession.mailstore.countUnreadMessages(0);
+        }
+    }
+    if (mailcount > 0) {
+        var mcnumber = (mailcount >= 100) ? "99+" : mailcount;
+        data += mcnumber + ` new message${(mcnumber != 1) ? 's' : ''}`;
+    }
     data += `</font>
 <tr>
 <td>
@@ -107,6 +119,8 @@ for (const [key, value] of Object.entries(accounts)) {
 while (accounts_listed < minisrv_config.config.user_accounts.max_users_per_account) {
     data += `<tr>
 <td>
+<td absheight=37><tr>
+<td>
 <td bgcolor=1e1e1e width=400 absheight=2 colspan=3>
 <img src="ROMCache/Spacer.gif" width=1 height=1>
 <tr>
@@ -116,11 +130,6 @@ while (accounts_listed < minisrv_config.config.user_accounts.max_users_per_accou
 <td>
 <td bgcolor=121212 width=400 absheight=2 colspan=3>
 <img src="ROMCache/Spacer.gif" width=1 height=1>`;
-    if (accounts_listed != minisrv_config.config.user_accounts.max_users_per_account - 1) {
-        data += `<tr>
-<td>
-<td absheight=37>`;
-    } 
     accounts_listed++;
 }
 

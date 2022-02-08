@@ -1,6 +1,6 @@
 const { lib } = require('crypto-js');
 const CryptoJS = require('crypto-js');
-
+const WTVMail = require('./WTVMail.js')
 class WTVClientSessionData {
 
     fs = require('fs');
@@ -27,7 +27,6 @@ class WTVClientSessionData {
         if (!minisrv_config) throw ("minisrv_config required");
         var WTVShared = require('./WTVShared.js')['WTVShared'];
         var WTVMime = require('./WTVMime.js');
-        var WTVMail = require('./WTVMail.js');
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
@@ -38,7 +37,6 @@ class WTVClientSessionData {
         this.lockdownWhitelist = [
             "wtv-1800:/preregister",
             "wtv-head-waiter:/login",
-            "wtv-head-waiter:/password",
             "wtv-head-waiter:/ValidateLogin",
             "wtv-head-waiter:/login-stage-two",
             "wtv-head-waiter:/relogin",
@@ -50,16 +48,16 @@ class WTVClientSessionData {
         this.lockdownWhitelist.push(minisrv_config.config.service_logo);
 
         this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
+        this.loginWhitelist.push("wtv-head-waiter:/choose-user");
+        this.loginWhitelist.push("wtv-head-waiter:/password");
         this.mailstore = new WTVMail(minisrv_config, ssid, this);
     }
 
 
-    switchUserID(user_id) {
+    switchUserID(user_id, update_mail = true) {
         this.user_id = user_id;
-        var wtvsec_tmp = this.get("wtvsec_login");
         this.loadSessionData();
-        this.set("wtvsec_login", wtvsec_tmp);
-        wtvsec_tmp = null;
+        this.mailstore = new WTVMail(this.minisrv_config, this.ssid, this)
     }
 
     findFreeUserSlot() {
@@ -421,8 +419,11 @@ class WTVClientSessionData {
         return false;
     }
 
-    isRegistered() {
-        return (this.getSessionData("registered") && this.fs.existsSync(this.getUserStoreDirectory()));
+    isRegistered(session_mode = true) {
+        if (session_mode)
+            return (this.getSessionData("registered") && this.fs.existsSync(this.getUserStoreDirectory()));
+        else
+            return this.fs.existsSync(this.getUserStoreDirectory());
     }
 
     unregisterBox() {
@@ -650,9 +651,9 @@ class WTVClientSessionData {
     }
 
 
-    isAuthorized(url, whitelist = 'lockdown') {
+    isAuthorized(url, whitelist = 'lockdown', ignore_lockdown = false) {
         // not in lockdown so just return true
-        if (!this.lockdown) return true;
+        if (!this.lockdown && !ignore_lockdown) return true;
 
         // in lockdown, check whitelisted urls
         var self = this;
