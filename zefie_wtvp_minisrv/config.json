@@ -8,6 +8,8 @@
     "SessionStore": "SessionStore",
     "service_owner": "a minisrv user",
     "service_owner_account": "minisrvuser",
+    "service_owner_contact": "someone",
+    "service_owner_contact_method": "something",
     "service_name": "WebTV",
     "service_logo": "WebTVLogoJewel.gif",
     "service_splash_logo": "file://ROM/images/SplashLogo1.gif",
