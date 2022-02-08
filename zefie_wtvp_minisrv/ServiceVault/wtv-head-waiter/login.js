@@ -1,8 +1,9 @@
 var minisrv_service_file = true;
 
 var challenge_response, challenge_header = "";
+if (socket.ssid !== null) ssid_sessions[socket.ssid].switchUserID(0);
 
-var gourl = "wtv-head-waiter:/login-stage-two?";
+var gourl = "wtv-head-waiter:/ValidateLogin?initial_login=true&";
 if (request_headers.query.relogin) gourl += "relogin=true";
 else if (request_headers.query.reconnect) gourl += "reconnect=true";
 
@@ -55,6 +56,8 @@ wtv-expire-all: wtv-head-waiter:
 wtv-log-url: wtv-log:/log`;
 	if (challenge_header != "") headers += "\n" + challenge_header;
 	headers += `
+wtv-country: US
+wtv-language-header: en-US,en
 wtv-relogin-url: wtv-head-waiter:/relogin?relogin=true
 wtv-reconnect-url: wtv-head-waiter:/relogin?reconnect=true
 wtv-visit: ${gourl}

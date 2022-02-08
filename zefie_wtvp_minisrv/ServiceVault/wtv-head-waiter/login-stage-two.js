@@ -1,47 +1,14 @@
 var minisrv_service_file = true;
+var gourl = null;
 
-var challenge_response, challenge_header = '';
-var gourl;
-
-if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
-	var wtvsec_login = new WTVSec(minisrv_config);
-	wtvsec_login.IssueChallenge();
-	wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
-	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
-} else {
-	var wtvsec_login = ssid_sessions[socket.ssid].get("wtvsec_login");
-}
-
-if (socket.ssid !== null) {
-	if (wtvsec_login.ticket_b64 == null) {
-		challenge_response = wtvsec_login.challenge_response;
-		var client_challenge_response = request_headers["wtv-challenge-response"] || null;
-		if (challenge_response && client_challenge_response) {
-			if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
-				console.log(" * wtv-challenge-response success for " + wtvshared.filterSSID(socket.ssid));
-				wtvsec_login.PrepareTicket();
-
-			} else {
-				console.log(" * wtv-challenge-response FAILED for " + wtvshared.filterSSID(socket.ssid));
-				if (minisrv_config.config.debug_flags.debug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
-				if (minisrv_config.config.debug_flags.debug) console.log("Response Received:", client_challenge_response)
-				gourl = "wtv-head-waiter:/login?reissue_challenge=true";
-			}
-		} else {
-			gourl = "wtv-head-waiter:/login?no_response=true";
-		}
-	}
-}
-
-if (!ssid_sessions[socket.ssid].getSessionData("registered") && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
+if (!ssid_sessions[socket.ssid].isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
 
 if (gourl) {
 	headers = `200 OK
 wtv-open-isp-disabled: false
 `;
-	if (!ssid_sessions[socket.ssid].getSessionData("registered") && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
+	if (!ssid_sessions[socket.ssid].isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
 		headers += `wtv-encrypted: true
-wtv-ticket: ${wtvsec_login.ticket_b64}
 ${getServiceString('wtv-register')}
 ${getServiceString('wtv-head-waiter')}
 ${getServiceString('wtv-star')}
@@ -77,91 +44,111 @@ else {
 		var messenger_authorized = ssid_sessions[socket.ssid].getSessionData("messenger_authorized") || 0;
 		var home_url = "wtv-home:/splash?";
 	}
+	var limitedLogin = ssid_sessions[socket.ssid].lockdown;
+	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && ssid_sessions[socket.ssid].getSessionData('password_valid')));
 	var offline_user_list = CryptoJS.enc.Latin1.parse("<user-list>\n\t<user userid=\"" + userid + " user-name=\"" + nickname + "\" first-name=\"" + minisrv_config.config.service_name + "User \" last-name=\\" + namerand + "\" password=\"\" mail-enabled=\"true\" />\n</user-list>").toString(CryptoJS.enc.Base64);
+
+	if (limitedLoginRegistered) var home_url = "wtv-head-waiter:/password?";
+
 	data = '';
+
 	headers = `200 OK
 Connection: Keep-Alive
-wtv-encrypted: true
-wtv-client-time-zone: GMT -0000
+wtv-expire-all: wtv-head-waiter:
+`;
+
+	if (!limitedLogin) {
+		headers += `wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: GMT
 wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + ` GMT
 wtv-country: US
 wtv-language-header: en-US,en
+wtv-noback-all: wtv-
 wtv-visit: client:closeallpanels
 wtv-expire-all: client:closeallpanels
 wtv-transition-override: off
-wtv-force-lightweight-targets: webtv.net:/
 wtv-smartcard-inserted-message: Contacting service
-wtv-bypass-proxy: false`;
-	if (!ssid_sessions[socket.ssid].lockdown) {
-		headers += `
-wtv-offline-user-list: ${offline_user_list}
-wtv-messenger-authorized: ${messenger_authorized}
-wtv-messenger-enable: ${messenger_enabled}`;
-	}
-	headers += `
-wtv-noback-all: wtv-
-wtv-service: reset
+wtv-ssl-timeout: 240
+wtv-login-timeout: 7200
 `;
-	if (!ssid_sessions[socket.ssid].lockdown) {
-		headers += getServiceString('all', { "exceptions": ["wtv-register"] });
-	} else {
-		headers += getServiceString('wtv-1800') + "\n";
-		headers += getServiceString('wtv-head-waiter') + "\n";
-		headers += getServiceString('wtv-star') + "\n";
-	}
-	headers += `
-wtv-ticket: ${wtvsec_login.ticket_b64}`;
-	if (!ssid_sessions[socket.ssid].lockdown) {
-		headers += `
+		if (!limitedLogin) {
+
+			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
+			headers += `wtv-offline-user-list: ${offline_user_list}
+wtv-messenger-authorized: ${messenger_authorized}
+wtv-messenger-enable: ${messenger_enabled}
+wtv-messagewatch-checktimeoffset: off
+`;
+		} else {
+			/*
+			headers += getServiceString('wtv-1800') + "\n";
+			headers += getServiceString('wtv-head-waiter') + "\n";
+			headers += getServiceString('wtv-log') + "\n";
+			headers += getServiceString('wtv-star') + "\n";
+			headers += getServiceString('wtv-flashrom') + "\n";
+			*/
+			headers += `wtv-messenger-authorized: 0
+wtv-messenger-enable: 0
+`;
+		}
+
+		headers += `wtv-log-url: wtv-log:/log
+wtv-ssl-log-url: wtv-log:/log
+`;
+
+		if (!limitedLogin) {
+			headers += `wtv-bypass-proxy: false
 user-id: ${userid}
 wtv-human-name: ${human_name}
 ${ssid_sessions[socket.ssid].setIRCNick(nickname)}
 wtv-domain: ${minisrv_config.config.domain_name}
-wtv-messagewatch-checktimeoffset: off
 wtv-input-timeout: 14400
 wtv-connection-timeout: 1440
 wtv-fader-timeout: 1440
-wtv-inactive-timeout: 1440`;
-	} else {
-		headers += `
-user-id: 0
-wtv-human-name: Unauthorized User
-wtv-domain: ${minisrv_config.config.domain_name}
-wtv-input-timeout: 30
-wtv-connection-timeout: 60
-wtv-fader-timeout: 60
-wtv-inactive-timeout: 60`;
-	}
+wtv-inactive-timeout: 1440
+`;
+		}
+		/*
+		else {
+			headers += `wtv-bypass-proxy: true
+	user-id: 0
+	wtv-human-name: Unauthorized User
+	wtv-domain: ${minisrv_config.config.domain_name}
+	wtv-input-timeout: 30
+	wtv-connection-timeout: 60
+	wtv-fader-timeout: 60
+	wtv-inactive-timeout: 60`;
+		}
+		*/
 
-	headers += "\nwtv-relogin-url: wtv-head-waiter:/relogin?relogin=true";
-	if (request_headers.query.guest_login) headers += "&guest_login=true";
+		if (!limitedLogin) {
+			headers += "\nwtv-relogin-url: wtv-head-waiter:/relogin?relogin=true";
+			if (request_headers.query.guest_login) headers += "&guest_login=true";
 
-	headers += "\nwtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true";
-	if (request_headers.query.guest_login) headers += "&guest_login=true";
+			headers += "\nwtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true";
+			if (request_headers.query.guest_login) headers += "&guest_login=true";
 
-	headers += "\nwtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
-	if (request_headers.query.guest_login) headers += "&guest_login=true";
+			headers += "\nwtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
+			if (request_headers.query.guest_login) headers += "&guest_login=true";
 
-	if (!ssid_sessions[socket.ssid].lockdown) headers += "\nwtv-home-url: wtv-home:/home?";	
+			headers += "\nwtv-home-url: wtv-home:/home?";
+		}
 
-	if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !ssid_sessions[socket.ssid].lockdown)
-		headers += "\nwtv-settings-url: wtv-setup:/get";
+		if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin)
+			headers += "\nwtv-settings-url: wtv-setup:/get\n";
 
-	headers += `
+		if (!limitedLogin) {
+			headers += `wtv-force-lightweight-targets: webtv.net:/
 wtv-show-time-enabled: true
 wtv-allow-dsc: true
 wtv-tourist-enabled: true
-wtv-log-url: wtv-log:/log
-wtv-ssl-log-url: wtv-log:/log
-wtv-ssl-timeout: 240
-wtv-login-timeout: 7200
 wtv-open-isp-disabled: false
 wtv-offline-mail-enable: false
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
 wtv-name-server: 8.8.8.8`;
-
+		}
+	}
 	if (!request_headers.query.reconnect) headers += "\nwtv-visit: " + home_url;
 	headers += "\nContent-Type: text/html";
 }

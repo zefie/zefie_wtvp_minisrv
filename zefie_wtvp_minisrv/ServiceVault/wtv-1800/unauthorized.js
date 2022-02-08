@@ -1,7 +1,8 @@
 var minisrv_service_file = true;
 
 headers = `200 OK
-Content-type: text/html`;
+Content-type: text/html
+minisrv-no-mail-count: true`;
 
 data = `<html>
 <head>
@@ -16,7 +17,7 @@ hspace=0 vspace=0 fontsize="large"
 <table cellspacing=0 cellpadding=0^C>
 <tr>
 <td width=104 height=74 valign=middle align=center bgcolor="3B3A4D">
-<img src="file://ROM/Cache/WebTVLogoJewel.gif" width=86 height=64>
+<img src="${minisrv_config.config.service_logo}" width=86 height=64>
 <td width=20 valign=top align=left bgcolor="3B3A4D">
 <img src="ROMCache/Spacer.gif"
 width=1 height=1>

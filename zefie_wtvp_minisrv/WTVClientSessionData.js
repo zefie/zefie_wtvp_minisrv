@@ -1,4 +1,5 @@
 const { lib } = require('crypto-js');
+const CryptoJS = require('crypto-js');
 
 class WTVClientSessionData {
 
@@ -20,6 +21,7 @@ class WTVClientSessionData {
     lockdownWhitelist = null;
     baddisk = false;
     clientAddress = null;
+    user_id = 0;
 
     constructor(minisrv_config, ssid) {
         if (!minisrv_config) throw ("minisrv_config required");
@@ -36,22 +38,98 @@ class WTVClientSessionData {
         this.lockdownWhitelist = [
             "wtv-1800:/preregister",
             "wtv-head-waiter:/login",
-            "wtv-head-waiter:/relogin",
+            "wtv-head-waiter:/password",
+            "wtv-head-waiter:/ValidateLogin",
             "wtv-head-waiter:/login-stage-two",
+            "wtv-head-waiter:/relogin",
             "wtv-head-waiter:/bad-disk",
-            "wtv-log:/log"
+            "wtv-head-waiter:/images/PasswordBanner.gif",
+            "wtv-log:/log",
         ];
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
+        this.lockdownWhitelist.push(minisrv_config.config.service_logo);
+
+        this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
         this.mailstore = new WTVMail(minisrv_config, ssid, this);
+    }
+
+
+    switchUserID(user_id) {
+        this.user_id = user_id;
+        var wtvsec_tmp = this.get("wtvsec_login");
+        this.loadSessionData();
+        this.set("wtvsec_login", wtvsec_tmp);
+        wtvsec_tmp = null;
+    }
+
+    findFreeUserSlot() {
+        if (this.user_id != 0) return false; // subscriber only command
+        var master_directory = this.getUserStoreDirectory(true);
+        if (this.fs.existsSync(master_directory)) {
+            for (var i = 0; i < this.minisrv_config.config.user_accounts.max_users_per_account; i++) {
+                var test_dir = master_directory + this.path.sep + "user" + i;
+                if (!this.fs.existsSync(test_dir)) {
+                    return i;
+                    break;
+                }
+            }
+        }
+        return false;
+    }
+
+    getDisplayName() {
+        return (this.user_id == 0) ? this.getSessionData("subscriber_name") : this.getSessionData("display_name");
+    }
+
+    getNumberOfUserAccounts() {
+        if (this.user_id != 0) return false; // subscriber only command
+        return Object.keys(this.listPrimaryAccountUsers()).length;
+    }
+
+    listPrimaryAccountUsers() {
+        if (this.user_id != 0) return false; // subscriber only command
+
+        var master_directory = this.getUserStoreDirectory(true);
+        var account_data = [];
+        var self = this;
+        this.fs.readdirSync(master_directory).forEach(f => {
+            if (self.fs.lstatSync(master_directory + self.path.sep + f).isDirectory()) {
+                if (f.substr(0, 4) == "user") {
+                    var user_file = master_directory + self.path.sep + f + self.path.sep + f + ".json";
+                    if (self.fs.existsSync(user_file)) {
+                        if (f == "user0") account_data['subscriber'] = JSON.parse(this.fs.readFileSync(user_file));
+                        else account_data[f] = JSON.parse(this.fs.readFileSync(user_file));
+                    }
+                }
+            }
+        });
+        return account_data;
+    }
+
+
+    mkdirRecursive(thedir) {
+        thedir.split(this.path.sep).reduce(
+            (directories, directory) => {
+                directories += directory + this.path.sep;
+                if (!this.fs.existsSync(directories)) {
+                    this.fs.mkdirSync(directories);
+                }
+                return directories;
+            },
+            '',
+        );
     }
 
     /**
      * Returns the absolute path to the user's file store, or false if unregistered
+     * @param subscriber {boolean} Returns the parent subscriber directory instead of the user's directory
      * @returns {string|boolean} Absolute path to the user's file store, or false if unregistered
      */
-    getUserStoreDirectory() {
-        if (!this.isRegistered()) return false;
-        return this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + this.path.sep;
+    getUserStoreDirectory(subscriber = false) {
+        //if (!this.isRegistered()) return false;
+        var userstore = this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + this.path.sep;
+        if (!subscriber) userstore += "user" + this.user_id + this.path.sep;
+        return userstore;
     }
 
     /**
@@ -249,8 +327,8 @@ class WTVClientSessionData {
 
     loadSessionData(raw_data = false) {
         try {
-            if (this.fs.lstatSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json")) {
-                var json_data = this.fs.readFileSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json", 'Utf8')
+            if (this.fs.lstatSync(this.getUserStoreDirectory() + "user" + this.user_id + ".json")) {
+                var json_data = this.fs.readFileSync(this.getUserStoreDirectory() + "user" + this.user_id + ".json", 'Utf8')
                 if (raw_data) return json_data;
 
                 var session_data = JSON.parse(json_data);
@@ -262,6 +340,41 @@ class WTVClientSessionData {
             if (e.code != "ENOENT") console.error(" # Error loading session data for", this.wtvshared.filterSSID(this.ssid), e);
             return false;
         }
+    }
+
+    encodePassword(passwd) {
+        var encoded_passwd = CryptoJS.SHA512(passwd);
+        return encoded_passwd.toString(CryptoJS.enc.Base64);
+    }
+
+    setUserPassword(passwd) {
+        var encoded_passwd = this.encodePassword(passwd);
+        this.setSessionData("subscriber_password", encoded_passwd);
+        this.saveSessionData();
+    }
+
+    disableUserPassword() {
+        this.setSessionData("subscriber_password", null);
+        this.saveSessionData();
+    }
+
+    getUserPasswordEnabled() {
+        if (!this.minisrv_config.config.passwords.enabled) return false; // master config override
+        var enabled = this.getSessionData("subscriber_password");
+        return (enabled); // true if set, false if null/disabled
+    }
+
+    validateUserPassword(passwd) {
+        if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
+
+        var encoded_passwd = this.encodePassword(passwd);
+        return (encoded_passwd == this.getSessionData("subscriber_password"));
+    }
+
+    isUserLoggedIn() {
+        if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
+        var password_valid = this.getSessionData("password_valid");
+        return (password_valid);
     }
 
     saveSessionData(force_write = false) {
@@ -281,7 +394,11 @@ class WTVClientSessionData {
             // only save if file has changed
             var json_save_data = JSON.stringify(this.session_store);
             var json_load_data = this.loadSessionData(true);
-            if (json_save_data != json_load_data) this.fs.writeFileSync(this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + ".json", JSON.stringify(this.session_store), "Utf8");
+            var storeDir = this.getUserStoreDirectory();
+            if (!this.fs.existsSync(storeDir)) this.mkdirRecursive(storeDir);
+            var sessionToStore = this.session_store;
+            if (sessionToStore.password_valid) delete sessionToStore.password_valid; // do not save validity state of password login, resets when session expires
+            if (json_save_data != json_load_data) this.fs.writeFileSync(storeDir + "user" + this.user_id + ".json", JSON.stringify(sessionToStore), "Utf8");
             return true;
         } catch (e) {            
             console.error(" # Error saving session data for", this.wtvshared.filterSSID(this.ssid), e);
@@ -305,14 +422,7 @@ class WTVClientSessionData {
     }
 
     isRegistered() {
-        var self = this;
-        var ssid_match = false;
-        this.fs.readdirSync(this.minisrv_config.config.SessionStore).forEach(file => {
-            if (!file.match(/.*\.json/ig)) return;
-            if (ssid_match) return;
-            if (file.split('.')[0] == self.ssid) ssid_match = true;
-        });
-        return ssid_match;
+        return (this.getSessionData("registered") && this.fs.existsSync(this.getUserStoreDirectory()));
     }
 
     unregisterBox() {
@@ -540,16 +650,25 @@ class WTVClientSessionData {
     }
 
 
-    isAuthorized(url) {
+    isAuthorized(url, whitelist = 'lockdown') {
         // not in lockdown so just return true
         if (!this.lockdown) return true;
 
         // in lockdown, check whitelisted urls
         var self = this;
         var authorized = false;
-        Object.keys(this.lockdownWhitelist).forEach(function (k) {
-            if (self.lockdownWhitelist[k].substring(0, url.length) == url) authorized = true;
-        });
+        switch (whitelist) {
+            case "lockdown":
+                Object.keys(this.lockdownWhitelist).forEach(function (k) {
+                    if (self.lockdownWhitelist[k].substring(0, url.length) == url) authorized = true;
+                });
+                break;
+            case "login":
+                Object.keys(this.loginWhitelist).forEach(function (k) {
+                    if (self.loginWhitelist[k].substring(0, url.length) == url) authorized = true;
+                });
+                break;
+        }
         return authorized;
     }
 

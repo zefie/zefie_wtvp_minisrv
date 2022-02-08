@@ -150,6 +150,7 @@ if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
 
 
 	headers = "200 OK\n"
+	headers += "minisrv-no-mail-count: true\n";
 	if (bf0app_update) headers += "minisrv-use-carriage-return: false\n";
 	headers += "Connection: Keep-Alive\n";
 	headers += "wtv-initial-key: " + ssid_sessions[socket.ssid].data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";

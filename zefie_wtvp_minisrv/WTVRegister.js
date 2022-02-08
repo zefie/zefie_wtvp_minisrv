@@ -28,13 +28,19 @@ class WTVRegister {
         return (check1 && check2);
     }
 
-    checkUsernameAvailable(username, ssid_sessions) {
+    checkUsernameAvailable(username, ssid_sessions, directory = null) {
         var username_match = false;
-        this.fs.readdirSync(this.session_store_dir).forEach(file => {
+        var search_dir = this.session_store_dir;
+        var self = this;
+        if (directory) search_dir = directory;
+        this.fs.readdirSync(search_dir).forEach(file => {
+            if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory()) {
+                return self.checkUsernameAvailable(username, ssid_sessions, search_dir + self.path.sep + file);
+            }
             if (!file.match(/.*\.json/ig)) return;
             if (username_match) return;
             try {
-                var temp_session_data_file = this.fs.readFileSync(this.session_store_dir + this.path.sep + file, 'Utf8');
+                var temp_session_data_file = this.fs.readFileSync(search_dir + this.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) username_match = true;
             } catch (e) {
