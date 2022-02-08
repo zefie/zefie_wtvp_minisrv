@@ -39,14 +39,28 @@ else {
 	} else {
 		var userid = ssid_sessions[socket.ssid].getSessionData("subscriber_userid")
 		var nickname = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
-		var human_name = ssid_sessions[socket.ssid].getSessionData("subscriber_name");
+		var human_name = ssid_sessions[socket.ssid].getSessionData("subscriber_name") || nickname;
 		var messenger_enabled = ssid_sessions[socket.ssid].getSessionData("messenger_enabled") || 0;
 		var messenger_authorized = ssid_sessions[socket.ssid].getSessionData("messenger_authorized") || 0;
 		var home_url = "wtv-home:/splash?";
 	}
 	var limitedLogin = ssid_sessions[socket.ssid].lockdown;
 	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && ssid_sessions[socket.ssid].getSessionData('password_valid')));
-	var offline_user_list = CryptoJS.enc.Latin1.parse("<user-list>\n\t<user userid=\"" + userid + " user-name=\"" + nickname + "\" first-name=\"" + minisrv_config.config.service_name + "User \" last-name=\\" + namerand + "\" password=\"\" mail-enabled=\"true\" />\n</user-list>").toString(CryptoJS.enc.Base64);
+	var offline_user_list = null;
+	if (ssid_sessions[socket.ssid].isRegistered() && ssid_sessions[socket.ssid].user_id == 0) {
+		var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
+		console.log(accounts);
+		var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
+		var offline_user_list_str = "<user-list>\n";
+		var i = 0;
+		Object.keys(accounts).forEach((k) => {
+			var account_display_name = (accounts[k].subscriber_name) ? accounts[k].subscriber_name : accounts[k].subscriber_username
+			offline_user_list_str += "\t" + '<user userid="' + i + '" user-name="' + accounts[k].subscriber_username + '" first-name="' + account_display_name + '"  last-name="" passsword="" mail-enabled=true />' + "\n";
+			i++;
+		});
+		offline_user_list_str += "</user-list>\n";
+		offline_user_list = CryptoJS.enc.Latin1.parse(offline_user_list_str).toString(CryptoJS.enc.Base64);
+    }
 
 	if (limitedLoginRegistered) var home_url = "wtv-head-waiter:/password?";
 
@@ -74,8 +88,8 @@ wtv-login-timeout: 7200
 		if (!limitedLogin) {
 
 			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
-			headers += `wtv-offline-user-list: ${offline_user_list}
-wtv-messenger-authorized: ${messenger_authorized}
+			if (offline_user_list) headers += "wtv-offline-user-list: " + offline_user_list + "\n";
+			headers += `wtv-messenger-authorized: ${messenger_authorized}
 wtv-messenger-enable: ${messenger_enabled}
 wtv-messagewatch-checktimeoffset: off
 `;
