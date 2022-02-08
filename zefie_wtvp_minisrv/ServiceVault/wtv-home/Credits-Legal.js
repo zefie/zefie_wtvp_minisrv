@@ -9,7 +9,7 @@ data = `
 <HTML>
 <HEAD>
 <TITLE>
-WebTV Terms of Service
+${minisrv_config.config.service_name} Terms of Service
 </TITLE>
 <DISPLAY >
 </HEAD>
@@ -24,7 +24,7 @@ WebTV Terms of Service
 <table href="wtv-home:/home" absheight=76 cellspacing=0 cellpadding=0>
 <tr>
 <td align=right>
-<img src="wtv-home:/ROMCache/WebTVLogoJewel.gif" width=87 height=67>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
 </table>
 <td abswidth=6>
 <tr><td absheight=5 colspan=3>
@@ -37,7 +37,7 @@ WebTV Terms of Service
 </table>
 <tr><td absheight=100>
 <tr><td absheight=244 align=right colspan=3>
-<img src="ROMCache/TermsBanner.gif" width=48 height=136>
+<img src="images/TermsBanner.gif" width=48 height=136>
 <tr><td absheight=41>
 </table>
 </sidebar>
@@ -51,14 +51,15 @@ WebTV Terms of Service
 <td abswidth=416 absheight=80 valign=center>
 <font size="+2" color="E7CE4A"><blackface><shadow>
 <font size="+1">
-<CENTER><B>WebTV Terms of Service</B></font><br>
+<CENTER><B>${minisrv_config.config.service_name} Terms of Service</B></font><br>
 <B><font size="-1">(Release date January 21, 2022)</B></CENTER></font>
 <td abswidth=20>
 <tr>
 <td>
 <td valign=top align=left>
 <p><b>General</b><br>
-<p>This is a recreation of the WebTV service, originally hosted by WebTV Networks, Inc. This server has no affiliation with WebTV Networks, and all original assets and pages belong to them.</p>
+<p>This is a Work-in-Progress remaster of the WebTV service, originally hosted by WebTV Networks, Inc.
+This server has no affiliation with WebTV Networks, and many original assets and pages belong to them.</p>
   <p><b>Rules</b><br>
 <p>You must follow these rules, or your privilege to access this service may be revoked.</p>
 <ul>
@@ -71,9 +72,9 @@ WebTV Terms of Service
   </ul> 
   <p>Failure to abide by one or more of these rules may require your access to be terminated.</p>
   <p><b>Service Termination</b><br>
-<p>If you break one or more of the rules listed above, your access to the service may be revoked. Disclosure of your termination reason will be decided on a case-by-case basis. Any attempt for a banned user to regain access to the server will be dealt with immediately. If you know of a banned user who is still on the network, please report it to us on Discord at JarHead#3922. All decisions are final, and will not be reverted.</p>
+<p>If you break one or more of the rules listed above, your access to the service may be revoked. Disclosure of your termination reason will be decided on a case-by-case basis. Any attempt for a banned user to regain access to the server will be dealt with immediately. If you know of a banned user who is still on the network, please report it to us by contacting ${minisrv_config.config.service_owner_contact} via ${minisrv_config.config.service_owner_contact_method}. All decisions are final, and will not be reverted.</p>
   
-<p>These terms can change at any time, without warning. Your continued usage of the service is an agreement to these Terms of Service. If you do not agree to these terms, please disconnect immediately and get in contact on Discord at JarHead#3922 so your account can be terminated.</p>
+<p>These terms can change at any time, without warning. Your continued usage of the service is an agreement to these Terms of Service. If you do not agree to these terms, please disconnect immediately and contact ${minisrv_config.config.service_owner_contact} via ${minisrv_config.config.service_owner_contact_method} to terminate your account.</p>
 <td>
 <tr>
 <td absheight=7>
