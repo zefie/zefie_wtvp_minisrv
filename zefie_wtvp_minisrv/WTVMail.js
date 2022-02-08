@@ -260,15 +260,16 @@ class WTVMail {
     }
 
     countMessages(mailboxid) {
-        var messages = this.listMessages(mailboxid, false);
-        return (messages.length) ? messages.length : 0;
+        var messages = this.listMessages(mailboxid, 100, false);
+        var message_count = Object.keys(messages).length;
+        return (message_count) ? message_count : 0;
     }
 
     countUnreadMessages(mailboxid) {
-        var messages = this.listMessages(mailboxid, false);
+        var messages = this.listMessages(mailboxid, 100, false);
         var unread = 0;
         Object.keys(messages).forEach(function (k) {
-            if (k.unread) unread++;
+            if (messages[k].unread) unread++;
         });
         return unread;
     }

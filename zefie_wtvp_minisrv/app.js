@@ -397,12 +397,23 @@ async function processURL(socket, request_headers) {
 
         if (!ssid_sessions[socket.ssid].isUserLoggedIn() && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
             // lockdown mode and URL not authorized
-            headers = "300 Unauthorized\n";
-            headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
+            headers = `300 Unauthorized
+Location: " + minisrv_config.config.unauthorized_url`;
             data = "";
             sendToClient(socket, headers, data);
             console.log(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
             return;
+        }
+
+        if (ssid_sessions[socket.ssid].isRegistered(false) && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login', true)) {
+            if (!ssid_sessions[socket.ssid].getSessionData("subscriber_username")) {
+                headers = `300 Session Error
+Location: client:relogin`;
+                data = "";
+                sendToClient(socket, headers, data);
+                console.log(" * Session error: Asking client to relogin via socket ID", socket.id);
+                return;
+            }
         }
 
 
