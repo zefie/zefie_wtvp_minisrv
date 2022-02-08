@@ -73,12 +73,13 @@ Choose your name
 </table>
 <table cellspacing=0 cellpadding=0 width=416>
 <tr><td width=20>
-<tr><td absheight=39>`;
+<tr><td absheight=2>
+<tr>`;
 
 var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
 var accounts_listed = 0;
 for (const [key, value] of Object.entries(accounts)) {
-    data += "<td valign=middle abswidth=50% maxlines=1>";
+    data += "<td absheight=37><td valign=middle abswidth=50% maxlines=1>";
     if (key == "subscriber") var user_id = 0
     else var user_id = key.replace("user", '');
     data += `<a href=/ValidateLogin?user_id=${user_id}&user_login=true nocancel>`;
@@ -99,7 +100,6 @@ for (const [key, value] of Object.entries(accounts)) {
 <td bgcolor=121212 width=400 absheight=2 colspan=3>
 <img src="ROMCache/Spacer.gif" width=1 height=1>
 <tr>
-<td absheight=37>
 `;
     accounts_listed++;
 };
