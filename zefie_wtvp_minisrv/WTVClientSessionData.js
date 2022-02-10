@@ -51,7 +51,7 @@ class WTVClientSessionData {
         this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
         this.loginWhitelist.push("wtv-head-waiter:/choose-user");
         this.loginWhitelist.push("wtv-head-waiter:/password");
-        this.mailstore = new WTVMail(minisrv_config, ssid, this);
+        this.mailstore = new WTVMail(minisrv_config, this);
     }
 
 

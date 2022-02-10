@@ -21,7 +21,7 @@ class WTVMail {
     msgFileExt = ".zmsg";
     trashMailboxName = "Trash";
 
-    constructor(minisrv_config, ssid, wtvclient) {
+    constructor(minisrv_config, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
         var WTVShared = require('./WTVShared.js')['WTVShared'];
         var WTVMime = require('./WTVMime.js');
@@ -31,7 +31,8 @@ class WTVMail {
         this.wtvmime = new WTVMime(minisrv_config);
         this.wtvclient = wtvclient;
         this.is_guest = !this.wtvclient.isRegistered();
-        this.ssid = ssid;
+        this.ssid = wtvclient.ssid;
+        console.log(this.ssid);
         this.unread_mail = this.wtvclient.getSessionData("subscriber_unread_mail") ? this.wtvclient.getSessionData("subscriber_unread_mail") : 0;
         this.mailboxes = [
             // referenced by id, so order is important!
@@ -291,22 +292,25 @@ class WTVMail {
     }
 
     checkUserExists(username, directory = null) {
-        // returns the user's username if true, false if not
+        // returns the user's ssid, and user_id and userid in an array if true, false if not
         var username_match = false;
-        var search_dir = this.session_store_dir;
+        var search_dir = this.minisrv_config.config.SessionStore;
         var return_val = false;
         var self = this;
         if (directory) search_dir = directory;
         this.fs.readdirSync(search_dir).forEach(file => {
-            if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory()) {
-                return self.checkUserExists(username, search_dir + self.path.sep + file);
+            if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
+                return_val =  self.checkUserExists(username, search_dir + self.path.sep + file);
             }
             if (!file.match(/.*\.json/ig)) return;
             if (username_match) return;
             try {
-                var temp_session_data_file = this.fs.readFileSync(search_dir + this.path.sep + file, 'Utf8');
+                var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
-                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) return_val = temp_session_data.subscriber_username;
+                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                    username_match = true;
+                    return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep, '').replace("user",'').split(self.path.sep);
+                }
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", file, e);
                 username_match = true;
@@ -316,9 +320,10 @@ class WTVMail {
     }
 
     getUserMailstore(username) {
-        var ssid = this.checkUserExists(username);
-        if (ssid) {
-            var user_wtvsession = new this.WTVClientSessionData(this.minisrv_config, ssid);
+        var user_data = this.checkUserExists(username);
+        if (user_data) {
+            var user_wtvsession = new this.WTVClientSessionData(this.minisrv_config, user_data[0]);
+            user_wtvsession.user_id = user_data[1];
             var user_mailstore = new WTVMail(this.minisrv_config, ssid, user_wtvsession)
             return user_mailstore;
         }
