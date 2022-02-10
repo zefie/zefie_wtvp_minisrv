@@ -47,18 +47,16 @@ class WTVClientSessionData {
         ];
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
         this.lockdownWhitelist.push(minisrv_config.config.service_logo);
-
+        this.mailstore = new WTVMail(this.minisrv_config, this)
         this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
         this.loginWhitelist.push("wtv-head-waiter:/choose-user");
-        this.loginWhitelist.push("wtv-head-waiter:/password");
-        this.mailstore = new WTVMail(minisrv_config, this);
+        this.loginWhitelist.push("wtv-head-waiter:/password");        
     }
-
 
     switchUserID(user_id, update_mail = true, update_ticket = true) {
         this.user_id = user_id;
         this.loadSessionData();
-        this.mailstore = new WTVMail(this.minisrv_config, this.ssid, this)
+        this.mailstore = new WTVMail(this.minisrv_config, this)
         if (this.data_store.wtvsec_login && update_ticket) this.setTicketData('user_id', user_id);
     }
 

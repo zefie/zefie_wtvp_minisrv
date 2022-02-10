@@ -15,9 +15,7 @@ class WTVMail {
     wtvclient = null;
     WTVClientSessionData = null;
     mailstore_dir = null;
-    is_guest = null;
     mailboxes = null;
-
     msgFileExt = ".zmsg";
     trashMailboxName = "Trash";
 
@@ -25,14 +23,12 @@ class WTVMail {
         if (!minisrv_config) throw ("minisrv_config required");
         var WTVShared = require('./WTVShared.js')['WTVShared'];
         var WTVMime = require('./WTVMime.js');
-        var WTVClientSessionData = require('./WTVClientSessionData.js');
+        this.WTVClientSessionData = require('./WTVClientSessionData.js');
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
         this.wtvclient = wtvclient;
-        this.is_guest = !this.wtvclient.isRegistered();
-        this.ssid = wtvclient.ssid;
-        console.log(this.ssid);
+        this.ssid = this.wtvclient.ssid;
         this.unread_mail = this.wtvclient.getSessionData("subscriber_unread_mail") ? this.wtvclient.getSessionData("subscriber_unread_mail") : 0;
         this.mailboxes = [
             // referenced by id, so order is important!
