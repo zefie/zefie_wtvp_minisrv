@@ -30,10 +30,17 @@ if (!intro_seen && !request_headers.query.intro_seen) {
                 'noback': true,
             }).getURL();
 
-            headers = `200 OK
+            if (request_headers.query.message_delete) {
+                ssid_sessions[socket.ssid].mailstore.deleteMessage(messageid);
+                headers = `300 OK
+wtv-expire: wtv-mail:/listmail
+Location: wtv-mail:/listmail`;
+            } else {
+
+                headers = `200 OK
 Content-type: text/html`;
 
-            data = `<wtvnoscript>
+                data = `<wtvnoscript>
 <sendpanel
 action	= "wtv-mail:/sendmail?message_forward_id=14&mailbox_name=inbox"
 message	= "Forward this message to someone else."
@@ -228,18 +235,18 @@ E-mail message
 From:
 <td width=10>
 <td>`;
-            if (message.from_name != message.from_addr) {
-                data += `${html_entities.encode(message.from_addr)} <a href="client:showalert?sound=none&message=To%20add%20%3Cblackface%3E${escape(escape(message.from_name))}%3C%2Fblackface%3E%20to%20your%20Address%20book,%20choose%20%3Cb%3EAdd%3C%2Fb%3E.&buttonlabel2=Cancel&buttonaction2=client:donothing&buttonlabel1=Add&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">(${html_entities.encode(message.from_name)})</a>`;
-            } else {
-                data += `${html_entities.encode(message.from_addr)}`;
-            }
+                if (message.from_name != message.from_addr) {
+                    data += `${html_entities.encode(message.from_addr)} <a href="client:showalert?sound=none&message=To%20add%20%3Cblackface%3E${escape(escape(message.from_name))}%3C%2Fblackface%3E%20to%20your%20Address%20book,%20choose%20%3Cb%3EAdd%3C%2Fb%3E.&buttonlabel2=Cancel&buttonaction2=client:donothing&buttonlabel1=Add&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">(${html_entities.encode(message.from_name)})</a>`;
+                } else {
+                    data += `${html_entities.encode(message.from_addr)}`;
+                }
 
-            data += `<tr>
+                data += `<tr>
 <td valign=top>
 Date:
 <td>
 <td>
-${strftime("%a, %b %e, %Y, %I:%M %P",new Date(message.date * 1000))} (UTC)
+${strftime("%a, %b %e, %Y, %I:%M %P", new Date(message.date * 1000))} (UTC)
 <tr>
 <td valign=top>
 To:
@@ -269,6 +276,7 @@ ${(message.signature) ? '<embed src="wtv-mail:/get-signature?message_id=${messag
 </body>
 </HTML>
 `;
+            }
         }
     }
 }

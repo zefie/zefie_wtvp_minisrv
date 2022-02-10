@@ -85,7 +85,7 @@ class WTVMail {
     }
 
     getMailboxById(mailboxid) {
-        return (mailboxid < this.mailboxes.length - 1) ? this.mailboxes[mailboxid] : false;
+        return (mailboxid < this.mailboxes.length) ? this.mailboxes[mailboxid] : false;
     }
 
     getMailboxByName(mailbox_name) {
@@ -375,31 +375,36 @@ class WTVMail {
         return "Unknown error";
     }
 
-    getMessageMailboxId(messageid) {
+    getMessageMailboxName(messageid) {
         // returns the mailbox id of which the message was found for the current user
         var self = this;
-        var mailboxid = false;
+        var mailbox_name = false;
         if (this.checkMessageIdSanity(messageid)) {
             if (this.mailstoreExists()) {
                 this.fs.readdirSync(this.mailstore_dir).every(mailbox => {
-                      if (mailboxid) return false;
+                    if (mailbox_name) return false;
                     self.fs.readdirSync(self.mailstore_dir + mailbox).every(file => {
                         var regexSearch = messageid + self.msgFileExt;
                         var re = new RegExp(regexSearch, "ig");
                         if (!file.match(re)) return true;
-                        mailboxid = mailbox;
+                        mailbox_name = mailbox;
                         return false;
                     });
                     return true;
                 });
             }
         }
-        return mailboxid;
+        return mailbox_name;
+    }
+
+    getMessageMailboxID(messageid) {
+        var mailbox_name = this.getMessageMailboxName(messageid);
+        if (!mailbox_name) return false;
+        return this.getMailboxByName(mailbox_name);
     }
 
     getMessageByID(messageid) {
-        var mailbox_name = this.getMessageMailboxId(messageid);
-        console.log(mailbox_name);
+        var mailbox_name = this.getMessageMailboxName(messageid);
         if (!mailbox_name) return false;
 
         var mailboxid = this.mailboxes.findIndex((value) => value == mailbox_name);
@@ -410,33 +415,39 @@ class WTVMail {
 
     moveMailMessage(messageid, dest_mailbox_id) {
         // returns true if successful, false if failed.
-        var currentMailbox = getMessageMailboxId(messageid);
-
+        var currentMailbox = this.getMessageMailboxID(messageid);
         // Same mailbox
         if (dest_mailbox_id == currentMailbox) return false;
 
         // Invalid destination mailbox ID
-        if (dest_mailbox_id > (mailboxes.length - 1) || dest_mailbox_id < 0) return false;
+        if (dest_mailbox_id > (this.mailboxes.length - 1) || dest_mailbox_id < 0) return false;
 
+        if (!this.mailboxExists(dest_mailbox_id)) this.createMailbox(dest_mailbox_id);
 
-        var currentMailFile = getMailboxStoreDir(currentMailbox) + this.path.sep + messageid + this.msgFileExt;
-        var destMailFile = getMailboxStoreDir(dest_mailbox_id) + this.path.sep + messageid + this.msgFileExt;
+        var currentMailStoreDir = this.getMailboxStoreDir(currentMailbox);
+        if (!currentMailStoreDir) return false;
+
+        var destMailStoreDir = this.getMailboxStoreDir(dest_mailbox_id);
+        if (!destMailStoreDir) return false;
+
+        var currentMailFile = currentMailStoreDir + this.path.sep + messageid + this.msgFileExt;
+        var destMailFile = destMailStoreDir + this.path.sep + messageid + this.msgFileExt;
 
         // File exists
-        if (fs.existsSync(destMailFile)) return false;
+        if (this.fs.existsSync(destMailFile)) return false;
 
-        return fs.rename(currentMailFile, destMailFile);
+        return this.fs.renameSync(currentMailFile, destMailFile);
     }
 
     deleteMessage(messageid) {
-        var currentMailbox = getMessageMailboxId(messageid);
-        var trashMailbox = getMailboxByName(this.trashMailboxName);
+        var currentMailbox = this.getMessageMailboxName(messageid);
+        var trashMailbox = this.getMailboxByName(this.trashMailboxName);
         if (currentMailbox != trashMailbox) {
             // if not in the trash, move it to trash
-            return moveMailMessage(messageid, trashMailbox);
+            return this.moveMailMessage(messageid, trashMailbox);
         } else {
             // if its already in the trash, delete it forever
-            var currentMailFile = getMailboxStoreDir(trashMailbox) + this.path.sep + messageid + this.msgFileExt;
+            var currentMailFile = this.getMailboxStoreDir(trashMailbox) + this.path.sep + messageid + this.msgFileExt;
             if (this.fs.fileExistsSync(currentMailFile))
                 return this.fs.unlink(currentMailFile);
             else
