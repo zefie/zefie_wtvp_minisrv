@@ -6,17 +6,15 @@ if (ssid_sessions[socket.ssid].user_id != 0) errpage = wtvshared.doErrorPage(400
 // seperate if statements as to not overwrite the first error if multiple occur
 
 if (!errpage) {
-    if (request_headers.query.user_password) {
-        if (request_headers.query.user_password.length < minisrv_config.config.passwords.min_length) errpage = wtvshared.doErrorPage(400, "Your password must contain at least " + minisrv_config.config.passwords.min_length + " characters.");
-    }
-    else {
-        if (request_headers.query.user_password.length > minisrv_config.config.passwords.max_length) errpage = wtvshared.doErrorPage(400, "Your password must contain no more than than " + minisrv_config.config.passwords.max_length + " characters.");
-        else if (request_headers.query.user_password !== request_headers.query.user_password2) errpage = wtvshared.doErrorPage(400, "The passwords you entered did not match. Please check them and try again.");
-    }
+    if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + ` account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.`);
 }
 
 if (!errpage) {
-    if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + ` account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.`);
+    if (request_headers.query.user_password) {
+        if (request_headers.query.user_password.length < minisrv_config.config.passwords.min_length) errpage = wtvshared.doErrorPage(400, "Your password must contain at least " + minisrv_config.config.passwords.min_length + " characters.");
+        else if (request_headers.query.user_password.length > minisrv_config.config.passwords.max_length) errpage = wtvshared.doErrorPage(400, "Your password must contain no more than than " + minisrv_config.config.passwords.max_length + " characters.");
+        else if (request_headers.query.user_password !== request_headers.query.user_password2) errpage = wtvshared.doErrorPage(400, "The passwords you entered did not match. Please check them and try again.");
+    }
     else if (!request_headers.query.user_name) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
 }
 
