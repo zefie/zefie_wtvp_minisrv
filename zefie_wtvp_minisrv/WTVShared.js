@@ -157,7 +157,6 @@ class WTVShared {
 
     decodePostData(obj) {
         if (obj.post_data) {
-            var post_data = obj.post_data;
             obj.post_data = obj.post_data.toString();
         }
         return obj;
