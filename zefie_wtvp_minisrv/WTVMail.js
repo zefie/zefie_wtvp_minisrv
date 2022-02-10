@@ -228,13 +228,23 @@ class WTVMail {
             var self = this;
             var files = this.fs.readdirSync(mailbox_path)
                 .map(function (v) {
+                    var message_data_raw = null;
+                    var message_date = null;
+                    var message_path = mailbox_path + self.path.sep + v;
+                    if (self.fs.existsSync(message_path)) message_data_raw = self.fs.readFileSync(message_path);
+                    if (message_data_raw) {
+                        var message_data = JSON.parse(message_data_raw);
+                        if (message_data) message_date = message_data.date;
+                    }
+                    var message_date_ret = (message_date) ? message_date : self.fs.statSync(mailbox_path + self.path.sep + v).mtime.getTime();
+                    self.fs.statSync(mailbox_path + self.path.sep + v).mtime.getTime()
                     return {
                         name: v,
-                        time: self.fs.statSync(mailbox_path + self.path.sep + v).mtime.getTime()
+                        time: message_date_ret
                     };
                 })
                 .sort(function (a, b) {
-                    if (reverse_sort) return b.time - a.time;
+                    if (!reverse_sort) return b.time - a.time;
                     else return a.time - b.time;
                 })
                 .map(function (v) {
@@ -289,7 +299,6 @@ class WTVMail {
 
     checkUserExists(username, directory = null) {
         // returns the user's ssid, and user_id and userid in an array if true, false if not
-        var username_match = false;
         var search_dir = this.minisrv_config.config.SessionStore;
         var return_val = false;
         var self = this;
@@ -299,17 +308,15 @@ class WTVMail {
                 return_val =  self.checkUserExists(username, search_dir + self.path.sep + file);
             }
             if (!file.match(/.*\.json/ig)) return;
-            if (username_match) return;
             try {
                 var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
-                    username_match = true;
-                    return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep, '').replace("user",'').split(self.path.sep);
+                    return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep, '').replace("user", '').split(self.path.sep);
+                    return_val.push(temp_session_data.subscriber_name);
                 }
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", file, e);
-                username_match = true;
             }
         });
         return return_val;
@@ -320,18 +327,19 @@ class WTVMail {
         if (user_data) {
             var user_wtvsession = new this.WTVClientSessionData(this.minisrv_config, user_data[0]);
             user_wtvsession.user_id = user_data[1];
-            var user_mailstore = new WTVMail(this.minisrv_config, ssid, user_wtvsession)
+            var user_mailstore = new WTVMail(this.minisrv_config, user_wtvsession)
             return user_mailstore;
         }
         return false;
     }
 
     sendMessageToAddr(from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null) {
-        if (!to_addr.indexOf('@')) {
-            return "The m-mail address <strong>" + to_addr + "</strong> is not a valid m-mail address.<br><br>An m-mail address should look like:<br>: <strong>zefie@ZefieTV</strong>";
-        }
+        if (!to_addr) return "You must type a destination address for your message.";
+
+
+        if (to_addr.indexOf('@') === -1) to_addr += "@"+this.minisrv_config.config.service_name;
         var username = to_addr.split("@")[0];
-        var dest_minisrv = to_addr.split("@")[1];
+        var dest_minisrv = to_addr.split("@")[1] || this.minisrv_config.config.service_name;
 
         // local only for now
         if (dest_minisrv.toLowerCase() !== this.minisrv_config.config.service_name.toLowerCase()) {
@@ -340,9 +348,14 @@ class WTVMail {
 
         // find user if local
         if (dest_minisrv.toLowerCase() === this.minisrv_config.config.service_name.toLowerCase()) {
-            var dest_user_mailstore = getUserMailstore(to_addr);
+            var dest_user_mailstore = this.getUserMailstore(username);
             // user does not exist
             if (!dest_user_mailstore) return "The user <strong>" + username + "</strong> does not exist on MiniSrv <strong>" + dest_minisrv + "</strong>";
+
+            if (!to_name) {
+                var userExistsData = this.checkUserExists(username);
+                to_name = userExistsData[2];
+            }
 
             // check if the destination user's Inbox exists yet
             if (!dest_user_mailstore.mailboxExists(0)) {
@@ -352,7 +365,7 @@ class WTVMail {
                 if (mailbox_exists) dest_user_mailstore.createWelcomeMessage();
             }
             // if the mailbox exists, deliver the message
-            if (dest_user_mailstore.mailboxExists(0)) createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature);
+            if (dest_user_mailstore.mailboxExists(0)) this.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature);
             else return "There was an internal error sending the message to <strong>" + to_addr + "</strong>. Please try again later";
 
             // clean up
@@ -369,12 +382,12 @@ class WTVMail {
         if (this.checkMessageIdSanity(messageid)) {
             if (this.mailstoreExists()) {
                 this.fs.readdirSync(this.mailstore_dir).every(mailbox => {
-                    if (mailboxid) return false;
-                    this.fs.readdirSync(this.mailstore_dir + self.path.sep + mailbox).every(file => {
-                        var regexSearch = ".*" + this.msgFileExt;
+                      if (mailboxid) return false;
+                    self.fs.readdirSync(self.mailstore_dir + mailbox).every(file => {
+                        var regexSearch = messageid + self.msgFileExt;
                         var re = new RegExp(regexSearch, "ig");
                         if (!file.match(re)) return true;
-                        if (file.indexOf(messageid) !== -1) mailboxid = mailbox;
+                        mailboxid = mailbox;
                         return false;
                     });
                     return true;
@@ -386,6 +399,7 @@ class WTVMail {
 
     getMessageByID(messageid) {
         var mailbox_name = this.getMessageMailboxId(messageid);
+        console.log(mailbox_name);
         if (!mailbox_name) return false;
 
         var mailboxid = this.mailboxes.findIndex((value) => value == mailbox_name);

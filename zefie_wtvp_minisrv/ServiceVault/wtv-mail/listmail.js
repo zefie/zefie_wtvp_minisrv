@@ -62,7 +62,8 @@ if (!intro_seen && !request_headers.query.intro_seen) {
                 message_list_string = "No new mail messages for ";
             } else {
                 if (total_unread_message_count > 0) {
-                    message_list_string = total_unread_message_count + " new mail message" + ((total_message_count != 1) ? 's' : '') + ", " + total_message_count + " mail message" + ((total_message_count != 1) ? 's' : '') + " for ";
+                    message_list_string = total_unread_message_count + " new mail message" + ((total_message_count != 1) ? 's' : '');
+                    if (total_message_count - total_unread_message_count > 0) message_list_string += ", " + (total_message_count - total_unread_message_count) + " mail message" + (((total_message_count - total_unread_message_count) != 1) ? 's' : '') + " for ";
                 } else {                   
                     message_list_string = total_message_count + " mail message" + ((total_message_count != 1) ? 's' : '') + " for ";
                 }
@@ -282,7 +283,6 @@ ${username}@${minisrv_config.config.service_name}
                     var message = message_list[k];
                     var message_font_open = "<font color=#7A9FCC>";
                     var message_font_close = "</font>";
-                    console.log(message);
                     if (message.unread) {
                         message_font_open = `<b><font color=#99E6FF>`;
                         message_font_close = "</font></b>"

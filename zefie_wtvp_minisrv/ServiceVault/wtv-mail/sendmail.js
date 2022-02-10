@@ -28,22 +28,33 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         'noback': true,
     }).getURL();
 
+    if (request_headers.query.sendoff == "Send") {
+        var from_addr = address;
+        var to_addr = request_headers.query.message_to;
+        var msg_subject = request_headers.query.message_subject;
+        var msg_body = request_headers.query.message_body;
+        var to_name = request_headers.query.whatever_webtv_sends_this_as || null;
+        var signature = ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || null;
+        var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature);
+        if (messagereturn !== true) {
+            var errpage = wtvshared.doErrorPage(400, messagereturn);
+            headers = errpage[0];
+            data = errpage[1];
+        } else {
+            headers = `300 OK
+wtv-expire: wtv-mail:/listmail
+Location: wtv-mail:/listmail`;
+        }
+    } else {
 
-    headers = `200 OK
+        headers = `200 OK
 Content-type text/html`;
 
-    data = `<display poweroffalert >
-<sendpanel
-action="javascript:Submit()"
-message="Send this message now"
-label="Send message">
-<savepanel message="Messages that you are writing cannot be saved. Send it to yourself if you would like a copy.">
-<HTML>
+        data = `<html>
 <head>
+<display poweroffalert >
 <script language=javascript>
-function Submit() {	if (document.sendform.message_to.value == "") {	location = "client:showalert?message=Your%20message%20could%20not%20be%20sent.%3Cp%3E%0AYou%20must%20specify%20an%20addressee%20in%20the%20%3Cblackface%3ETo%3A%3C%2Fblackface%3E%20area.%0A&buttonLabel1=Continue%0A&buttonAction1=client%3Adonothing&buttonLabel2=";
-} else {	location = "client:showsplash?message=Sending%20Message&animation=file://ROM/Animations/mail.ani&action=client:submitform%3Fname%3Dsendform%26submitname%3Dsendoff%26submitvalue%3DSend";
-}
+function Submit() {	window.open("client:showsplash?message=Sending%20Message&animation=file://ROM/Animations/mail.ani&action=client:submitform%3Fname%3Dsendform%26submitname%3Dsendoff%26submitvalue%3DSend");
 }
 function ErasingMedia(victim) {	var myURL;
 myURL = "client:submitform?name=sendform&submitvalue=false" + "&submitname=" + victim;
@@ -51,198 +62,316 @@ if (victim == "gabbing") {	document.forms.sendform.elements.message_voicemail_da
 }
 if (victim == "snapping") {	document.forms.sendform.elements.message_snapshot_data.disabled = true;
 }
-location = myURL;
-location.reload();	}
-function Signing(desiredState) {	var myURL;
-myURL="client:submitform?name=sendform&submitvalue=false"+"&submitname=togglesign";
-location = myURL;
-location.reload();
-}
-function DoneSnapping() {	location = "client:submitform?name=sendform&submitname=snapping&submitvalue=true";
-location.reload();	}
+window.open(myURL);	}
+function DoneSnapping() {	var myURL;
+myURL = "client:submitform?name=sendform&submitname=snapping&submitvalue=cache%3Asnapshot.jpg";
+window.open(myURL);	}
 function DoneGabbing() {	var myURL;
-myURL = "client:submitform?name=sendform&submitname=gabbing&submitvalue=cache%3Avoicemail.wav";
-location = "client:submitform?name=sendform&submitname=gabbing&submitvalue=true";
-location.reload();	}
+myURL = "client:submitform?name=sendform&submitname=gabbing&submitvalue=cache%3Avoicemail.jpg";
+window.open(myURL);	}
 </script>
+<sendpanel
+action="javascript:Submit()"
+message="Send this message now"
+label="Send message"
+>
+<savepanel message="Messages that you are writing cannot be saved. Send it to yourself if you would like a copy." >
 <title>
-Write an e-mail message
+Write a message
 </title>
 </head>
-<body bgcolor="#171726" text="#82A9D9" link="#BDA73A" vlink="#62B362" vspace=0 hspace=0>
+<print blackandwhite>
+<sidebar width=114 height=420 align=left>
+<table cellspacing=0 cellpadding=0 bgcolor=333b5a>
+<tr>
+<td colspan=3 width=104 absheight=4>
+<td rowspan=100 width=10 height=420 valign=top align=left bgcolor=191919>
+<img src="wtv-mail:/ROMCache/Shadow.gif" width=6 height=420>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=76>
+<table href="wtv-home:/home" absheight=76 cellspacing=0 cellpadding=0 width=100%>
+<tr>
+<td abswidth=6>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1>
+<td align=center>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=26>
+<table href="wtv-mail:/listmail"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=333b5a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1><shadow><font sizerange=medium color="E7CE4A">Mail list</font></shadow>
+</table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=26>
+<table href="client:openaddresspanel" id=addressbook
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=333b5a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1><shadow><font sizerange=medium color="E7CE4A">Address</font></shadow>
+</table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=26>
+<table href="client:videocapture?notify=javascript%3ADoneSnapping()&device=video&width=75%25&height=75%25&name=cache%3Asnapshot.jpg&donebuttonlabel=Add%20to%20Message&open"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=333b5a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1><shadow><font sizerange=medium color="E7CE4A">Photo</font></shadow>
+</table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=26>
+<table href="client:soundcapture?notify=javascript%3ADoneGabbing()&device=audio&rate=8000&name=cache%3Avoicemail.wav&donebuttonlabel=Add%20to%20Message&open"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=333b5a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1><shadow><font sizerange=medium color="E7CE4A">Recording</font></shadow>
+</table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=26>
+<table href="client:showalert?sound=none&message=Are%20you%20sure%20you%20want%20to%20erase%20the%20changes%20to%20this%20message%3F&buttonlabel2=Don't%20Erase&buttonaction2=client:donothing&buttonlabel1=Erase&buttonaction1=wtv-mail:/sendmail%3Fclear%3Dtrue%26wtv-saved-message-id%3Dwritemessage-outbox#focus"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=333b5a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1><shadow><font sizerange=medium color="E7CE4A">Erase</font></shadow>
+</table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=26>
+<table href="client:submitform?name=sendform&submitname=spelling&submitvalue=true"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=333b5a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1><shadow><font sizerange=medium color="E7CE4A">Spelling</font></shadow>
+</table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=26>
+<table href="wtv-guide:/help/Mail/Write/Writing"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=333b5a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1><shadow><font sizerange=medium color="E7CE4A">Help</font></shadow>
+</table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=202434>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=515b84>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 height=81 valign=bottom align=right>
+<tr><td colspan=3 absheight=36>
+</table>
+</sidebar>
+<body instructions="wtv-guide:/helpindex?title=Index_Mail"
+bgcolor=191919
+text=42BD52
+link=189CD6
+vlink=189CD6
+vspace=0
+hspace=0
+>            
+<table cellspacing=0 cellpadding=0>
+<tr>
+<td height=16 valign=top align=left>
+<tr>
+<td height=47 valign=top>
+<font size=+1 color="E7CE4A">
+<blackface>
+<shadow>
+<a id=focus></a>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=4 height=2>
+Write a message
+</shadow>
+</blackface>
+</font>
+</table>
 <form action="wtv-mail:/sendmail#focus" method="post" name=sendform >
-<input type=hidden name=skey value="Kx0uv4a00C4">
 <input type=hidden name="wtv-saved-message-id" value="writemessage-outbox">
 <input type=hidden name="message_reply_all_cc" value="">
 <input type=hidden name="saveoff" value="true" autosubmit="onleave">
-<sidebar width=109>
-<table cellspacing=0 cellpadding=0>
+<table cellspacing=0 cellpadding=0 bgcolor="242424"
+background=""
+>
 <tr>
-<td width=104 height=420 bgcolor=#262E3D valign=top>
-<table cellspacing=0 cellpadding=0>
+<td rowspan=100 abswidth=10 bgcolor=191919>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=10 height=1>
+<td colspan=9 abswidth=422 valign=bottom>
+<img src="wtv-mail:/ROMCache/PaperTop.gif" noprint width=422 height=26>
 <tr>
-<td height=7 colspan=3>
-<spacer type=vertical size=7>
-<tr>
-<td width=7>
-<spacer type=horizontal size=7>
-<td width=87 href="wtv-home:/home">
-<img src="${minisrv_config.config.service_logo}" width=87 height=67>
-<td width=10>
-<spacer type=horizontal size=10>
-</table>
-<spacer type=vertical size=6>
-<table cellspacing=0 cellpadding=0 border=0>
-<tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
-<tr>
-<td width=10 height=26>
-<td width=89 valgn=middle>
-<table cellspacing=0 cellpadding=0 href="wtv-mail:/listmail" >
-<tr>
-<td height=1>
-<tr>
-<td><shadow><font sizerange=medium color=#E6CD4A>Mail list</font></shadow>
-</table>
-<td width=5>
-<tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
-<tr>
-<td width=10 height=26>
-<td width=89 valgn=middle>
-<table cellspacing=0 cellpadding=0 href="client:openaddresspanel" id=addressbook>
-<tr>
-<td height=1>
-<tr>
-<td><shadow><font sizerange=medium color=#E6CD4A>Address</font></shadow>
-</table>
-<td width=5>
-<tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
-<tr>
-<td width=10 height=26>
-<td width=89 valgn=middle>
-<table cellspacing=0 cellpadding=0 href="client:videocapture?notify=javascript%3ADoneSnapping()&device=video&width=100%25&height=100%25&name=cache%3Asnapshot.jpg&donebuttonlabel=Add%20to%20Message&open" id=addressbook>
-<tr>
-<td height=1>
-<tr>
-<td><shadow><font sizerange=medium color=#E6CD4A>Photo</font></shadow>
-</table>
-<td width=5>
-<tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
-<tr>
-<td width=10 height=26>
-<td width=89 valgn=middle>
-<table cellspacing=0 cellpadding=0 href="client:soundcapture?notify=javascript%3ADoneGabbing()&device=audio&rate=8000&name=cache%3Avoicemail.wav&donebuttonlabel=Add%20to%20Message&open" id=addressbook>
-
-<tr>
-<td height=1>
-<tr>
-<td><shadow><font sizerange=medium color=#E6CD4A>Recording</font></shadow>
-</table>
-<td width=5>
-<tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
-<tr>
-<td width=10 height=26>
-<td width=89 valgn=middle>
-<table cellspacing=0 cellpadding=0 href="client:showalert?sound=none&message=Are%20you%20sure%20you%20want%20to%20erase%20this%20entire%20message%3F&buttonlabel2=Don't%20Erase&buttonaction2=client:donothing&buttonlabel1=Erase&buttonaction1=wtv-mail:/sendmail%3Fclear%3Dtrue%26wtv-saved-message-id%3Dwritemessage-outbox" id=addressbook>
-<tr>
-<td height=1>
-<tr>
-<td><shadow><font sizerange=medium color=#E6CD4A>Erase</font></shadow>
-</table>
-<td width=5>
-<tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
-<tr>
-<td width=10 height=26>
-<td width=89 valgn=middle>
-</table>
-</sidebar>
-<table cellspacing=0 cellpadding=0 border=0>
-<tr>
-<td width=451 colspan=2 align=center bgcolor=#5B6C81>
-<spacer type=vertical size=13>
-<tr>
-<td height=8 bgcolor=#171726 colspan=2>
-<img src="wtv-mail:/content/images/CornerTop.gif" width=8 height=8>
-<tr>
-<td bgcolor=#171726 width=451 valign=top>
-<table cellspacing=0 cellpadding=0 width=451>
-<tr>
-<td bgcolor=#171726 width=13>
-<spacer type=horizontal size=13>
-<td height=80>
-<img src="wtv-mail:/content/images/Mail.gif" width=87 height=45>
-<img src="wtv-mail:/content/images/${ssid_sessions[socket.ssid].mailstore.getMailboxIcon()}" width=74 height=45 transparency=60>
-<td width=250 align=left><font sizerange=small>
-</table>
-<tr>
-<td colspan=2>
-<table cellspacing=0 cellpadding=0 bgcolor=#2C323D>
-<tr>
-<td width=451 absheight=25>
-<table cellspacing=0 cellpadding=0>
-<tr>
-<td width=13 absheight=25>
-<spacer type=horizontal size=13>
-<td width=370 maxlines=1>
-<font sizerange=medium color=#D6D6D6><blackface>
-Write an e-mail message
-</blackface></font>
-<!--
-<td width=21>
-<img src="wtv-mail:/content/images/widget.gif" width=16 height=16 noprint>
-<td width=36>
-<spacer type=vertical size=1><br>
-<a href="wtv-guide:/help?topic=Mail&subtopic=Index&appName=Mail" ><img src="wtv-mail:/content/images/mail_help_image.gif" width=35 height=17 noprint></a> -->
-<td width=13>
-<spacer type=horizontal size=13>
-</table>
-</table>
-</table>
-<table cellspacing=0 cellpadding=0 border=0>
-<tr>
-<td bgcolor=#171726 width=13>
-<spacer type=horizontal size=13>
-<td bgcolor=#171726 width=438 valign=top>
-<spacer type=vertical size=5><br>
-<table cellspacing=0 cellpadding=0 bgcolor="#1F2033">
-<tr>
-<td absheight=2 colspan=5 bgcolor=#495360>
-<tr>
-<td abswidth=2 bgcolor=#495360>
-<td absheight=13 colspan=3>
-<td abswidth=2 bgcolor=#000000>
-<tr>
-<td abswidth=2 bgcolor=#495360>
-<td abswidth=13>
-<td abswidth=385>
-<table cellspacing=0 cellpadding=0>	<tr>
-<td width=80 valign=top align=right>
-<font color=#82A9D9>From:&nbsp;</font>
-<td width=305 valign=top>
-<font color=#82A9D9><table cellspacing=0 cellpadding=0 border=0>
-<TR><TD maxlines="1">
+<td rowspan=100 abswidth=2 absheight=0 bgcolor=313131>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<td rowspan=100 abswidth=14 absheight=0>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<td colspan=2 abswidth=386>
+<td rowspan=100 abswidth=14 absheight=0>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<td rowspan=100 abswidth=3 bgcolor=0b0b0b absheight=0>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<td rowspan=100 abswidth=1 bgcolor=0f0f0f absheight=0>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<td rowspan=100 abswidth=1 bgcolor=131313 absheight=0>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<td rowspan=100 abswidth=1 bgcolor=171717 absheight=0>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr absheight=30>
+<td abswidth=80 valign=top align=right>
+<font color="42BD52">
+From:&nbsp;
+<td abswidth=306>
+<font color="42BD52">
 ${address}
-</TD></TR>
-</TABLE></font>
-<font color=#82A9D9>(${userdisplayname})</font>
+(${userdisplayname})</font>
 <tr>
-<td height=13 valign=middle colspan=2>
-<img src="wtv-mail:/content/images/sendmail_panel_dots.gif" width=385 height=2>
+<td colspan=2 absheight=5>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
+<tr absheight=4>
+<td colspan=2>
+<img src="wtv-mail:/ROMCache/DottedLine.gif" width=386 height=2>
 <tr>
-<td width=80 valign=top align=right>
-<a href="client:openaddresspanel">To:</a>&nbsp;
-<td width=305 valign=top>
+<td colspan=2 absheight=5>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
+<tr height=30>
+<td abswidth=80 valign=top align=right>
+<a href="client:openaddresspanel">
+To:</a>&nbsp;
+<td abswidth=306>
 <textarea
-bgcolor="#1F2033"
-cursor=#BDA73A
+bgcolor="242424"
+cursor=#cc9933
 nosoftbreaks
 borderimage="file://ROM/Borders/textfield.alt1.bif"
 nohardbreaks
 selected
 font=proportional
-text=#82A9D9
+text="42BD52"
 name="message_to"
 border=0
-width=305 rows=1
+width=306 rows=1
 growable
 autoactivate
 addresses
@@ -250,22 +379,29 @@ autoascii
 nohighlight
 ></textarea>
 <tr>
-<td height=13 valign=middle colspan=2>
-<img src="wtv-mail:/content/images/sendmail_panel_dots.gif" width=385 height=2>
+<td colspan=2 absheight=5>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
+<tr absheight=4>
+<td colspan=2>
+<img src="wtv-mail:/ROMCache/DottedLine.gif" width=386 height=2>
 <tr>
-<td abswidth=83 valign=top align=right>
-<font color=#82A9D9>Subject:&nbsp;</font>
-<td width=305 valign=top>
+<td colspan=2 absheight=5>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
+<tr height=30>
+<td abswidth=80 valign=top align=right nowrap>
+<font color="42BD52">
+Subject:&nbsp;
+<td abswidth=306>
 <textarea
-bgcolor="#1F2033"
-cursor=#BDA73A
+bgcolor="242424"
+cursor=#cc9933
 nosoftbreaks
 borderimage="file://ROM/Borders/textfield.alt1.bif"
 nohardbreaks
-text=#82A9D9
+text="42BD52"
 name="message_subject" font=proportional
 border=0
-width=305 rows=1
+width=306 rows=1
 growable
 autoactivate
 maxlength=70
@@ -273,36 +409,52 @@ nohighlight
 autohiragana
 ></textarea>
 <tr>
-<td height=13 valign=middle colspan=2>
-<img src="wtv-mail:/content/images/sendmail_panel_dots.gif" width=385 height=2>
+<td colspan=2 absheight=5>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
+<tr absheight=4>
+<td colspan=2>
+<img src="wtv-mail:/ROMCache/DottedLine.gif" width=386 height=2>
 <tr>
-<td width=305 colspan=2>
+<td colspan=2 absheight=5>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
+<tr>
+<td colspan=2 absheight=10>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=10>
+<tr>
+<td colspan=2 abswidth=386 !!xabswidth=386>
 <textarea nosoftbreaks
-bgcolor="#1F2033"
-text=#82A9D9
-cursor=#BDA73A
+bgcolor="242424"
+text="42BD52"
+cursor=#cc9933
 name="message_body" font=proportional
 border=0
-rows=4
+rows=5
 width=386
 nohighlight
 autoactivate
-autohiragana
-growable
-nextdown="Send"></textarea>
+growable></textarea>
+<input type=hidden name="no_signature" value="true">
+<tr>
+<td colspan=2 absheight=8>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=8>
 </table>
-<body bgcolor=#1F2033
-text=#82A9D9
-link=#BDA73A
-vlink=#62B362
-vspace=0
-hspace=0>`;
-    if (!ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || ssid_sessions[socket.ssid].getSessionData("subscriber_signature") == "") {
-        data += `<input type=hidden name="no_signature" value="true"> <td abswidth=13>`;
-    } else {
-        data += `<input type=checkbox name="no_signature"> <td abswidth=13> Disable Signature`;
-    }
-    data += `
+<table cellspacing=0 cellpadding=0>
+<tr>
+<td rowspan=100 abswidth=10>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=10 height=2>
+<td abswidth=422>
+<img src="wtv-mail:/ROMCache/PaperBase.gif" noprint
+width=422 height=6>
+<tr>
+<td absheight=6>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=6>
+</table>`;
+        if (!ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || ssid_sessions[socket.ssid].getSessionData("subscriber_signature") == "") {
+            data += `<input type=hidden name="no_signature" value="true"> <td abswidth=13>`;
+        } else {
+            data += `<input type=checkbox name="no_signature"> <td abswidth=13> Disable Signature`;
+        }
+        data += `
 <td abswidth=2 bgcolor=#000000>
 <tr>
 <td abswidth=2 bgcolor=#495360>
@@ -334,4 +486,5 @@ USESTYLE NOARGS>
 </body>
 </HTML>
 `;
+    }
 }
