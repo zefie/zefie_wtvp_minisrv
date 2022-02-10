@@ -17,6 +17,21 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         headers = "300 OK\nwtv-visit: " + clientErrorMsg;
     }
 
+    var to_addr = request_headers.query.message_to || null;
+    var msg_subject = request_headers.query.message_subject || null;
+    var msg_body = request_headers.query.message_body || null;
+    var to_name = request_headers.query.whatever_webtv_sends_this_as || null;
+    var no_signature = request_headers.query.no_signature || false;
+    var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft");
+    if (mail_draft_data) {
+        ssid_sessions[socket.ssid].deleteSessionData("mail_draft")
+        to_addr = mail_draft_data.to_addr;
+        msg_subject = mail_draft_data.msg_subject;
+        msg_body = mail_draft_data.msg_body;
+        no_signature = mail_draft_data.no_signature;
+    }
+
+
     var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
     var userdisplayname = html_entities.encode(ssid_sessions[socket.ssid].getSessionData("subscriber_name"));
     var address = username + "@" + minisrv_config.config.service_name
@@ -28,22 +43,31 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         'noback': true,
     }).getURL();
 
-    if (request_headers.query.sendoff == "Send") {
+    if (request_headers.query.sendoff == "Send" || request_headers.query.saveoff) {
         var from_addr = address;
-        var to_addr = request_headers.query.message_to;
-        var msg_subject = request_headers.query.message_subject;
-        var msg_body = request_headers.query.message_body;
-        var to_name = request_headers.query.whatever_webtv_sends_this_as || null;
         var signature = ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || null;
-        var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature);
-        if (messagereturn !== true) {
-            var errpage = wtvshared.doErrorPage(400, messagereturn);
-            headers = errpage[0];
-            data = errpage[1];
+        if (request_headers.query.sendoff == "Send") {
+            var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature);
+            if (messagereturn !== true) {
+                var errpage = wtvshared.doErrorPage(400, messagereturn);
+                headers = errpage[0];
+                data = errpage[1];
+            } else {
+                headers = `300 OK
+    wtv-expire: wtv-mail:/listmail
+    Location: wtv-mail:/listmail`;
+            }
         } else {
-            headers = `300 OK
-wtv-expire: wtv-mail:/listmail
-Location: wtv-mail:/listmail`;
+            var mail_draft_data = {
+                to_addr: to_addr,
+                msg_subject: msg_subject,
+                msg_body: msg_body,
+                no_signature: no_signature
+            }
+            ssid_sessions[socket.ssid].setSessionData("mail_draft", mail_draft_data);
+            headers = `200 OK
+Content-type text/html
+wtv-expire: wtv-mail:/sendmail`;
         }
     } else {
 
@@ -377,7 +401,7 @@ autoactivate
 addresses
 autoascii
 nohighlight
-></textarea>
+>${(to_addr) ? to_addr : ''}</textarea>
 <tr>
 <td colspan=2 absheight=5>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
@@ -407,7 +431,7 @@ autoactivate
 maxlength=70
 nohighlight
 autohiragana
-></textarea>
+>${(msg_subject) ? msg_subject : ''}</textarea>
 <tr>
 <td colspan=2 absheight=5>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=5>
@@ -432,7 +456,7 @@ rows=5
 width=386
 nohighlight
 autoactivate
-growable></textarea>
+growable>${(msg_body) ? msg_body : ''}</textarea>
 <input type=hidden name="no_signature" value="true">
 <tr>
 <td colspan=2 absheight=8>
@@ -450,7 +474,7 @@ width=422 height=6>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=6>
 </table>`;
         if (!ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || ssid_sessions[socket.ssid].getSessionData("subscriber_signature") == "") {
-            data += `<input type=hidden name="no_signature" value="true"> <td abswidth=13>`;
+            data += `<input type=hidden name="no_signature" value="true" ${(no_signature) ? 'checked="checked"' : ''}> <td abswidth=13>`;
         } else {
             data += `<input type=checkbox name="no_signature"> <td abswidth=13> Disable Signature`;
         }
