@@ -293,16 +293,23 @@ class WTVMail {
     checkUserExists(username) {
         // returns the user's SSID if true, false if not
         var username_match = false;
+        var search_dir = this.session_store_dir;
         var return_val = false;
-        this.fs.readdirSync(this.minisrv_config.config.SessionStore).forEach(file => {
+        var self = this;
+        if (directory) search_dir = directory;
+        this.fs.readdirSync(search_dir).forEach(file => {
+            if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory()) {
+                return self.checkUsernameAvailable(username, ssid_sessions, search_dir + self.path.sep + file);
+            }
             if (!file.match(/.*\.json/ig)) return;
             if (username_match) return;
             try {
-                var temp_session_data_file = this.fs.readFileSync(this.minisrv_config.config.SessionStore + this.path.sep + file, 'Utf8');
+                var temp_session_data_file = this.fs.readFileSync(search_dir + this.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) return_val = temp_session_data.subscriber_username;
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", file, e);
+                username_match = true;
             }
         });
         return return_val;
