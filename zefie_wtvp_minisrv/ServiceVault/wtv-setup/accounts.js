@@ -56,7 +56,7 @@ Users setup
 <tr>
 <td valign=center absheight=80>
 <font size="+2" color="E7CE4A"><blackface><shadow>
-WebTV users
+${minisrv_config.config.service_name} users
 </table>
 <td abswidth=20>
 <TR>
