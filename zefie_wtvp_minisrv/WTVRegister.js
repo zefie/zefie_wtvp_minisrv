@@ -28,26 +28,22 @@ class WTVRegister {
         return (check1 && check2);
     }
 
+
     checkUsernameAvailable(username, directory = null) {
+        // returns the user's ssid, and user_id and userid in an array if true, false if not
         var username_match = false;
-        var search_dir = this.session_store_dir;
+        var search_dir = this.minisrv_config.config.SessionStore;
+        var return_val = false;
         var self = this;
         if (directory) search_dir = directory;
         this.fs.readdirSync(search_dir).forEach(file => {
-            if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory()) {
-                return self.
-                    
-                    
-                    
-                    
-                    
-                    
-                    (username, search_dir + self.path.sep + file);
+            if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
+                return_val = self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
             }
             if (!file.match(/.*\.json/ig)) return;
             if (username_match) return;
             try {
-                var temp_session_data_file = this.fs.readFileSync(search_dir + this.path.sep + file, 'Utf8');
+                var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) username_match = true;
             } catch (e) {
@@ -57,6 +53,7 @@ class WTVRegister {
         });
         return !username_match;
     }
+
 
     /**
      * Generations regnstration template
