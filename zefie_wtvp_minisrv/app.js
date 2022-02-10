@@ -424,7 +424,7 @@ Location: " + minisrv_config.config.unauthorized_url`;
             // assume webtv since there is a :/ in the GET
             var service_name = shortURL.split(':/')[0];
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
-            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.filterSSID(request_headers)));
+            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterSSID(request_headers))));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) {
@@ -442,7 +442,7 @@ Location: " + minisrv_config.config.unauthorized_url`;
 
 async function doHTTPProxy(socket, request_headers) {
     var request_type = (request_headers.request_url.substring(0, 5) == "https") ? "https" : "http";
-    if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.filterSSID(request_headers)));
+    if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterSSID(request_headers))));
     switch (request_type) {
         case "https":
             var proxy_agent = https;
