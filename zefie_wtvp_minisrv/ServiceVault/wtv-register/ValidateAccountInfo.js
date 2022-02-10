@@ -14,7 +14,7 @@ if (!request_headers.query.registering) {
     else if (request_headers.query.subscriber_username.length < minisrv_config.config.user_accounts.min_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with " + minisrv_config.config.user_accounts.min_length + " or more characters.");
     else if (request_headers.query.subscriber_username.length > minisrv_config.config.user_accounts.max_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with " + minisrv_config.config.user_accounts.max_length + " or less characters.");
     else if (!wtvr.checkUsernameSanity(request_headers.query.subscriber_username)) errpage = wtvshared.doErrorPage(400, "The username you have chosen contains invalid characters. Please choose a username with only <b>letters</b>, <b>numbers</b>, <b>_</b> or <b>-</b>. Also, please be sure your username begins with a letter.");
-    else if (!wtvr.checkUsernameAvailable(request_headers.query.subscriber_username, ssid_sessions)) errpage = wtvshared.doErrorPage(400, "The username you have selected is already in use. Please select another username.");
+    else if (!wtvr.checkUsernameAvailable(request_headers.query.subscriber_username)) errpage = wtvshared.doErrorPage(400, "The username you have selected is already in use. Please select another username.");
     else if (!request_headers.query.subscriber_contact) errpage = wtvshared.doErrorPage(400, "Please enter your contact information.");
     else if (request_headers.query.subscriber_contact_method == "") errpage = wtvshared.doErrorPage(400, "Please select the type of contact information you provided.");
 
