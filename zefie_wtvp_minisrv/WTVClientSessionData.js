@@ -53,10 +53,15 @@ class WTVClientSessionData {
         this.loginWhitelist.push("wtv-head-waiter:/password");        
     }
 
+
+    assignMailStore() {
+        this.mailstore = new WTVMail(this.minisrv_config, this)
+    }
+
     switchUserID(user_id, update_mail = true, update_ticket = true) {
         this.user_id = user_id;
         this.loadSessionData();
-        this.mailstore = new WTVMail(this.minisrv_config, this)
+        if (this.isRegistered()) this.assignMailStore();
         if (this.data_store.wtvsec_login && update_ticket) this.setTicketData('user_id', user_id);
     }
 

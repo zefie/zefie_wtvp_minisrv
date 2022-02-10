@@ -86,7 +86,7 @@ wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
 `;
 		if (!limitedLogin) {
-			ssid_sessions[socket.ssid].assignMailstore();
+			ssid_sessions[socket.ssid].assignMailStore();
 			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
 			if (offline_user_list) headers += "wtv-offline-user-list: " + offline_user_list + "\n";
 			headers += `wtv-messenger-authorized: ${messenger_authorized}
