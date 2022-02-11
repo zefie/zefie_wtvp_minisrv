@@ -256,7 +256,10 @@ ${html_entities.encode(message.to_addr)} ${(html_entities.encode(message.to_name
 <tr>
 <td nowrap valign=top>
 Subject: <td>
-<td>
+<td>`;
+
+                if (typeof message.subject == "object") message.subject = new Buffer.from(message.subject).toString('latin1');
+                data += `
 ${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
 <tr>
 <td height=10>
@@ -289,7 +292,9 @@ ${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
                         }
                     });
                 }
-                if (typeof message.body == "object") message.body = new Buffer.from(message.body).toString('latin1');
+                if (typeof message.body == "object") {
+                    message.body = iconv.decode(Buffer.from(message.body), 'ISO-8859-1');
+                }
                 data += `
 ${html_entities.encode(message.body).replace(/\n/gi, "<br>").replace(/\r/gi, "").replace(/&apos;/gi, "'")}
 <br>
