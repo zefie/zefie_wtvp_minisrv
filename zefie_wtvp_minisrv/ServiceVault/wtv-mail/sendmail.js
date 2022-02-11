@@ -413,9 +413,7 @@ vlink=#62B362
 vspace=0
 hspace=0>`;
             if (ssid_sessions[socket.ssid].getSessionData("subscriber_signature") && ssid_sessions[socket.ssid].getSessionData("subscriber_signature") != "" && !no_signature) {
-                if (wtvshared.isHTML(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"))) data += `<wtvnoscript>`;
-                data += ssid_sessions[socket.ssid].getSessionData("subscriber_signature");
-                if (wtvshared.isHTML(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"))) data += `</wtvnoscript>`;
+                data += ssid_sessions[socket.ssid].mailstore.sanitizeSignature(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"));
             }
             data += `
 <td abswidth=2 bgcolor=#000000>
