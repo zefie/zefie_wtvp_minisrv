@@ -294,8 +294,9 @@ ${html_entities.encode(message.body).replace("\n", "<br>")}
 <br>
 <br>`;
                 if (message.signature) {
-                    if (wtvshared.isHTML(message.signature)) data += `<embed src="wtv-mail:/get-signature?message_id='+messageid+'">`;
-                    else data += message.signature;
+                    if (wtvshared.isHTML(message.signature)) data += `<wtvnoscript>`;
+                    data += message.signature;
+                    if (wtvshared.isHTML(message.signature)) data += `</wtvnoscript>`;
                 }
 data += `<p>
 <p>
