@@ -412,7 +412,8 @@ vlink=#62B362
 vspace=0
 hspace=0>`;
             if (ssid_sessions[socket.ssid].getSessionData("subscriber_signature") && ssid_sessions[socket.ssid].getSessionData("subscriber_signature") != "" && !no_signature) {
-                data += `<embed src="wtv-mail:/get-signature" transparent>`;
+                if (wtvshared.isHTML(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"))) data += `<embed src="wtv-mail:/get-signature" transparent>`;
+                else data += ssid_sessions[socket.ssid].getSessionData("subscriber_signature");
             }
             data += `
 <td abswidth=2 bgcolor=#000000>
