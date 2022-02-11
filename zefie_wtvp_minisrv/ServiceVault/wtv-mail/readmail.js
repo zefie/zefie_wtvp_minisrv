@@ -290,7 +290,7 @@ ${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
                     });
                 }
                 data += `
-${html_entities.encode(message.body).replace("\n", "<br>")}
+${html_entities.encode(message.body).replace(/\n/gi, "<br>").replace(/\r/gi, "").replace(/&apos;/gi, "'")}
 <br>
 <br>`;
                 if (message.signature) {
