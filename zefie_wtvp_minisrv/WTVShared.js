@@ -30,6 +30,10 @@ class WTVShared {
         return true;
     }
 
+    isHTML(str) {
+        return /<\s*([^ >]+)[^>]*>.*?<\s*\/\s*\1\s*>/.test(str);
+    }
+
     returnAbsolutePath(check_path) {
         if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 1) != ":") {
             // non-absolute path, so use current directory as base

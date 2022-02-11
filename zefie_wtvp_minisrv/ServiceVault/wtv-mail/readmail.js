@@ -292,8 +292,12 @@ ${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
                 data += `
 ${html_entities.encode(message.body).replace("\n", "<br>")}
 <br>
-${(message.signature) ? '<embed src="wtv-mail:/get-signature?message_id='+messageid+'">' : ''}
-<p>
+<br>`;
+                if (message.signature) {
+                    if (wtvshared.isHTML(message.signature)) data += `<embed src="wtv-mail:/get-signature?message_id='+messageid+'">`;
+                    else data += message.signature;
+                }
+data += `<p>
 <p>
 </table>
 </table>
