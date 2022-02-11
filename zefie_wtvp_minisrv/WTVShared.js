@@ -200,11 +200,6 @@ class WTVShared {
         if (obj.post_data) {
             obj.post_data = obj.post_data.toString();
         }
-        if (obj.query) {
-            obj.query = Object.assign({}, obj.query);
-            if (obj.query.message_snapshot_data) obj.query.message_snapshot_data = '(binary POST filtered, see post_data hex dump)'
-            if (obj.query.message_voicemail_data) obj.query.message_snapshot_data = '(binary POST filtered, see post_data hex dump)'
-        }
         return obj;
     }
 

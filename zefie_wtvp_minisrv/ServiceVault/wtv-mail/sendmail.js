@@ -19,13 +19,22 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         headers = "300 OK\nwtv-visit: " + clientErrorMsg;
     }
 
+    if (request_headers.query.clear == "true") {
+        ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
+        ssid_sessions[socket.ssid].deleteSessionData("mail_draft_attachments");
+        headers = `300 OK
+wtv-expire: wtv-mail:/listmail
+wtv-expire: wtv-mail:/sendmail
+Location: wtv-mail:/sendmail`;
+    }
+
     var to_addr = request_headers.query.message_to || null;
     var msg_subject = request_headers.query.message_subject || null;
     var msg_body = request_headers.query.message_body || null;
     var to_name = request_headers.query.whatever_webtv_sends_this_as || null;
     var no_signature = (request_headers.query.togglesign == "true") ? false : true; // opposite webtv
     var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft");
-    var mail_draft_attachments = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments");
+    var mail_draft_attachments = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments") || {};
     if (mail_draft_data) {
         ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
         to_addr = mail_draft_data.to_addr;
@@ -44,7 +53,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         headers = `200 OK
 Content-Type: image/jpeg`;
         data = message_snapshot_data;
-    } else if (message_voicemail_data && request_headers.query.get_snap) {
+    } else if (message_voicemail_data && request_headers.query.get_gab) {
         headers = `200 OK
 Content-Type: audio/wav`;
         data = message_voicemail_data;
@@ -74,10 +83,10 @@ Content-Type: audio/wav`;
                     attachments.push({ 'Content-Type': 'image/jpeg', data: message_snapshot_data });
                 }
 
-                if (typeof message_snapshot_data == "object") {
-                    attachments.push({ 'Content-Type': 'audio/wav', data: new Buffer.from(message_snapshot_data).toString('base64') });
+                if (typeof message_voicemail_data == "object") {
+                    attachments.push({ 'Content-Type': 'audio/wav', data: new Buffer.from(message_voicemail_data).toString('base64') });
                 } else {
-                    attachments.push({ 'Content-Type': 'audio/wav', data: new message_snapshot_data });
+                    attachments.push({ 'Content-Type': 'audio/wav', data: new message_voicemail_data });
                 }
 
                 var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments);
@@ -110,9 +119,19 @@ wtv-expire: wtv-mail:/sendmail`;
 
             headers = `200 OK
 Content-type: text/html`;
-            if (request_headers.query.snapping == "false") headers += "\nwtv-expire: cache:snapshot.jpg";
-            if (request_headers.query.gabbing == "false") headers += "\nwtv-expire: cache:voicemail.wav";
             var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments") || {};
+            if (request_headers.query.snapping == "false") {
+                headers += "\nwtv-expire: cache:snapshot.jpg";
+                if (mail_draft_data.message_snapshot_data) mail_draft_data.message_snapshot_data = null;
+                ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
+            }
+
+            if (request_headers.query.gabbing == "false") {
+                headers += "\nwtv-expire: cache:voicemail.wav";
+                if (mail_draft_data.message_voicemail_data) mail_draft_data.message_voicemail_data = null;
+                ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
+            }
+
             if (request_headers.query.message_snapshot_data) {
                 mail_draft_data.message_snapshot_data = request_headers.query.message_snapshot_data
                 ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
@@ -432,7 +451,7 @@ USESTYLE NOARGS>
 <spacer type=vertical size=5>
 `;
 
-            if ((request_headers.query.snapping && request_headers.query.snapping !== 'false') || message_snapshot_data) {
+            if ((request_headers.query.snapping && request_headers.query.snapping !== 'false') || mail_draft_attachments.message_snapshot_data) {
                 data += `<tr>
 <td absheight="10">
 <img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="10">
@@ -461,7 +480,7 @@ USESTYLE NOARGS>
 <img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
 </td></tr><tr>
 <td colspan="2" absheight="15">`;
-                if (!message_snapshot_data) {
+                if (!mail_draft_attachments.message_snapshot_data) {
                     data += `<input type="file" device="video" name="message_snapshot_data" src="cache:snapshot.jpg" invisible="" width="75%" height="75%">
 <input type="hidden" name="message_snapshot_url" value="cache:snapshot.jpg">`;
                 }
@@ -469,7 +488,7 @@ USESTYLE NOARGS>
                 data += `
 </td></tr><tr>
 <td colspan="2" align="center">
-<img src="${(message_snapshot_data) ? 'wtv-mail:/sendmail?get_snap=true' : 'cache:snapshot.jpg'}>" width="380" height="290">
+<img src="${(mail_draft_attachments.message_snapshot_data) ? 'wtv-mail:/sendmail?get_snap=true' : 'cache:snapshot.jpg'}>" width="380" height="290">
 </td></tr><tr>
 <td colspan="2" abswidth="386" absheight="10">
 </td></tr><tr>
@@ -496,7 +515,7 @@ USESTYLE NOARGS>
 </td></tr>`;
             }
 
-            if (request_headers.query.gabbing && request_headers.query.gabbing !== 'false') {
+            if ((request_headers.query.gabbing && request_headers.query.gabbing !== 'false') || mail_draft_attachments.message_voicemail_data) {
                 data += `<tr>
 <td absheight="10">
 <img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="10">
@@ -527,12 +546,12 @@ USESTYLE NOARGS>
 <td colspan="2" absheight="15">
 <input type=file device=audio name=message_voicemail_data
 src="cache:voicemail.wav" rate=8000 invisible>
-${(message_voicemail_data) ? '' : '<input type=hidden name=message_voicemail_url value="cache:voicemail.wav">'}
+${(!mail_draft_attachments.message_voicemail_data) ? '' : '<input type=hidden name=message_voicemail_url value="cache:voicemail.wav">'}
 </td></tr><tr>
 <td colspan="2" align="center">
 <table width=386 cellspacing=0 cellpadding=0>
 <td align=left valign=middle>
-<a href="${(message_voicemail_data) ? 'wtv-mail:/sendmail?get_gab=true' : 'cache:voicemail.wav'}" id=focus><img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle></a>&nbsp;&nbsp;Recording
+<a href="${(mail_draft_attachments.message_voicemail_data) ? 'wtv-mail:/sendmail?get_gab=true&wtv-title=Voice%20Mail' : 'cache:voicemail.wav'}" id=focus><img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle></a>&nbsp;&nbsp;Recording
 <td align=right valign=middle>
 <a href="javascript:ErasingMedia('gabbing')">
 &nbsp;Detach&nbsp;<img src="wtv-mail:/ROMCache/RemoveButton.gif" align=absmiddle height=25 width=25></a>
