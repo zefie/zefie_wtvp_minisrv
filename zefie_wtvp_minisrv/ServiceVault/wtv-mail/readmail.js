@@ -289,6 +289,7 @@ ${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
                         }
                     });
                 }
+                if (typeof message.body == "object") message.body = new Buffer.from(message.body).toString('latin1');
                 data += `
 ${html_entities.encode(message.body).replace(/\n/gi, "<br>").replace(/\r/gi, "").replace(/&apos;/gi, "'")}
 <br>
