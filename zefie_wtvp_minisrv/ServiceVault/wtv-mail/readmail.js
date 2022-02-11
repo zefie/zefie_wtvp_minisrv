@@ -294,9 +294,7 @@ ${html_entities.encode(message.body).replace("\n", "<br>")}
 <br>
 <br>`;
                 if (message.signature) {
-                    if (wtvshared.isHTML(message.signature)) data += `<wtvnoscript>`;
-                    data += message.signature;
-                    if (wtvshared.isHTML(message.signature)) data += `</wtvnoscript>`;
+                    data += ssid_sessions[socket.ssid].mailstore.sanitizeSignature(message.signature);
                 }
 data += `<p>
 <p>

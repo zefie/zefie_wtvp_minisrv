@@ -124,6 +124,13 @@ class WTVMail {
         return this.uuid.v1();
     }
 
+    sanitizeSignature(string) {
+        // placeholder ~ not yet implemented
+        // todo: strip <script>, </script> and everything inbetween
+        // todo: add missing user open tags (eg </i> if user did not close it)
+        // todo: figure out bgcolor and text color voodoo
+        return string;
+    }
 
     createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false, attachments = []) {
         if (this.createMailbox(mailboxid)) {
@@ -369,7 +376,7 @@ class WTVMail {
                 if (mailbox_exists) dest_user_mailstore.createWelcomeMessage();
             }
             // if the mailbox exists, deliver the message
-            if (dest_user_mailstore.mailboxExists(0)) this.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature, null, this.isInUserAddressBook(to_addr, from_addr), attachments);
+            if (dest_user_mailstore.mailboxExists(0)) dest_user_mailstore.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature, null, this.isInUserAddressBook(to_addr, from_addr), attachments);
             else return "There was an internal error sending the message to <strong>" + to_addr + "</strong>. Please try again later";
 
             // clean up
