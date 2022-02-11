@@ -77,16 +77,20 @@ Content-Type: audio/wav`;
                 var attachments = [];
 
 
-                if (typeof message_snapshot_data == "object") {
-                    attachments.push({ 'Content-Type': 'image/jpeg', data: new Buffer.from(message_snapshot_data).toString('base64') });
-                } else {
-                    attachments.push({ 'Content-Type': 'image/jpeg', data: message_snapshot_data });
+                if (message_snapshot_data) {
+                    if (typeof message_snapshot_data == "object") {
+                        attachments.push({ 'Content-Type': 'image/jpeg', data: new Buffer.from(message_snapshot_data).toString('base64') });
+                    } else {
+                        attachments.push({ 'Content-Type': 'image/jpeg', data: message_snapshot_data });
+                    }
                 }
 
-                if (typeof message_voicemail_data == "object") {
-                    attachments.push({ 'Content-Type': 'audio/wav', data: new Buffer.from(message_voicemail_data).toString('base64') });
-                } else {
-                    attachments.push({ 'Content-Type': 'audio/wav', data: new message_voicemail_data });
+                if (message_voicemail_data) {
+                    if (typeof message_voicemail_data == "object") {
+                        attachments.push({ 'Content-Type': 'audio/wav', data: new Buffer.from(message_voicemail_data).toString('base64') });
+                    } else {
+                        attachments.push({ 'Content-Type': 'audio/wav', data: new message_voicemail_data });
+                    }
                 }
 
                 var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments);
