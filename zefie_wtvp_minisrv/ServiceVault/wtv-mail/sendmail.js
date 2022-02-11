@@ -32,7 +32,8 @@ Location: wtv-mail:/sendmail`;
     var msg_subject = request_headers.query.message_subject || null;
     var msg_body = request_headers.query.message_body || null;
     var to_name = request_headers.query.whatever_webtv_sends_this_as || null;
-    var no_signature = (request_headers.query.togglesign == "true") ? false : true; // opposite webtv
+    var no_signature = false;
+    if (request_headers.query.togglesign == "true") no_signature = false;
     var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft");
     var mail_draft_attachments = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments") || {};
     if (mail_draft_data) {
@@ -412,8 +413,9 @@ vlink=#62B362
 vspace=0
 hspace=0>`;
             if (ssid_sessions[socket.ssid].getSessionData("subscriber_signature") && ssid_sessions[socket.ssid].getSessionData("subscriber_signature") != "" && !no_signature) {
-                if (wtvshared.isHTML(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"))) data += `<embed src="wtv-mail:/get-signature" transparent>`;
-                else data += ssid_sessions[socket.ssid].getSessionData("subscriber_signature");
+                if (wtvshared.isHTML(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"))) data += `<wtvnoscript>`;
+                data += ssid_sessions[socket.ssid].getSessionData("subscriber_signature");
+                if (wtvshared.isHTML(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"))) data += `</wtvnoscript>`;
             }
             data += `
 <td abswidth=2 bgcolor=#000000>

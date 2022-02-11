@@ -31,7 +31,7 @@ class WTVShared {
     }
 
     isHTML(str) {
-        return /<\s*([^ >]+)[^>]*>.*?<\s*\/\s*\1\s*>/.test(str);
+        return /<[a-z][\s\S]*>/i.test(str);
     }
 
     returnAbsolutePath(check_path) {
