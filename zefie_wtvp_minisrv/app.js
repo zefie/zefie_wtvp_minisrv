@@ -315,10 +315,10 @@ async function processURL(socket, request_headers) {
         if (request_headers['wtv-request-type']) socket_sessions[socket.id].wtv_request_type = request_headers['wtv-request-type'];
 
         if (request_headers.post_data) {
-            var post_data_string = '';
+            var post_data_string = null;
             try {
-                post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8).replace("\0", ""); // if not text this will probably throw an exception
-                if (isUnencryptedString(post_data_string)) {
+                post_data_string = request_headers.post_data.toString(CryptoJS.enc.Utf8); // if not text this will probably throw an exception
+                if (post_data_string) {
                     if (post_data_string.indexOf('=')) {
                         if (post_data_string.indexOf('&')) {
                             var qraw = post_data_string.split('&');
@@ -327,7 +327,9 @@ async function processURL(socket, request_headers) {
                                     var qraw_split = qraw[i].split("=");
                                     if (qraw_split.length == 2) {
                                         var k = qraw_split[0];
-                                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                        var data = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                        if (wtvshared.isASCII(data)) request_headers.query[k] = data;
+                                        else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw[i].split("=")[1].replace(/\+/g, "%20"));
                                     }
                                 }
                             }
@@ -335,13 +337,15 @@ async function processURL(socket, request_headers) {
                             var qraw_split = post_data_string.split("=");
                             if (qraw_split.length == 2) {
                                 var k = qraw_split[0];
-                                request_headers.query[k] = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                                var data = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                                if (wtvshared.isASCII(data)) request_headers.query[k] = data;
+                                else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw_split[1].replace(/\+/g, "%20"));
                             }
                         }
                     }
                 }
             } catch (e) {
-                // do nothing
+               console.log("error:",e)
             }
         }
 
@@ -424,7 +428,7 @@ Location: " + minisrv_config.config.unauthorized_url`;
             // assume webtv since there is a :/ in the GET
             var service_name = shortURL.split(':/')[0];
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
-            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterSSID(request_headers))));
+            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterSSID(Object.assign({}, request_headers)))));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) {
@@ -442,7 +446,7 @@ Location: " + minisrv_config.config.unauthorized_url`;
 
 async function doHTTPProxy(socket, request_headers) {
     var request_type = (request_headers.request_url.substring(0, 5) == "https") ? "https" : "http";
-    if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterSSID(request_headers))));
+    if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterSSID(Object.assign({}, request_headers)))));
     switch (request_type) {
         case "https":
             var proxy_agent = https;
@@ -946,7 +950,7 @@ function moveObjectElement(currentKey, afterKey, obj) {
 }
 
 
-function isUnencryptedString(string, verbose = false) {
+function isUnencryptedString(string) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 
     // compressed / encrypted data as ASCII. This function checks for characters expected 
     // in unencrypted headers, and returns true only if every character in the string matches
@@ -1017,7 +1021,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         }
                     }
                 }
-            }
+            } 
 
             if (!headers) return;
 

@@ -97,6 +97,12 @@
     <Content Include="ServiceVault\wtv-home\Credits-Legal.js" />
     <Content Include="ServiceVault\wtv-home\Credits-Privacy.js" />
     <Content Include="ServiceVault\wtv-mail\DiplomaMail.js" />
+    <Content Include="ServiceVault\wtv-mail\get-attachment.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-mail\get-signature.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-mail\listmail.js">
       <SubType>Code</SubType>
     </Content>

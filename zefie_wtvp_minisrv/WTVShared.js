@@ -2,6 +2,7 @@
  * Shared functions across all classes and apps
  */
 
+
 class WTVShared {
 
     path = require('path');
@@ -20,6 +21,13 @@ class WTVShared {
                 return joinArray;
             }
         }
+    }
+
+    isASCII(str) {
+        for (var i = 0, strLen = str.length; i < strLen; ++i) {
+            if (str.charCodeAt(i) > 127) return false;
+        }
+        return true;
     }
 
     returnAbsolutePath(check_path) {
@@ -123,11 +131,44 @@ class WTVShared {
         return new Date((new Date).getTime() + offset).toUTCString();
     }
 
+    urlEncodeBytes = (buf) => {
+        let encoded = ''
+        for (let i = 0; i < buf.length; i++) {
+            const charBuf = Buffer.from('00', 'hex')
+            charBuf.writeUInt8(buf[i])
+            const char = charBuf.toString()
+            // if the character is safe, then just print it, otherwise encode
+            if (isUrlSafe(char)) {
+                encoded += char
+            } else {
+                encoded += `%${charBuf.toString('hex').toUpperCase()}`
+            }
+        }
+        return encoded
+    }
+
+    urlDecodeBytes = (encoded) => {
+        let decoded = Buffer.from('')
+        for (let i = 0; i < encoded.length; i++) {
+            if (encoded[i] === '%') {
+                const charBuf = Buffer.from(`${encoded[i + 1]}${encoded[i + 2]}`, 'hex')
+                decoded = Buffer.concat([decoded, charBuf])
+                i += 2
+            } else {
+                const charBuf = Buffer.from(encoded[i])
+                decoded = Buffer.concat([decoded, charBuf])
+            }
+            
+        }
+        return decoded
+    }
+
     /**
     * Returns a censored SSID
     * @param {string|Array} obj SSID String or Headers Object
     */
     filterSSID(obj) {
+        var outobj = null;
         if (this.minisrv_config.config.hide_ssid_in_logs === true) {
             if (typeof (obj) == "string") {
                 if (obj.substr(0, 8) == "MSTVSIMU") {
@@ -158,6 +199,11 @@ class WTVShared {
     decodePostData(obj) {
         if (obj.post_data) {
             obj.post_data = obj.post_data.toString();
+        }
+        if (obj.query) {
+            obj.query = Object.assign({}, obj.query);
+            if (obj.query.message_snapshot_data) obj.query.message_snapshot_data = '(binary POST filtered, see post_data hex dump)'
+            if (obj.query.message_voicemail_data) obj.query.message_snapshot_data = '(binary POST filtered, see post_data hex dump)'
         }
         return obj;
     }

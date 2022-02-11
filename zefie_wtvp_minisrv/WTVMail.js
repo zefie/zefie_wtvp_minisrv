@@ -125,7 +125,7 @@ class WTVMail {
     }
 
 
-    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false) {
+    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false, attachments = []) {
         if (this.createMailbox(mailboxid)) {
             if (!date) date = Math.floor(Date.now() / 1000);
 
@@ -143,7 +143,8 @@ class WTVMail {
                 "body": msgbody,
                 "known_sender": known_sender,
                 "signature": signature,
-                "unread": true
+                "unread": true,
+                "attachments": attachments
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
@@ -194,6 +195,9 @@ class WTVMail {
                 message_data.message_file = message_file;
                 if (message_data) {
                     message_data.id = messageid;
+                    // backwards compat
+                    if (!message_data.attachments) message_data.attachments = [];
+
                     return message_data;
                 }
                 else console.error(" # MailErr: could not parse json in ", message_file_in);
@@ -333,8 +337,8 @@ class WTVMail {
         return false;
     }
 
-    sendMessageToAddr(from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null) {
-        if (!to_addr) return "You must type a destination address for your message.";
+    sendMessageToAddr(from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null, attachments = []) {
+        if (!to_addr) return "Your message could not be sent.<p>You must specify an addressee in the <blackface>To:</blackface> area.";
 
 
         if (to_addr.indexOf('@') === -1) to_addr += "@"+this.minisrv_config.config.service_name;
@@ -365,7 +369,7 @@ class WTVMail {
                 if (mailbox_exists) dest_user_mailstore.createWelcomeMessage();
             }
             // if the mailbox exists, deliver the message
-            if (dest_user_mailstore.mailboxExists(0)) this.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature);
+            if (dest_user_mailstore.mailboxExists(0)) this.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature, null, this.isInUserAddressBook(to_addr, from_addr), attachments);
             else return "There was an internal error sending the message to <strong>" + to_addr + "</strong>. Please try again later";
 
             // clean up
@@ -373,6 +377,11 @@ class WTVMail {
             return true;
         }
         return "Unknown error";
+    }
+
+    isInUserAddressBook(address_to_check, address_to_look_for) {
+        // unimplemented
+        return false;
     }
 
     getMessageMailboxName(messageid) {

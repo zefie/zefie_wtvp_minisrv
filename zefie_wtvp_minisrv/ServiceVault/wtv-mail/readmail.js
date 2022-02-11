@@ -53,7 +53,7 @@ xnocancel>
 <HTML>
 <head>
 <title>
-${message.subject}
+${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
 </title>
 </head>
 <body
@@ -257,7 +257,7 @@ ${html_entities.encode(message.to_addr)} ${(html_entities.encode(message.to_name
 <td nowrap valign=top>
 Subject: <td>
 <td>
-${html_entities.encode(message.subject)}
+${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
 <tr>
 <td height=10>
 <spacer type=vertical size=10>
@@ -267,8 +267,32 @@ ${html_entities.encode(message.subject)}
 <tr>
 <td width=425>
 <p>
+`;
+                if (message.attachments) {
+                    message.attachments.forEach((v, k) => {
+                        if (v) {
+                            console.log("*****************",v['Content-Type']);
+                            switch (v['Content-Type']) {
+                                case "image/jpeg":
+                                    data += `<img border=2 src="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Video%20Snapshot" width="380" height="290">`;
+                                    break;
+                                case "audio/wav":
+                                    data += `<table width=386 cellspacing=0 cellpadding=0>
+<td align=left valign=middle>
+<a href="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Voice%20Mail" id=focus><img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle></a>&nbsp;&nbsp;Recording
+<td align=right valign=middle>
+
+</table>
+`;
+                                    break;
+                            }
+                        }
+                    });
+                }
+                data += `
 ${html_entities.encode(message.body).replace("\n", "<br>")}
-${(message.signature) ? '<embed src="wtv-mail:/get-signature?message_id=${messageid}>' : ''}
+<br>
+${(message.signature) ? '<embed src="wtv-mail:/get-signature?message_id='+messageid+'">' : ''}
 <p>
 <p>
 </table>

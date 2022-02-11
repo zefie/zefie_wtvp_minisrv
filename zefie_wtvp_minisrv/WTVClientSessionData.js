@@ -2,6 +2,8 @@ const { lib } = require('crypto-js');
 const CryptoJS = require('crypto-js');
 const WTVMail = require('./WTVMail.js')
 const WTVSec = require('./WTVSec.js');
+
+
 class WTVClientSessionData {
 
     fs = require('fs');
@@ -52,7 +54,6 @@ class WTVClientSessionData {
         this.loginWhitelist.push("wtv-head-waiter:/choose-user");
         this.loginWhitelist.push("wtv-head-waiter:/password");        
     }
-
 
     assignMailStore() {
         this.mailstore = new WTVMail(this.minisrv_config, this)
@@ -352,7 +353,7 @@ class WTVClientSessionData {
         try {
             if (this.fs.lstatSync(this.getUserStoreDirectory() + "user" + this.user_id + ".json")) {
                 var json_data = this.fs.readFileSync(this.getUserStoreDirectory() + "user" + this.user_id + ".json", 'Utf8')
-                if (raw_data) return json_data;
+                if (raw_data) return JSON.parse(json_data);
 
                 var session_data = JSON.parse(json_data);
                 this.session_store = session_data;
@@ -400,13 +401,14 @@ class WTVClientSessionData {
         return (password_valid);
     }
 
-    saveSessionData(force_write = false) {
+    saveSessionData(force_write = false, skip_merge = false) {
         if (this.isRegistered()) {
-            // load data from disk and merge new data
-            var temp_store = this.session_store;
-            if (this.loadSessionData()) this.session_store = Object.assign(this.session_store, temp_store);
-            else this.session_store = temp_store;
-            temp_store = null;
+            if (!skip_merge) {
+                // load data from disk and merge new data
+                var temp_data = this.loadSessionData(true);                
+                if (temp_data) this.session_store = Object.assign(temp_data, this.session_store);
+                temp_data = null;
+            }
         } else {
             // do not write file if user is not registered, return true because this is not an error
             // force write needed to set the initial reg
@@ -439,8 +441,8 @@ class WTVClientSessionData {
         return this.saveSessionData(force_write);
     }
 
-    SaveIfRegistered() {
-        if (this.isRegistered()) return this.saveSessionData();
+    SaveIfRegistered(skip_merge = false) {
+        if (this.isRegistered()) return this.saveSessionData(false, skip_merge);
         return false;
     }
 
@@ -531,7 +533,7 @@ class WTVClientSessionData {
     deleteSessionData(key) {
         if (key === null) throw ("ClientSessionData.delete(): invalid key provided");
         delete this.session_store[key];
-        this.SaveIfRegistered();
+        this.SaveIfRegistered(true);
     }
 
 
@@ -552,7 +554,7 @@ class WTVClientSessionData {
     delete(key) {
         if (key === null) throw ("ClientSessionData.delete(): invalid key provided");
         delete this.data_store[key];
-        this.SaveIfRegistered();
+        this.SaveIfRegistered(true);
     }
 
     getBoxName() {
