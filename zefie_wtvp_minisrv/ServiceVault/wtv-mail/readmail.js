@@ -269,31 +269,9 @@ ${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td width=425>
-<p>
-`;
-                if (message.attachments) {
-                    message.attachments.forEach((v, k) => {
-                        if (v) {
-                            console.log("*****************",v['Content-Type']);
-                            switch (v['Content-Type']) {
-                                case "image/jpeg":
-                                    data += `<img border=2 src="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Video%20Snapshot" width="380" height="290">`;
-                                    break;
-                                case "audio/wav":
-                                    data += `<table width=386 cellspacing=0 cellpadding=0>
-<td align=left valign=middle>
-<a href="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Voice%20Mail" id=focus><img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle></a>&nbsp;&nbsp;Recording
-<td align=right valign=middle>
-
-</table>
-`;
-                                    break;
-                            }
-                        }
-                    });
-                }
+<p>`;
                 if (typeof message.body == "object") {
-                    message.body = iconv.decode(Buffer.from(message.body), 'ISO-8859-1');
+                    message.body = wtvshared.decodeBufferText(message.body);
                 }
                 data += `
 ${html_entities.encode(message.body).replace(/\n/gi, "<br>").replace(/\r/gi, "").replace(/&apos;/gi, "'")}
@@ -301,6 +279,28 @@ ${html_entities.encode(message.body).replace(/\n/gi, "<br>").replace(/\r/gi, "")
 <br>`;
                 if (message.signature) {
                     data += ssid_sessions[socket.ssid].mailstore.sanitizeSignature(message.signature);
+                }
+data += `<p>
+`;
+                if (message.attachments) {
+                    message.attachments.forEach((v, k) => {
+                        if (v) {
+                            console.log("*****************",v['Content-Type']);
+                            switch (v['Content-Type']) {
+                                case "image/jpeg":
+                                    data += `<img border=2 src="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Video%20Snapshot" width="380" height="290"><br><br>`;
+                                    break;
+                                case "audio/wav":
+                                    data += `<table href="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Voice%20Mail" width=386 cellspacing=0 cellpadding=0>
+<td align=left valign=middle>
+<img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle>&nbsp;&nbsp;Recording
+<td align=right valign=middle>
+</table><br><br>
+`;
+                                    break;
+                            }
+                        }
+                    });
                 }
 data += `<p>
 <p>

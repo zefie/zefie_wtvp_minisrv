@@ -34,6 +34,15 @@ class WTVShared {
         return /<[a-z][\s\S]*>/i.test(str);
     }
 
+    decodeBufferText(buf) {
+        var out = "";
+        for (var i = 0; i < buf.data.length; i++) {
+            console.log(buf.data[i]);
+            out += String.fromCharCode(buf.data[i]);
+        }
+        return out;
+    }
+
     returnAbsolutePath(check_path) {
         if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 1) != ":") {
             // non-absolute path, so use current directory as base
