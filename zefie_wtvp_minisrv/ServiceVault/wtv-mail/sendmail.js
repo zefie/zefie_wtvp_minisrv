@@ -488,7 +488,7 @@ USESTYLE NOARGS>
                 data += `
 </td></tr><tr>
 <td colspan="2" align="center">
-<img src="${(mail_draft_attachments.message_snapshot_data) ? 'wtv-mail:/sendmail?get_snap=true' : 'cache:snapshot.jpg'}>" width="380" height="290">
+<img src="${(mail_draft_attachments.message_snapshot_data) ? 'wtv-mail:/sendmail?get_snap=true' : 'cache:snapshot.jpg'}" width="380" height="290">
 </td></tr><tr>
 <td colspan="2" abswidth="386" absheight="10">
 </td></tr><tr>
