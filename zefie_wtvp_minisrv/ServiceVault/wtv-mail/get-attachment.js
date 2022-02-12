@@ -18,5 +18,4 @@ if (!errpage) {
     headers = `200 OK
 Content-Type: ${message.attachments[attachment_id]['Content-Type']}`;
     data = new Buffer.from(message.attachments[attachment_id]['data'], 'base64');
-    fs.writeFileSync("D:\\test.jpg", data);
 }
