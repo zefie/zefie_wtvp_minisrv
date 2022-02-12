@@ -16,7 +16,6 @@ const WTVLzpf = require('./WTVLzpf.js');
 const WTVClientCapabilities = require('./WTVClientCapabilities.js');
 const WTVClientSessionData = require('./WTVClientSessionData.js');
 const WTVMime = require("./WTVMime.js");
-const iconv = require('iconv-lite');
 const { WTVShared, clientShowAlert } = require("./WTVShared.js");
 
 process
