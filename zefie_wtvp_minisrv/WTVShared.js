@@ -37,7 +37,6 @@ class WTVShared {
     decodeBufferText(buf) {
         var out = "";
         for (var i = 0; i < buf.data.length; i++) {
-            console.log(buf.data[i]);
             out += String.fromCharCode(buf.data[i]);
         }
         return out;
