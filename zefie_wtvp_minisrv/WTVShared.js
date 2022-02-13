@@ -8,6 +8,9 @@ class WTVShared {
     path = require('path');
     fs = require('fs');
     html_entities = require('html-entities'); // used externally by service scripts
+    sanitizeHtml = require('sanitize-html');
+    iconv = require('iconv-lite');
+
     minisrv_config = [];
     
     constructor(minisrv_config) {
@@ -26,9 +29,20 @@ class WTVShared {
 
     htmlEntitize(string, process_newline = false) {
         string = this.html_entities.encode(string).replace(/&apos;/g, "'");
+
         if (process_newline) string = string.replace(/\n/gi, "<br>").replace(/\r/gi, "");
         return string;
     }
+
+    sanitizeSignature(string) {
+        const clean = this.sanitizeHtml(string, {
+            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'style', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'], allowedAttributes: false
+        })
+        // todo: add missing user open tags (eg </i> if user did not close it) (might be done by sanitize-html?)
+        // todo: figure out bgcolor and text color voodoo
+        return clean;
+    }
+
 
     isASCII(str) {
         for (var i = 0, strLen = str.length; i < strLen; ++i) {
@@ -41,11 +55,28 @@ class WTVShared {
         return /<[a-z][\s\S]*>/i.test(str);
     }
 
+    utf8Decode(utf8String) {
+        if (typeof utf8String != 'string') throw new TypeError('parameter ‘utf8String’ is not a string');
+        // note: decode 3-byte chars first as decoded 2-byte strings could appear to be 3-byte char!
+        const unicodeString = utf8String.replace(
+            /[\u00e0-\u00ef][\u0080-\u00bf][\u0080-\u00bf]/g,  // 3-byte chars
+            function (c) {  // (note parentheses for precedence)
+                var cc = ((c.charCodeAt(0) & 0x0f) << 12) | ((c.charCodeAt(1) & 0x3f) << 6) | (c.charCodeAt(2) & 0x3f);
+                return String.fromCharCode(cc);
+            }
+        ).replace(
+            /[\u00c0-\u00df][\u0080-\u00bf]/g,                 // 2-byte chars
+            function (c) {  // (note parentheses for precedence)
+                var cc = (c.charCodeAt(0) & 0x1f) << 6 | c.charCodeAt(1) & 0x3f;
+                return String.fromCharCode(cc);
+            }
+        );
+        return unicodeString;
+    }
+
     decodeBufferText(buf) {
         var out = "";
-        for (var i = 0; i < buf.data.length; i++) {
-            out += String.fromCharCode(buf.data[i]);
-        }
+        out = this.utf8Decode(this.iconv.decode(Buffer.from(buf),'ISO-8859-1'));
         return out;
     }
 
@@ -334,16 +365,17 @@ class WTVShared {
      * @param {string} base Base path
      * @param {string} target Sub path
      */
-    makeSafePath(base, target = null) {
+    makeSafePath(base, target = null, force_forward_slash = false) {
         if (target) {
             target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
             var targetPath = this.path.posix.normalize(target)
-            return this.fixPathSlashes(base + this.path.sep + targetPath);
+            var output = this.fixPathSlashes(base + this.path.sep + targetPath);
         } else {
             base.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
             var targetPath = this.path.posix.normalize(base)
-            return this.fixPathSlashes(base);
+            var output = this.fixPathSlashes(targetPath);
         }
+        return (force_forward_slash) ? output.replace(this.path.sep, '/') : output;
     }
 
     makeSafeUsername(username) {

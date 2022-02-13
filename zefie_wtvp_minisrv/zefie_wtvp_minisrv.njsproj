@@ -439,7 +439,6 @@
     <Folder Include="ServiceDeps\premade_tellyscripts\LC2\" />
     <Folder Include="ServiceVault\" />
     <Folder Include="ServiceVault\http_pc\" />
-    <Folder Include="ServiceVault\wtv-guide\" />
     <Folder Include="ServiceVault\wtv-mail\" />
     <Folder Include="ServiceVault\wtv-chat\" />
     <Folder Include="ServiceVault\wtv-chat\images\" />

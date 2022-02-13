@@ -46,8 +46,6 @@ novtilebg
 nohtilebg
 bgcolor=191919
 text="AA9B4A" link=189cd6 vlink=189cd6 hspace=0 fontsize="large">
-<LINK href="ROMCache/TopBackground_Classic.jpg" rel=next>
-<LINK href="ROMCache/Community.gif" rel=next>
 <LINK href="ROMCache/UtilityBullet.gif" rel=next>
 <form action=/ValidateLogin enctype="x-www-form-encoded" method=post>
 <input type="hidden" NAME="target-url" VALUE="">

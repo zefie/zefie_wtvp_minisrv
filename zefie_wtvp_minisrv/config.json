@@ -124,10 +124,6 @@
       "external_proxy_host": "127.0.0.1",
       "external_proxy_port": 1080,
       "flags": "0x00000001"
-    },
-    "wtv-guide": {
-      "port": 1621,
-      "connections": 3
     }
   }
 }

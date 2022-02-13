@@ -61,7 +61,7 @@ Content-Type: audio/wav`;
     } else {
 
         var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
-        var userdisplayname = html_entities.encode(ssid_sessions[socket.ssid].getSessionData("subscriber_name"));
+        var userdisplayname = wtvshared.htmlEntitize(ssid_sessions[socket.ssid].getSessionData("subscriber_name"));
         var address = username + "@" + minisrv_config.config.service_name
         var notImplementedAlert = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
@@ -413,7 +413,7 @@ vlink=#62B362
 vspace=0
 hspace=0>`;
             if (ssid_sessions[socket.ssid].getSessionData("subscriber_signature") && ssid_sessions[socket.ssid].getSessionData("subscriber_signature") != "" && !no_signature) {
-                data += ssid_sessions[socket.ssid].mailstore.sanitizeSignature(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"));
+                data += wtvshared.sanitizeSignature(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"));
             }
             data += `
 <td abswidth=2 bgcolor=#000000>

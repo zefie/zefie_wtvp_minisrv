@@ -40,6 +40,7 @@ Location: wtv-mail:/listmail`;
                 headers = `200 OK
 Content-type: text/html`;
 
+                if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                 data = `<wtvnoscript>
 <sendpanel
 action	= "wtv-mail:/sendmail?message_forward_id=14&mailbox_name=inbox"
@@ -257,8 +258,7 @@ ${wtvshared.htmlEntitize(message.to_addr)} ${(message.to_name) ? '(' + wtvshared
 <td nowrap valign=top>
 Subject: <td>
 <td>`;
-
-                if (typeof message.subject == "object") message.subject = new Buffer.from(message.subject).toString('latin1');
+              
                 data += `
 ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
 <tr>
@@ -278,7 +278,7 @@ ${wtvshared.htmlEntitize(message.body, true)}
 <br>
 <br>`;
                 if (message.signature) {
-                    data += ssid_sessions[socket.ssid].mailstore.sanitizeSignature(message.signature);
+                    data += wtvshared.sanitizeSignature(message.signature);
                 }
                 data += `<p>
 `;

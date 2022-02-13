@@ -117,6 +117,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         var service_path_romcache = service_path_presplit.join(path.sep);
                         var service_vault_file_path_romcache = wtvshared.returnAbsolutePath(wtvshared.makeSafePath(service_path_romcache));
                         if (fs.existsSync(service_vault_file_path_romcache)) {
+
                             service_path = service_path.replace(wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache), 'ROMCache');
                             service_vault_file_path = service_vault_file_path_romcache;
                             usingSharedROMCache = true;
@@ -449,7 +450,7 @@ Location: " + minisrv_config.config.unauthorized_url`;
             var service_name = shortURL.split(':/')[0];
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
             var shared_romcache = null;
-            if (shortURL.indexOf("/ROMCache/") != -1 && minisrv_config.config.enable_shared_romcache) {
+            if (shortURL.indexOf(":/ROMCache/") != -1 && minisrv_config.config.enable_shared_romcache) {
                 shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split(':/')[1]);
             }
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterSSID(Object.assign({}, request_headers)))));

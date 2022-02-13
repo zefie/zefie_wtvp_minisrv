@@ -3,7 +3,6 @@ class WTVMail {
     fs = require('fs');
     path = require('path');
     uuid = require('uuid');
-
     ssid = null;
     unread_mail = 0;
     inbox_store = null;
@@ -122,14 +121,6 @@ class WTVMail {
 
     createMessageID() {
         return this.uuid.v1();
-    }
-
-    sanitizeSignature(string) {
-        // placeholder ~ not yet implemented
-        // todo: strip <script>, </script> and everything inbetween
-        // todo: add missing user open tags (eg </i> if user did not close it)
-        // todo: figure out bgcolor and text color voodoo
-        return string;
     }
 
     createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false, attachments = []) {

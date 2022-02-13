@@ -281,6 +281,7 @@ ${username}@${minisrv_config.config.service_name}
 `;
                 Object.keys(message_list).forEach(function (k) {
                     var message = message_list[k];
+                    if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                     var message_font_open = "<font color=#7A9FCC>";
                     var message_font_close = "</font>";
                     if (message.unread) {

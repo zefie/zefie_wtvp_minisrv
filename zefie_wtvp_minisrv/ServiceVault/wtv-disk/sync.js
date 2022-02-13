@@ -210,42 +210,45 @@ if (request_headers['wtv-request-type'] == 'download') {
         var wtv_download_list = new Array();
         var newest_file_epoch = version;
         Object.keys(diskmap_group_data.files).forEach(function (k) {
-            if (!diskmap_group_data.files[k].location) diskmap_group_data.files[k].location = wtvshared.makeSafePath(diskmap_group_data.location,diskmap_group_data.files[k].file.replace(diskmap_group_data.base, ""));
+            if (!diskmap_group_data.files[k].location) diskmap_group_data.files[k].location = wtvshared.makeSafePath(diskmap_group_data.location,diskmap_group_data.files[k].file.replace(diskmap_group_data.base, ""), true);
             var diskmap_data_file = null;
             Object.keys(service_vaults).forEach(function (g) {
                 if (diskmap_data_file != null) return;
                 diskmap_data_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
+                console.log(diskmap_data_file)
                 if (!fs.existsSync(diskmap_data_file)) diskmap_data_file = null;
             });
 
-            var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
-            var diskmap_file_data = new Buffer.from(fs.readFileSync(diskmap_data_file, {
-                encoding: null,
-                flags: 'r'
-            }));
-            diskmap_group_data.files[k].base = diskmap_group_data.base;
-            diskmap_group_data.files[k].last_modified = (new Date(new Date(diskmap_file_stat.mtime).toUTCString()) / 1000);
-            diskmap_group_data.files[k].content_length = diskmap_file_stat.size;
-            diskmap_group_data.files[k].action = (diskmap_group_data.files[k].action) ? diskmap_group_data.files[k].action.toUpperCase() : "GET";            
+            if (diskmap_data_file) {
+                var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
+                var diskmap_file_data = new Buffer.from(fs.readFileSync(diskmap_data_file, {
+                    encoding: null,
+                    flags: 'r'
+                }));
+                diskmap_group_data.files[k].base = diskmap_group_data.base;
+                diskmap_group_data.files[k].last_modified = (new Date(new Date(diskmap_file_stat.mtime).toUTCString()) / 1000);
+                diskmap_group_data.files[k].content_length = diskmap_file_stat.size;
+                diskmap_group_data.files[k].action = (diskmap_group_data.files[k].action) ? diskmap_group_data.files[k].action.toUpperCase() : "GET";
 
-            // we need the checksum of the uncompressed data
-            if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
-                var gunzipped = zlib.gunzipSync(diskmap_file_data);
-                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
-                var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
-                if (!diskmap_group_data.files[k].dont_extract_filename) {
-                    diskmap_group_data.files[k].original_filename = diskmap_file_data.toString('utf8', 10, gzip_fn_end);
+                // we need the checksum of the uncompressed data
+                if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
+                    var gunzipped = zlib.gunzipSync(diskmap_file_data);
+                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
+                    var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
+                    if (!diskmap_group_data.files[k].dont_extract_filename) {
+                        diskmap_group_data.files[k].original_filename = diskmap_file_data.toString('utf8', 10, gzip_fn_end);
+                    }
+                    diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
+                    gunzipped = null;
+                } else {
+                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
                 }
-                diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
-                gunzipped = null;
-            } else {
-                diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
+
+                if (parseInt(diskmap_group_data.files[k].last_modified) > newest_file_epoch) newest_file_epoch = parseInt(diskmap_group_data.files[k].last_modified);
+
+                diskmap_group_data.files[k].invalid = true;
+                wtv_download_list.push(diskmap_group_data.files[k]);
             }
-
-            if (parseInt(diskmap_group_data.files[k].last_modified) > newest_file_epoch) newest_file_epoch = parseInt(diskmap_group_data.files[k].last_modified);
-
-            diskmap_group_data.files[k].invalid = true;
-            wtv_download_list.push(diskmap_group_data.files[k]);
         });
         // check to see if client says they have this version
         diskmap_group_data.version = newest_file_epoch;

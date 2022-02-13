@@ -21,7 +21,7 @@ bgcolor=00292f
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td width=560 height=96 valign=top>
-<table background="wtv-guide:/ROMCache/help/common/helpMastheadBlank.swf" width=560 height=96 cellspacing=0 cellpadding=0>
+<table background="wtv-mail:/ROMCache/help/common/helpMastheadBlank.swf" width=560 height=96 cellspacing=0 cellpadding=0>
 <tr>
 <td width=107 height=96 valign=top rowspan=2>
 <spacer type=vertical height=7><br>
