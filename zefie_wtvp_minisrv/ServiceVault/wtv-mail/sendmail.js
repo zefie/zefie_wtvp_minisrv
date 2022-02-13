@@ -71,10 +71,10 @@ Content-Type: audio/wav`;
             'noback': true,
         }).getURL();
 
-        if (request_headers.query.sendoff == "Send" || request_headers.query.saveoff || request_headers.query.get_snap || request_headers.query.get_gab) {
+        if ((typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) || request_headers.query.saveoff || request_headers.query.get_snap || request_headers.query.get_gab) {
             var from_addr = address;
             var signature = ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || null;
-            if (request_headers.query.sendoff == "Send") {
+            if (typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) {
                 var attachments = [];
 
 
@@ -459,30 +459,30 @@ USESTYLE NOARGS>
             if ((request_headers.query.snapping && request_headers.query.snapping !== 'false') || mail_draft_attachments.message_snapshot_data) {
                 data += `<tr>
 <td absheight="10">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="10">
+<img src="ROMCache/Spacer.gif" width="1" height="10">
 </td></tr></tbody></table>
 <table cellspacing="0" cellpadding="0" bgcolor="#1F2033" background="">
 <tbody><tr>
 <td rowspan="100" abswidth="10" bgcolor="191919">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="10" height="1">
+<img src="ROMCache/Spacer.gif" width="10" height="1">
 </td><td colspan="9" abswidth="422" valign="bottom">
-<img src="wtv-mail:/ROMCache/PaperTopFlat.gif" noprint="" width="422" height="6">
+<img src="ROMCache/PaperTopFlat.gif" noprint="" width="422" height="6">
 </td></tr><tr>
 <td rowspan="100" abswidth="2" absheight="0" bgcolor="313131">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="14" absheight="0">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td colspan="2" abswidth="386">
 </td><td rowspan="100" abswidth="14" absheight="0">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="3" absheight="0" bgcolor="0b0b0b">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="1" absheight="0" bgcolor="0f0f0f">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="1" absheight="0" bgcolor="131313">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="1" absheight="0" bgcolor="171717">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td></tr><tr>
 <td colspan="2" absheight="15">`;
                 if (!mail_draft_attachments.message_snapshot_data) {
@@ -502,51 +502,51 @@ USESTYLE NOARGS>
 <tbody><tr><td valign="middle">
 </td><td valign="middle" align="right">
 <a href="javascript:ErasingMedia('snapping')">
-&nbsp;Detach&nbsp;<img src="wtv-mail:/ROMCache/RemoveButton.gif" width="25" height="25" align="absmiddle"></a>
+&nbsp;Detach&nbsp;<img src="ROMCache/RemoveButton.gif" width="25" height="25" align="absmiddle"></a>
 </td></tr></tbody></table>
 </td></tr><tr>
 <td colspan="2" absheight="8">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="8">
+<img src="ROMCache/Spacer.gif" width="1" height="8">
 </td></tr></tbody></table>
 <table cellspacing="0" cellpadding="0">
 <tbody><tr>
 <td rowspan="100" abswidth="10">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="10" height="2">
+<img src="ROMCache/Spacer.gif" width="10" height="2">
 </td><td abswidth="422">
-<img src="wtv-mail:/ROMCache/PaperBase.gif" noprint="" width="422" height="6">
+<img src="ROMCache/PaperBase.gif" noprint="" width="422" height="6">
 </td></tr><tr>
 <td absheight="6">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="6">
+<img src="ROMCache/Spacer.gif" width="1" height="6">
 </td></tr>`;
             }
 
             if ((request_headers.query.gabbing && request_headers.query.gabbing !== 'false') || mail_draft_attachments.message_voicemail_data) {
                 data += `<tr>
 <td absheight="10">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="10">
+<img src="ROMCache/Spacer.gif" width="1" height="10">
 </td></tr></tbody></table>
 <table cellspacing="0" cellpadding="0" bgcolor="#1F2033" background="">
 <tbody><tr>
 <td rowspan="100" abswidth="10" bgcolor="191919">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="10" height="1">
+<img src="ROMCache/Spacer.gif" width="10" height="1">
 </td><td colspan="9" abswidth="422" valign="bottom">
-<img src="wtv-mail:/ROMCache/PaperTopFlat.gif" noprint="" width="422" height="6">
+<img src="ROMCache/PaperTopFlat.gif" noprint="" width="422" height="6">
 </td></tr><tr>
 <td rowspan="100" abswidth="2" absheight="0" bgcolor="313131">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="14" absheight="0">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td colspan="2" abswidth="386">
 </td><td rowspan="100" abswidth="14" absheight="0">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="3" absheight="0" bgcolor="0b0b0b">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="1" absheight="0" bgcolor="0f0f0f">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="1" absheight="0" bgcolor="131313">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td><td rowspan="100" abswidth="1" absheight="0" bgcolor="171717">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="1">
+<img src="ROMCache/Spacer.gif" width="1" height="1">
 </td></tr><tr>
 <td colspan="2" absheight="15">
 <input type=file device=audio name=message_voicemail_data
@@ -556,23 +556,23 @@ ${(!mail_draft_attachments.message_voicemail_data) ? '' : '<input type=hidden na
 <td colspan="2" align="center">
 <table width=386 cellspacing=0 cellpadding=0>
 <td align=left valign=middle>
-<a href="${(mail_draft_attachments.message_voicemail_data) ? 'wtv-mail:/sendmail?get_gab=true&wtv-title=Voice%20Mail' : 'cache:voicemail.wav'}" id=focus><img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle></a>&nbsp;&nbsp;Recording
+<a href="${(mail_draft_attachments.message_voicemail_data) ? 'wtv-mail:/sendmail?get_gab=true&wtv-title=Voice%20Mail' : 'cache:voicemail.wav'}" id=focus><img src="ROMCache/FileSound.gif" align=absmiddle></a>&nbsp;&nbsp;Recording
 <td align=right valign=middle>
 <a href="javascript:ErasingMedia('gabbing')">
-&nbsp;Detach&nbsp;<img src="wtv-mail:/ROMCache/RemoveButton.gif" align=absmiddle height=25 width=25></a>
+&nbsp;Detach&nbsp;<img src="ROMCache/RemoveButton.gif" align=absmiddle height=25 width=25></a>
 </table><tr>
 <td colspan="2" absheight="8">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="8">
+<img src="ROMCache/Spacer.gif" width="1" height="8">
 </td></tr></tbody></table>
 <table cellspacing="0" cellpadding="0">
 <tbody><tr>
 <td rowspan="100" abswidth="10">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="10" height="2">
+<img src="ROMCache/Spacer.gif" width="10" height="2">
 </td><td abswidth="422">
-<img src="wtv-mail:/ROMCache/PaperBase.gif" noprint="" width="422" height="6">
+<img src="ROMCache/PaperBase.gif" noprint="" width="422" height="6">
 </td></tr><tr>
 <td absheight="6">
-<img src="wtv-star:/ROMCache/Spacer.gif" width="1" height="6">
+<img src="ROMCache/Spacer.gif" width="1" height="6">
 </td></tr>`;
             }
 

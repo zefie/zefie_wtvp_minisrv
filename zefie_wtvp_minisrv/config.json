@@ -6,6 +6,8 @@
       "ServiceVault"
     ],
     "SessionStore": "SessionStore",
+    "SharedROMCache": "SharedROMCache",
+    "enable_shared_romcache": true,
     "service_owner": "a minisrv user",
     "service_owner_account": "minisrvuser",
     "service_owner_contact": "someone",

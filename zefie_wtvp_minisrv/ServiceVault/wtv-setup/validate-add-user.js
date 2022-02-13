@@ -40,7 +40,7 @@ noscroll>
 <tr>
 <td colspan=3 abswidth=104 absheight=4>
 <td rowspan=99 width=6 absheight=420 valign=top align=left>
-<img src="wtv-home:/ROMCache/Shadow.gif" width=6 height=420>
+<img src="ROMCache/Shadow.gif" width=6 height=420>
 <tr>
 <td abswidth=6>
 <td abswidth=92 absheight=76>
@@ -53,10 +53,10 @@ noscroll>
 <tr><td absheight=5 colspan=3>
 <table cellspacing=0 cellpadding=0>
 <tr><td abswidth=104 absheight=2 valign=middle align=center bgcolor="1C1E28">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="ROMCache/Spacer.gif" width=1 height=1>
 <tr><td abswidth=104 absheight=1 valign=top align=left>
 <tr><td abswidth=104 absheight=2 valign=top align=left bgcolor="4D5573">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="ROMCache/Spacer.gif" width=1 height=1>
 </table>
 <tr><td absheight=37>
 <tr><td absheight=263 align=right colspan=3>
@@ -154,13 +154,13 @@ user_password2=${request_headers.query.user_password2}">`;
 <tr>
 <td>
 <td colspan=2 absheight=2 bgcolor="2B2B2B">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=426 height=1>
+<img src="ROMCache/Spacer.gif" width=426 height=1>
 <tr>
 <td absheight=1>
 <tr>
 <td>
 <td colspan=2 absheight=2 bgcolor="0D0D0D">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=426 height=1>
+<img src="ROMCache/Spacer.gif" width=426 height=1>
 <tr>
 <td absheight=4>
 </table>

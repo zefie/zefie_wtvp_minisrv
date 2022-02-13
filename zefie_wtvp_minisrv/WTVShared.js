@@ -7,8 +7,9 @@ class WTVShared {
 
     path = require('path');
     fs = require('fs');
+    html_entities = require('html-entities'); // used externally by service scripts
     minisrv_config = [];
-
+    
     constructor(minisrv_config) {
         if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig();
         else this.minisrv_config = minisrv_config;
@@ -21,6 +22,12 @@ class WTVShared {
                 return joinArray;
             }
         }
+    }
+
+    htmlEntitize(string, process_newline = false) {
+        string = this.html_entities.encode(string).replace(/&apos;/g, "'");
+        if (process_newline) string = string.replace(/\n/gi, "<br>").replace(/\r/gi, "");
+        return string;
     }
 
     isASCII(str) {
@@ -327,10 +334,16 @@ class WTVShared {
      * @param {string} base Base path
      * @param {string} target Sub path
      */
-    makeSafePath(base, target) {
-        target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-        var targetPath = this.path.posix.normalize(target)
-        return this.fixPathSlashes(base + this.path.sep + targetPath);
+    makeSafePath(base, target = null) {
+        if (target) {
+            target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
+            var targetPath = this.path.posix.normalize(target)
+            return this.fixPathSlashes(base + this.path.sep + targetPath);
+        } else {
+            base.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
+            var targetPath = this.path.posix.normalize(base)
+            return this.fixPathSlashes(base);
+        }
     }
 
     makeSafeUsername(username) {

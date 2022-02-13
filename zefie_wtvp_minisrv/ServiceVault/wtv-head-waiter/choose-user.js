@@ -41,15 +41,14 @@ Choose your name
 <td absheight=8>
 </table>
 </sidebar>
-<body background="wtv-content:/ROMCache/NameStrip.gif"
+<body background="ROMCache/NameStrip.gif"
 novtilebg
 nohtilebg
 bgcolor=191919
 text="AA9B4A" link=189cd6 vlink=189cd6 hspace=0 fontsize="large">
-<LINK href="wtv-content:/ROMCache/TopBackground_Classic.jpg" rel=next>
-<LINK href="wtv-content:/ROMCache/Community.gif" rel=next>
-<LINK href="wtv-content:/ROMCache/UtilityBullet.gif" rel=next>
-<LINK href="wtv-content:/ROMCache/BackgroundWebTVToday_a.swf" rel=next>
+<LINK href="ROMCache/TopBackground_Classic.jpg" rel=next>
+<LINK href="ROMCache/Community.gif" rel=next>
+<LINK href="ROMCache/UtilityBullet.gif" rel=next>
 <form action=/ValidateLogin enctype="x-www-form-encoded" method=post>
 <input type="hidden" NAME="target-url" VALUE="">
 <table cellspacing=0 cellpadding=0>

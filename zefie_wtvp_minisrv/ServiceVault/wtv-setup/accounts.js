@@ -22,7 +22,7 @@ Users setup
 <tr>
 <td colspan=3 abswidth=104 absheight=4>
 <td rowspan=99 width=6 absheight=420 valign=top align=left>
-<img src="wtv-home:/ROMCache/Shadow.gif" width=6 height=420>
+<img src="ROMCache/Shadow.gif" width=6 height=420>
 <tr>
 <td abswidth=6>
 <td abswidth=92 absheight=76>
@@ -35,10 +35,10 @@ Users setup
 <tr><td absheight=5 colspan=3>
 <table cellspacing=0 cellpadding=0>
 <tr><td abswidth=104 absheight=2 valign=middle align=center bgcolor="1C1E28">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="ROMCache/Spacer.gif" width=1 height=1>
 <tr><td abswidth=104 absheight=1 valign=top align=left>
 <tr><td abswidth=104 absheight=2 valign=top align=left bgcolor="4D5573">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="ROMCache/Spacer.gif" width=1 height=1>
 </table>
 <tr><td absheight=37>
 <tr><td absheight=263 align=right colspan=3>
@@ -96,14 +96,14 @@ Subscriber:
 <tr>
 <TD>
 <td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
+<img src="ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
 <tr>
 <TD>
 <td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
+<img src="ROMCache/Spacer.gif" width=436 height=1>
 <TR>
 <TD>
 <TD COLSPAN=4 HEIGHT=4 VALIGN=top ALIGN=left>
@@ -114,11 +114,11 @@ Subscriber:
 <INPUT action="/remove-users?user-count=x"
 name="RemoveUser" value="Remove User" WIDTH=140 ${(num_accounts >= 1) ? 'USESTYLE' : 'disabled="disabled" text=gray' }
 TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button1" WIDTH=103>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
+<IMG SRC="ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
 <INPUT action="/add-user?user_count=${num_accounts}"
 name="AddUser" value="Add User" WIDTH=120 ${(num_accounts >= minisrv_config.config.user_accounts.max_users_per_account) ? 'disabled="disabled" text=gray' : 'USESTYLE'}
 TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button2" WIDTH=103>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
+<IMG SRC="ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
 <INPUT action="client:goback"
 name="Done"
 value="Done"

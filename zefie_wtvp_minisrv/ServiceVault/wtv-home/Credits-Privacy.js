@@ -17,7 +17,7 @@ ${minisrv_config.config.service_name} Service Privacy Statement
 <tr>
 <td colspan=3 abswidth=104 absheight=4>
 <td rowspan=99 width=6 absheight=420 valign=top align=left>
-<img src="wtv-home:/ROMCache/Shadow.gif" width=6 height=420>
+<img src="ROMCache/Shadow.gif" width=6 height=420>
 <tr>
 <td abswidth=6>
 <td abswidth=92 absheight=76>
@@ -30,10 +30,10 @@ ${minisrv_config.config.service_name} Service Privacy Statement
 <tr><td absheight=5 colspan=3>
 <table cellspacing=0 cellpadding=0>
 <tr><td abswidth=104 absheight=2 valign=middle align=center bgcolor="5a4521">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="ROMCache/Spacer.gif" width=1 height=1>
 <tr><td abswidth=104 absheight=1 valign=top align=left>
 <tr><td abswidth=104 absheight=2 valign=top align=left bgcolor="c0954a">
-<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<img src="ROMCache/Spacer.gif" width=1 height=1>
 </table>
 <tr><td absheight=100>
 <tr><td absheight=244 align=right colspan=3>

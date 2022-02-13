@@ -6,7 +6,6 @@ const zlib = require('zlib');
 const http = require('http');
 const https = require('https');
 const strftime = require('strftime'); // used externally by service scripts
-const html_entities = require('html-entities'); // used externally by service scripts
 const net = require('net');
 const CryptoJS = require('crypto-js');
 const { crc16 } = require('easy-crc');
@@ -101,162 +100,183 @@ async function sendRawFile(socket, path) {
     });
 }
 
-async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name) {
+async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name, shared_romcache = null) {
     var headers, data = null;
     var request_is_async = false;
     var service_vault_found = false;
     var service_path = unescape(service_vault_file_path);
+    var usingSharedROMCache = false;
     try {
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
-            service_vault_file_path = wtvshared.makeSafePath(service_vault_dir, service_path);
-            // deny access to catchall file name directly
-            var service_path_split = service_path.split("/");
-            var service_path_request_file = service_path_split[service_path_split.length - 1];
-            if (minisrv_config.config.catchall_file_name) {
-                var minisrv_catchall = null;
-                if (minisrv_config.services[service_name]) minisrv_catchall = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
-                else minisrv_catchall = minisrv_config.config.catchall_file_name || null;
-                if (minisrv_catchall) {
-                    if (service_path_request_file == minisrv_catchall) {
-                        request_is_async = true;
-                        var errpage = wtvshared.doErrorPage(401, "Access Denied");
-                        sendToClient(socket, errpage[0], errpage[1]);
-                        return;
-                    }
-                }
-            }
-            var is_dir = false;
-            var file_exists = false;
-            minisrv_catchall, service_path_split, service_path_request_file = null;
-            if (fs.existsSync(service_vault_file_path)) {
-                file_exists = true;
-                is_dir = fs.lstatSync(service_vault_file_path).isDirectory()
-            }
-
-            if (file_exists && !is_dir) {
-                // file exists, read it and return it 
-                service_vault_found = true;
-                request_is_async = true;
-                request_headers.service_file_path = service_vault_file_path;
-                request_headers.raw_file = true;
-
-                // service parsed files, we might not want to expose our service source files so we can protect them with a flag on the first line
-                if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "js" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "txt") {
-                    if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "js") {
-                        wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
-                            if (!status) {
-                                if (line.match(/minisrv\_service\_file.*true/i)) {
-                                    var errpage = wtvshared.doErrorPage(403, "Access Denied");
-                                    sendToClient(socket, errpage[0], errpage[1]);
-                                } else {
-                                    sendRawFile(socket, service_vault_file_path);
-                                }
-                            } else {
-                                var errpage = wtvshared.doErrorPage(400);
-                                sendToClient(socket, errpage[0], errpage[1]);
-                            }
-                        });
-                    }
-
-                    if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "txt") {
-                        wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
-                            if (!status) {
-                                if (line.match(/^#!minisrv/i)) {
-                                    var errpage = wtvshared.doErrorPage(403, "Access Denied");
-                                    sendToClient(socket, errpage[0], errpage[1]);
-                                } else {
-                                    sendRawFile(socket, service_vault_file_path);
-                                }
-                            } else {
-                                var errpage = wtvshared.doErrorPage(400);
-                                sendToClient(socket, errpage[0], errpage[1]);
-                            }
-                        });
+            if (!usingSharedROMCache) {
+                if (minisrv_config.config.SharedROMCache && shared_romcache) {
+                    if (shared_romcache.indexOf(minisrv_config.config.SharedROMCache) != -1) {
+                        var service_path_presplit = shared_romcache.split(path.sep);
+                        service_path_presplit.splice(service_path_presplit.findIndex((element) => element === 'ROMCache'), 1);
+                        var service_path_romcache = service_path_presplit.join(path.sep);
+                        var service_vault_file_path_romcache = wtvshared.returnAbsolutePath(wtvshared.makeSafePath(service_path_romcache));
+                        if (fs.existsSync(service_vault_file_path_romcache)) {
+                            service_path = service_path.replace(wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache), 'ROMCache');
+                            service_vault_file_path = service_vault_file_path_romcache;
+                            usingSharedROMCache = true;
+                        } else {
+                            service_vault_file_path = wtvshared.makeSafePath(service_vault_dir, service_path);
+                        }
+                    } else {
+                        service_vault_file_path = wtvshared.makeSafePath(service_vault_dir, service_path);
                     }
                 } else {
-                    // not a potential service file, so save to send
-                    sendRawFile(socket, service_vault_file_path);
+                    service_vault_file_path = wtvshared.makeSafePath(service_vault_dir, service_path);
+                }
+                // deny access to catchall file name directly
+                var service_path_split = service_path.split("/");
+                var service_path_request_file = service_path_split[service_path_split.length - 1];
+                if (minisrv_config.config.catchall_file_name) {
+                    var minisrv_catchall = null;
+                    if (minisrv_config.services[service_name]) minisrv_catchall = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
+                    else minisrv_catchall = minisrv_config.config.catchall_file_name || null;
+                    if (minisrv_catchall) {
+                        if (service_path_request_file == minisrv_catchall) {
+                            request_is_async = true;
+                            var errpage = wtvshared.doErrorPage(401, "Access Denied");
+                            sendToClient(socket, errpage[0], errpage[1]);
+                            return;
+                        }
+                    }
+                }
+                var is_dir = false;
+                var file_exists = false;
+                minisrv_catchall, service_path_split, service_path_request_file = null;
+                if (fs.existsSync(service_vault_file_path)) {
+                    file_exists = true;
+                    is_dir = fs.lstatSync(service_vault_file_path).isDirectory()
                 }
 
-            } else if (fs.existsSync(service_vault_file_path + ".txt")) {
-                // raw text format, entire payload expected (headers and content)
-                service_vault_found = true;
-                request_is_async = true;
-                if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".txt to handle request (Raw TXT Mode) [Socket " + socket.id + "]");
-                request_headers.service_file_path = service_vault_file_path + ".txt";
-                fs.readFile(service_vault_file_path + ".txt", 'Utf-8', function (err, file_raw) {
-                    if (file_raw.indexOf("\n\n") > 0) {
-                        // split headers and data by newline (unix format)
-                        var file_raw_split = file_raw.split("\n\n");
-                        headers = file_raw_split[0];
-                        file_raw_split.shift();
-                        data = file_raw_split.join("\n");
-                    } else if (file_raw.indexOf("\r\n\r\n") > 0) {
-                        // split headers and data by carrage return + newline (windows format)
-                        var file_raw_split = file_raw.split("\r\n\r\n");
-                        headers = file_raw_split[0].replace(/\r/g, "");
-                        file_raw_split.shift();
-                        data = file_raw_split.join("\r\n");
-                    } else {
-                        // couldn't find two line breaks, assume entire file is just headers
-                        headers = file_raw;
-                        data = '';
-                    }
-                    sendToClient(socket, headers, data);
-                });
-            } else if (fs.existsSync(service_vault_file_path + ".js")) {
-                // synchronous js scripting, process with vars, must set 'headers' and 'data' appropriately.
-                // loaded script will have r/w access to any JavaScript vars this function does.
-                // request headers are in an array named `request_headers`. 
-                // Query arguments in `request_headers.query`
-                // Can upgrade to asynchronous by setting `request_is_async` to `true`
-                // In Asynchronous mode, you are expected to call sendToClient(socket,headers,data) by the end of your script
-                // `socket` is already defined and should be passed-through.
-                service_vault_found = true;
-                if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
-                request_headers.service_file_path = service_vault_file_path + ".js";
-                // expose var service_dir for script path to the root of the wtv-service
-                var service_dir = service_vault_dir + path.sep + service_name;
-                socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
-                var jscript_eval = fs.readFileSync(service_vault_file_path + ".js").toString();
-                eval(jscript_eval);
-                if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
-            }
-            else if (fs.existsSync(service_vault_file_path + ".html")) {
-                // Standard HTML with no headers, WTV Style
-                service_vault_found = true;
-                if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".html to handle request (HTML Mode) [Socket " + socket.id + "]");
-                request_headers.service_file_path = service_vault_file_path + ".html";
-                request_is_async = true;
-                headers = "200 OK\n"
-                headers += "Content-Type: text/html"
-                fs.readFile(service_vault_file_path + ".html", null, function (err, data) {
-                    sendToClient(socket, headers, data);
-                });
-            } else {
-                // look for a catchallin the current path and all parent paths up until the service root
-                if (minisrv_config.config.catchall_file_name) {
-                    var minisrv_catchall_file_name = null;
-                    if (minisrv_config.services[service_name]) minisrv_catchall_file_name = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
-                    else minisrv_catchall_file_name = minisrv_config.config.catchall_file_name || null;
-                    if (minisrv_catchall_file_name) {
-                        var service_check_dir = service_vault_file_path.split(path.sep);
-                        service_check_dir.pop(); // pop filename
+                if (file_exists && !is_dir) {
+                    // file exists, read it and return it 
+                    service_vault_found = true;
+                    request_is_async = true;
+                    request_headers.service_file_path = service_vault_file_path;
+                    request_headers.raw_file = true;
 
-                        while (service_check_dir.join(path.sep) != service_vault_dir) {
-                            var catchall_file = service_check_dir.join(path.sep) + path.sep + minisrv_catchall_file_name;
-                            if (fs.existsSync(catchall_file)) {
-                                service_vault_found = true;
-                                if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
-                                request_headers.service_file_path = catchall_file;
-                                var jscript_eval = fs.readFileSync(catchall_file).toString();
-                                // don't pass these vars to the script
-                                var service_check_dir, minisrv_catchall_file_name = null;
-                                eval(jscript_eval);
-                                if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
-                            } else {
-                                service_check_dir.pop();
+                    // service parsed files, we might not want to expose our service source files so we can protect them with a flag on the first line
+                    if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "js" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "txt") {
+                        if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "js") {
+                            wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
+                                if (!status) {
+                                    if (line.match(/minisrv\_service\_file.*true/i)) {
+                                        var errpage = wtvshared.doErrorPage(403, "Access Denied");
+                                        sendToClient(socket, errpage[0], errpage[1]);
+                                    } else {
+                                        sendRawFile(socket, service_vault_file_path);
+                                    }
+                                } else {
+                                    var errpage = wtvshared.doErrorPage(400);
+                                    sendToClient(socket, errpage[0], errpage[1]);
+                                }
+                            });
+                        }
+
+                        if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "txt") {
+                            wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
+                                if (!status) {
+                                    if (line.match(/^#!minisrv/i)) {
+                                        var errpage = wtvshared.doErrorPage(403, "Access Denied");
+                                        sendToClient(socket, errpage[0], errpage[1]);
+                                    } else {
+                                        sendRawFile(socket, service_vault_file_path);
+                                    }
+                                } else {
+                                    var errpage = wtvshared.doErrorPage(400);
+                                    sendToClient(socket, errpage[0], errpage[1]);
+                                }
+                            });
+                        }
+                    } else {
+                        // not a potential service file, so save to send
+                        sendRawFile(socket, service_vault_file_path);
+                    }
+
+                } else if (fs.existsSync(service_vault_file_path + ".txt")) {
+                    // raw text format, entire payload expected (headers and content)
+                    service_vault_found = true;
+                    request_is_async = true;
+                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".txt to handle request (Raw TXT Mode) [Socket " + socket.id + "]");
+                    request_headers.service_file_path = service_vault_file_path + ".txt";
+                    fs.readFile(service_vault_file_path + ".txt", 'Utf-8', function (err, file_raw) {
+                        if (file_raw.indexOf("\n\n") > 0) {
+                            // split headers and data by newline (unix format)
+                            var file_raw_split = file_raw.split("\n\n");
+                            headers = file_raw_split[0];
+                            file_raw_split.shift();
+                            data = file_raw_split.join("\n");
+                        } else if (file_raw.indexOf("\r\n\r\n") > 0) {
+                            // split headers and data by carrage return + newline (windows format)
+                            var file_raw_split = file_raw.split("\r\n\r\n");
+                            headers = file_raw_split[0].replace(/\r/g, "");
+                            file_raw_split.shift();
+                            data = file_raw_split.join("\r\n");
+                        } else {
+                            // couldn't find two line breaks, assume entire file is just headers
+                            headers = file_raw;
+                            data = '';
+                        }
+                        sendToClient(socket, headers, data);
+                    });
+                } else if (fs.existsSync(service_vault_file_path + ".js")) {
+                    // synchronous js scripting, process with vars, must set 'headers' and 'data' appropriately.
+                    // loaded script will have r/w access to any JavaScript vars this function does.
+                    // request headers are in an array named `request_headers`. 
+                    // Query arguments in `request_headers.query`
+                    // Can upgrade to asynchronous by setting `request_is_async` to `true`
+                    // In Asynchronous mode, you are expected to call sendToClient(socket,headers,data) by the end of your script
+                    // `socket` is already defined and should be passed-through.
+                    service_vault_found = true;
+                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
+                    request_headers.service_file_path = service_vault_file_path + ".js";
+                    // expose var service_dir for script path to the root of the wtv-service
+                    var service_dir = service_vault_dir + path.sep + service_name;
+                    socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
+                    var jscript_eval = fs.readFileSync(service_vault_file_path + ".js").toString();
+                    eval(jscript_eval);
+                    if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
+                }
+                else if (fs.existsSync(service_vault_file_path + ".html")) {
+                    // Standard HTML with no headers, WTV Style
+                    service_vault_found = true;
+                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".html to handle request (HTML Mode) [Socket " + socket.id + "]");
+                    request_headers.service_file_path = service_vault_file_path + ".html";
+                    request_is_async = true;
+                    headers = "200 OK\n"
+                    headers += "Content-Type: text/html"
+                    fs.readFile(service_vault_file_path + ".html", null, function (err, data) {
+                        sendToClient(socket, headers, data);
+                    });
+                } else {
+                    // look for a catchallin the current path and all parent paths up until the service root
+                    if (minisrv_config.config.catchall_file_name) {
+                        var minisrv_catchall_file_name = null;
+                        if (minisrv_config.services[service_name]) minisrv_catchall_file_name = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
+                        else minisrv_catchall_file_name = minisrv_config.config.catchall_file_name || null;
+                        if (minisrv_catchall_file_name) {
+                            var service_check_dir = service_vault_file_path.split(path.sep);
+                            service_check_dir.pop(); // pop filename
+
+                            while (service_check_dir.join(path.sep) != service_vault_dir && service_check_dir.length > 0) {
+                                var catchall_file = service_check_dir.join(path.sep) + path.sep + minisrv_catchall_file_name;
+                                if (fs.existsSync(catchall_file)) {
+                                    service_vault_found = true;
+                                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
+                                    request_headers.service_file_path = catchall_file;
+                                    var jscript_eval = fs.readFileSync(catchall_file).toString();
+                                    // don't pass these vars to the script
+                                    var service_check_dir, minisrv_catchall_file_name = null;
+                                    eval(jscript_eval);
+                                    if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
+                                } else {
+                                    service_check_dir.pop();
+                                }
                             }
                         }
                     }
@@ -272,7 +292,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     }
     if (!request_is_async) {
         if (!service_vault_found) {
-            console.error(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, ""));
+            console.error(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, "").replace(path.sep, '/'));
             var errpage = wtvshared.doErrorPage(404, null, socket.minisrv_pc_mode);
             headers = errpage[0];
             data = errpage[1];
@@ -428,9 +448,13 @@ Location: " + minisrv_config.config.unauthorized_url`;
             // assume webtv since there is a :/ in the GET
             var service_name = shortURL.split(':/')[0];
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
+            var shared_romcache = null;
+            if (shortURL.indexOf("/ROMCache/") != -1 && minisrv_config.config.enable_shared_romcache) {
+                shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split(':/')[1]);
+            }
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterSSID(Object.assign({}, request_headers)))));
             socket_sessions[socket.id].request_headers = request_headers;
-            processPath(socket, urlToPath, request_headers, service_name);
+            processPath(socket, urlToPath, request_headers, service_name, shared_romcache);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) {
             doHTTPProxy(socket, request_headers);
         } else {

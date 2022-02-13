@@ -53,7 +53,7 @@ xnocancel>
 <HTML>
 <head>
 <title>
-${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
+${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
 </title>
 </head>
 <body
@@ -236,9 +236,9 @@ From:
 <td width=10>
 <td>`;
                 if (message.from_name != message.from_addr) {
-                    data += `${html_entities.encode(message.from_addr)} <a href="client:showalert?sound=none&message=To%20add%20%3Cblackface%3E${escape(escape(message.from_name))}%3C%2Fblackface%3E%20to%20your%20Address%20book,%20choose%20%3Cb%3EAdd%3C%2Fb%3E.&buttonlabel2=Cancel&buttonaction2=client:donothing&buttonlabel1=Add&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">(${html_entities.encode(message.from_name)})</a>`;
+                    data += `${wtvshared.htmlEntitize(message.from_addr)} <a href="client:showalert?sound=none&message=To%20add%20%3Cblackface%3E${escape(escape(message.from_name))}%3C%2Fblackface%3E%20to%20your%20Address%20book,%20choose%20%3Cb%3EAdd%3C%2Fb%3E.&buttonlabel2=Cancel&buttonaction2=client:donothing&buttonlabel1=Add&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">(${wtvshared.htmlEntitize(message.from_name)})</a>`;
                 } else {
-                    data += `${html_entities.encode(message.from_addr)}`;
+                    data += `${wtvshared.htmlEntitize(message.from_addr)}`;
                 }
 
                 data += `<tr>
@@ -252,7 +252,7 @@ ${strftime("%a, %b %e, %Y, %I:%M %P", new Date(message.date * 1000))} (UTC)
 To:
 <td>
 <td>
-${html_entities.encode(message.to_addr)} ${(html_entities.encode(message.to_name)) ? '(' + html_entities.encode(message.to_name) + ')' : ''}
+${wtvshared.htmlEntitize(message.to_addr)} ${(message.to_name) ? '(' + wtvshared.htmlEntitize(message.to_name) + ')' : ''}
 <tr>
 <td nowrap valign=top>
 Subject: <td>
@@ -260,7 +260,7 @@ Subject: <td>
 
                 if (typeof message.subject == "object") message.subject = new Buffer.from(message.subject).toString('latin1');
                 data += `
-${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
+${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
 <tr>
 <td height=10>
 <spacer type=vertical size=10>
@@ -270,22 +270,22 @@ ${html_entities.encode((message.subject) ? message.subject : '(No subject)')}
 <tr>
 <td width=425>
 <p>`;
-                if (typeof message.body == "object") {
+                if (typeof message.body === "object" && message.body) {
                     message.body = wtvshared.decodeBufferText(message.body);
                 }
                 data += `
-${html_entities.encode(message.body).replace(/\n/gi, "<br>").replace(/\r/gi, "").replace(/&apos;/gi, "'")}
+${wtvshared.htmlEntitize(message.body, true)}
 <br>
 <br>`;
                 if (message.signature) {
                     data += ssid_sessions[socket.ssid].mailstore.sanitizeSignature(message.signature);
                 }
-data += `<p>
+                data += `<p>
 `;
                 if (message.attachments) {
                     message.attachments.forEach((v, k) => {
                         if (v) {
-                            console.log("*****************",v['Content-Type']);
+                            console.log("*****************", v['Content-Type']);
                             switch (v['Content-Type']) {
                                 case "image/jpeg":
                                     data += `<img border=2 src="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Video%20Snapshot" width="380" height="290"><br><br>`;
@@ -293,7 +293,7 @@ data += `<p>
                                 case "audio/wav":
                                     data += `<table href="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Voice%20Mail" width=386 cellspacing=0 cellpadding=0>
 <td align=left valign=middle>
-<img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle>&nbsp;&nbsp;Recording
+<img src="ROMCache/FileSound.gif" align=absmiddle>&nbsp;&nbsp;Recording
 <td align=right valign=middle>
 </table><br><br>
 `;
@@ -302,7 +302,7 @@ data += `<p>
                         }
                     });
                 }
-data += `<p>
+                data += `<p>
 <p>
 </table>
 </table>
