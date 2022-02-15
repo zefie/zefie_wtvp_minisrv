@@ -362,6 +362,8 @@ class WTVClientSessionData {
         } catch (e) {
             // Don't log error 'file not found', it just means the client isn't registered yet
             if (e.code != "ENOENT") console.error(" # Error loading session data for", this.wtvshared.filterSSID(this.ssid), e);
+            // also wipe any existing session_store
+            this.session_store = {};
             return false;
         }
     }

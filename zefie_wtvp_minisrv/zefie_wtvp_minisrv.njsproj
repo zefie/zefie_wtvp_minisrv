@@ -316,6 +316,9 @@
     <Content Include="ServiceVault\wtv-tricks\info.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-tricks\nullify-me.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-tricks\register.js">
       <SubType>Code</SubType>
     </Content>

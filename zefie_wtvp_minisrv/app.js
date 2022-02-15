@@ -1095,8 +1095,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
-                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id) {
-                            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id > 0)
+                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id != null) {
+                            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0)
                                 ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
                         }
                     } else {
@@ -1106,7 +1106,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                 ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                                 ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
                                 if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
-                                if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id > 0) {
+                                if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0) {
                                     if (ssid_sessions[socket.ssid].user_id != ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id)
                                         switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
                                 }
