@@ -45,11 +45,10 @@ else {
 		var home_url = "wtv-home:/splash?";
 	}
 	var limitedLogin = ssid_sessions[socket.ssid].lockdown;
-	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && ssid_sessions[socket.ssid].getSessionData('password_valid')));
+	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].getSessionData('password_valid')));
 	var offline_user_list = null;
 	if (ssid_sessions[socket.ssid].isRegistered() && ssid_sessions[socket.ssid].user_id == 0) {
 		var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
-		console.log(accounts);
 		var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
 		var offline_user_list_str = "<user-list>\n";
 		var i = 0;
@@ -143,9 +142,8 @@ wtv-inactive-timeout: 1440
 			if (request_headers.query.guest_login) headers += "&guest_login=true";
 
 			headers += "\nwtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
-			if (request_headers.query.guest_login) headers += "&guest_login=true";
-
-			headers += "\nwtv-home-url: wtv-home:/home?";
+			if (request_headers.query.guest_login) headers += "&guest_login=true";			
+			headers += "\nwtv-home-url: " + home_url;
 		}
 
 		if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin)

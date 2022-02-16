@@ -18,7 +18,7 @@ data = `<html><HEAD><title>Password</title>
 <img src="images/PasswordBanner.gif" width=50 height=191> <tr> <td absheight=8> 
 </table>
 </sidebar>
-<body background="images/NameStrip.gif"
+<body background="/ROMCache/NameStrip.gif"
 novtilebg
 nohtilebg
 bgcolor=191919 

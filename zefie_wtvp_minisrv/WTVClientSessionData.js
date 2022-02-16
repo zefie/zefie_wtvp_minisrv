@@ -43,6 +43,9 @@ class WTVClientSessionData {
             "wtv-head-waiter:/ValidateLogin",
             "wtv-head-waiter:/login-stage-two",
             "wtv-head-waiter:/relogin",
+			"wtv-head-waiter:/ROMCache/Spacer.gif",
+			"wtv-head-waiter:/ROMCache/NameStrip.gif",
+			"wtv-head-waiter:/images/NameBanner.gif",
             "wtv-head-waiter:/bad-disk",
             "wtv-head-waiter:/images/PasswordBanner.gif",
             "wtv-log:/log",
@@ -682,7 +685,7 @@ class WTVClientSessionData {
 
     isAuthorized(url, whitelist = 'lockdown', ignore_lockdown = false) {
         // not in lockdown so just return true
-        if (!this.lockdown && !ignore_lockdown) return true;
+        if (whitelist == 'lockdown' && !this.lockdown && !ignore_lockdown) return true;
 
         // in lockdown, check whitelisted urls
         var self = this;

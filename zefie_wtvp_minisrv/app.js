@@ -411,6 +411,18 @@ async function processURL(socket, request_headers) {
             console.log(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
             return;
         }
+		
+		 if (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].getSessionData('password_valid')) {
+			 if (!ssid_sessions[socket.ssid].isAuthorized(shortURL,'login')) {
+				// user is not fully logged in, and URL not authorized
+				headers = "300 Unauthorized\n";
+				headers += "Location: client:relogin\n";
+				data = "";
+				sendToClient(socket, headers, data);
+				console.log(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
+				return;
+			 }
+		 }
 
         if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks")) {
             if (!ssid_sessions[socket.ssid].baddisk) {
