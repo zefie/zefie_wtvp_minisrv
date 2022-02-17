@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+ssid_sessions[socket.ssid].setUserLoggedIn(false);
 
 var challenge_response, challenge_header = "";
 if (socket.ssid !== null) ssid_sessions[socket.ssid].switchUserID(0);

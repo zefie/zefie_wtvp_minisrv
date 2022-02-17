@@ -46,20 +46,20 @@ wtv-visit: client:hangupphone`
 		}
 	}
 
-	if (user_id && !request_headers.query.initial_login && !request_headers.query.user_login) {
+	if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login) {
 		if (request_headers.query.password == "") {
-			headers = `500 Please enter your password and try again
+			headers = `403 Please enter your password and try again
 minisrv-no-mail-count: true
 `;
 		} else if (ssid_sessions[socket.ssid].validateUserPassword(request_headers.query.password)) {
-			ssid_sessions[socket.ssid].setSessionData('password_valid', true)
+			ssid_sessions[socket.ssid].setUserLoggedIn(true);
 			headers = `200 OK
 minisrv-no-mail-count: true
 Content-Type: text/html
 wtv-visit: ${gourl}
 `;
 		} else {
-			headers = `500 The password you entered was incorrect. Please retype it and try again.
+			headers = `403 The password you entered was incorrect. Please retype it and try again.
 minisrv-no-mail-count: true
 `;
 		}

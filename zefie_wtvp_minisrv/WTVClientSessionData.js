@@ -45,9 +45,10 @@ class WTVClientSessionData {
             "wtv-head-waiter:/relogin",
 			"wtv-head-waiter:/ROMCache/Spacer.gif",
 			"wtv-head-waiter:/ROMCache/NameStrip.gif",
+            "wtv-head-waiter:/images/PasswordBanner.gif",
+            "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
 			"wtv-head-waiter:/images/NameBanner.gif",
             "wtv-head-waiter:/bad-disk",
-            "wtv-head-waiter:/images/PasswordBanner.gif",
             "wtv-log:/log",
         ];
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
@@ -402,8 +403,12 @@ class WTVClientSessionData {
 
     isUserLoggedIn() {
         if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
-        var password_valid = this.getSessionData("password_valid");
+        var password_valid = this.get("password_valid");
         return (password_valid);
+    }
+
+    setUserLoggedIn(value) {
+        return this.set("password_valid", value);
     }
 
     saveSessionData(force_write = false, skip_merge = false) {

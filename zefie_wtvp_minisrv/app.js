@@ -412,7 +412,7 @@ async function processURL(socket, request_headers) {
             return;
         }
 		
-		 if (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].getSessionData('password_valid')) {
+        if (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].isUserLoggedIn()) {
 			 if (!ssid_sessions[socket.ssid].isAuthorized(shortURL,'login')) {
 				// user is not fully logged in, and URL not authorized
 				headers = "300 Unauthorized\n";
@@ -1112,7 +1112,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                 ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
                         }
                     } else {
-                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"])
+                        if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"]) {
                             if (!ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket) {
                                 if (minisrv_config.config.debug_flags.debug) console.log(" # New ticket from client");
                                 ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
@@ -1123,6 +1123,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                         switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
                                 }
                             }
+                        }
                     }
                 }
             }

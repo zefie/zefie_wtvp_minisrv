@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+ssid_sessions[socket.ssid].setUserLoggedIn(false);
 
 var gourl = "wtv-1800:/preregister?";
 if (request_headers.query.relogin) gourl += "relogin=true";

@@ -2,6 +2,7 @@ var minisrv_service_file = true;
 var gourl = null;
 
 if (!ssid_sessions[socket.ssid].isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
+var home_url = "wtv-home:/home?";
 
 if (gourl) {
 	headers = `200 OK
@@ -30,8 +31,8 @@ else {
 		var userid = '1' + Math.floor(Math.random() * 1000000000000000000);
 		var messenger_enabled = 0;
 		var messenger_authorized = 0;
-		if (request_headers.query.skip_splash) var home_url = "wtv-home:/home?";
-		else var home_url = "wtv-home:/splash?";
+		if (request_headers.query.skip_splash) gourl = "wtv-home:/home?";
+		else gourl = "wtv-home:/splash?";
 	} else if (!ssid_sessions[socket.ssid].getSessionData("registered")) {
 		var errpage = wtvshared.doErrorPage(400);
 		headers = errpage[0];
@@ -42,10 +43,10 @@ else {
 		var human_name = ssid_sessions[socket.ssid].getSessionData("subscriber_name") || nickname;
 		var messenger_enabled = ssid_sessions[socket.ssid].getSessionData("messenger_enabled") || 0;
 		var messenger_authorized = ssid_sessions[socket.ssid].getSessionData("messenger_authorized") || 0;
-		var home_url = "wtv-home:/splash?";
+		var gourl = "wtv-home:/splash?";
 	}
 	var limitedLogin = ssid_sessions[socket.ssid].lockdown;
-	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].getSessionData('password_valid')));
+	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].isUserLoggedIn()));
 	var offline_user_list = null;
 	if (ssid_sessions[socket.ssid].isRegistered() && ssid_sessions[socket.ssid].user_id == 0) {
 		var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
@@ -61,7 +62,10 @@ else {
 		offline_user_list = CryptoJS.enc.Latin1.parse(offline_user_list_str).toString(CryptoJS.enc.Base64);
     }
 
-	if (limitedLoginRegistered) var home_url = "wtv-head-waiter:/password?";
+	if (limitedLoginRegistered) {
+		home_url = "wtv-head-waiter:/password?";
+		gourl = home_url;
+	}
 
 	data = '';
 
@@ -70,7 +74,7 @@ Connection: Keep-Alive
 wtv-expire-all: wtv-head-waiter:
 `;
 
-	if (!limitedLogin) {
+	if (!limitedLogin && !limitedLoginRegistered) {
 		headers += `wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: GMT
 wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + ` GMT
@@ -84,7 +88,7 @@ wtv-smartcard-inserted-message: Contacting service
 wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
 `;
-		if (!limitedLogin) {
+		if (!limitedLogin && !limitedLoginRegistered) {
 			ssid_sessions[socket.ssid].assignMailStore();
 			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
 			if (offline_user_list) headers += "wtv-offline-user-list: " + offline_user_list + "\n";
@@ -109,7 +113,7 @@ wtv-messenger-enable: 0
 wtv-ssl-log-url: wtv-log:/log
 `;
 
-		if (!limitedLogin) {
+		if (!limitedLogin && !limitedLoginRegistered) {
 			headers += `wtv-bypass-proxy: false
 user-id: ${userid}
 wtv-human-name: ${human_name}
@@ -134,7 +138,7 @@ wtv-inactive-timeout: 1440
 		}
 		*/
 
-		if (!limitedLogin) {
+		if (!limitedLogin && !limitedLoginRegistered) {
 			headers += "\nwtv-relogin-url: wtv-head-waiter:/relogin?relogin=true";
 			if (request_headers.query.guest_login) headers += "&guest_login=true";
 
@@ -146,10 +150,10 @@ wtv-inactive-timeout: 1440
 			headers += "\nwtv-home-url: " + home_url;
 		}
 
-		if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin)
+		if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin && !limitedLoginRegistered)
 			headers += "\nwtv-settings-url: wtv-setup:/get\n";
 
-		if (!limitedLogin) {
+		if (!limitedLogin && !limitedLoginRegistered) {
 			headers += `wtv-force-lightweight-targets: webtv.net:/
 wtv-show-time-enabled: true
 wtv-allow-dsc: true
@@ -161,6 +165,6 @@ wtv-wink-deferrer-retries: 3
 wtv-name-server: 8.8.8.8`;
 		}
 	}
-	if (!request_headers.query.reconnect) headers += "\nwtv-visit: " + home_url;
+	if (!request_headers.query.reconnect) headers += "\nwtv-visit: " + gourl;
 	headers += "\nContent-Type: text/html";
 }
