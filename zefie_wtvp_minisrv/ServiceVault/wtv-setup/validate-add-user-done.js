@@ -33,15 +33,16 @@ if (errpage) {
         userSession.setSessionData("subscriber_username", request_headers.query.user_name);
         userSession.setSessionData("registered", true);
         var mailstore_exists = userSession.mailstore.mailstoreExists();
+        var mailbox_exists = false;
         if (!mailstore_exists) mailstore_exists = userSession.mailstore.createMailstore();
         if (mailstore_exists) {
             if (!userSession.mailstore.mailboxExists(0)) {
                 // mailbox does not yet exist, create it
-                var mailbox_exists = userSession.mailstore.createMailbox(0);
-                if (mailbox_exists) {
-                    // Just created Inbox for the first time, so create the welcome message
-                    userSession.mailstore.createWelcomeMessage();
-                }
+                mailbox_exists = userSession.mailstore.createMailbox(0);
+            }
+            if (mailbox_exists) {
+                // Just created Inbox for the first time, so create the welcome message
+                userSession.mailstore.createWelcomeMessage();
             }
         }
         if (!userSession.saveSessionData(true)) {
@@ -49,8 +50,11 @@ if (errpage) {
             headers = errpage[0];
             data = errpage[1];
         } else {
-            if (request_headers.query.user_password)
+            if (request_headers.query.user_password) {
                 userSession.setUserPassword(request_headers.query.user_password);
+                userSession.set('password_valid', true);
+            }
+            
 
             headers = `300 OK
 Content-type: text/html

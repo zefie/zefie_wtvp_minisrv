@@ -67,7 +67,7 @@ minisrv-no-mail-count: true
 		if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > 1 && user_id === 0 && request_headers.query.initial_login) {
 			gourl = "wtv-head-waiter:/choose-user?"
 		} else {
-			var limitedLogin = (!ssid_sessions[socket.ssid].lockdown && (!ssid_sessions[socket.ssid].getSessionData('password_valid') && ssid_sessions[socket.ssid].getUserPasswordEnabled()));
+			var limitedLogin = (!ssid_sessions[socket.ssid].lockdown && (!ssid_sessions[socket.ssid].get('password_valid') && ssid_sessions[socket.ssid].getUserPasswordEnabled()));
 			var limitedLoginRegistered = (limitedLogin && ssid_sessions[socket.ssid].isRegistered());
 		}
 		headers = `200 OK
