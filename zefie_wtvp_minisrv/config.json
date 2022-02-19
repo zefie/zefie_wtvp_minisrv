@@ -79,7 +79,7 @@
       "flags": "0x00000040",
       "debug": false,
       "use_zefie_server": true,
-      "bf0app_default_rom": "content/artemis-webtv-000/build7588/daily-nondebug/bf0app-part000.rom",
+      "bf0app_default_rom": "content/artemis-webtv-000/build7588/internal-nondebug/bf0app-part000.rom",
       "catchall_file_name": "content-serve.js"
     },
     "wtv-setup": {
