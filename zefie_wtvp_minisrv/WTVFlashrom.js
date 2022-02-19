@@ -36,7 +36,7 @@ class WTVFlashrom {
 					if (info_only) {
 						callback(self.getFlashromInfo(data, request_path));
 					} else {
-						self.sendToClient(data, flashrom_file_path, callback);
+						self.sendToClient(data, request_path, callback);
 					}
 				}
 			});
@@ -123,6 +123,7 @@ class WTVFlashrom {
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
 		if (flashrom_info.next_rompath != null && this.bf0app_update) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
+		headers += "\nminisrv-no-mail-count: true";
 		callback(data, headers);
 	}
 
