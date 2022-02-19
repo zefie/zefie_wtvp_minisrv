@@ -52,7 +52,7 @@ if (errpage) {
         } else {
             if (request_headers.query.user_password) {
                 userSession.setUserPassword(request_headers.query.user_password);
-                userSession.set('password_valid', true);
+                userSession.setUserLoggedIn(true);
             }
             
 

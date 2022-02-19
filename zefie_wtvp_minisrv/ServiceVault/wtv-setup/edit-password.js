@@ -20,8 +20,6 @@ if (user_id != null) {
         userSession.user_id = user_id;
     }
 
-    userSession.set("password_valid", true);
-
     if (!userSession.loadSessionData()) {
         var errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
         headers = errpage[0];

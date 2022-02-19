@@ -58,6 +58,7 @@ Location: ${request_headers.query.return_to}`;
                 data = errpage[1];
             } else {
                 userSession.setUserPassword(request_headers.query.password);
+                userSession.setUserLoggedIn(true);
                 headers = `300 OK
 Content-type: text/html
 wtv-expire: wtv-setup:/setup
