@@ -408,7 +408,11 @@ class WTVClientSessionData {
     }
 
     setUserLoggedIn(value) {
-        return this.set("password_valid", value);
+        if (value) return this.set("password_valid", value);
+        else {
+            this.delete("password_valid");
+            return false;
+        }
     }
 
     saveSessionData(force_write = false, skip_merge = false) {
@@ -428,7 +432,8 @@ class WTVClientSessionData {
         try {
             // only save if file has changed
             var json_save_data = JSON.stringify(this.session_store);
-            var json_load_data = this.loadSessionData(true);
+            var json_load_data = (!skip_merge) ? this.loadSessionData(true) : {};
+
             var storeDir = this.getUserStoreDirectory();
             if (!this.fs.existsSync(storeDir)) this.mkdirRecursive(storeDir);
             var sessionToStore = this.session_store;
