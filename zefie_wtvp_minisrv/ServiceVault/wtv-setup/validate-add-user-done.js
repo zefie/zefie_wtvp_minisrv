@@ -45,7 +45,7 @@ if (errpage) {
                 userSession.mailstore.createWelcomeMessage();
             }
         }
-        if (!userSession.saveSessionData(true)) {
+        if (!userSession.saveSessionData(true, true)) {
             var errpage = wtvshared.doErrorPage(400);
             headers = errpage[0];
             data = errpage[1];

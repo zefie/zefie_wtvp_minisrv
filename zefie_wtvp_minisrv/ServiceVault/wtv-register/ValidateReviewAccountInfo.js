@@ -19,7 +19,7 @@ if (!request_headers.query.registering ||
     ssid_sessions[socket.ssid].setSessionData("subscriber_contact_method", request_headers.query.subscriber_contact_method);
     ssid_sessions[socket.ssid].setSessionData("subscriber_userid", 0);
     ssid_sessions[socket.ssid].setSessionData("registered", true);
-    if (!ssid_sessions[socket.ssid].storeSessionData(true)) {
+    if (!ssid_sessions[socket.ssid].storeSessionData(true, true)) {
         var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
