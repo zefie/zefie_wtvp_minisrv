@@ -7,6 +7,8 @@ class WTVShared {
 
     path = require('path');
     fs = require('fs');
+    v8 = require('v8');
+    CryptoJS = require('crypto-js');
     html_entities = require('html-entities'); // used externally by service scripts
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
@@ -23,6 +25,15 @@ class WTVShared {
                 var reverseArray = splitString.reverse();
                 var joinArray = reverseArray.join("");
                 return joinArray;
+            }
+        }
+        if (!String.prototype.hexEncode) {
+            String.prototype.hexEncode = function () {
+                var result = '';
+                for (var i = 0; i < this.length; i++) {
+                    result += this.charCodeAt(i).toString(16);
+                }
+                return result;
             }
         }
     }
@@ -218,7 +229,6 @@ class WTVShared {
     * @param {string|Array} obj SSID String or Headers Object
     */
     filterSSID(obj) {
-        var outobj = null;
         if (this.minisrv_config.config.hide_ssid_in_logs === true) {
             if (typeof (obj) == "string") {
                 if (obj.substr(0, 8) == "MSTVSIMU") {
@@ -229,26 +239,73 @@ class WTVShared {
                     return obj.substr(0, 6) + ('*').repeat(9);
                 }
             } else {
-                if (obj["wtv-client-serial-number"]) {
-                    var ssid = obj["wtv-client-serial-number"];
+                var newobj = this.v8.deserialize(this.v8.serialize(obj));
+                if (obj.post_data) newobj.post_data = obj.post_data;
+                if (newobj["wtv-client-serial-number"]) {
+                    var ssid = newobj["wtv-client-serial-number"];
                     if (ssid.substr(0, 8) == "MSTVSIMU") {
-                        obj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
+                        newobj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
                     } else if (ssid.substr(0, 5) == "1SEGA") {
-                        obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
+                        newobj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
                     } else {
-                        obj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
+                        newobj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
                     }
                 }
-                return obj;
+                return newobj;
             }
         } else {
             return obj;
         }
     }
 
+    filterRequestLog(obj) {
+        if (this.minisrv_config.config.filter_passwords_in_logs === true) {
+            if (obj.query) {
+                var newobj = this.v8.deserialize(this.v8.serialize(obj));
+                if (obj.post_data) newobj.post_data = obj.post_data;
+                Object.keys(newobj.query).forEach(function (k) {
+                    var key = k.toLowerCase();
+                    switch (true) {
+                        case /passw(or)?d/.test(key):
+                        case /^pass$/.test(key):
+                            newobj.query[key] = ('*').repeat(newobj.query[key].length);
+                            break;
+                    }
+                });
+                return newobj;
+            }
+        }
+        return obj;
+    }
+
     decodePostData(obj) {
         if (obj.post_data) {
-            obj.post_data = obj.post_data.toString();
+            if (this.minisrv_config.config.filter_passwords_in_logs === true) {
+                // complex, to filter
+                var post_obj = {};
+                post_obj.query = [];
+                var post_text = obj.post_data.toString(this.CryptoJS.enc.Utf8);
+                if (post_text.length > 0) {
+                    post_text = post_text.split("&");
+                    for (let i = 0; i < post_text.length; i++) {
+                        var qraw_split = post_text[i].split("=");
+                        if (qraw_split.length == 2) {
+                            var k = qraw_split[0];
+                            post_obj.query[k] = unescape(post_text[i].split("=")[1].replace(/\+/g, "%20"));
+                        }
+                    }
+                }
+                var post_obj = this.filterRequestLog(post_obj);
+                post_text = "";
+                Object.keys(post_obj.query).forEach(function (k) {
+                    post_text += k + "=" + post_obj.query[k] + "&";
+                });
+                post_text = post_text.substring(0, post_text.length - 1);
+                obj.post_data = post_text.hexEncode();
+            } else {
+                // simple, no filter
+                obj.post_data = obj.post_data.toString();
+            }
         }
         return obj;
     }
