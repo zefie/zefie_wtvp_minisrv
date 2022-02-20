@@ -63,6 +63,23 @@ class WTVClientSessionData {
         this.mailstore = new WTVMail(this.minisrv_config, this)
     }
 
+    getAccountTotalUnreadMessages() {
+        if (!this.isRegistered()) return false; // unregistered
+        if (this.user_id > 0) return false; // not primary user or pre-login
+
+
+        var total_unread_messages = 0;
+        for (var i = 0; i < this.minisrv_config.config.user_accounts.max_users_per_account; i++) {
+            var subUserSession = new this.constructor(this.minisrv_config, this.ssid);
+            subUserSession.switchUserID(i, false, false);
+            subUserSession.assignMailStore();
+            if (subUserSession.mailstore) {
+                total_unread_messages += subUserSession.mailstore.countUnreadMessages(0);
+            }
+        }
+        return total_unread_messages;
+    }
+
     switchUserID(user_id, update_mail = true, update_ticket = true) {
         this.user_id = user_id;
         this.loadSessionData();

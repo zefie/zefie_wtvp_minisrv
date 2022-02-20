@@ -38,6 +38,7 @@ class WTVShared {
         }
     }
 
+
     htmlEntitize(string, process_newline = false) {
         string = this.html_entities.encode(string).replace(/&apos;/g, "'");
 
