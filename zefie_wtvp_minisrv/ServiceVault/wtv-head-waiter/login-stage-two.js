@@ -87,6 +87,7 @@ wtv-transition-override: off
 wtv-smartcard-inserted-message: Contacting service
 wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
+wtv-mail-url: wtv-mail:/listmail
 `;
 		if (!limitedLogin && !limitedLoginRegistered) {
 			ssid_sessions[socket.ssid].assignMailStore();
