@@ -19,7 +19,20 @@ if (!request_headers.query.registering ||
     ssid_sessions[socket.ssid].setSessionData("subscriber_contact_method", request_headers.query.subscriber_contact_method);
     ssid_sessions[socket.ssid].setSessionData("subscriber_userid", 0);
     ssid_sessions[socket.ssid].setSessionData("registered", true);
-    if (!ssid_sessions[socket.ssid].storeSessionData(true, true)) {
+    var mailstore_exists = ssid_sessions[socket.ssid].mailstore.mailstoreExists();
+    var mailbox_exists = false;
+    if (!mailstore_exists) mailstore_exists = ssid_sessions[socket.ssid].mailstore.createMailstore();
+    if (mailstore_exists) {
+        if (!ssid_sessions[socket.ssid].mailstore.mailboxExists(0)) {
+            // mailbox does not yet exist, create it
+            mailbox_exists = ssid_sessions[socket.ssid].mailstore.createMailbox(0);
+        }
+        if (mailbox_exists) {
+            // Just created Inbox for the first time, so create the welcome message
+            ssid_sessions[socket.ssid].mailstore.createWelcomeMessage();
+        }
+    }
+    if (!ssid_sessions[socket.ssid].saveSessionData(true, true)) {
         var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];

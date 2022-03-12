@@ -747,8 +747,10 @@ async function sendToClient(socket, headers_obj, data) {
 
     if (!headers_obj['minisrv-no-mail-count']) {
         if (ssid_sessions[socket.ssid]) {
-            if (ssid_sessions[socket.ssid].mailstore) {
-                headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0);
+            if (ssid_sessions[socket.ssid].isRegistered()) {
+                if (ssid_sessions[socket.ssid].mailstore) {
+                    headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0);
+                }
             }
         }
     } else {

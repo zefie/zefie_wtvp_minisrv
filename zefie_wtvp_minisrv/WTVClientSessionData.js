@@ -127,6 +127,7 @@ class WTVClientSessionData {
     }
 
     getNumberOfUserAccounts() {
+        if (!this.isRegistered()) return false;
         if (this.user_id != 0) return false; // subscriber only command
         return Object.keys(this.listPrimaryAccountUsers()).length;
     }
