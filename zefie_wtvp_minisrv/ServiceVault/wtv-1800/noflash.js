@@ -19,9 +19,10 @@ minisrv-no-mail-count: true
 wtv-initial-key: ` + wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + `
 Content-Type: text/tellyscript
 wtv-service: reset
-` + getServiceString('wtv-head-waiter') + `
-` + getServiceString('wtv-star', { "no_star_word": true }) + `
-` + getServiceString('wtv-flashrom') + `
+${getServiceString('wtv-1800')}
+${getServiceString('wtv-head-waiter')}
+${getServiceString('wtv-star', { "no_star_word": true })}
+${getServiceString('wtv-flashrom')}
 wtv-boot-url: wtv-head-waiter:/login?
 wtv-visit: wtv-head-waiter:/login?
 wtv-client-time-zone: GMT -0000
