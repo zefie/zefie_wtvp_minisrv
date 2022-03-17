@@ -1,8 +1,9 @@
 {
 	"Karaoke": {
-		"base": "file://Disk/Music/karaoke/",
-		"location": "content/Music/karaoke/",
+		"base": "file://Disk/Music/",
+		"location": "content/Music/",
 		"service_owned": true,
+		"partition_size": 29360128,
 		"files": [
 			{
 				"file": "file://Disk/Music/karaoke/images/europe00.jpg"

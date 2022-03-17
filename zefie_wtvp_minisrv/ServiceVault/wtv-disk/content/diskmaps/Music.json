@@ -1,8 +1,9 @@
 {
 	"Music": {
 		"base": "file://Disk/Music/",
-		"location": "content/Music/",
+		"location": "content/Music/",		
 		"service_owned": true,
+		"partition_size": 29360128,
 		"files": [
 			{
 				"file": "file://Disk/Music/headspace/Instruments/Compressed1.1/Patches.hsb"

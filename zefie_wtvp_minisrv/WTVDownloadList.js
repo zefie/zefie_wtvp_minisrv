@@ -160,6 +160,7 @@ class WTVDownloadList {
         }
         this.download_list += "GET " + file + "\n";
 
+		source = source.replace(/\\/g, "/");
         this.download_list += "group: " + group + "-UPDATE\n";
         this.download_list += "location: " + source + "\n";
         this.download_list += "file-permission: " + file_permission + "\n";
