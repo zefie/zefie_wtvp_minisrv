@@ -1,8 +1,6 @@
 var minisrv_service_file = true;
 
 headers = `200 OK
-Connection: Close
-wtv-connection-close: true
 Content-type: text/html`
 
 data = `<html>
