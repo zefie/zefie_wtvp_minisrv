@@ -1,6 +1,9 @@
 var minisrv_service_file = true;
 
+// remove restrictions once this page is shown, since the user will be 'trapped' anyway
 ssid_sessions[socket.ssid].disableLockdown();
+ssid_sessions[socket.ssid].delete("wtv-my-disk-sucks-sucks-sucks");
+ssid_sessions[socket.ssid].baddisk = false;
 
 headers = `200 OK
 Content-type: text/html`;
@@ -12,14 +15,14 @@ data = `<html>
 <body bgcolor="#191919" text="#42CC55" link="36d5ff" fontsize="large" hspace=0 vspace=0> 
 <table cellspacing=0 cellpadding=0> 
 <tr><td width=104 height=74 valign=middle align=center bgcolor="3B3A4D"> 
-<img src="wtv-flashrom:/ROMCache/WebTVLogoJewel.gif" width=86 height=64><td width=20 valign=top align=left bgcolor="3B3A4D">
-<img src="ROMCache/Spacer.gif"
+<img src="${minisrv_config.config.service_logo}" width=86 height=64><td width=20 valign=top align=left bgcolor="3B3A4D">
+<img src="${service_name}:/ROMCache/Spacer.gif"
 width=1 height=1>
 <td colspan=10 width=436 valign=middle align=left bgcolor="3B3A4D">
 <font color="D6DFD0" size="+2">
 <blackface>
 <shadow>
-<img src="ROMCache/Spacer.gif"
+<img src="${service_name}:/ROMCache/Spacer.gif"
 width=1 height=4>
 <br>
 Please Call
@@ -52,9 +55,9 @@ or replaced before you can connect to WebTV.
 <!-- Disabled until we can reliably grab the user's box manufacturer
 <p>Call Philips customer service at<br>1-888-813-7069 -->
 <tr><td colspan=2> 
-<td colspan=99 abswidth=436 absheight=2 bgcolor=2B2B2B> <img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=1> <tr><td absheight=1> 
+<td colspan=99 abswidth=436 absheight=2 bgcolor=2B2B2B> <img src="wtv-flashrom:/${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td absheight=1> 
 <tr><td colspan=2> 
-<td colspan=99 abswidth=436 absheight=2 bgcolor=0D0D0D> <img src="wtv-flashrom:/ROMCache/Spacer.gif" width=1 height=1> <tr><td height=7> 
+<td colspan=99 abswidth=436 absheight=2 bgcolor=0D0D0D> <img src="wtv-flashrom:/${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td height=7> 
 <tr> 
 <td width=104 valign=middle align=center> <td width=20 valign=middle align=center> <td colspan=9 width=416 valign=top align=left> <table cellspacing=0 cellpadding=0> 
 <tr> 

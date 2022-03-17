@@ -64,7 +64,10 @@ minisrv-no-mail-count: true
 `;
 		}
 	} else {
-		if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > 1 && user_id === 0 && request_headers.query.initial_login) {
+		if (ssid_sessions[socket.ssid].baddisk === true) {
+			gourl = "wtv-head-waiter:/bad-disk?"
+		}
+		else if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > 1 && user_id === 0 && request_headers.query.initial_login) {
 			gourl = "wtv-head-waiter:/choose-user?"
 		} else {
 			var limitedLogin = (!ssid_sessions[socket.ssid].lockdown && (!ssid_sessions[socket.ssid].get('password_valid') && ssid_sessions[socket.ssid].getUserPasswordEnabled()));

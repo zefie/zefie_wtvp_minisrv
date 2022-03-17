@@ -429,6 +429,7 @@ async function processURL(socket, request_headers) {
             // lockdown mode and URL not authorized
             headers = "300 Unauthorized\n";
             headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
+			headers += "minisrv-no-mail-count: true\n";
             data = "";
             sendToClient(socket, headers, data);
             console.log(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
@@ -440,6 +441,7 @@ async function processURL(socket, request_headers) {
 				// user is not fully logged in, and URL not authorized
 				headers = "300 Unauthorized\n";
 				headers += "Location: client:relogin\n";
+				headers += "minisrv-no-mail-count: true\n";				
 				data = "";
 				sendToClient(socket, headers, data);
 				console.log(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
@@ -458,7 +460,8 @@ async function processURL(socket, request_headers) {
         if (!ssid_sessions[socket.ssid].isUserLoggedIn() && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
             // lockdown mode and URL not authorized
             headers = `300 Unauthorized
-Location: " + minisrv_config.config.unauthorized_url`;
+Location: ${minisrv_config.config.unauthorized_url}
+minisrv-no-mail-count: true`;
             data = "";
             sendToClient(socket, headers, data);
             console.log(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
