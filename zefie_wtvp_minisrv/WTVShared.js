@@ -47,8 +47,31 @@ class WTVShared {
     }
 
     sanitizeSignature(string) {
+        var allowedSchemes = ['http', 'https', 'ftp', 'mailto'];
+        var self = this;
+        Object.keys(this.minisrv_config.services).forEach(function (k) {
+            var flags = self.minisrv_config.services[k].flags;
+            if (flags) {
+                if (flags == "0x00000004" || flags == "0x00000007") {
+                    allowedSchemes.push(self.minisrv_config.services[k].name);
+                }
+            }
+        });
+
         const clean = this.sanitizeHtml(string, {
-            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'style', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'], allowedAttributes: false
+            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'style', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
+            disallowedTagsMode: 'discard',
+            allowedAttributes: {
+                a: ['href', 'name', 'target'],
+                img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+                bgsound: ['src', 'loop'],
+                font: ['size', 'name', 'color'],
+                marquee: ['speed'],
+            },
+            allowedSchemes: allowedSchemes,
+            allowedSchemesByTag: {},
+            allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
+            allowProtocolRelative: false
         })
         // todo: add missing user open tags (eg </i> if user did not close it) (might be done by sanitize-html?)
         // todo: figure out bgcolor and text color voodoo
