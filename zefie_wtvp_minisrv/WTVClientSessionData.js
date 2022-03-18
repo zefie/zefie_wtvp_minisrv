@@ -49,14 +49,16 @@ class WTVClientSessionData {
             "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
 			"wtv-head-waiter:/images/NameBanner.gif",
             "wtv-head-waiter:/bad-disk",
-            "wtv-log:/log",
+            "wtv-log:/log"
         ];
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
         this.lockdownWhitelist.push(minisrv_config.config.service_logo);
         this.mailstore = new WTVMail(this.minisrv_config, this)
         this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
         this.loginWhitelist.push("wtv-head-waiter:/choose-user");
-        this.loginWhitelist.push("wtv-head-waiter:/password");	
+        this.loginWhitelist.push("wtv-head-waiter:/password");
+        this.loginWhitelist.push("http://*"); // allow http proxy without login
+        this.loginWhitelist.push("https://*"); // allow https proxy without login
     }
 
     assignMailStore() {
@@ -721,12 +723,20 @@ class WTVClientSessionData {
         switch (whitelist) {
             case "lockdown":
                 Object.keys(this.lockdownWhitelist).forEach(function (k) {
-                    if (self.lockdownWhitelist[k].substring(0, url.length) == url) authorized = true;
+                    if (self.lockdownWhitelist[k].charAt(self.lockdownWhitelist[k].length - 1) == '*') {
+                        if (self.lockdownWhitelist[k].substring(0, self.lockdownWhitelist[k].length - 1) == url.substring(0, self.lockdownWhitelist[k].length - 1)) authorized = true;
+                    } else {
+                        if (self.lockdownWhitelist[k].substring(0, url.length) == url) authorized = true;
+                    }
                 });
                 break;
             case "login":
                 Object.keys(this.loginWhitelist).forEach(function (k) {
-                    if (self.loginWhitelist[k].substring(0, url.length) == url) authorized = true;
+                    if (self.loginWhitelist[k].charAt(self.loginWhitelist[k].length - 1) == '*') {
+                        if (self.loginWhitelist[k].substring(0, self.loginWhitelist[k].length - 1) == url.substring(0, self.loginWhitelist[k].length - 1)) authorized = true;
+                    } else {
+                        if (self.loginWhitelist[k].substring(0, url.length) == url) authorized = true;
+                    }
                 });
                 break;
         }
