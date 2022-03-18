@@ -1149,7 +1149,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                 if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                                 if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0) {
                                     if (ssid_sessions[socket.ssid].user_id != ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id)
-                                        switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
+                                        ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
                                 }
                             }
                         }
