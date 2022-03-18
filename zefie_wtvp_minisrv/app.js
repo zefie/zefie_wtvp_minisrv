@@ -618,6 +618,7 @@ async function doHTTPProxy(socket, request_headers) {
                     'Last-Modified'
                 ]);
                 headers["wtv-http-proxy"] = true;
+                headers["wtv-trusted"] = false;
 
                 // if Connection: close header, set our internal variable to close the socket
                 if (headers['Connection']) {
