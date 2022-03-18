@@ -28,6 +28,7 @@ wtv-expire: wtv-mail:/sendmail
 Location: wtv-mail:/sendmail`;
     }
 
+
     var to_addr = request_headers.query.message_to || null;
     var msg_subject = request_headers.query.message_subject || null;
     var msg_body = request_headers.query.message_body || null;
@@ -35,7 +36,7 @@ Location: wtv-mail:/sendmail`;
     var msg_url = request_headers.query.message_url || null;
     var msg_url_title = request_headers.query.message_title || null;
     var no_signature = false;
-    if (request_headers.query.togglesign == "true") no_signature = false;
+
     var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft");
     var mail_draft_attachments = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments") || {};
     if (mail_draft_data) {
@@ -47,6 +48,10 @@ Location: wtv-mail:/sendmail`;
         if (mail_draft_data.msg_url) msg_url = mail_draft_data.msg_url;
         if (mail_draft_data.msg_url_title) msg_url_title = mail_draft_data.msg_url_title;
     }
+
+    if (request_headers.query.togglesign == "true") no_signature = false;
+    if (request_headers.query.togglesign == "false") no_signature = true;
+
     if (mail_draft_attachments) {
         if (mail_draft_attachments.message_snapshot_data) message_snapshot_data = mail_draft_attachments.message_snapshot_data;
         else if (request_headers.query.message_snapshot_data) message_snapshot_data = request_headers.query.message_snapshot_data;
@@ -152,6 +157,10 @@ Content-type: text/html`;
                 mail_draft_data.message_voicemail_data = request_headers.query.message_voicemail_data
                 ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
             }
+            var message_colors = null;
+            if (no_signature) message_colors = ssid_sessions[socket.ssid].mailstore.getSignatureColors(null, true);
+            else message_colors = ssid_sessions[socket.ssid].mailstore.getSignatureColors(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"), true);
+
             data = `<HTML>
 <head>
 <display poweroffalert >
@@ -189,7 +198,7 @@ location.reload();	}
 Write an e-mail message
 </title>
 </head>
-<body bgcolor="#171726" text="#82A9D9" link="#BDA73A" vlink="#62B362" vspace=0 hspace=0>
+<body bgcolor="#171726" text="${message_colors.text}" link="${message_colors.link}" vlink="${message_colors.vlink}" vspace=0 hspace=0>
 <form action="wtv-mail:/sendmail#focus" method="post" name=sendform >
 <input type=hidden name="wtv-saved-message-id" value="writemessage-outbox">
 <input type=hidden name="message_reply_all_cc" value="">
@@ -324,7 +333,7 @@ Write an e-mail message
 <spacer type=horizontal size=13>
 <td bgcolor=#171726 width=438 valign=top>
 <spacer type=vertical size=5><br>
-<table cellspacing=0 cellpadding=0 bgcolor="#1F2033">
+<table cellspacing=0 cellpadding=0 bgcolor="${message_colors.bgcolor}">
 <tr>
 <td absheight=2 colspan=5 bgcolor=#495360>
 <tr>
@@ -337,14 +346,14 @@ Write an e-mail message
 <td abswidth=385>
 <table cellspacing=0 cellpadding=0>	<tr>
 <td width=80 valign=top align=right>
-<font color=#82A9D9>From:&nbsp;</font>
+<font color=${message_colors.text}>From:&nbsp;</font>
 <td width=305 valign=top>
-<font color=#82A9D9><table cellspacing=0 cellpadding=0 border=0>
+<font color=${message_colors.text}><table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
 ${address}
 </TD></TR>
 </TABLE></font>
-<font color=#82A9D9>(${userdisplayname})</font>
+<font color=${message_colors.text}>(${userdisplayname})</font>
 <tr>
 <td height=13 valign=middle colspan=2>
 <img src="wtv-mail:/content/images/sendmail_panel_dots.gif" width=385 height=2>
@@ -353,14 +362,14 @@ ${address}
 <a href="client:openaddresspanel">To:</a>&nbsp;
 <td width=305 valign=top>
 <textarea
-bgcolor="#1F2033"
-cursor=#BDA73A
+bgcolor="${message_colors.bgcolor}"
+cursor="${message_colors.cursor}"
 nosoftbreaks
 borderimage="file://ROM/Borders/textfield.alt1.bif"
 nohardbreaks
 selected
 font=proportional
-text=#82A9D9
+text=${message_colors.text}
 name="message_to"
 border=0
 width=305 rows=1
@@ -375,15 +384,15 @@ nohighlight
 <img src="wtv-mail:/content/images/sendmail_panel_dots.gif" width=385 height=2>
 <tr>
 <td abswidth=83 valign=top align=right>
-<font color=#82A9D9>Subject:&nbsp;</font>
+<font color=${message_colors.text}>Subject:&nbsp;</font>
 <td width=305 valign=top>
 <textarea
-bgcolor="#1F2033"
-cursor=#BDA73A
+bgcolor="${message_colors.bgcolor}"
+cursor="${message_colors.cursor}"
 nosoftbreaks
 borderimage="file://ROM/Borders/textfield.alt1.bif"
 nohardbreaks
-text=#82A9D9
+text=${message_colors.text}
 name="message_subject" font=proportional
 border=0
 width=305 rows=1
@@ -399,9 +408,9 @@ autohiragana
 <tr>
 <td width=305 colspan=2>
 <textarea nosoftbreaks
-bgcolor="#1F2033"
-text=#82A9D9
-cursor=#BDA73A
+bgcolor="${message_colors.bgcolor}"
+text="${message_colors.text}"
+cursor="${message_colors.cursor}"
 name="message_body" font=proportional
 border=0
 rows=4
@@ -412,10 +421,10 @@ autohiragana
 growable
 nextdown="Send">${(msg_body) ? msg_body : ''}</textarea>
 </table>
-<body bgcolor=#1F2033
-text=#82A9D9
-link=#BDA73A
-vlink=#62B362
+<body bgcolor=${message_colors.bgcolor}
+text=${message_colors.text}
+link=${message_colors.link}
+vlink=${message_colors.vlink}
 vspace=0
 hspace=0>`;
             if (ssid_sessions[socket.ssid].getSessionData("subscriber_signature") && ssid_sessions[socket.ssid].getSessionData("subscriber_signature") != "" && !no_signature) {
@@ -473,7 +482,7 @@ USESTYLE NOARGS>
 <td absheight="10">
 <img src="ROMCache/Spacer.gif" width="1" height="10">
 </td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="#1F2033" background="">
+<table cellspacing="0" cellpadding="0" bgcolor="${message_colors.bgcolor}" background="">
 <tbody><tr>
 <td rowspan="100" abswidth="10" bgcolor="191919">
 <img src="ROMCache/Spacer.gif" width="10" height="1">
@@ -537,7 +546,7 @@ USESTYLE NOARGS>
 <td absheight="10">
 <img src="ROMCache/Spacer.gif" width="1" height="10">
 </td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="#1F2033" background="">
+<table cellspacing="0" cellpadding="0" bgcolor="${message_colors.bgcolor}" background="">
 <tbody><tr>
 <td rowspan="100" abswidth="10" bgcolor="191919">
 <img src="ROMCache/Spacer.gif" width="10" height="1">

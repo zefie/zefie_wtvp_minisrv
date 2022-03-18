@@ -39,6 +39,7 @@ Location: wtv-mail:/listmail`;
 
                 headers = `200 OK
 Content-type: text/html`;
+                var message_colors = ssid_sessions[socket.ssid].mailstore.getSignatureColors(message.signature);
 
                 if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                 data = `<wtvnoscript>
@@ -58,9 +59,9 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
 </title>
 </head>
 <body
-bgcolor="#171726"
-text="#82A9D9"
-link="#BDA73A" vlink="#62B362" vspace=0 hspace=0>
+bgcolor="${message_colors.bgcolor}"
+text="${message_colors.text}"
+link="${message_colors.link}" vlink="${message_colors.vlink}" vspace=0 hspace=0>
 <sidebar width=109>
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -187,13 +188,13 @@ id=save
 <td width=451 colspan=2 align=center bgcolor=#5B6C81>
 <spacer type=vertical size=13>
 <tr>
-<td height=8 bgcolor=#171726 colspan=2>
+<td height=8 bgcolor=${message_colors.bgcolor} colspan=2>
 <img src="wtv-mail:/content/images/CornerTop.gif" width=8 height=8>
 <tr>
-<td bgcolor=#171726 width=451 valign=top>
+<td bgcolor=${message_colors.bgcolor} width=451 valign=top>
 <table cellspacing=0 cellpadding=0 width=451>
 <tr>
-<td bgcolor=#171726 width=13>
+<td bgcolor=${message_colors.bgcolor} width=13>
 <spacer type=horizontal size=13>
 <td height=9>
 </table>

@@ -17,6 +17,8 @@ class WTVMail {
     mailboxes = null;
     msgFileExt = ".zmsg";
     trashMailboxName = "Trash";
+    defaultColors = {};
+    sendmailDefaultBGColor = "#1F2033"
 
     constructor(minisrv_config, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
@@ -36,6 +38,12 @@ class WTVMail {
             "Saved",
             this.trashMailboxName
         ];
+        this.defaultColors = {
+            bgcolor: "#171726",
+            text: "#82A9D9",
+            link: "#BDA73A",
+            vlink: "#62B362"
+        };
     }
 
     checkMailIntroSeen() {
@@ -60,6 +68,31 @@ class WTVMail {
             return this.fs.existsSync(this.mailstore_dir);
         }
         return null;
+    }
+
+    getSignatureColors(signature = null, sendmail = true) {
+        var colors = Object.assign({}, this.defaultColors); // start with default colors
+        if (sendmail) colors.bgcolor = this.sendmailDefaultBGColor;
+
+        if (signature) {
+            if (signature.length > 0) {
+                if (signature.indexOf('<html>') >= 0) {
+                    if (signature.indexOf('<body') >= 0) {
+                        // parse <body> tag of html signature to get colors
+                        const htmlparser2 = require("htmlparser2");
+                        const dom = htmlparser2.parseDocument(signature);
+                        const body = htmlparser2.DomUtils.getElementsByTagName('body', dom)[0];
+                        if (body.attribs) {
+                            for (const [key, value] of Object.entries(body.attribs)) {
+                                colors[key] = value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!colors.cursor) colors.cursor = colors.link;
+        return colors;
     }
 
     mailboxExists(mailboxid) {
