@@ -32,16 +32,20 @@ Location: wtv-mail:/sendmail`;
     var msg_subject = request_headers.query.message_subject || null;
     var msg_body = request_headers.query.message_body || null;
     var to_name = request_headers.query.whatever_webtv_sends_this_as || null;
+    var msg_url = request_headers.query.message_url || null;
+    var msg_url_title = request_headers.query.message_title || null;
     var no_signature = false;
     if (request_headers.query.togglesign == "true") no_signature = false;
     var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft");
     var mail_draft_attachments = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments") || {};
     if (mail_draft_data) {
         ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
-        to_addr = mail_draft_data.to_addr;
-        msg_subject = mail_draft_data.msg_subject;
-        msg_body = mail_draft_data.msg_body;
-        no_signature = mail_draft_data.no_signature;
+        if (mail_draft_data.to_addr) to_addr = mail_draft_data.to_addr;
+        if (mail_draft_data.msg_subject) msg_subject = mail_draft_data.msg_subject;
+        if (mail_draft_data.msg_body) msg_body = mail_draft_data.msg_body;
+        if (mail_draft_data.no_signature) no_signature = mail_draft_data.no_signature;
+        if (mail_draft_data.msg_url) msg_url = mail_draft_data.msg_url;
+        if (mail_draft_data.msg_url_title) msg_url_title = mail_draft_data.msg_url_title;
     }
     if (mail_draft_attachments) {
         if (mail_draft_attachments.message_snapshot_data) message_snapshot_data = mail_draft_attachments.message_snapshot_data;
@@ -94,7 +98,7 @@ Content-Type: audio/wav`;
                     }
                 }
 
-                var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments);
+                var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
                 if (messagereturn !== true) {
                     var errpage = wtvshared.doErrorPage(400, messagereturn);
                     headers = errpage[0];
@@ -113,7 +117,9 @@ Location: wtv-mail:/listmail`;
                     to_addr: to_addr,
                     msg_subject: msg_subject,
                     msg_body: msg_body,
-                    no_signature: no_signature
+                    no_signature: no_signature,
+                    msg_url: msg_url,
+                    msg_url_title: msg_url_title
                 }
                 ssid_sessions[socket.ssid].setSessionData("mail_draft", mail_draft_data);
                 headers = `200 OK
@@ -415,7 +421,13 @@ hspace=0>`;
             if (ssid_sessions[socket.ssid].getSessionData("subscriber_signature") && ssid_sessions[socket.ssid].getSessionData("subscriber_signature") != "" && !no_signature) {
                 data += wtvshared.sanitizeSignature(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"));
             }
+            if (msg_url) {
+                data += `<input type="hidden" name="message_url" value="${msg_url}">
+<input type="hidden" name="message_title" value="${msg_url_title}">
+Included Page: <a href="${msg_url}">${wtvshared.htmlEntitize(msg_url_title).replace(/&apos;/gi, "'")}</a>`;
+            }
             data += `
+<td abswidth=13>
 <td abswidth=2 bgcolor=#000000>
 <tr>
 <td abswidth=2 bgcolor=#495360>
@@ -575,7 +587,6 @@ ${(!mail_draft_attachments.message_voicemail_data) ? '' : '<input type=hidden na
 <img src="ROMCache/Spacer.gif" width="1" height="6">
 </td></tr>`;
             }
-
             data += `
 </form>
 </tbody>

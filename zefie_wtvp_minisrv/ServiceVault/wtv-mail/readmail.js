@@ -302,6 +302,9 @@ ${wtvshared.htmlEntitize(message.body, true)}
                         }
                     });
                 }
+                if (message.url) {
+                    data += `Included Page: <a href="${(message.url)}">${wtvshared.htmlEntitize(message.url_title).replace(/&apos;/gi, "'")}</a>`;
+                }
                 data += `<p>
 <p>
 </table>

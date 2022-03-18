@@ -123,7 +123,7 @@ class WTVMail {
         return this.uuid.v1();
     }
 
-    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false, attachments = []) {
+    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false, attachments = [], url = null, url_title = null) {
         if (this.createMailbox(mailboxid)) {
             if (!date) date = Math.floor(Date.now() / 1000);
 
@@ -142,7 +142,9 @@ class WTVMail {
                 "known_sender": known_sender,
                 "signature": signature,
                 "unread": true,
-                "attachments": attachments
+                "attachments": attachments,
+                "url": url,
+                "url_title": url_title
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
@@ -335,7 +337,7 @@ class WTVMail {
         return false;
     }
 
-    sendMessageToAddr(from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null, attachments = []) {
+    sendMessageToAddr(from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null, attachments = [], url = null, url_title = null) {
         if (!to_addr) return "Your message could not be sent.<p>You must specify an addressee in the <blackface>To:</blackface> area.";
 
 
@@ -367,7 +369,7 @@ class WTVMail {
                 if (mailbox_exists) dest_user_mailstore.createWelcomeMessage();
             }
             // if the mailbox exists, deliver the message
-            if (dest_user_mailstore.mailboxExists(0)) dest_user_mailstore.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature, null, this.isInUserAddressBook(to_addr, from_addr), attachments);
+            if (dest_user_mailstore.mailboxExists(0)) dest_user_mailstore.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature, null, this.isInUserAddressBook(to_addr, from_addr), attachments, url, url_title);
             else return "There was an internal error sending the message to <strong>" + to_addr + "</strong>. Please try again later";
 
             // clean up
