@@ -173,11 +173,24 @@ class WTVClientSessionData {
      * @param subscriber {boolean} Returns the parent subscriber directory instead of the user's directory
      * @returns {string|boolean} Absolute path to the user's file store, or false if unregistered
      */
-    getUserStoreDirectory(subscriber = false) {
-        //if (!this.isRegistered()) return false;
+    getUserStoreDirectory(subscriber = false, user_id = null) {
+        if (user_id == null) user_id = this.user_id;
         var userstore = this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + this.path.sep;
-        if (!subscriber) userstore += "user" + this.user_id + this.path.sep;
+        if (!subscriber) userstore += "user" + user_id + this.path.sep;
         return userstore;
+    }
+
+    removeUser(user_id) {
+        if (!this.isRegistered()) return false; // not registered
+        if (parseInt(this.user_id) !== 0) return false; // not primary account
+        if (user_id === 0) return false; // cannot delete primary account in this fashion
+
+        var userstore = this.getUserStoreDirectory(false, user_id);
+        if (this.fs.existsSync(userstore)) {
+            this.fs.rmSync(userstore, { recursive: true });
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -496,7 +509,7 @@ class WTVClientSessionData {
                 this.session_store = {};
             }
             if (this.fs.existsSync(user_store_base)) {
-                this.fs.rmdirSync(user_store_base, { recursive: true });
+                this.fs.rmSync(user_store_base, { recursive: true });
             }
             return true;
         } catch (e) {

@@ -8,6 +8,7 @@ if (ssid_sessions[socket.ssid].user_id != 0) {
 } else {
     headers = `200 OK
 Connection: Keep-Alive
+wtv-expire-all: wtv-setup:/accounts
 Content-Type: text/html`
 
     data = `<HTML>
@@ -112,14 +113,14 @@ Subscriber:
 <TD COLSPAN=3 VALIGN=top ALIGN=right>
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
 <INPUT action="/remove-users?user-count=x"
-name="RemoveUser" value="Remove User" WIDTH=140 ${(num_accounts >= 1) ? 'USESTYLE' : 'disabled="disabled" text=gray' }
+name="RemoveUser" value="Remove User" WIDTH=140 ${(num_accounts > 1) ? 'USESTYLE' : 'disabled="disabled" text=gray' }
 TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button1" WIDTH=103>
 <IMG SRC="ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
 <INPUT action="/add-user?user_count=${num_accounts}"
 name="AddUser" value="Add User" WIDTH=120 ${(num_accounts >= minisrv_config.config.user_accounts.max_users_per_account) ? 'disabled="disabled" text=gray' : 'USESTYLE'}
 TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" NAME="Button2" WIDTH=103>
 <IMG SRC="ROMCache/Spacer.gif" WIDTH=4 HEIGHT=1>
-<INPUT action="client:goback"
+<INPUT action="wtv-setup:/serve-billing-overview?"
 name="Done"
 value="Done"
 WIDTH=120

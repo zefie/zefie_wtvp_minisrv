@@ -282,6 +282,8 @@
     <Content Include="ServiceVault\wtv-setup\phone-call-waiting.js" />
     <Content Include="ServiceVault\wtv-setup\phone-reset.js" />
     <Content Include="ServiceVault\wtv-setup\phone.js" />
+    <Content Include="ServiceVault\wtv-setup\validate-remove-users.js" />
+    <Content Include="ServiceVault\wtv-setup\remove-users.js" />
     <Content Include="ServiceVault\wtv-setup\reset-musicobj.js">
       <SubType>Code</SubType>
     </Content>
