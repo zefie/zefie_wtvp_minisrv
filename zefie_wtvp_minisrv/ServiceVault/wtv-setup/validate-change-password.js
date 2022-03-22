@@ -19,7 +19,7 @@ if (ssid_sessions[socket.ssid].user_id != 0 && ssid_sessions[socket.ssid].user_i
     data = errpage[1];
 }
 
-if (user_id) {
+if (user_id && !errpage) {
     headers = `200 OK
 Connection: Keep-Alive
 wtv-mail-count: ${ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0)}
@@ -71,6 +71,11 @@ Location: ${request_headers.query.return_to}`;
             }
         }
     }
+}
+
+if (errpage) {
+    headers = errpage[0];
+    data = errpage[1];
 }
 
 if (userSession) userSession = null;
