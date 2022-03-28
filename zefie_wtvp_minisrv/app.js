@@ -588,20 +588,20 @@ async function doHTTPProxy(socket, request_headers) {
                 // an http response error is not a request error, and will come here under the 'end' event rather than an 'error' event.
                 switch (res.statusCode) {
                     case 404:
-                        res.headers.http_response = res.statusCode + " The publisher can&#146;t find the page requested.";
+                        res.headers.Response = res.statusCode + " The publisher can&#146;t find the page requested.";
                         break;
 
                     case 401:
                     case 403:
-                        res.headers.http_response = res.statusCode + " The publisher of that page has not authorized you to use it.";
+                        res.headers.Response = res.statusCode + " The publisher of that page has not authorized you to use it.";
                         break;
 
                     case 500:
-                        res.headers.http_response = res.statusCode + " The publisher of that page can&#146;t be reached.";
+                        res.headers.Response = res.statusCode + " The publisher of that page can&#146;t be reached.";
                         break;
 
                     default:
-                        res.headers.http_response = res.statusCode + " " + res.statusMessage;
+                        res.headers.Response = res.statusCode + " " + res.statusMessage;
                         break;
                 }
 
@@ -666,7 +666,7 @@ async function doHTTPProxy(socket, request_headers) {
 function stripHeaders(headers_obj, whitelist) {
     var whitelisted_headers = new Array();
     var out_headers = new Array();
-    out_headers.http_response = headers_obj.http_response;
+    out_headers.Response = headers_obj.Response;
     out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
 
     // compare regardless of case
@@ -701,7 +701,7 @@ function headerStringToObj(headers, response = false) {
         if (/^SECURE ON/.test(d) && !response) {
             headers_obj.secure = true;
         } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response) {
-            headers_obj.http_response = d.replace("\r", "");
+            headers_obj.Response = d.replace("\r", "");
         } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
             headers_obj.request = d.replace("\r", "");
             var request_url = d.split(' ');
@@ -765,7 +765,7 @@ async function sendToClient(socket, headers_obj, data) {
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
         headers_obj.Connection = "Keep-Alive";
-        headers_obj = moveObjectElement('Connection', 'http_response', headers_obj);
+        headers_obj = moveObjectElement('Connection', 'Response', headers_obj);
     }
 
     var content_length = 0;
@@ -809,7 +809,7 @@ async function sendToClient(socket, headers_obj, data) {
     }
 
     // compress if needed
-    if (compression_type > 0 && content_length > 0 && headers_obj['http_response'].substring(0, 3) == "200") {
+    if (compression_type > 0 && content_length > 0 && headers_obj['Response'].substring(0, 3) == "200") {
         var uncompressed_content_length = content_length;
         switch (compression_type) {
             case 1:
@@ -883,7 +883,7 @@ async function sendToClient(socket, headers_obj, data) {
     var end_of_line = "\n";
     if (socket.minisrv_pc_mode) {
         end_of_line = "\r\n";
-        headers_obj['http_response'] = "HTTP/1.0 " + headers_obj['http_response'];
+        headers_obj['Response'] = "HTTP/1.0 " + headers_obj['Response'];
     }
 
     /*    // wtv-request-type download wants minimal headers?
@@ -891,7 +891,7 @@ async function sendToClient(socket, headers_obj, data) {
             if (socket_sessions[socket.id].wtv_request_type == "download") {
                 if (headers_obj['Content-Type'] != "wtv/download-list") {
                     // minimalize headers
-                    var new_headers = { "http_response": headers_obj['http_response'].split(" ")[0] + " " }
+                    var new_headers = { "Response": headers_obj['Response'].split(" ")[0] + " " }
                     if (headers_obj['wtv-encrypted']) new_headers['wtv-encrypted'] = headers_obj['wtv-encrypted'];
                     new_headers["content-type"] = headers_obj['Content-Type'];
                     new_headers["content-length"] = headers_obj['Content-length'];
@@ -904,7 +904,7 @@ async function sendToClient(socket, headers_obj, data) {
     // header object to string
     if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing headers on socket ID", socket.id, (await wtvshared.filterSSID(headers_obj)));
     Object.keys(headers_obj).forEach(function (k) {
-        if (k == "http_response") {
+        if (k == "Response") {
             headers += headers_obj[k] + end_of_line;
         } else {
             if (k.indexOf('_') >= 0) {
@@ -937,7 +937,7 @@ async function sendToClient(socket, headers_obj, data) {
         } else {
             sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
         }
-        if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.http_response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
+        if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.Response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
     }
 }
 
