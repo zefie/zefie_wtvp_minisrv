@@ -140,6 +140,9 @@ class WTVMime {
             case "ini":
                 wtv_mime_type = "wtv/jack-configuration";
                 break;
+            case "kar":
+                wtv_mime_type = "audio/midi";
+                break;
             case "mips-code":
                 wtv_mime_type = "code/x-wtv-code-mips";
                 break;
