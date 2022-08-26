@@ -31,27 +31,26 @@ class WTVRegister {
 
     checkUsernameAvailable(username, directory = null) {
         // returns the user's ssid, and user_id and userid in an array if true, false if not
-        var username_match = false;
         var search_dir = this.minisrv_config.config.SessionStore;
         var return_val = false;
         var self = this;
         if (directory) search_dir = directory;
         this.fs.readdirSync(search_dir).forEach(file => {
             if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
-                return_val = self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
+                return_val =  self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
             }
             if (!file.match(/.*\.json/ig)) return;
-            if (username_match) return;
             try {
                 var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
-                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) username_match = true;
+                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                    return_val = true;
+                }
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", file, e);
-                username_match = true;
             }
         });
-        return !username_match;
+        return return_val;
     }
 
 
