@@ -348,7 +348,15 @@ async function processURL(socket, request_headers) {
                     var qraw_split = qraw[i].split("=");
                     if (qraw_split.length == 2) {
                         var k = qraw_split[0];
-                        request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                        if (request_headers.query[k]) {
+                            if (typeof request_headers.query[k] === 'string') {
+                                var keyarray = [request_headers.query[k]];
+                                request_headers.query[k] = keyarray;
+                            }
+                            request_headers.query[k].push(unescape(qraw[i].split("=")[1].replace(/\+/g, "%20")));
+                        } else {
+                            request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                        }
                     }
                 }
             }
@@ -372,8 +380,17 @@ async function processURL(socket, request_headers) {
                                     if (qraw_split.length == 2) {
                                         var k = qraw_split[0];
                                         var data = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
-                                        if (wtvshared.isASCII(data)) request_headers.query[k] = data;
-                                        else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                        if (request_headers.query[k]) {
+                                            if (typeof request_headers.query[k] === 'string') {
+                                                var keyarray = [request_headers.query[k]];
+                                                request_headers.query[k] = keyarray;
+                                            }
+                                            if (wtvshared.isASCII(data)) request_headers.query[k].push(data);
+                                            else request_headers.query[k].push(wtvshared.urlDecodeBytes(qraw[i].split("=")[1].replace(/\+/g, "%20")));
+                                        } else {
+                                            if (wtvshared.isASCII(data)) request_headers.query[k] = data;
+                                            else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                        }
                                     }
                                 }
                             }
@@ -382,8 +399,17 @@ async function processURL(socket, request_headers) {
                             if (qraw_split.length == 2) {
                                 var k = qraw_split[0];
                                 var data = unescape(qraw_split[1].replace(/\+/g, "%20"));
-                                if (wtvshared.isASCII(data)) request_headers.query[k] = data;
-                                else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw_split[1].replace(/\+/g, "%20"));
+                                if (request_headers.query[k]) {
+                                    if (typeof request_headers.query[k] === 'string') {
+                                        var keyarray = [request_headers.query[k]];
+                                        request_headers.query[k] = keyarray;
+                                    }
+                                    if (wtvshared.isASCII(data)) request_headers.query[k].push(data);
+                                    else request_headers.query[k].push(wtvshared.urlDecodeBytes(qraw_split[1].replace(/\+/g, "%20")));
+                                } else {
+                                    if (wtvshared.isASCII(data)) request_headers.query[k] = data;
+                                    else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw_split[1].replace(/\+/g, "%20"));
+                                }
                             }
                         }
                     }
