@@ -30,13 +30,13 @@
     "crypto-js": "^4.1.1",
     "easy-crc": "0.0.2",
     "endianness": "^8.0.2",
-    "html-entities": "^2.3.2",
+    "html-entities": "^2.3.3",
     "iconv-lite": "^0.6.3",
-    "mime-types": "^2.1.33",
+    "mime-types": "^2.1.35",
     "proxy-agent": "^5.0.0",
-    "sanitize-html": "^2.7.0",
-    "socks-proxy-agent": "^6.1.1",
-    "strftime": "^0.10.0",
+    "sanitize-html": "^2.7.1",
+    "socks-proxy-agent": "^6.2.1",
+    "strftime": "^0.10.1",
     "uuid": "^8.3.2"
   }
 }
