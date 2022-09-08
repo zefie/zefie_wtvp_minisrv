@@ -50,7 +50,7 @@ class WTVRegister {
                 console.error(" # Error parsing Session Data JSON", file, e);
             }
         });
-        return return_val;
+        return !return_val;
     }
 
 
