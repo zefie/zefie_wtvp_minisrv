@@ -218,7 +218,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                             });
                         }
                     } else {
-                        // not a potential service file, so save to send
+                        // not a potential service file, so safe to send
                         sendRawFile(socket, service_vault_file_path);
                     }
 
