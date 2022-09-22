@@ -128,10 +128,6 @@ ${request_headers.query.display_name || request_headers.query.user_name}
 </td>
 <td align=left valign=top abswidth=210>
 <table cellspacing=0 cellpadding=0>
-<input type=hidden name=display_name value="${request_headers.query.display_name}">
-<input type=hidden name=user_name value="${request_headers.query.user_name}">
-<input type=hidden name=user-password value="${request_headers.query.user_password}">
-<input type=hidden name=user-password2 value="${request_headers.query.user_password2}">
 <tr>
 <td colspan=3 align=left>
 <a href="wtv-setup:/add-user-password?
