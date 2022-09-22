@@ -38,6 +38,16 @@ class WTVShared {
         }
     }
 
+    getQueryString(query) {
+        // for easy retrofitting old code to work with the webtvism of allowing multiple of the same query name
+        // pass it the query, and it will return a string regardless. if its a string it just sends it back
+        // if its an array we just pull the last object
+        if (typeof (query) === "object")
+            return query[(Object.keys(query).length - 1)];
+        else
+            return query
+    }
+
 
     htmlEntitize(string, process_newline = false) {
         string = this.html_entities.encode(string).replace(/&apos;/g, "'");
