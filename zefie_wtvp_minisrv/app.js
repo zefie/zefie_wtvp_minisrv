@@ -338,9 +338,12 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 async function processURL(socket, request_headers) {
     var shortURL, headers, data = "";
     request_headers.query = new Array();
+    enable_multi_query = false;
     if (request_headers.request_url) {
         if (request_headers.request_url.indexOf('?') >= 0) {
             shortURL = request_headers.request_url.split('?')[0];
+            service_name = shortURL.split(':')[0];
+            if (minisrv_config.services[service_name]) enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
             var qraw = request_headers.request_url.split('?')[1];
             if (qraw.length > 0) {
                 qraw = qraw.split("&");
@@ -348,7 +351,7 @@ async function processURL(socket, request_headers) {
                     var qraw_split = qraw[i].split("=");
                     if (qraw_split.length == 2) {
                         var k = qraw_split[0];
-                        if (request_headers.query[k]) {
+                        if (request_headers.query[k] && enable_multi_query) {
                             if (typeof request_headers.query[k] === 'string') {
                                 var keyarray = [request_headers.query[k]];
                                 request_headers.query[k] = keyarray;

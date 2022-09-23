@@ -49,6 +49,9 @@
 		},
 		"wtv-music": {
 			"disabled": true
+		},
+		"wtv-author": {
+			"enable_multi_query": true
 		}
 	}
 }
