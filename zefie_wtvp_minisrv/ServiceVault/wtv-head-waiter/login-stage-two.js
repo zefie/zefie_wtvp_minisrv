@@ -48,18 +48,24 @@ else {
 	var limitedLogin = ssid_sessions[socket.ssid].lockdown;
 	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].isUserLoggedIn()));
 	var offline_user_list = null;
-	if (ssid_sessions[socket.ssid].isRegistered() && ssid_sessions[socket.ssid].user_id == 0) {
-		var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
-		var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
-		var offline_user_list_str = "<user-list>\n";
-		var i = 0;
-		Object.keys(accounts).forEach((k) => {
-			var account_display_name = (accounts[k].subscriber_name) ? accounts[k].subscriber_name : accounts[k].subscriber_username
-			offline_user_list_str += "\t" + '<user userid="' + i + '" user-name="' + accounts[k].subscriber_username + '" first-name="' + account_display_name + '"  last-name="" passsword="" mail-enabled=true />' + "\n";
-			i++;
-		});
-		offline_user_list_str += "</user-list>\n";
-		offline_user_list = CryptoJS.enc.Latin1.parse(offline_user_list_str).toString(CryptoJS.enc.Base64);
+	if (ssid_sessions[socket.ssid].isRegistered()) {
+		// check for SMTP Password
+		if (ssid_sessions[socket.ssid].getSessionData("subscriber_smtp_password") === null) {
+			ssid_sessions[socket.ssid].setUserSMTPPassword(ssid_sessions[socket.ssid].generatePassword(16));
+        }
+		if (ssid_sessions[socket.ssid].user_id == 0) {
+			var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
+			var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
+			var offline_user_list_str = "<user-list>\n";
+			var i = 0;
+			Object.keys(accounts).forEach((k) => {
+				var account_display_name = (accounts[k].subscriber_name) ? accounts[k].subscriber_name : accounts[k].subscriber_username
+				offline_user_list_str += "\t" + '<user userid="' + i + '" user-name="' + accounts[k].subscriber_username + '" first-name="' + account_display_name + '"  last-name="" passsword="" mail-enabled=true />' + "\n";
+				i++;
+			});
+			offline_user_list_str += "</user-list>\n";
+			offline_user_list = CryptoJS.enc.Latin1.parse(offline_user_list_str).toString(CryptoJS.enc.Base64);
+		}
     }
 
 	if (limitedLoginRegistered) {

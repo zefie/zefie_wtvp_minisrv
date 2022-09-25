@@ -25,6 +25,7 @@ class WTVClientSessionData {
     baddisk = false;
     clientAddress = null;
     user_id = 0;
+    cryptoKey = "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\EP";
 
     constructor(minisrv_config, ssid) {
         if (!minisrv_config) throw ("minisrv_config required");
@@ -405,15 +406,37 @@ class WTVClientSessionData {
         }
     }
 
+    encryptPassword(passwd) {
+        return CryptoJS.AES.encrypt(passwd, this.cryptoKey).toString();
+    }
+
+    decryptPassword(crypt) {
+        return CryptoJS.AES.decrypt(crypt, this.cryptoKey).toString(CryptoJS.enc.Utf8);
+    }
+
     encodePassword(passwd) {
         var encoded_passwd = CryptoJS.SHA512(passwd);
         return encoded_passwd.toString(CryptoJS.enc.Base64);
+    }
+
+    generatePassword(len) {
+        return CryptoJS.lib.WordArray.random(len).toString(CryptoJS.enc.Hex);
     }
 
     setUserPassword(passwd) {
         var encoded_passwd = this.encodePassword(passwd);
         this.setSessionData("subscriber_password", encoded_passwd);
         this.saveSessionData();
+    }
+
+    setUserSMTPPassword(passwd) {
+        var encoded_passwd = this.encryptPassword(passwd);
+        this.setSessionData("subscriber_smtp_password", encoded_passwd);
+        this.saveSessionData();
+    }
+
+    getUserSMTPPassword() {
+        return this.decryptPassword(this.setSessionData("subscriber_smtp_password"))
     }
 
     disableUserPassword() {
