@@ -66,6 +66,10 @@ class WTVClientSessionData {
         this.mailstore = new WTVMail(this.minisrv_config, this)
     }
 
+    createWTVSecSession() {
+        return new WTVSec(this.minisrv_config)
+    }
+
     getAccountTotalUnreadMessages() {
         if (!this.isRegistered()) return false; // unregistered
         if (this.user_id > 0) return false; // not primary user or pre-login

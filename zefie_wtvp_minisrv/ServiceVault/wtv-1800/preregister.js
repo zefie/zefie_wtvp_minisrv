@@ -30,7 +30,7 @@ if (socket.ssid) {
 		delete ssid_sessions[socket.ssid].data_store.wtvsec_login;
 	}
 
-	ssid_sessions[socket.ssid].data_store.wtvsec_login = new WTVSec(minisrv_config);
+	ssid_sessions[socket.ssid].data_store.wtvsec_login = ssid_sessions[socket.ssid].createWTVSecSession();
 	ssid_sessions[socket.ssid].data_store.wtvsec_login.IssueChallenge();
 	if (request_headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 } else {

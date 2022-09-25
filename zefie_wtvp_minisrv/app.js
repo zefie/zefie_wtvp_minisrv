@@ -17,6 +17,7 @@ const WTVClientSessionData = require('./WTVClientSessionData.js');
 const WTVMime = require("./WTVMime.js");
 const { WTVShared, clientShowAlert } = require("./WTVShared.js");
 const WTVFlashrom = require("./WTVFlashrom.js");
+const vm = require('vm');
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -107,6 +108,36 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     var service_vault_found = false;
     var service_path = unescape(service_vault_file_path);
     var usingSharedROMCache = false;
+    // Here we define the ServiceVault Script Context Object
+    // The ServiceVault scripts will only be allowed to access the following variables.
+    // Furthermore, only modifications to "headers", "data", "ssid_sessions" and "socket_sessions" will be saved.
+    // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
+    var contextObj = {
+        console: console,
+        Buffer: Buffer,
+        require: require,
+        wtvmime: wtvmime,
+        wtvshared: wtvshared,
+        clientShowAlert: clientShowAlert,
+        strftime: strftime,
+        CryptoJS: CryptoJS,
+        fs: fs,
+        __dirname: __dirname,
+        minisrv_config: minisrv_config,
+        getServiceString: getServiceString,
+        sendToClient: sendToClient,
+        socket: socket,
+        request_headers: request_headers,
+        service_name: service_name,
+        service_vaults: service_vaults,
+        ssid_sessions: ssid_sessions,
+        socket_sessions: socket_sessions,
+        headers: headers,
+        data: data,
+        request_is_async: request_is_async,
+        String: String,
+        Object: Object
+    }
     try {
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
@@ -161,7 +192,6 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     request_is_async = true;
                     request_headers.service_file_path = service_vault_file_path;
                     request_headers.raw_file = true;
-
                     // process flashroms
                     if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "rom" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() == "brom") {
                         var bf0app_update = false;
@@ -262,8 +292,22 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // expose var service_dir for script path to the root of the wtv-service
                     var service_dir = service_vault_dir + path.sep + service_name;
                     socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
-                    var jscript_eval = fs.readFileSync(service_vault_file_path + ".js").toString();
-                    eval(jscript_eval);
+                    var script_data = fs.readFileSync(service_vault_file_path + ".js").toString();
+                    var eval_ctx = new vm.Script(script_data, {
+                        "filename": service_vault_file_path + ".js"
+                    })
+                    vm.createContext(contextObj);
+                    eval_ctx.runInContext(contextObj, {
+                        "breakOnSigint": true
+                    });
+
+                    // Here we read back certain data from the ServiceVault Script Context Object
+                    headers = contextObj.headers;
+                    data = contextObj.data;
+                    request_is_async = contextObj.request_is_async;
+                    ssid_sessions = contextObj.ssid_sessions;
+                    socket_sessions = contextObj.socket_sessions;
+
                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
                 }
                 else if (fs.existsSync(service_vault_file_path + ".html")) {
@@ -293,10 +337,22 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     service_vault_found = true;
                                     if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                     request_headers.service_file_path = catchall_file;
-                                    var jscript_eval = fs.readFileSync(catchall_file).toString();
-                                    // don't pass these vars to the script
-                                    var service_check_dir, minisrv_catchall_file_name = null;
-                                    eval(jscript_eval);
+                                    var script_data = fs.readFileSync(catchall_file).toString();
+                                    var eval_ctx = new vm.Script(script_data, {
+                                        "filename": catchall_file
+                                    })
+                                    vm.createContext(contextObj);
+                                    eval_ctx.runInContext(contextObj, {
+                                        "breakOnSigint": true
+                                    });
+
+                                    // Here we read back certain data from the ServiceVault Script Context Object
+                                    headers = contextObj.headers;
+                                    data = contextObj.data;
+                                    request_is_async = contextObj.request_is_async;
+                                    ssid_sessions = contextObj.ssid_sessions;
+                                    socket_sessions = contextObj.socket_sessions;
+
                                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
                                 } else {
                                     service_check_dir.pop();
