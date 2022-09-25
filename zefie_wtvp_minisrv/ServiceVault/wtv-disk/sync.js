@@ -24,8 +24,6 @@ if (request_headers['wtv-request-type'] == 'download') {
             wtvdl.execute(diskmap_group_data.execute_start);
         }
 
-        console.log(diskmap_group_data.client_group_data);
-
         // delete groups if force, or group is invalid
         if (diskmap_group_data.client_group_data) {
             if (force_update || diskmap_group_data.client_group_data.state == "invalid") {
@@ -215,7 +213,6 @@ if (request_headers['wtv-request-type'] == 'download') {
             Object.keys(service_vaults).forEach(function (g) {
                 if (diskmap_data_file != null) return;
                 diskmap_data_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
-                console.log(diskmap_data_file)
                 if (!fs.existsSync(diskmap_data_file)) diskmap_data_file = null;
             });
 
@@ -289,7 +286,6 @@ if (request_headers['wtv-request-type'] == 'download') {
                     diskmap_data = diskmap_data[request_headers.query.group];
                     if (!diskmap_data.location) {
                         Object.keys(diskmap_data).forEach(function (k) {
-                            console.log(diskmap_data[k]);
                             if (diskmap_data[k]) {
                                 diskmap_data[k].version = (new Date(new Date(json_stats.mtime).toUTCString()) / 1000);
                                 data += processGroup(request_headers.query.group, diskmap_data[k], k, diskmap_data.version);
