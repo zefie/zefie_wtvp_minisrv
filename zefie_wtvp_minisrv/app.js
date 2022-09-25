@@ -337,8 +337,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 
 async function processURL(socket, request_headers) {
     var shortURL, headers, data = "";
+    var enable_multi_query = false;
     request_headers.query = new Array();
-    enable_multi_query = false;
     if (request_headers.request_url) {
         if (request_headers.request_url.indexOf('?') >= 0) {
             shortURL = request_headers.request_url.split('?')[0];
