@@ -11,7 +11,7 @@ if (client_caps) {
 	headers = `200 OK
 Content-Type: text/html`
 
-
+	var service_ip = minisrv_config.config.service_ip
 	var client_label = "TODO";
 	var boot_client_label = "TODO";
 	var wtv_system_sysconfig_str = "TODO";
@@ -58,7 +58,7 @@ Content-Type: text/html`
 <tr>
 		<td valign=top align=right width=150><shadow>Service:</shadow>
 		<td width=10>
-		<td valign=top>${z_title}
+		<td valign=top>${minisrv_version_string}
 <tr>
 		<td valign=top align=right><shadow>Client:</shadow>
 		<td width=10>

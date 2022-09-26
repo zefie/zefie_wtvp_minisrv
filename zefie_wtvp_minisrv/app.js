@@ -110,21 +110,34 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     var usingSharedROMCache = false;
     // Here we define the ServiceVault Script Context Object
     // The ServiceVault scripts will only be allowed to access the following variables.
-    // Furthermore, only modifications to "headers", "data", "ssid_sessions" and "socket_sessions" will be saved.
+    // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
+
+    // node core functions/vars
     var contextObj = {
         console: console,
         require: require,
+        __dirname: __dirname
+    }
+
+    // Our modules
+    contextObj = {
+        ...contextObj,
         wtvmime: wtvmime,
         http: http,
         https: https,
         wtvshared: wtvshared,
         clientShowAlert: clientShowAlert,
         WTVClientSessionData: WTVClientSessionData,
+        WTVClientCapabilities: WTVClientCapabilities,
         strftime: strftime,
         CryptoJS: CryptoJS,
-        fs: fs,
-        __dirname: __dirname,
+        fs: fs
+    }
+
+    // Our variables
+    contextObj = {
+        ...contextObj,
         minisrv_config: minisrv_config,
         getServiceString: getServiceString,
         sendToClient: sendToClient,
@@ -138,10 +151,24 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         headers: headers,
         data: data,
         request_is_async: request_is_async,
+        minisrv_version_string: z_title
+    }
+
+    // Our prototype overrides
+    contextObj = {
+        ...contextObj,
         Buffer: Buffer,
         String: String,
         Object: Object
     }
+
+    var updateFromVM = [
+        ["headers", "headers"],
+        ["data", "data"],
+        ["ssid_sessions", "ssid_sessions"],
+        ["socket_sessions", "socket_sessions"]
+    ];
+
     try {
         service_vaults.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
@@ -305,12 +332,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     });
 
                     // Here we read back certain data from the ServiceVault Script Context Object
-                    headers = contextObj.headers;
-                    data = contextObj.data;
-                    request_is_async = contextObj.request_is_async;
-                    ssid_sessions = contextObj.ssid_sessions;
-                    socket_sessions = contextObj.socket_sessions;
-
+                    updateFromVM.forEach((item) => {
+                        eval(item[0] +' = contextObj["'+item[1]+'"]');
+                    })
+                    
                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
                 }
                 else if (fs.existsSync(service_vault_file_path + ".html")) {
