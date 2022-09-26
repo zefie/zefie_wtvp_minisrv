@@ -109,15 +109,15 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     var service_path = unescape(service_vault_file_path);
     var usingSharedROMCache = false;
     // Here we define the ServiceVault Script Context Object
-    // The ServiceVault scripts will only be allowed to access the following variables.
+    // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
 
     // node core functions/vars
     var contextObj = {
-        console: console,
-        require: require,
-        __dirname: __dirname
+        console: console, // needed for per-script debugging
+        require: require, // this is dangerous but needed for some scripts at this time
+        __dirname: __dirname // needed by services such as wtv-flashrom and wtv-disk
     }
 
     // Our modules
@@ -163,10 +163,12 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     }
 
     var updateFromVM = [
-        ["headers", "headers"],
-        ["data", "data"],
-        ["ssid_sessions", "ssid_sessions"],
-        ["socket_sessions", "socket_sessions"]
+        // format: [ ourvarname, scriptsvarname ]
+        ["headers", "headers"], // we need to be able to read the script's response headers
+        ["data", "data"], // we need to be able to read the script's response data
+        ["request_is_async", "request_is_async"], // we need to know if the script wants to be async or not
+        ["ssid_sessions", "ssid_sessions"], // certain scripts need to update the user session, such as wtv-setup, wtv-mail, etc
+        ["socket_sessions", "socket_sessions"] // certain scripts need to update the socket session, such as wtv-1800, etc
     ];
 
     try {
