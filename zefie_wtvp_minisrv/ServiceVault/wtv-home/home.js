@@ -47,7 +47,8 @@ minisrv v${minisrv_config.version}${(minisrv_config.config.git_commit) ? ' git-'
 <li><a href="client:relog">client:relog (direct)</a></li>
 <li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
 <li><a href="wtv-setup:/setup">Setup (Including BG Music)</a></li>
-<li><a href="${ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen() ? 'wtv-mail:/listmail' : 'wtv-mail:/DiplomaMail'}">Mail (not ready)</a>
+<li><a href="${ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen() ? 'wtv-mail:/listmail' : 'wtv-mail:/DiplomaMail'}">Mail (beta)</a>
+<li><a href="wtv-news:/lobby">Usenet (not ready)</a>
 `;
 if (ssid_sessions[socket.ssid].hasCap("client-can-do-chat")) {
 	data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"

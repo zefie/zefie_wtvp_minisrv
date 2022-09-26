@@ -240,6 +240,8 @@
     <Content Include="ServiceVault\wtv-music\get-playlist.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-news\lobby.js" />
+    <Content Include="ServiceVault\wtv-news\news.js" />
     <Content Include="ServiceVault\wtv-register\BeMyGuest.js">
       <SubType>Code</SubType>
     </Content>
@@ -454,6 +456,7 @@
     <Folder Include="ServiceVault\wtv-music\" />
     <Folder Include="ServiceVault\wtv-music\demo\" />
     <Folder Include="ServiceVault\wtv-music\demo\midi\" />
+    <Folder Include="ServiceVault\wtv-news\" />
     <Folder Include="ServiceVault\wtv-register\" />
     <Folder Include="ServiceVault\wtv-setup\" />
     <Folder Include="ServiceVault\wtv-star\" />

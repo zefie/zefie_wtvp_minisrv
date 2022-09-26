@@ -52,6 +52,15 @@
 		},
 		"wtv-author": {
 			"enable_multi_query": true
+		},
+		"wtv-news": {
+			"disabled": false,
+			"upstream_address": "192.168.11.8",
+			"upstream_port": 1699,
+			"upstream_auth": {
+				"username": "not_yet",
+				"password": "implemented"
+			}
 		}
 	}
 }

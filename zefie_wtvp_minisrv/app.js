@@ -22,7 +22,7 @@ const vm = require('vm');
 process
     .on('SIGTERM', shutdown('SIGTERM'))
     .on('SIGINT', shutdown('SIGINT'))
-    .on('uncaughtException', shutdown('uncaughtException'));
+    .on('uncaughtException', (e => { console.log(e); }));
 
 
 function shutdown(signal) {
@@ -114,9 +114,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
     var contextObj = {
         console: console,
-        Buffer: Buffer,
         require: require,
         wtvmime: wtvmime,
+        http: http,
+        https: https,
         wtvshared: wtvshared,
         clientShowAlert: clientShowAlert,
         strftime: strftime,
@@ -135,6 +136,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         headers: headers,
         data: data,
         request_is_async: request_is_async,
+        Buffer: Buffer,
         String: String,
         Object: Object
     }
@@ -296,8 +298,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     var eval_ctx = new vm.Script(script_data, {
                         "filename": service_vault_file_path + ".js"
                     })
-                    vm.createContext(contextObj);
-                    eval_ctx.runInContext(contextObj, {
+                    eval_ctx.runInNewContext(contextObj, {
                         "breakOnSigint": true
                     });
 
@@ -341,8 +342,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     var eval_ctx = new vm.Script(script_data, {
                                         "filename": catchall_file
                                     })
-                                    vm.createContext(contextObj);
-                                    eval_ctx.runInContext(contextObj, {
+                                    eval_ctx.runInNewContext(contextObj, {
                                         "breakOnSigint": true
                                     });
 

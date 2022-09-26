@@ -16,7 +16,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             'noback': true,
         }).getURL();
 
-        headers = "300 OK\nwtv-visit: " + clientErrorMsg;
+        headers = "200 OK\nwtv-visit: " + clientErrorMsg;
     }
 
     if (request_headers.query.clear == "true") {
@@ -28,8 +28,16 @@ wtv-expire: wtv-mail:/sendmail
 Location: wtv-mail:/sendmail`;
     }
 
+    var newsgroup = null;
+    if (request_headers.query.discuss) {
+        newsgroup = request_headers.query.group || request_headers.query.message_to || null;
+        var to_addr = newsgroup;
+        var pageTitle = "Post to " + newsgroup;
+    } else {
+        var to_addr = request_headers.query.message_to || null;
+        var pageTitle = "Write an e-mail message"
+    }
 
-    var to_addr = request_headers.query.message_to || null;
     var msg_subject = request_headers.query.message_subject || null;
     var msg_body = request_headers.query.message_body || null;
     var to_name = request_headers.query.whatever_webtv_sends_this_as || null;
@@ -47,6 +55,7 @@ Location: wtv-mail:/sendmail`;
         if (mail_draft_data.no_signature) no_signature = mail_draft_data.no_signature;
         if (mail_draft_data.msg_url) msg_url = mail_draft_data.msg_url;
         if (mail_draft_data.msg_url_title) msg_url_title = mail_draft_data.msg_url_title;
+        if (mail_draft.data.newsgroup) newsgroup = mail_draft_data.newsgroup;
     }
 
     if (request_headers.query.togglesign == "true") no_signature = false;
@@ -71,7 +80,7 @@ Content-Type: audio/wav`;
 
         var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
         var userdisplayname = wtvshared.htmlEntitize(ssid_sessions[socket.ssid].getSessionData("subscriber_name"));
-        var address = username + "@" + minisrv_config.config.service_name
+        var address = username + "@" + minisrv_config.config.domain_name
         var notImplementedAlert = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
             'message': "This feature is not available.",
@@ -102,19 +111,79 @@ Content-Type: audio/wav`;
                         attachments.push({ 'Content-Type': 'audio/wav', data: new message_voicemail_data });
                     }
                 }
+                if (newsgroup !== null) {      
+                    var request_is_async = true;
+                    if (msg_body === null) {
+                        doClientError("Please type a message to send to the group.");
+                        sendToClient(socket, headers, '');
+                    } else {
+                        const Client = require('newsie').default
+                        const client = new Client({
+                            host: minisrv_config.services[request_headers.query['discuss-prefix'] || "wtv-news"].upstream_address,
+                            port: minisrv_config.services[request_headers.query['discuss-prefix'] || "wtv-news"].upstream_port
+                        })
 
-                var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
-                if (messagereturn !== true) {
-                    var errpage = wtvshared.doErrorPage(400, messagereturn);
-                    headers = errpage[0];
-                    data = errpage[1];
+                        client.connect()
+                            .then(response => {
+                                return client.post()
+                            })
+                            .then(response => {
+                                if (response.code == 340) {
+                                    var articleData = {};
+                                    articleData.headers = {
+                                        'Relay-Version': "version zefie_wtvp_minisrv " + minisrv_config.version + "; site " + minisrv_config.config.domain_name,
+                                        'Posting-Version': "version zefie_wtvp_minisrv " + minisrv_config.version + "; site " + minisrv_config.config.domain_name,
+                                        'Path': "@" + minisrv_config.config.domain_name,
+                                        'From': from_addr,
+                                        'Newsgroups': newsgroup,
+                                        'Subject': msg_subject || "(No subject)",
+                                        'Message-ID': "<"+ssid_sessions[socket.ssid].generatePassword(16) + "@" + minisrv_config.config.domain_name+">",
+                                        'Date': strftime('%A, %d-%b-%y %k:%M:%S %z', new Date())
+                                    }
+                                    if (msg_body) {
+                                        articleData.body = msg_body.split("\n");
+                                    } else {
+                                        articleData.body = [];                                        
+                                    }
+                                     return response.send(articleData);
+                                } else {
+                                    clientErrorMsg("Could not send post. Server returned error " + response.code);
+                                    sendToClient(socket, headers, '');
+                                    return client.quit();
+                                }
+                            })
+                            .then(response => {
+                                if (response.code !== 240) {
+                                    clientErrorMsg("Could not send post. Server returned error " + response.code);
+                                    sendToClient(socket, headers, '');
+                                } else {
+                                    headers = `300 OK
+wtv-expire: wtv-news:/news?group=${newsgroup}
+wtv-expire: wtv-mail:/sendmail
+Location: wtv-news:/news?group=${newsgroup}`;                                    
+                                    sendToClient(socket, headers, '');
+                                    return client.quit()
+                                }
+                            }).catch(e => {
+                                console.log('usenet upstream uncaught error', e);
+                                clientErrorMsg("Could not send post. Server returned unknown error");
+                                sendToClient(socket, headers, '');
+                            });
+                    }
                 } else {
-                    ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
-                    ssid_sessions[socket.ssid].deleteSessionData("mail_draft_attachments");
-                    headers = `300 OK
+                    var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
+                    if (messagereturn !== true) {
+                        var errpage = wtvshared.doErrorPage(400, messagereturn);
+                        headers = errpage[0];
+                        data = errpage[1];
+                    } else {
+                        ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
+                        ssid_sessions[socket.ssid].deleteSessionData("mail_draft_attachments");
+                        headers = `300 OK
 wtv-expire: wtv-mail:/listmail
 wtv-expire: wtv-mail:/sendmail
 Location: wtv-mail:/listmail`;
+                    }
                 }
 
             } else if (request_headers.query.saveoff) {
@@ -124,14 +193,15 @@ Location: wtv-mail:/listmail`;
                     msg_body: msg_body,
                     no_signature: no_signature,
                     msg_url: msg_url,
-                    msg_url_title: msg_url_title
+                    msg_url_title: msg_url_title,
+                    newsgroup: newsgroup
                 }
                 ssid_sessions[socket.ssid].setSessionData("mail_draft", mail_draft_data);
                 headers = `200 OK
 Content-type: text/html
 wtv-expire: wtv-mail:/sendmail`;
             }
-        } else {
+            } else {
 
             headers = `200 OK
 Content-type: text/html`;
@@ -195,7 +265,7 @@ location = "client:submitform?name=sendform&submitname=gabbing&submitvalue=true"
 location.reload();	}
 </script>
 <title>
-Write an e-mail message
+${pageTitle}
 </title>
 </head>
 <body bgcolor="#171726" text="${message_colors.text}" link="${message_colors.link}" vlink="${message_colors.vlink}" vspace=0 hspace=0>
@@ -203,6 +273,7 @@ Write an e-mail message
 <input type=hidden name="wtv-saved-message-id" value="writemessage-outbox">
 <input type=hidden name="message_reply_all_cc" value="">
 <input type=hidden name="saveoff" value="true" autosubmit="onleave">
+<input type=hidden name="discuss" value="${request_headers.query.discuss ? true : false}">
 <sidebar width=109>
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -230,18 +301,22 @@ Write an e-mail message
 <td height=1>
 <tr>
 <td><shadow><font sizerange=medium color=#E6CD4A>Mail list</font></shadow>
-</table>
+</table>`;
+            if (!newsgroup) {
+                data += `
 <td width=5>
 <tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
 <tr>
 <td width=10 height=26>
-<td width=89 valgn=middle>
+<td width=89 valgn=middle>;
 <table cellspacing=0 cellpadding=0 href="client:openaddresspanel" id=addressbook>
 <tr>
 <td height=1>
 <tr>
-<td><shadow><font sizerange=medium color=#E6CD4A>Address</font></shadow>
-</table>
+<td><shadow><font sizerange=medium color=#E6CD4A>Address</font></shadow>;
+</table>`;
+            }
+data += `
 <td width=5>
 <tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
 <tr>
@@ -288,7 +363,7 @@ Write an e-mail message
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td width=451 colspan=2 align=center bgcolor=#5B6C81>
-<spacer type=vertical size=13>
+<spacer type=vertical size=4>
 <tr>
 <td height=8 bgcolor=#171726 colspan=2>
 <img src="wtv-mail:/content/images/CornerTop.gif" width=8 height=8>
@@ -314,7 +389,7 @@ Write an e-mail message
 <spacer type=horizontal size=13>
 <td width=370 maxlines=1>
 <font sizerange=medium color=#D6D6D6><blackface>
-Write an e-mail message
+${pageTitle}
 </blackface></font>
 <!--
 <td width=21>
@@ -358,8 +433,13 @@ ${address}
 <td height=13 valign=middle colspan=2>
 <img src="wtv-mail:/content/images/sendmail_panel_dots.gif" width=385 height=2>
 <tr>
-<td width=80 valign=top align=right>
-<a href="client:openaddresspanel">To:</a>&nbsp;
+<td width=80 valign=top align=right>`;
+            if (!request_headers.query.discuss) {
+                data += '<a href="client:openaddresspanel">To:</a>';
+            } else {
+                data += 'To:';
+            }
+            data += `&nbsp;
 <td width=305 valign=top>
 <textarea
 bgcolor="${message_colors.bgcolor}"
@@ -377,7 +457,9 @@ growable
 autoactivate
 addresses
 autoascii
-nohighlight
+nohighlight`;
+            if (newsgroup) { data += "\nreadonly" }
+data += `
 >${(to_addr) ? to_addr : ''}</textarea>
 <tr>
 <td height=13 valign=middle colspan=2>

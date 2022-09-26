@@ -58,6 +58,10 @@
       "port": 1603,
       "flags": "0x00000007"
     },
+    "wtv-news": {
+      "port": 1605,
+      "disabled": true
+    },
     "wtv-register": {
       "port": 1607
     },

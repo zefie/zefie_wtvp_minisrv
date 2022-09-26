@@ -424,7 +424,7 @@ class WTVClientSessionData {
     }
 
     generatePassword(len) {
-        return CryptoJS.lib.WordArray.random(len).toString(CryptoJS.enc.Hex);
+        return CryptoJS.lib.WordArray.random(Math.round(len / 2)).toString(CryptoJS.enc.Hex);
     }
 
     setUserPassword(passwd) {
