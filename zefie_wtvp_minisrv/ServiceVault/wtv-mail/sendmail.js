@@ -31,6 +31,9 @@ Location: wtv-mail:/sendmail`;
     var newsgroup = null;
     if (request_headers.query.discuss) {
         newsgroup = request_headers.query.group || request_headers.query.message_to || null;
+    }
+
+    if (newsgroup !== null) {
         var to_addr = newsgroup;
         var pageTitle = "Post to " + newsgroup;
     } else {
@@ -308,12 +311,12 @@ ${pageTitle}
 <tr>	<td bgcolor=#4A525A height=2 width=104 colspan=3>
 <tr>
 <td width=10 height=26>
-<td width=89 valgn=middle>;
+<td width=89 valgn=middle>
 <table cellspacing=0 cellpadding=0 href="client:openaddresspanel" id=addressbook>
 <tr>
 <td height=1>
 <tr>
-<td><shadow><font sizerange=medium color=#E6CD4A>Address</font></shadow>;
+<td><shadow><font sizerange=medium color=#E6CD4A>Address</font></shadow>
 </table>`;
             }
 data += `
