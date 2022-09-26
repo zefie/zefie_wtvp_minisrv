@@ -162,13 +162,17 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         Object: Object
     }
 
+    // Define the variables that we want to assign from the evaluated script.
+    // Normally any changes in the VM are discarded, but the rest of this function
+    // requires reading some of the data back into the main application.
+    // Here we define which ones to read back.
     var updateFromVM = [
         // format: [ ourvarname, scriptsvarname ]
-        ["headers", "headers"], // we need to be able to read the script's response headers
-        ["data", "data"], // we need to be able to read the script's response data
-        ["request_is_async", "request_is_async"], // we need to know if the script wants to be async or not
-        ["ssid_sessions", "ssid_sessions"], // certain scripts need to update the user session, such as wtv-setup, wtv-mail, etc
-        ["socket_sessions", "socket_sessions"] // certain scripts need to update the socket session, such as wtv-1800, etc
+        ["headers", "headers"],                     // we need to be able to read the script's response headers
+        ["data", "data"],                           // we need to be able to read the script's response data
+        ["request_is_async", "request_is_async"],   // we need to know if the script is async or not
+        ["ssid_sessions", "ssid_sessions"],         // certain service scripts need to update the user session, such as wtv-setup, wtv-mail, etc
+        ["socket_sessions", "socket_sessions"]      // certain service scripts need to update the socket session, such as wtv-1800, etc
     ];
 
     try {
@@ -376,11 +380,9 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     });
 
                                     // Here we read back certain data from the ServiceVault Script Context Object
-                                    headers = contextObj.headers;
-                                    data = contextObj.data;
-                                    request_is_async = contextObj.request_is_async;
-                                    ssid_sessions = contextObj.ssid_sessions;
-                                    socket_sessions = contextObj.socket_sessions;
+                                    updateFromVM.forEach((item) => {
+                                        eval(item[0] + ' = contextObj["' + item[1] + '"]');
+                                    })
 
                                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
                                 } else {
