@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+var errpage;
 
 
 if (ssid_sessions[socket.ssid].user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");

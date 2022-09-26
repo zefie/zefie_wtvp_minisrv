@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+var errpage;
 
 if (Object.keys(ssid_sessions[socket.ssid].listPrimaryAccountUsers()).length == 1) {
 	errpage = wtvshared.doErrorPage(400, "There are no more users to remove.");

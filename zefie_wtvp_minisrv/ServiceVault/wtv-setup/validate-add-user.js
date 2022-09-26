@@ -115,7 +115,7 @@ display_name=${request_headers.query.display_name}&
 user_name=${request_headers.query.user_name}&
 user_password=${request_headers.query.user_password}&
 user_password2=${request_headers.query.user_password2}&
-review-only='TRUE'">
+review-only=true">
 ${request_headers.query.display_name || request_headers.query.user_name}
 </a>
 <tr>
