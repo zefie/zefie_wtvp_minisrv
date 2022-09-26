@@ -81,6 +81,7 @@ class WTVShared {
             allowedSchemes: allowedSchemes,
             allowedSchemesByTag: {},
             allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
+            allowVulnerableTags: true,
             allowProtocolRelative: false
         })
         // todo: add missing user open tags (eg </i> if user did not close it) (might be done by sanitize-html?)
