@@ -556,6 +556,11 @@ async function processURL(socket, request_headers) {
                         socket.minisrv_pc_mode = true;
                         service_name = verifyServicePort("pc_services", socket);
                         if (!service_name) {
+                            if (minisrv_config.services.pc_services.drop_connection_on_wrong_port) {
+                                // just close the connection, no fancy error
+                                socket.end();
+                                return;
+                            }
                             var errpage = wtvshared.doErrorPage(500, null, socket.minisrv_pc_mode);
                             socket_sessions[socket.id].close_me = true;
                             sendToClient(socket, errpage[0], errpage[1]);

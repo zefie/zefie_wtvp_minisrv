@@ -133,6 +133,7 @@
       "port": 1699,
       "servicevault_dir": "http_pc",
       "disabled": true,
+      "drop_connection_on_wrong_port": false,
       "allow_https": false,
       "force_https": false
     }
