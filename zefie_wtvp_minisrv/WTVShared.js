@@ -432,7 +432,7 @@ class WTVShared {
                 break;
             case 400:
             case 500:
-                if (data === null) data = "HackTV ran into a technical problem.";
+                if (data === null) data = this.minisrv_config.config.service_name + " ran into a technical problem.";
                 if (pc_mode) headers = "500 Internal Server Error\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
