@@ -380,11 +380,13 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                     });
                     if (request_headers.query.diskset) {
                         var diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
-                        var diskset_zip = new AdmZip(cwd + "/viewers/" + diskset_file);
-                        var zipEntries = diskset_zip.getEntries();
-                        zipEntries.forEach(function (zipEntry) {
-                            zip.addFile("Disk/" + zipEntry.entryName, zipEntry.getData());
-                        });
+                        if (diskset_file) {
+                            var diskset_zip = new AdmZip(cwd + "/viewers/" + diskset_file);
+                            var zipEntries = diskset_zip.getEntries();
+                            zipEntries.forEach(function (zipEntry) {
+                                zip.addFile("Disk/" + zipEntry.entryName, zipEntry.getData());
+                            });
+                        }
                     }
                 }
                 data = zip.toBuffer();
