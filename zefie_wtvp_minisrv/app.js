@@ -432,8 +432,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 }
 
 async function processURL(socket, request_headers) {
+    console.log(request_headers)
     var shortURL, headers, data = "";
     var enable_multi_query = false;
+    socket.minisrv_pc_mode = false;
     request_headers.query = new Array();
     if (request_headers.request_url) {
         if (request_headers.request_url.indexOf('?') >= 0) {
@@ -517,7 +519,6 @@ async function processURL(socket, request_headers) {
                console.log("error:",e)
             }
         }
-
         if ((shortURL.indexOf("http") != 0 && shortURL.indexOf("ftp") != 0 && shortURL.indexOf(":") > 0 && shortURL.indexOf(":/") == -1)) {
             // Apparently it is within WTVP spec to accept urls without a slash (eg wtv-home:home)
             // Here, we just reassemble the request URL as if it was a proper URL (eg wtv-home:/home)
@@ -549,48 +550,52 @@ async function processURL(socket, request_headers) {
                 }
             }
         }
-        // check security
-        if (!ssid_sessions[socket.ssid].isAuthorized(shortURL)) {
-            // lockdown mode and URL not authorized
-            headers = "300 Unauthorized\n";
-            headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
-			headers += "minisrv-no-mail-count: true\n";
-            data = "";
-            sendToClient(socket, headers, data);
-            console.log(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
-            return;
-        }
-		
-        if (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].isUserLoggedIn()) {
-			 if (!ssid_sessions[socket.ssid].isAuthorized(shortURL,'login')) {
-				// user is not fully logged in, and URL not authorized
-				headers = "300 Unauthorized\n";
-				headers += "Location: client:relogin\n";
-				headers += "minisrv-no-mail-count: true\n";				
-				data = "";
-				sendToClient(socket, headers, data);
-				console.log(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
-				return;
-			 }
-		 }
+        if (!socket.minisrv_pc_mode) {
+            // skip box auth tests for pc mode
 
-        if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks")) {
-            if (!ssid_sessions[socket.ssid].baddisk) {
-                // psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
-                ssid_sessions[socket.ssid].lockdown = true;
-                ssid_sessions[socket.ssid].baddisk = true;
+            // check security
+            if (!ssid_sessions[socket.ssid].isAuthorized(shortURL)) {
+                // lockdown mode and URL not authorized
+                headers = "300 Unauthorized\n";
+                headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
+                headers += "minisrv-no-mail-count: true\n";
+                data = "";
+                sendToClient(socket, headers, data);
+                console.log(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
+                return;
             }
-        }
 
-        if (!ssid_sessions[socket.ssid].isUserLoggedIn() && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
-            // lockdown mode and URL not authorized
-            headers = `300 Unauthorized
+            if (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].isUserLoggedIn()) {
+                if (!ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
+                    // user is not fully logged in, and URL not authorized
+                    headers = "300 Unauthorized\n";
+                    headers += "Location: client:relogin\n";
+                    headers += "minisrv-no-mail-count: true\n";
+                    data = "";
+                    sendToClient(socket, headers, data);
+                    console.log(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
+                    return;
+                }
+            }
+
+            if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks")) {
+                if (!ssid_sessions[socket.ssid].baddisk) {
+                    // psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
+                    ssid_sessions[socket.ssid].lockdown = true;
+                    ssid_sessions[socket.ssid].baddisk = true;
+                }
+            }
+
+            if (!ssid_sessions[socket.ssid].isUserLoggedIn() && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
+                // lockdown mode and URL not authorized
+                headers = `300 Unauthorized
 Location: ${minisrv_config.config.unauthorized_url}
 minisrv-no-mail-count: true`;
-            data = "";
-            sendToClient(socket, headers, data);
-            console.log(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
-            return;
+                data = "";
+                sendToClient(socket, headers, data);
+                console.log(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
+                return;
+            }
         }
 
         // Check URL for :/, but not :// (to differentiate wtv urls)
@@ -1225,7 +1230,13 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     }
                     if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
                     ssid_sessions[socket.ssid].data_store.sockets.add(socket);
-                }
+                } 
+            }
+
+            if (!socket.ssid) {
+                // process as pc service
+                processURL(socket, headers);
+                return;
             }
 
             if (!ssid_sessions[socket.ssid] || !socket.ssid) return headers;
@@ -1366,7 +1377,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     return;
                 }
             }
-
             // handle POST
             if (headers['request'] && !socket_sessions[socket.id].expecting_post_data) {
                 if (headers['request'].substring(0, 4) == "POST") {
