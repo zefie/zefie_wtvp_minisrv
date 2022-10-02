@@ -7,13 +7,27 @@ var viewer = 2 // debug override
 var viewers = {
     0: "WebTVIntel--1.0.exe",
     1: "WebTVIntel--1.1.exe",
-    2: "WebTVIntel--2.5.exe"
+    2: "WebTVIntel--2.5.exe",
+    3: "WebTVIntel--1.0-HE.exe",
+    4: "WebTVIntel--2.5-HE.exe"
+}
+
+var logos = {
+    0: null,
+    1: "SuperViewer_Setup.bmp",
+    2: "HackersEdition_Setup.bmp"
+}
+
+var disksets = {
+    0: null
 }
 
 var viewer_stock_md5s = {
     "WebTVIntel--1.0.exe": "d7bde1adbe3549f58dd95425d3ac2af9",
     "WebTVIntel--1.1.exe": "ce7b6d1734b5e3d1cbd5f068609223d1",
-    "WebTVIntel--2.5.exe": "4c5754bb8b69739b6f414c2d159051da"
+    "WebTVIntel--2.5.exe": "4c5754bb8b69739b6f414c2d159051da", 
+    "WebTVIntel--1.0-HE.exe": "391f303fd70034e69d3a50583de72c89",
+    "WebTVIntel--2.5-HE.exe": "f0207865693a45ba76b9057dcb8ea672"
 }
 
 
@@ -98,6 +112,16 @@ var patch_data = {
         1967856: Buffer.from("\x00".repeat(24), 'ascii'), // remove unwanted headers
         2003968: getResData("ResData--1.0.res.gz")
     },
+    "WebTVIntel--1.0-HE.exe": {
+        624: {
+            length: 383,
+            type: "wtv-incarnation"
+        },
+        1728624: {
+            length: 398,
+            type: "wtv-encryption"
+        }
+    },
     "WebTVIntel--1.1.exe": {
         209: Buffer.from("\xFA", 'ascii'),
         257: Buffer.from("\x90", 'ascii'),
@@ -152,6 +176,16 @@ var patch_data = {
         3826408: Buffer.from("\x00".repeat(66), 'ascii'), // remove unwanted headers
         3826356: Buffer.from("\x00".repeat(24), 'ascii'), // remove unwanted headers
         3940352: getResData("ResData--2.5.res.gz")
+    },
+    "WebTVIntel--2.5-HE.exe": {
+        720: {
+            length: 3356,
+            type: "wtv-encryption"
+        },
+        3173506: {
+            length: 865,
+            type: "wtv-incarnation"
+        }
     }
 }
 
@@ -176,7 +210,7 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
             if (!val.byteLength) {
                 // not a buffer object
                 var block_length = val['length'];
-                var patch_data = getPatchDataType(val['type'], (fname == "WebTVIntel--2.5.exe"));
+                var patch_data = getPatchDataType(val['type'], (fname.substr(12,3) == "2.5"));
                 if (patch_data) {
                     var patch_data_array = patch_data.split("\r\n");
                     var patch_data_string = "";
@@ -210,8 +244,78 @@ function patchBinary(patchDataObject) {
     return patchDataObject.data;
 }
 
+function generateSSID() {
+    var ssid_template = "91xxxY0xx0b002xx";
+    var ssid = ssid_template;
+    while (ssid.indexOf("x") != -1) {
+        ssid = ssid.replace("x", Math.floor(Math.random() * 16).toString(16))
+    }
+    ssid = ssid.replace("Y", Math.floor(Math.random() * 7));
+    return ssid;
+}
+
+function buildProfile(build) {
+    var buildProfile = null;
+    switch (build) {
+        case 1235:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "1009c93bef",
+                "wtv-client-bootrom-version": 105,
+                "wtv-client-rom-type": "bf0app",
+                "wtv-system-chipversion": 16842752,
+                "User-Agent": "Mozilla/4.0 WebTV/1.4 (compatible; MSIE 3.0)",
+                "wtv-system-cpuspeed": 112790760,
+                "wtv-system-sysconfig": 736935823
+            }
+            break;
+
+        case 7181:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "10935ffc8f",
+                "wtv-client-bootrom-version": 2046,
+                "wtv-client-rom-type": "US-LC2-disk-0MB-8MB",
+                "wtv-system-chipversion": 51511296,
+                "User-Agent": "Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed": 166187148,
+                "wtv-system-sysconfig": 4163328,
+                "wtv-disk-size": 8006
+            }
+            break;
+
+        case 16276:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "1fee0e1d9b1ffdef",
+                "wtv-client-bootrom-version": 2046,
+                "wtv-client-rom-type": "US-LC2-disk-0MB-8MB",
+                "wtv-system-chipversion": 53608448,
+                "User-Agent": "Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed": 166164662,
+                "wtv-system-sysconfig": 3116068,
+                "wtv-disk-size": 8006
+            }
+            break;
+    }
+    return buildProfile;
+}
+
+var enable_full_hacktv = false;
+if (fs.existsSync(cwd + path.sep + "viewers" + path.sep + "HackTV.zip")) {
+    enable_full_hacktv = true;
+    disksets['99'] = "HackTV.zip";
+}
+
 if (request_headers.query.viewer &&
-    request_headers.query.client_ssid) {
+    (request_headers.query.client_ssid || request_headers.query.random_ssid)) {
+    var client_ssid = null;
+    if (request_headers.query.client_ssid)
+        client_ssid = request_headers.query.client_ssid;
+
+    if (request_headers.query.random_ssid)
+        client_ssid = generateSSID();
+
     var viewer_file = viewers[request_headers.query.viewer];
     if (!viewer_file) {
         errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
@@ -227,18 +331,18 @@ if (request_headers.query.viewer &&
             headers = errpage[0];
             data = errpage[1];
         } else {
-            var client_data_obj = {
-                "wtv-client-serial-number": request_headers.query.client_ssid,
-                "wtv-system-version": 16276,
-                "wtv-capability-flags": "1fee0e1d9b1ffdef",
-                "wtv-client-bootrom-version": 2046,
-                "wtv-client-rom-type": "US-LC2-disk-0MB-8MB",
-                "wtv-system-chipversion": 53608448,
-                "User-Agent": "Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
-                "wtv-system-cpuspeed": 166164662,
-                "wtv-system-sysconfig": 3116068,
-                "wtv-disk-size": 8006
+            var build = request_headers.query.build;
+            var client_data_obj = null
+            if (build) {
+                if (parseInt(build) > 0) {
+                    client_data_obj = buildProfile(parseInt(build));
+                }
             }
+            // fallback
+            if (!client_data_obj)
+                client_data_obj = buildProfile(7181);
+
+            client_data_obj["wtv-client-serial-number"] = client_ssid;
             var patchDataObject = {
                 data: viewer_data,
                 patch_data: getPatchData(viewer_file, client_data_obj)
@@ -254,19 +358,34 @@ Content-Type: application/octet-stream
 Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")}"`
                 var AdmZip = require("adm-zip");
                 var zip = new AdmZip();
-                zip.addFile(viewer_file, patched_file, "SSID: " + request_headers.query.client_ssid);
+
+                zip.addZipComment("Viewer SSID: " + client_ssid);
+                zip.addFile(viewer_file, patched_file);
                 if (!request_headers.query.viewer_only) {
-                    var data_zip = new AdmZip(cwd + "/viewers/" + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip");
-                    var zipEntries = data_zip.getEntries();
+                    var romset_zip = new AdmZip(cwd + "/viewers/" + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip");
+                    var zipEntries = romset_zip.getEntries();
                     zipEntries.forEach(function (zipEntry) {
-                        if (zipEntry.entryName == "Setup.bmp" && request_headers.query.superviewer_logo) {
-                            var logo_gz_data = fs.readFileSync(cwd + "/viewers/SuperViewer_Setup.bmp.gz");
-                            var logo_data = zlib.gunzipSync(logo_gz_data);
-                            zip.addFile(zipEntry.entryName, logo_data);
+                        if (zipEntry.entryName == "Setup.bmp" && request_headers.query.logo) {
+                            var logo_file = logos[parseInt(request_headers.query.logo) || 0];
+                            if (logo_file) {
+                                var logo_gz_data = fs.readFileSync(cwd + "/viewers/" + logo_file + ".gz");
+                                var logo_data = zlib.gunzipSync(logo_gz_data);
+                                zip.addFile(zipEntry.entryName, logo_data);
+                            } else {
+                                zip.addFile(zipEntry.entryName, zipEntry.getData());
+                            }
                         } else {
                             zip.addFile(zipEntry.entryName, zipEntry.getData());
                         }
                     });
+                    if (request_headers.query.diskset) {
+                        var diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
+                        var diskset_zip = new AdmZip(cwd + "/viewers/" + diskset_file);
+                        var zipEntries = diskset_zip.getEntries();
+                        zipEntries.forEach(function (zipEntry) {
+                            zip.addFile("Disk/" + zipEntry.entryName, zipEntry.getData());
+                        });
+                    }
                 }
                 data = zip.toBuffer();
             }
@@ -292,6 +411,10 @@ td {
 </style>
 </head>
 <script>
+document.onload = function() {
+    generateSSID();
+}
+
 function generateSSID() {
     var ssidForm = document.getElementById('client_ssid');
     var ssid_template = "91xxxY0xx0b002xx";
@@ -305,9 +428,12 @@ function generateSSID() {
 
 function validateForm() {
     var ssidForm = document.getElementById('client_ssid');
-    if (validateSSID(ssidForm.value)) {
-        var mainForm = document.getElementById('viewergen');
-        mainForm.submit();
+    if (document.getElementById('random_ssid').checked) {
+        document.getElementById('viewergen').submit();
+    } else {
+        if (validateSSID(ssidForm.value)) {
+            document.getElementById('viewergen').submit();
+        }
     }
 }
 
@@ -324,6 +450,15 @@ function validateSSID(ssid) {
     return true;
 }
 
+function toggleRandomizer(cbox) {
+    document.getElementById('client_ssid').disabled = cbox.checked;
+    document.getElementById('generate_ssid').disabled = cbox.checked;
+}
+
+function toggleLogoOption(cbox) {
+    document.getElementById('logo').disabled = cbox.checked;
+    document.getElementById('diskset').disabled = cbox.checked;
+}
 
 </script>
 <body bgcolor="#000000" text="#449944">
@@ -338,22 +473,55 @@ Welcome to the zefie minisrv v${minisrv_config.version} PC Services<Br>
 <select name="viewer">
 <option value="0">WebTV Viewer v1.0 Build 146 (w/ B210 ROMs)</option>
 <option value="1">WebTV Viewer v1.1 Build 220</option>
-<option selected value="2">WebTV Viewer v2.5 Build 117</option>
+<option value="2">WebTV Viewer v2.5 Build 117</option>
+<option value="3">WebTV Viewer v1.0 Build 210 (Hackers Edition)</option>
+<option selected value="4">WebTV Viewer v2.5 Build 117 (Hackers Edition)</option>
 </td>
 </tr>
 <tr>
 <td><strong>SSID:</strong></td>
 <td><input name="client_ssid" id="client_ssid" maxlength=16" value="91">
-<input type="button" onclick="generateSSID()" value="Randomize SSID" /><br>
+<input type="button" onclick="generateSSID()" id="generate_ssid" value="Randomize SSID" /><br>
 <em>Viewer clients should use SSIDs starting with <strong>91</strong>,<br>
 unless you are intentionally trying to spoof a box.</em>
 </td>
 </tr>
 <tr>
+<td><strong>Startup Logo</strong></td>
+<td><select name="logo" id="logo">
+<option selected value="0">WebTV Viewer Default</option>
+<option value="1">SuperViewer 4.0</option>
+<option value="2">WebTV Viewer Hacker's Edition</option>
+</td>
+</tr>
+<tr>
+<td><strong>Disk Set</strong></td>
+<td><select name="diskset" id="diskset">
+<option selected value="0">WebTV Viewer Default</option>`;
+    if (enable_full_hacktv)
+        data += `<option value="99">MattMan69's HackTV(Full Content)</option>`;
+    data += `
+</select>
+</td>
+</tr>
+<tr>
+<td><strong>Build Spoof</strong></td>
+<td><select name="build" id="build">
+<option value="1235">Build 1235 (Old Classic)</option>
+<option selected value="7181">Build 7181 (Old Plus)</option>
+<option value="16276">Build 16276 (Old Plus)</option>
+</select><br>
+<em>This legacy option has little impact on minisrv servers,<br>
+although certain advanced server operators may use these flags<br>
+to determine what your "box" can do, and as such, may offer<br>
+features that do not work in the Viewer, especially older ones</em>
+</tr>
+
+<tr>
 <td><strong>Other Flags</strong>:</td>
 <td>
-<input type="checkbox" name="superviewer_logo" checked="checked"> Replace WebTV Viewer Startup Logo with "SuperViewer 4.0" Logo<br>
-<input type="checkbox" name="viewer_only"> Only include Viewer EXE, not ROM files or Logos
+<input type="checkbox" name="random_ssid" id="random_ssid" onchange="toggleRandomizer(this)"> Let the server choose the SSID (Ignores SSID above)<br>
+<input type="checkbox" name="viewer_only" onchange="toggleLogoOption(this)"> Only include Viewer EXE, not ROM files or Logos (Advanced Users Only)
 </td>
 </tr>
 <tr>

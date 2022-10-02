@@ -142,7 +142,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         WTVClientCapabilities: WTVClientCapabilities,
         strftime: strftime,
         CryptoJS: CryptoJS,
-        fs: fs
+        fs: fs,
+        path: path
     }
 
     // Our variables and functions
