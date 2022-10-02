@@ -16,7 +16,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             'noback': true,
         }).getURL();
 
-        headers = "200 OK\nwtv-visit: " + clientErrorMsg;
+        return "200 OK\nwtv-visit: " + clientErrorMsg;
     }
 
     if (request_headers.query.clear == "true") {
@@ -29,7 +29,7 @@ Location: wtv-mail:/sendmail`;
     }
 
     var newsgroup = null;
-    if (request_headers.query.discuss) {
+    if (parseBool(request_headers.query.discuss)) {
         newsgroup = request_headers.query.group || request_headers.query.message_to || null;
     }
 
@@ -117,7 +117,7 @@ Content-Type: audio/wav`;
                 if (newsgroup !== null) {      
                     var request_is_async = true;
                     if (msg_body === null) {
-                        doClientError("Please type a message to send to the group.");
+                        headers = doClientError("Please type a message to send to the group.");
                         sendToClient(socket, headers, '');
                     } else {
                         const Client = require('newsie').default
@@ -150,14 +150,14 @@ Content-Type: audio/wav`;
                                     }
                                      return response.send(articleData);
                                 } else {
-                                    clientErrorMsg("Could not send post. Server returned error " + response.code);
+                                    headers = doClientError("Could not send post. Server returned error " + response.code);
                                     sendToClient(socket, headers, '');
                                     return client.quit();
                                 }
                             })
                             .then(response => {
                                 if (response.code !== 240) {
-                                    clientErrorMsg("Could not send post. Server returned error " + response.code);
+                                    headers = doClientError("Could not send post. Server returned error " + response.code);
                                     sendToClient(socket, headers, '');
                                 } else {
                                     headers = `300 OK
@@ -169,7 +169,8 @@ Location: wtv-news:/news?group=${newsgroup}`;
                                 }
                             }).catch(e => {
                                 console.log('usenet upstream uncaught error', e);
-                                clientErrorMsg("Could not send post. Server returned unknown error");
+                                headers = doClientError("Could not send post. Server returned unknown error");
+      
                                 sendToClient(socket, headers, '');
                             });
                     }

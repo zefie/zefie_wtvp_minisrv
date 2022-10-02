@@ -39,6 +39,14 @@ var socket_sessions = new Array();
 
 var ports = [];
 
+// for scripts
+function parseBool(val) {
+    if (typeof val === 'string')
+        val = val.toLowerCase();
+
+    return val === true || val === "true";
+}
+
 // add .reverse() feature to all JavaScript Strings in this application
 // works for service vault scripts too.
 if (!String.prototype.reverse) {
@@ -113,7 +121,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
 
-    // node core functions/vars
+    // node core variables and functions
     var contextObj = {
         console: console, // needed for per-script debugging
         require: require, // this is dangerous but needed for some scripts at this time
@@ -135,7 +143,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         fs: fs
     }
 
-    // Our variables
+    // Our variables and functions
     contextObj = {
         ...contextObj,
         minisrv_config: minisrv_config,
@@ -151,7 +159,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         headers: headers,
         data: data,
         request_is_async: request_is_async,
-        minisrv_version_string: z_title
+        minisrv_version_string: z_title,
+        parseBool: parseBool
     }
 
     // Our prototype overrides
