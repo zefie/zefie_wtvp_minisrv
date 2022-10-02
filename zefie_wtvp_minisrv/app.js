@@ -162,7 +162,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         data: data,
         request_is_async: request_is_async,
         minisrv_version_string: z_title,
-        parseBool: parseBool
+        parseBool: parseBool,
+        cwd: __dirname // current working directory, updated below in function
     }
 
     // Our prototype overrides
@@ -232,6 +233,9 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 if (fs.existsSync(service_vault_file_path)) {
                     file_exists = true;
                     is_dir = fs.lstatSync(service_vault_file_path).isDirectory()
+                    contextObj.cwd = service_vault_file_path
+                } else {
+                    contextObj.cwd = service_vault_file_path.substr(0, service_vault_file_path.lastIndexOf(path.sep));
                 }
 
                 if (file_exists && !is_dir) {
@@ -337,8 +341,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     service_vault_found = true;
                     if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
                     request_headers.service_file_path = service_vault_file_path + ".js";
-                    // expose var service_dir for script path to the root of the wtv-service
-                    var service_dir = service_vault_dir + path.sep + service_name;
+                    // expose var service_dir for script path to the root of the wtv-service                    
                     socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
                     var script_data = fs.readFileSync(service_vault_file_path + ".js").toString();
                     var eval_ctx = new vm.Script(script_data, {
@@ -453,13 +456,22 @@ function verifyServicePort(service_name, socket) {
 }
 
 async function processURL(socket, request_headers) {
-    var shortURL, headers, data = "";
+    var shortURL, headers, data, service_name = "";
     var enable_multi_query = false;
     request_headers.query = new Array();
     if (request_headers.request_url) {
         if (request_headers.request_url.indexOf('?') >= 0) {
             shortURL = request_headers.request_url.split('?')[0];
-            service_name = verifyServicePort(shortURL.split(':')[0], socket);
+            if (socket.minisrv_pc_mode)
+                service_name = verifyServicePort("pc_services", socket);
+            else
+                service_name = verifyServicePort(shortURL.split(':')[0], socket);
+
+            if (!service_name) {
+                service_name = verifyServicePort("pc_services", socket);
+                socket.minisrv_pc_mode = true;
+            }
+
             if (!service_name) {
                 var errpage = wtvshared.doErrorPage(500, null, socket.minisrv_pc_mode);
                 socket_sessions[socket.id].close_me = true;
