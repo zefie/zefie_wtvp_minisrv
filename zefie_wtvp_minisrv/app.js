@@ -136,6 +136,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         http: http,
         https: https,
         wtvshared: wtvshared,
+        zlib: zlib,
         clientShowAlert: clientShowAlert,
         WTVClientSessionData: WTVClientSessionData,
         WTVClientCapabilities: WTVClientCapabilities,
@@ -408,7 +409,11 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     } catch (e) {
         var errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
-        data = errpage[1] + "<br><br>The interpreter said:<br><pre>" + e.toString() + "</pre>";
+        data = errpage[1];
+        if (socket.minisrv_pc_mode) {
+            if (minisrv_config.services.pc_services.show_verbose_errors)
+                data += "<br><br>The interpreter said:<br><pre>" + e.stack + "</pre>";
+        }
         console.error(" * Scripting error:", e);
     }
     if (!request_is_async) {

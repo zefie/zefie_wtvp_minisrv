@@ -131,9 +131,10 @@
     },
     "pc_services": {
       "port": 1699,
-      "servicevault_dir": "http_pc",
       "disabled": true,
+      "servicevault_dir": "http_pc",
       "drop_connection_on_wrong_port": false,
+      "show_verbose_errors": false,
       "allow_https": false,
       "force_https": false
     }
