@@ -1,6 +1,7 @@
 {
   "config": {
     "service_ip": "127.0.0.1",
+    "bind_ip": "0.0.0.0",
     "ServiceVaults": [
       "UserServiceVault",
       "ServiceVault"
@@ -26,8 +27,6 @@
     "hide_incomplete_features": true,
     "enable_lzpf_compression": true,
     "enable_gzip_compression": true,
-    "pc_server_hidden_service": "http_pc",
-    "pc_server_hidden_service_enabled": false,
     "show_detailed_splash": true,
     "show_diskmap": false,
     "unauthorized_url": "wtv-1800:/unauthorized?",
@@ -129,6 +128,13 @@
       "external_proxy_host": "127.0.0.1",
       "external_proxy_port": 1080,
       "flags": "0x00000001"
+    },
+    "pc_services": {
+      "port": 1699,
+      "servicevault_dir": "http_pc",
+      "disabled": true,
+      "allow_https": false,
+      "force_https": false
     }
   }
 }
