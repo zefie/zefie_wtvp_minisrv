@@ -140,6 +140,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         clientShowAlert: clientShowAlert,
         WTVClientSessionData: WTVClientSessionData,
         WTVClientCapabilities: WTVClientCapabilities,
+		WTVFlashrom: WTVFlashrom,
         strftime: strftime,
         CryptoJS: CryptoJS,
         fs: fs,
@@ -390,16 +391,16 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     var eval_ctx = new vm.Script(script_data, {
                                         "filename": catchall_file
                                     })
-                                    eval_ctx.runInNewContext(contextObj, {
-                                        "breakOnSigint": true
-                                    });
+									eval_ctx.runInNewContext(contextObj, {
+										"breakOnSigint": true
+									});
 
-                                    // Here we read back certain data from the ServiceVault Script Context Object
-                                    updateFromVM.forEach((item) => {
-                                        eval(item[0] + ' = contextObj["' + item[1] + '"]');
-                                    })
-
+									// Here we read back certain data from the ServiceVault Script Context Object
+									updateFromVM.forEach((item) => {
+										eval(item[0] +' = contextObj["'+item[1]+'"]');
+									})
                                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
+									break;
                                 } else {
                                     service_check_dir.pop();
                                 }
