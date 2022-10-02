@@ -550,9 +550,9 @@ async function processURL(socket, request_headers) {
             shortURL = shortURL_service_name + ":/" + shortURL_service_path;
         } else if (shortURL.indexOf(":") == -1 && request_headers.request.indexOf("HTTP/1") > 0 && socket.ssid == null) {
             if (request_headers.Host) {
+                // PC browsers typically send a Host header
                 if (minisrv_config.services.pc_services) {
                     if (!minisrv_config.services.pc_services.disabled) {
-                        // browsers typically send a Host header
                         socket.minisrv_pc_mode = true;
                         service_name = verifyServicePort("pc_services", socket);
                         if (!service_name) {
