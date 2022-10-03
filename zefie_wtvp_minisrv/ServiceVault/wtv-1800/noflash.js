@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
 if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
-	var wtvsec_login = new WTVSec(minisrv_config);
+	var wtvsec_login = ssid_sessions[socket.ssid].createWTVSecSession();
 	wtvsec_login.IssueChallenge();
 	if (request_headers["wtv-incarnation"]) wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
