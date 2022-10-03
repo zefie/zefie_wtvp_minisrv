@@ -264,7 +264,7 @@ function buildProfile(build) {
                 "wtv-client-bootrom-version": 105,
                 "wtv-client-rom-type": "bf0app",
                 "wtv-system-chipversion": 16842752,
-                "User-Agent": "Mozilla/4.0 WebTV/1.4 (compatible; MSIE 3.0)",
+                "User-Agent": "Mozilla/4.0 WebTV/1.4.2 (compatible; MSIE 3.0)",
                 "wtv-system-cpuspeed": 112790760,
                 "wtv-system-sysconfig": 736935823
             }
@@ -283,7 +283,19 @@ function buildProfile(build) {
                 "wtv-disk-size": 8006
             }
             break;
-
+			
+		case 71810:
+			buildProfile = {
+			    "wtv-capability-flags": "d10094938ef",
+				"wtv-system-version": 7181,
+				"wtv-client-rom-type": "bf0app",
+				"wtv-client-bootrom-version": 105,
+				"wtv-system-chipversion": 16842752,
+				"wtv-system-sysconfig": 736935823,
+				"wtv-system-cpuspeed": 112790760,
+				"User-Agent": "Mozilla/4.0 WebTV/2.5 (compatible; MSIE 4.0)",
+			}
+			break;
         case 16276:
             buildProfile = {
                 "wtv-system-version": build,
@@ -510,6 +522,7 @@ unless you are intentionally trying to spoof a box.</em>
 <td><strong>Build Spoof</strong></td>
 <td><select name="build" id="build">
 <option value="1235">Build 1235 (Old Classic)</option>
+<option value="71810">Build 7181 (Old Classic)</option>
 <option selected value="7181">Build 7181 (Old Plus)</option>
 <option value="16276">Build 16276 (Old Plus)</option>
 </select><br>
