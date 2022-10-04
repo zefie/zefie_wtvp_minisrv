@@ -46,6 +46,12 @@ wtv-visit: client:hangupphone`
 		}
 	}
 
+	if (request_headers.query.guest_login) {
+		if (request_headers.query.relogin || request_headers.query.reconnect) gourl += "&";
+		gourl += "guest_login=true";
+		if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
+	}
+
 	if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login) {
 		if (request_headers.query.password == "") {
 			headers = `403 Please enter your password and try again
