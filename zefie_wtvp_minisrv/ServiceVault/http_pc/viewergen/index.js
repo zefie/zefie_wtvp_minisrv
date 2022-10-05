@@ -210,7 +210,7 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
             if (!val.byteLength) {
                 // not a buffer object
                 var block_length = val['length'];
-                var patch_data = getPatchDataType(val['type'], (fname.substr(12,3) == "2.5"));
+                var patch_data = getPatchDataType(val['type'], (fname.substr(12,3) != "1.1"));
                 if (patch_data) {
                     var patch_data_array = patch_data.split("\r\n");
                     var patch_data_string = "";
@@ -224,10 +224,17 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
                         }
                     });
                 }
-                patch_data_string += val['type'];
-                var length_difference = block_length - patch_data_string.length;
-                if (length_difference > 0)
-                    patch_data_string += "\x00".repeat(length_difference);
+                if (fname.substr(12, 3) != "2.5") {
+                    var length_difference = block_length - patch_data_string.length;
+                    if (length_difference > 0)
+                        patch_data_string += "\x00".repeat(length_difference - (val['type'].length + 1));
+                    patch_data_string += val['type'] + "\x00";
+                } else {
+                    patch_data_string += val['type'] + "\x00";
+                    var length_difference = block_length - patch_data_string.length;
+                    if (length_difference > 0)
+                        patch_data_string += "\x00".repeat(length_difference);
+                }
                 customized_patch_data[idx] = Buffer.from(patch_data_string, 'ascii');
             }
         }
