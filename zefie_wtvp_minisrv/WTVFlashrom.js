@@ -33,7 +33,7 @@ class WTVFlashrom {
 					data = err.toString();
 					callback(data, headers);
 				} else {
-					if (info_only) {w
+					if (info_only) {
 						callback(self.getFlashromInfo(data, request_path));
 					} else {
 						self.sendToClient(data, request_path, callback);
