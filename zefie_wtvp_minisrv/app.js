@@ -568,36 +568,25 @@ async function processURL(socket, request_headers) {
             var shortURL_service_path = shortURL_split.join(":");
             shortURL = shortURL_service_name + ":/" + shortURL_service_path;
         } else if (shortURL.indexOf(":") == -1 && request_headers.request.indexOf("HTTP/1") > 0 && request_headers.Host && socket.ssid == null) {
-            if (request_headers.Host) {
-                // PC browsers typically send a Host header
-                if (minisrv_config.services.pc_services) {
-                    if (!minisrv_config.services.pc_services.disabled) {
-                        socket.minisrv_pc_mode = true;
-                        service_name = verifyServicePort("pc_services", socket);
-                        if (!service_name) {
-                            if (minisrv_config.services.pc_services.drop_connection_on_wrong_port) {
-                                // just close the connection, no fancy error
-                                socket.end();
-                                return;
-                            }
-                            var errpage = wtvshared.doErrorPage(500, null, socket.minisrv_pc_mode);
-                            socket_sessions[socket.id].close_me = true;
-                            sendToClient(socket, errpage[0], errpage[1]);
+            // PC browsers typically send a Host header
+            if (minisrv_config.services.pc_services) {
+                if (!minisrv_config.services.pc_services.disabled) {
+                    socket.minisrv_pc_mode = true;
+                    service_name = verifyServicePort("pc_services", socket);
+                    if (!service_name) {
+                        if (minisrv_config.services.pc_services.drop_connection_on_wrong_port) {
+                            // just close the connection, no fancy error
+                            socket.end();
                             return;
                         }
-                        // if a directory, request index
-                        if (shortURL.substring(shortURL.length - 1) == "/") shortURL += "index";
-                        shortURL = service_name + ":" + shortURL;
-                    } else {
-                        // minimal pc mode to send error
-                        socket.minisrv_pc_mode = true;
-                        var errpage = wtvshared.doErrorPage(401, "PC services are disabled on this server", socket.minisrv_pc_mode);
-                        headers = errpage[0];
-                        data = errpage[1]
+                        var errpage = wtvshared.doErrorPage(500, null, socket.minisrv_pc_mode);
                         socket_sessions[socket.id].close_me = true;
-                        sendToClient(socket, headers, data);
+                        sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
+                    // if a directory, request index
+                    if (shortURL.substring(shortURL.length - 1) == "/") shortURL += "index";
+                    shortURL = service_name + ":" + shortURL;
                 } else {
                     // minimal pc mode to send error
                     socket.minisrv_pc_mode = true;
@@ -608,6 +597,15 @@ async function processURL(socket, request_headers) {
                     sendToClient(socket, headers, data);
                     return;
                 }
+            } else {
+                // minimal pc mode to send error
+                socket.minisrv_pc_mode = true;
+                var errpage = wtvshared.doErrorPage(401, "PC services are disabled on this server", socket.minisrv_pc_mode);
+                headers = errpage[0];
+                data = errpage[1]
+                socket_sessions[socket.id].close_me = true;
+                sendToClient(socket, headers, data);
+                return;
             }
         }
 
