@@ -33,7 +33,7 @@ class WTVFlashrom {
 					data = err.toString();
 					callback(data, headers);
 				} else {
-					if (info_only) {
+					if (info_only) {w
 						callback(self.getFlashromInfo(data, request_path));
 					} else {
 						self.sendToClient(data, request_path, callback);
@@ -41,7 +41,7 @@ class WTVFlashrom {
 				}
 			});
 		} catch (e) {
-			var errpage = wtvshared.doErrorPage(404, "The service could not find the requested ROM.")
+			var errpage = this.wtvshared.doErrorPage(404, "The service could not find the requested ROM.")
 			var headers = errpage[0];
 			var data = errpage[1];
 			callback(data, headers);
