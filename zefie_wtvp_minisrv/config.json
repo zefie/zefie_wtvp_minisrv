@@ -111,6 +111,10 @@
       "port": 1608,
       "connections": 3
     },
+    "wtv-admin": {
+      "port": 1698,
+      "password": "viRak-7"
+    },
     "http": {
       "port": 1650,
       "connections": 3,

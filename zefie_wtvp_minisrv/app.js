@@ -165,6 +165,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         request_is_async: request_is_async,
         minisrv_version_string: z_title,
         parseBool: parseBool,
+        reloadConfig: reloadConfig,
         cwd: __dirname // current working directory, updated below in function
     }
 
@@ -1728,6 +1729,12 @@ function getGitRevision() {
         return null;
     }
 }
+var minisrv_config = null;
+
+function reloadConfig() {
+    minisrv_config = wtvshared.readMiniSrvConfig(true, false); // snatches minisrv_config
+    return minisrv_config;
+}
 
 // SERVER START
 var git_commit = getGitRevision()
@@ -1736,7 +1743,7 @@ if (git_commit) console.log("**** Welcome to " + z_title + " (git " + git_commit
 else console.log("**** Welcome to " + z_title + " ****");
 
 const wtvshared = new WTVShared(); // creates minisrv_config
-var minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
+minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
 const wtvmime = new WTVMime(minisrv_config);
 
 if (git_commit) {
@@ -1832,46 +1839,6 @@ process.on('uncaughtException', function (err) {
     console.error((err && err.stack) ? err.stack : err);
 });
 
-// defaults
-minisrv_config.config.debug_flags = [];
-minisrv_config.config.debug_flags.debug = false;
-minisrv_config.config.debug_flags.quiet = true; // will squash minisrv_config.config.debug_flags.debug even if its true
-minisrv_config.config.debug_flags.show_headers = false;
-
-if (minisrv_config.config.verbosity) {
-    switch (minisrv_config.config.verbosity) {
-        case 0:
-            minisrv_config.config.debug_flags.debug = false;
-            minisrv_config.config.debug_flags.quiet = true;
-            minisrv_config.config.debug_flags.show_headers = false;
-            console.log(" * Console Verbosity level 0 (quietest)")
-            break;
-        case 1:
-            minisrv_config.config.debug_flags.debug = false;
-            minisrv_config.config.debug_flags.quiet = true;
-            minisrv_config.config.debug_flags.show_headers = true;
-            console.log(" * Console Verbosity level 1 (headers shown)")
-            break;
-        case 2:
-            minisrv_config.config.debug_flags.debug = true;
-            minisrv_config.config.debug_flags.quiet = true;
-            minisrv_config.config.debug_flags.show_headers = false;
-            console.log(" * Console Verbosity level 2 (verbose without headers)")
-            break;
-        case 3:
-            minisrv_config.config.debug_flags.debug = true;
-            minisrv_config.config.debug_flags.quiet = true;
-            minisrv_config.config.debug_flags.show_headers = true;
-            console.log(" * Console Verbosity level 3 (verbose with headers)")
-            break;
-        default:
-            minisrv_config.config.debug_flags.debug = true;
-            minisrv_config.config.debug_flags.quiet = false;
-            minisrv_config.config.debug_flags.show_headers = true;
-            console.log(" * Console Verbosity level 4 (debug verbosity)")
-            break;
-    }
-}
 
 var initstring = '';
 ports.sort();

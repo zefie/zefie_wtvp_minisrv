@@ -48,7 +48,6 @@ class WTVShared {
             return query
     }
 
-
     htmlEntitize(string, process_newline = false) {
         string = this.html_entities.encode(string).replace(/&apos;/g, "'");
 
@@ -144,6 +143,27 @@ class WTVShared {
         return (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < 3500) ? true : false;
     }
 
+    getUserConfig() {
+        try {
+            if (this.fs.lstatSync(__dirname + "/user_config.json")) {
+                try {
+                    var minisrv_user_config = JSON.parse(this.fs.readFileSync(__dirname + this.path.sep + "user_config.json"));
+                } catch (e) {
+                    console.error("ERROR: Could not read user_config.json", e);
+                    var throw_me = true;
+                }
+            } else {
+                var minisrv_user_config = {}
+            }
+            return minisrv_user_config;
+        } catch (e) {
+            if (minisrv_config.config.debug_flags) {
+                if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+            }
+        }
+    }
+
+
     readMiniSrvConfig(user_config = true, notices = true) {
         if (notices) console.log(" *** Reading global configuration...");
         try {
@@ -169,21 +189,12 @@ class WTVShared {
 
         if (user_config) {
             try {
-                if (this.fs.lstatSync(__dirname + "/user_config.json")) {
-                    if (notices) console.log(" *** Reading user configuration...");
-                    try {
-                        var minisrv_user_config = JSON.parse(this.fs.readFileSync(__dirname + this.path.sep + "user_config.json"));
-                    } catch (e) {
-                        console.error("ERROR: Could not read user_config.json", e);
-                        var throw_me = true;
-                    }
-                    // file exists and we read and parsed it, but the variable is undefined
-                    // Likely a syntax parser error that did not trip the exception check above
-                    try {
-                        minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
-                    } catch (e) {
-                        console.error("ERROR: Could not read user_config.json", e);
-                    }
+                if (notices) console.log(" *** Reading user configuration...");
+                var minisrv_user_config = this.getUserConfig()
+                try {
+                    minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
+                } catch (e) {
+                    console.error("ERROR: Could not read user_config.json", e);
                 }
             } catch (e) {
                 if (minisrv_config.config.debug_flags) {
@@ -192,7 +203,76 @@ class WTVShared {
             }
         }
 
-        return minisrv_config;
+        // defaults
+        minisrv_config.config.debug_flags = [];
+        minisrv_config.config.debug_flags.debug = false;
+        minisrv_config.config.debug_flags.quiet = true; // will squash minisrv_config.config.debug_flags.debug even if its true
+        minisrv_config.config.debug_flags.show_headers = false;
+
+        if (minisrv_config.config.verbosity) {
+            switch (minisrv_config.config.verbosity) {
+                case 0:
+                    minisrv_config.config.debug_flags.debug = false;
+                    minisrv_config.config.debug_flags.quiet = true;
+                    minisrv_config.config.debug_flags.show_headers = false;
+                    if (notices) console.log(" * Console Verbosity level 0 (quietest)")
+                    break;
+                case 1:
+                    minisrv_config.config.debug_flags.debug = false;
+                    minisrv_config.config.debug_flags.quiet = true;
+                    minisrv_config.config.debug_flags.show_headers = true;
+                    if (notices) console.log(" * Console Verbosity level 1 (headers shown)")
+                    break;
+                case 2:
+                    minisrv_config.config.debug_flags.debug = true;
+                    minisrv_config.config.debug_flags.quiet = true;
+                    minisrv_config.config.debug_flags.show_headers = false;
+                    if (notices) console.log(" * Console Verbosity level 2 (verbose without headers)")
+                    break;
+                case 3:
+                    minisrv_config.config.debug_flags.debug = true;
+                    minisrv_config.config.debug_flags.quiet = true;
+                    minisrv_config.config.debug_flags.show_headers = true;
+                    if (notices) console.log(" * Console Verbosity level 3 (verbose with headers)")
+                    break;
+                default:
+                    minisrv_config.config.debug_flags.debug = true;
+                    minisrv_config.config.debug_flags.quiet = false;
+                    minisrv_config.config.debug_flags.show_headers = true;
+                    if (notices) console.log(" * Console Verbosity level 4 (debug verbosity)")
+                    break;
+            }
+        }
+
+        if (notices) console.log(" *** Configuration successfully read.");
+        this.minisrv_config = minisrv_config;
+        return this.minisrv_config;
+    }
+
+    writeToUserConfig(config) {
+        if (config) {
+            try {
+                var minisrv_user_config = this.getUserConfig();
+
+                // write back
+                try {
+                    var new_user_config = {};
+                    Object.assign(new_user_config, minisrv_user_config, config);
+                    if (this.minisrv_config.config.debug_flags.debug) console.log(" * Writing new user configuration...");
+                    this.fs.writeFileSync(__dirname + this.path.sep + "user_config.json", JSON.stringify(new_user_config, null, "\t"));
+                }
+                catch (e) {
+                    if (this.minisrv_config.config.debug_flags) {
+                        if (this.minisrv_config.config.debug_flags.debug) console.error(" * WARNING: Could not update user config. Data may have been lost.", e);
+                    }
+                }
+
+            } catch (e) {
+                if (this.minisrv_config.config.debug_flags) {
+                    if (this.minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+                }
+            }
+        }
     }
 
     getMiniSrvConfig() {

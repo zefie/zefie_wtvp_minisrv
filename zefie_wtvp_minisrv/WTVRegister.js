@@ -3,7 +3,6 @@ class WTVRegister {
     fs = require('fs');
     path = require('path');
     minisrv_config = [];
-
     service_owner = "a minisrv user";
     session_store_dir = null;
 
