@@ -23,9 +23,10 @@ class WTVRegister {
     }
 
     checkUsernameSanity(username) {
-        var check1 = /^([A-Za-z0-9\-\_]{5,16})$/.test(username);
-        var check2 = /^[A-Za-z]/.test(username);
-        return (check1 && check2);
+        var regex_str = "^([A-Za-z0-9\-\_]{" + this.minisrv_config.config.user_accounts.min_username_length + "," + this.minisrv_config.config.user_accounts.max_username_length + "})$";
+        var regex = new RegExp(regex_str);
+        console.log(username, username.length, regex.test(username));
+        return regex.test(username);
     }
 
 
