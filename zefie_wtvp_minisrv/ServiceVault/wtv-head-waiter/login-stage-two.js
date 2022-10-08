@@ -127,10 +127,12 @@ wtv-ssl-log-url: wtv-log:/log
 			headers += `wtv-bypass-proxy: false
 user-id: ${userid}
 wtv-human-name: ${human_name}
-wtv-mail-url: wtv-mail:/listmail
 ${ssid_sessions[socket.ssid].setIRCNick(nickname)}
 wtv-domain: ${ssid_sessions[socket.ssid].getSessionData("messenger_domain")}
 passport-domain: ${ssid_sessions[socket.ssid].getSessionData("messenger_domain")}
+wtv-mail-url: wtv-mail:/listmail
+wtv-favorite-url: wtv-favorite:/favorite
+wtv-favorites-folders-url: wtv-favorite:/list-folders
 wtv-input-timeout: 14400
 wtv-connection-timeout: 1440
 wtv-fader-timeout: 1440

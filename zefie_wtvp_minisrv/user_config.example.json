@@ -71,5 +71,22 @@
 				"password": "implemented"
 			}
 		}
+	},
+	"favorites": {
+		"folder_templates": {
+			"Personal": [
+				{
+					"title": "The Midnight Archive",
+					"url": "http://archive.midnightchanne.net/",
+					"image_type": "url",
+					"image": "canned/midnightchannel.gif"
+				},
+				{
+					"title": "WebTV/MSNTV Secrets",
+					"url": "http://turdinc.kicks-ass.net/Msntv/",
+					"image_type": "url",
+					"image": "canned/mattman69.gif"
+				}
+			]
+		}
 	}
-}

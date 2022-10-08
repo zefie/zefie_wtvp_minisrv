@@ -47,6 +47,7 @@ minisrv v${minisrv_config.version}${(minisrv_config.config.git_commit) ? ' git-'
 <li><a href="client:relog">client:relog (direct)</a></li>
 <li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
 <li><a href="wtv-setup:/setup">Setup (Including BG Music)</a></li>
+<li><a href="wtv-favorite:/favorite">Favorites</a> <sup>new!</sup></li>
 <li><a href="${ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen() ? 'wtv-mail:/listmail' : 'wtv-mail:/DiplomaMail'}">Mail (beta)</a>
 <li><a href="wtv-news:/lobby">Usenet (not ready)</a>
 `;

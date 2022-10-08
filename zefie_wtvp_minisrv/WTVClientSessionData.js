@@ -2,6 +2,7 @@ const { lib } = require('crypto-js');
 const CryptoJS = require('crypto-js');
 const WTVMail = require('./WTVMail.js')
 const WTVSec = require('./WTVSec.js');
+const WTVFavorites = require('./WTVFavorites.js');
 
 
 class WTVClientSessionData {
@@ -13,6 +14,7 @@ class WTVClientSessionData {
     data_store = null;
     session_store = null;
     mailstore = null;
+    favstore = null;
     login_security = null;
     capabilities = null;
     session_storage = "";
@@ -55,6 +57,7 @@ class WTVClientSessionData {
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
         this.lockdownWhitelist.push(minisrv_config.config.service_logo);
         this.mailstore = new WTVMail(this.minisrv_config, this)
+        this.favstore = new WTVFavorites(this.minisrv_config, this)
         this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
         this.loginWhitelist.push("wtv-head-waiter:/choose-user");
         this.loginWhitelist.push("wtv-head-waiter:/password");

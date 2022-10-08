@@ -67,7 +67,7 @@ if (auth === true) {
 <tr>
 <td colspan=3 height=6>
 <tr>
-<td><!-- TODO -->
+<td><a href="wtv-admin:/regenfavs">Restore Favs for User</a>
 <td width = 10>
 <td><!-- TODO -->
 <tr>
