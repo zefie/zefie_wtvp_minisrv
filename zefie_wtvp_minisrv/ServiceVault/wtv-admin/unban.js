@@ -65,14 +65,18 @@ wtv-expire-all: wtv-admin:/unban`;
 <tr>
 <td colspan=3 height=6>
 <h3>Unban an SSID</h3>`;
-        if (minisrv_config.config.ssid_block_list.length > 0) {
-            data += '<form action="wtv-admin:/unban" method="POST">';
-            data += '<select name="unban_ssid" multiple size="8">';
-            Object.keys(minisrv_config.config.ssid_block_list).forEach(function (k) {
-                var ssid = minisrv_config.config.ssid_block_list[k];
-                data += "<option value=\"" + ssid + "\">" + ssid + "</option>\n";
-            });
-            data += '</select><br><input type="submit" value="Unban SSID(s)"></form>';
+        if (minisrv_config.config.ssid_block_list) {
+            if (minisrv_config.config.ssid_block_list.length > 0) {
+                data += '<form action="wtv-admin:/unban" method="POST">';
+                data += '<select name="unban_ssid" multiple size="8">';
+                Object.keys(minisrv_config.config.ssid_block_list).forEach(function (k) {
+                    var ssid = minisrv_config.config.ssid_block_list[k];
+                    data += "<option value=\"" + ssid + "\">" + ssid + "</option>\n";
+                });
+                data += '</select><br><input type="submit" value="Unban SSID(s)"></form>';
+            } else {
+                data += "No SSIDs are in the ban list.<br><br>";
+            }
         } else {
             data += "No SSIDs are in the ban list.<br><br>";
         }
