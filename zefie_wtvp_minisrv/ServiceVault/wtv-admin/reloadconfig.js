@@ -13,7 +13,11 @@ if (auth === true) {
         }
     }
     if (wtva.checkPassword(password)) {
-        headers = "200 OK\r\nContent-Type: text/html";
+        reloadConfig();
+        headers = `200 OK
+Content-Type: text/html
+wtv-expire-all: wtv-admin:/reloadconfig
+wtv-noback-all: wtv-admin:/reloadconfig`;
         data = `<html>
 <body>
 <display nosave nosend>
@@ -22,7 +26,6 @@ if (auth === true) {
 <img src="wtv-tricks:/images/Favorites_bg.jpg">
 </sidebar>
 <body bgcolor="#0a0a0a" text="#CC1111" link="#ff55ff" vlink="#ff55ff" vspace=0>
-<font size="-1">
 <br>
 <br>
 <h1>${minisrv_config.config.service_name} Admin Tricks</h1>
@@ -30,55 +33,14 @@ if (auth === true) {
 <table>
 <tr>
 <td colspan=3 height=6>
+<h3>Reload Config</h3>
+The config.json and user_config.json files has been reloaded.<br>
+If you added a new service, it will not bind without a restart.
 <tr>
-<td width=170><a href="wtv-tricks:/tricks">Standard Tricks</a>
-<td width=10>
-<td><a href="wtv-admin:/findaccount">Account Lookup</a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><a href="wtv-admin:/ban">Ban an SSID</a>
-<td width = 10>
-<td><a href="wtv-admin:/deleteaccount">Delete an Account</a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><a href="wtv-admin:/unban">Unban an SSID</a>
-<td width = 10>
-<td><a href="wtv-admin:/deleteuser">Delete User from Account</a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><strike><a href="wtv-admin:/whitelist">Whitelist an SSID</a></strike>
-<td width = 10>
-<td><a href="wtv-admin:/removeuserpasswd">Remove Pass from User </a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><strike><a href="wtv-admin:/addadmin">Grant Admin to SSID</a></strike>
-<td width = 10>
-<td><strike><a href="wtv-admin:/modadmin">Modify Admin for SSID</a></strike>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><a href="wtv-admin:/polyzoot">Polyzoot a User</a>
-<td width = 10>
-<td><a href="wtv-admin:/reloadconfig">Reload Config</a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 10>
-<td><!-- TODO -->
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 10>
-<td>
-<!-- TODO -->
-<td width = 10>
 </table>
+<p align="right">
+<a href="client:goback">Go Back</a>
+</p>
 </body>
 </html>
 `;

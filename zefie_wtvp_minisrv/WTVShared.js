@@ -164,8 +164,8 @@ class WTVShared {
     }
 
 
-    readMiniSrvConfig(user_config = true, notices = true) {
-        if (notices) console.log(" *** Reading global configuration...");
+    readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
+        if (notices || reload_notice) console.log(" *** Reading global configuration...");
         try {
             var minisrv_config = JSON.parse(this.fs.readFileSync(__dirname + this.path.sep + "config.json"));
         } catch (e) {
@@ -189,7 +189,7 @@ class WTVShared {
 
         if (user_config) {
             try {
-                if (notices) console.log(" *** Reading user configuration...");
+                if (notices || reload_notice) console.log(" *** Reading user configuration...");
                 var minisrv_user_config = this.getUserConfig()
                 try {
                     minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
@@ -244,7 +244,7 @@ class WTVShared {
             }
         }
 
-        if (notices) console.log(" *** Configuration successfully read.");
+        if (notices || reload_notice) console.log(" *** Configuration successfully read.");
         this.minisrv_config = minisrv_config;
         return this.minisrv_config;
     }

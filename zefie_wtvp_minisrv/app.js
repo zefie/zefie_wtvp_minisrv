@@ -1732,7 +1732,7 @@ function getGitRevision() {
 var minisrv_config = null;
 
 function reloadConfig() {
-    minisrv_config = wtvshared.readMiniSrvConfig(true, false); // snatches minisrv_config
+    minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
     return minisrv_config;
 }
 
