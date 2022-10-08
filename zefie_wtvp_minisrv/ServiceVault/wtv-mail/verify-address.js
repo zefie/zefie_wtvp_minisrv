@@ -15,7 +15,7 @@ var ok = '1';
 if (request_headers.query.address) {
     var address_split = request_headers.query.address.split("@");
     var domain = address_split[1];
-    if (domain != "escargot.chat" && domain != "escargot.chat") data = fail
+    if (domain != "escargot.chat" && domain != "escargot.live") data = fail
     else data = ok;
 } else {
     data = fail;
