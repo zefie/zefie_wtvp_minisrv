@@ -119,14 +119,16 @@ data += `
 
 if (ssid_sessions[socket.ssid].user_id == 0) {
 	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/serve-billing-overview">Account</a><BR>
+<a href="wtv-setup:/accounts">Extra Users</a><BR>
 <spacer type=block width=1 height=5><BR>`;
 }
 
 data += `
-
 <img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/phone")">Dialing</a><BR>
+<a href="wtv-setup:/messenger">Messenger</a><BR>
+<spacer type=block width=1 height=5><BR>
+<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
+<a href="wtv-setup:/phone">Dialing</a><BR>
 
 <TD WIDTH=20>
 <TD WIDTH=300 VALIGN=top ALIGN=left>
@@ -151,6 +153,8 @@ if (ssid_sessions[socket.ssid].user_id == 0) {
 	data += `<spacer type=block width=6 height=5><font size="2"><br>
 Add, change, or remove users<BR>`;
 }
+data += `<spacer type=block width=6 height=5><font size="2"><br>
+Configure Messenger<BR>`;
 
 data += `<spacer type=block width=6 height=6><font size="2"><br>
 Connecting to WebTV<BR>

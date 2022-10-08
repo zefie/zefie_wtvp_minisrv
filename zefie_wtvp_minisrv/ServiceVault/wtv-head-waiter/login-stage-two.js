@@ -43,6 +43,7 @@ else {
 		var human_name = ssid_sessions[socket.ssid].getSessionData("subscriber_name") || nickname;
 		var messenger_enabled = ssid_sessions[socket.ssid].getSessionData("messenger_enabled") || 0;
 		var messenger_authorized = ssid_sessions[socket.ssid].getSessionData("messenger_authorized") || 0;
+		var messenger_email = ssid_sessions[socket.ssid].getSessionData("messenger_email");
 		var gourl = "wtv-home:/splash?";
 	}
 	var limitedLogin = ssid_sessions[socket.ssid].lockdown;
@@ -93,7 +94,6 @@ wtv-transition-override: off
 wtv-smartcard-inserted-message: Contacting service
 wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
-wtv-mail-url: wtv-mail:/listmail
 `;
 		if (!limitedLogin && !limitedLoginRegistered) {
 			ssid_sessions[socket.ssid].assignMailStore();
@@ -102,6 +102,9 @@ wtv-mail-url: wtv-mail:/listmail
 			headers += `wtv-messenger-authorized: ${messenger_authorized}
 wtv-messenger-enable: ${messenger_enabled}
 wtv-messagewatch-checktimeoffset: off
+wtv-messenger-server: msnmsgr.escargot.chat
+wtv-user-name: ${ssid_sessions[socket.ssid].getSessionData("messenger_email")}
+wtv-messenger-login-url: wtv-passport:/messengerlogin
 `;
 		} else {
 			/*
@@ -124,8 +127,10 @@ wtv-ssl-log-url: wtv-log:/log
 			headers += `wtv-bypass-proxy: false
 user-id: ${userid}
 wtv-human-name: ${human_name}
+wtv-mail-url: wtv-mail:/listmail
 ${ssid_sessions[socket.ssid].setIRCNick(nickname)}
-wtv-domain: ${minisrv_config.config.domain_name}
+wtv-domain: ${ssid_sessions[socket.ssid].getSessionData("messenger_domain")}
+passport-domain: ${ssid_sessions[socket.ssid].getSessionData("messenger_domain")}
 wtv-input-timeout: 14400
 wtv-connection-timeout: 1440
 wtv-fader-timeout: 1440

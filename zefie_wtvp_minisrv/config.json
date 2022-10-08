@@ -89,6 +89,7 @@
     "wtv-setup": {
       "port": 1613,
       "flags": "0x00000010",
+      "passport_service": "wtv-passport",
       "connections": 3
     },
     "wtv-music": {
@@ -110,6 +111,9 @@
     "wtv-mail": {
       "port": 1608,
       "connections": 3
+    },
+    "wtv-passport": {
+      "port": 1654
     },
     "wtv-admin": {
       "port": 1698,
