@@ -35,6 +35,7 @@
     <Content Include="diskmap_gen.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="packer.js" />
     <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_OpenISP_56k.tok" />
     <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_WTV_18006138199.detok.txt" />
     <Content Include="ServiceDeps\premade_tellyscripts\LC2\LC2_WTV_18006138199.tok" />
@@ -97,6 +98,7 @@
     <Content Include="ServiceVault\wtv-head-waiter\ValidateLogin.js" />
     <Content Include="ServiceVault\wtv-home\Credits-Legal.js" />
     <Content Include="ServiceVault\wtv-home\Credits-Privacy.js" />
+    <Content Include="ServiceVault\wtv-mail\addressbook.js" />
     <Content Include="ServiceVault\wtv-mail\DiplomaMail.js" />
     <Content Include="ServiceVault\wtv-mail\get-attachment.js">
       <SubType>Code</SubType>

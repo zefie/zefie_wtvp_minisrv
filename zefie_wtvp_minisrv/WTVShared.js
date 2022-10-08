@@ -8,6 +8,7 @@ class WTVShared {
     path = require('path');
     fs = require('fs');
     v8 = require('v8');
+    zlib = require('zlib');
     CryptoJS = require('crypto-js');
     html_entities = require('html-entities'); // used externally by service scripts
     sanitizeHtml = require('sanitize-html');
@@ -15,8 +16,8 @@ class WTVShared {
 
     minisrv_config = [];
     
-    constructor(minisrv_config) {
-        if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig();
+    constructor(minisrv_config, quiet = false) {
+        if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
 
         if (!String.prototype.reverse) {
@@ -579,6 +580,18 @@ class WTVShared {
         if (ssid.length == 0) ssid = null;
         return ssid;
     }
+
+
+    unpackCompressedB64(data) {        
+        var data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
+        return this.zlib.inflateSync(data_buf, { finishFlush: this.zlib.Z_SYNC_FLUSH }).toString('ascii');
+    }
+
+    packCompressedB64(data) {
+        return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
+    }
+
+
 }
 
 class clientShowAlert {
