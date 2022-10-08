@@ -498,6 +498,8 @@ async function processURL(socket, request_headers) {
                         } else {
                             request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
                         }
+                    } else if (qraw[i].length > 0) {
+                        request_headers.query[qraw[i]] = null;
                     }
                 }
             }
