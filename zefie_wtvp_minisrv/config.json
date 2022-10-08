@@ -113,6 +113,7 @@
     },
     "wtv-admin": {
       "port": 1698,
+      "enable_multi_query": true,
       "password": "viRak-7"
     },
     "http": {

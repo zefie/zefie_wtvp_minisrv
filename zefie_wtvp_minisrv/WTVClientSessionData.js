@@ -451,7 +451,7 @@ class WTVClientSessionData {
     getUserPasswordEnabled() {
         if (!this.minisrv_config.config.passwords.enabled) return false; // master config override
         var enabled = this.getSessionData("subscriber_password");
-        return (enabled); // true if set, false if null/disabled
+        return (enabled != null && typeof enabled != undefined); // true if set, false if null/disabled
     }
 
     validateUserPassword(passwd) {

@@ -51,17 +51,17 @@ if (auth === true) {
 <tr>
 <td><strike><a href="wtv-admin:/whitelist">Whitelist an SSID</a></strike>
 <td width = 10>
-<td><strike><a href="wtv-admin:/removeuserpasswd">Remove Pass from User </a></strike>
+<td><a href="wtv-admin:/removeuserpasswd">Remove Pass from User </a>
 <tr>
 <td colspan=3 height=6>
 <tr>
 <td><strike><a href="wtv-admin:/addadmin">Grant Admin to SSID</a></strike>
 <td width = 10>
-<td><strike><a href="wtv-admin:/deladmin">Revoke Admin from SSID</a></strike>
+<td><strike><a href="wtv-admin:/modadmin">Modify Admin for SSID</a></strike>
 <tr>
 <td colspan=3 height=6>
 <tr>
-<td><!-- TODO -->
+<td><a href="wtv-admin:/polyzoot">Polyzoot a User</a>
 <td width = 10>
 <td><!-- TODO -->
 <tr>

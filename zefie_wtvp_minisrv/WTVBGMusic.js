@@ -1252,12 +1252,12 @@ class WTVBGMusic {
         this.wtvshared = new WTVShared(minisrv_config);
     }
 
-    getMusicObj() {
+    getMusicObj(force_default = false) {
         var music_obj = this.session_data.getSessionData("wtv-bgmusic");
         if (music_obj === null) music_obj = {};
 
         // check if we need to set defaults
-        var setDefaults = false;
+        var setDefaults = force_default;
         if (!music_obj.enableCategories) setDefaults = true;
         else if (music_obj.enableCategories.length == 0) setDefaults = true;
         if (!music_obj.enableSongs) setDefaults = true;
