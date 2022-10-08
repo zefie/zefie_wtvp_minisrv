@@ -1007,6 +1007,12 @@ async function sendToClient(socket, headers_obj, data) {
         }
     }
 
+    // webtvism
+    if (headers_obj["minisrv-force-compression"]) {
+        compression_type = parseInt(headers_obj["minisrv-force-compression"]);
+        delete headers_obj["minisrv-force-compression"];
+    }
+
     // compress if needed
     if (compression_type > 0 && content_length > 0 && headers_obj['Response'].substring(0, 3) == "200") {
         var uncompressed_content_length = content_length;
@@ -1041,6 +1047,7 @@ async function sendToClient(socket, headers_obj, data) {
         var compression_percentage = ((1 - (compressed_content_length / uncompressed_content_length)) * 100).toFixed(1);
         if (uncompressed_content_length != compressed_content_length) if (minisrv_config.config.debug_flags.debug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_ratio, "~ Saved:", compression_percentage.toString() + "%");
     }
+    
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true && !socket_sessions[socket.id].do_not_encrypt) {
@@ -1064,7 +1071,15 @@ async function sendToClient(socket, headers_obj, data) {
     if (headers_obj["Content-Length"]) delete headers_obj["Content-Length"];
     if (headers_obj["Content-length"]) delete headers_obj["Content-length"];
 
+
     headers_obj["Content-length"] = content_length;
+
+    // if force-content-length is defined, use it for webtvisms
+    if (headers_obj["minisrv-force-content-length"]) {
+        headers_obj["Content-length"] = headers_obj["minisrv-force-content-length"];
+        delete headers_obj["minisrv-force-content-length"];
+
+    }
 
     // Send wtv-ticket if it has been flagged as updated
     if (ssid_sessions[socket.ssid]) {
