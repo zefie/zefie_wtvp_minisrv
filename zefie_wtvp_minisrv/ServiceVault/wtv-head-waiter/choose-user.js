@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+
 if (socket.ssid !== null) ssid_sessions[socket.ssid].switchUserID(0);
 
 headers = `200 OK
@@ -92,10 +93,9 @@ for (const [key, value] of Object.entries(accounts)) {
             mailcount = userSession.mailstore.countUnreadMessages(0);
         }
     }
-    if (mailcount > 0) {
-        var mcnumber = (mailcount >= 100) ? "99+" : mailcount;
-        data += mcnumber + ` new message${(mcnumber != 1) ? 's' : ''}`;
-    }
+  
+    var mcnumber = (mailcount >= 100) ? "<b>99+</b>" : mailcount;
+    data += `<b>${mcnumber} ${(mcnumber > 0) ? '<img src="/images/signin_new_mail.gif" width="25" height="20">' : '<img src="/images/signin_no_mail.gif" width="25" height="19">'}`;
     data += `</font>
 <tr>
 <td>
