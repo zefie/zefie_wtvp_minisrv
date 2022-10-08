@@ -7,7 +7,6 @@ if (request_headers.query && ssid_sessions[socket.ssid]) {
     Object.keys(request_headers.query).forEach(function (k) {
         settings_obj[k] = request_headers.query[k];
     });
-    console.log(settings_obj);
     ssid_sessions[socket.ssid].setSessionData("wtv-setup", Object.assign({}, settings_obj));
     ssid_sessions[socket.ssid].saveSessionData();
     headers = `200 OK
