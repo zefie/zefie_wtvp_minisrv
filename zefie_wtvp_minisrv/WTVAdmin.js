@@ -37,12 +37,18 @@ class WTVAdmin {
     }
 
     isInSubnet(ip, subnet) {
-        var mask, base_ip, long_ip = this.ip2long(ip);
-        if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = this.ip2long(mask[1])) >= 0)) {
-            var freedom = Math.pow(2, 32 - parseInt(mask[2]));
-            return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+        if (subnet.indexOf('/') == -1) {
+            var mask, base_ip, long_ip = this.ip2long(ip);
+            var mask2, base_ip2, long_ip2 = this.ip2long(ip);
+            return (long_ip == long_ip2);
+        } else {
+            var mask, base_ip, long_ip = this.ip2long(ip);            
+            if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = this.ip2long(mask[1])) >= 0)) {
+                var freedom = Math.pow(2, 32 - parseInt(mask[2]));
+                return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+            }
         }
-        else return false;
+        return false;
     }
 
     rejectConnection(reason_is_ssid) {
