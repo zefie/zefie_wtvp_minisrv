@@ -113,6 +113,7 @@
     <Content Include="ServiceVault\wtv-mail\sendmail.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-mail\verify-address.js" />
     <Content Include="ServiceVault\wtv-music\demo\hacktv4.gif" />
     <Content Include="ServiceVault\wtv-music\demo\index.html" />
     <Content Include="ServiceVault\wtv-music\demo\midi\acey.mid" />
@@ -280,12 +281,19 @@
     <Content Include="ServiceVault\wtv-setup\keyboard.js" />
     <Content Include="ServiceVault\wtv-setup\mail-signature.js" />
     <Content Include="ServiceVault\wtv-setup\mail.js" />
+    <Content Include="ServiceVault\wtv-setup\messenger-account.js" />
+    <Content Include="ServiceVault\wtv-setup\messenger-edit-list.js" />
+    <Content Include="ServiceVault\wtv-setup\messenger-enable.js" />
+    <Content Include="ServiceVault\wtv-setup\messenger-info.js" />
+    <Content Include="ServiceVault\wtv-setup\messenger-mode.js" />
+    <Content Include="ServiceVault\wtv-setup\messenger.js" />
     <Content Include="ServiceVault\wtv-setup\phone-advanced.js" />
     <Content Include="ServiceVault\wtv-setup\phone-basic.js" />
     <Content Include="ServiceVault\wtv-setup\phone-call-wait-thresh.js" />
     <Content Include="ServiceVault\wtv-setup\phone-call-waiting.js" />
     <Content Include="ServiceVault\wtv-setup\phone-reset.js" />
     <Content Include="ServiceVault\wtv-setup\phone.js" />
+    <Content Include="ServiceVault\wtv-setup\validate-messenger-account.js" />
     <Content Include="ServiceVault\wtv-setup\validate-remove-users.js" />
     <Content Include="ServiceVault\wtv-setup\remove-users.js" />
     <Content Include="ServiceVault\wtv-setup\reset-musicobj.js">

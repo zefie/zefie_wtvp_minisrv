@@ -88,8 +88,8 @@ if (!ssid_sessions[socket.ssid].getSessionData("messenger_enabled") == 1) {
 } data += `</a></FONT>
 <p>
 <a href="messenger-account">Change your account</a>
-<!--<p>
-<a href="client:SetSetupValue?setup-font-sizes=large">large</a></FONT>-->
+<p>
+<a href="messenger-info">Advanced Info</a>
 </table>
 </form>
 <TR>
