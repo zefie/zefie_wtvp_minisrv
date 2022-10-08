@@ -1658,7 +1658,7 @@ async function cleanupSocket(socket) {
                 // set timeout to check 
                 ssid_sessions[socket.ssid].data_store.socket_check = setTimeout(function (ssid) {
                     if (ssid_sessions[ssid].currentConnections() === 0) {
-                        if (!minisrv_config.config.debug_flags.quiet) console.log(" * WebTV SSID", wtvshared.filterSSID(ssid), " has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
+                        if (!minisrv_config.config.debug_flags.quiet) console.log(" * WebTV SSID", wtvshared.filterSSID(ssid), "has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
                         delete ssid_sessions[ssid];
                     }
                 }, timeout, socket.ssid);
