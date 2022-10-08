@@ -23,7 +23,7 @@ switch (comp_type) {
 data = `<html>
 <head>
 <title>Home for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "minisrv"}</title>
-<DISPLAY NoLogo hideoptions noscroll>
+<DISPLAY NoLogo>
 </head>
 <body bgcolor="black" link="gold" vlink="gold" alink="gold" text="gold">
 <script>
