@@ -17,7 +17,7 @@ favoritenum = Object.keys(favarray).length;
 headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html
-wtv-expire-all: wtv-favorite:/serve-browser
+wtv-expire-all: wtv-favorite:/serve-
 wtv-expire-all: wtv-favorite:/favorite
 `
 

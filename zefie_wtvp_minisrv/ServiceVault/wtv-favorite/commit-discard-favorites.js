@@ -56,7 +56,6 @@ if (errpage) {
 Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire-all: wtv-favorite:
-wtv-visit: ${confirmAlert}
 Location: ${confirmAlert}`
 	} else {
 		
@@ -72,7 +71,6 @@ Location: ${confirmAlert}`
 Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire-all: wtv-favorite:
-wtv-visit: ${gourl}
 Location: ${gourl}`
 	}
 }

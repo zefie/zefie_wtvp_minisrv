@@ -135,78 +135,78 @@ class WTVFavorites {
     }
 	
 	createFavorite(title, url, folder, image, imagetype) {
-            var folderpath = this.getFolderDir(folder);
-            var favoriteid = this.createFavoriteID();
-            var favoritefile = favoriteid + this.favFileExt;
-            var favoritefileout = folderpath + favoritefile;
-			if (imagetype != "url")
-				image = btoa(image);
-			
-			title = decodeURIComponent(title).replaceAll("+", " ");
-			url = decodeURIComponent(url)
-            var favoritedata = {
-                "title": title,
-                "url": url,
-                "folder": folder,
-                "image": image,
-				"imagetype": imagetype,
-				"id": favoriteid
-            }
-            try {
-                if (this.fs.existsSync(favoritefileout)) {
-                    console.log(" * ERROR: Favorite with this UUID (" + favoriteid + ") already exists (should never happen). Favorite lost.");
-                    return false;
-                }
+		var folderpath = this.getFolderDir(folder);
+		var favoriteid = this.createFavoriteID();
+		var favoritefile = favoriteid + this.favFileExt;
+		var favoritefileout = folderpath + favoritefile;
+		if (imagetype != "url")
+			image = btoa(image);
 
-                // encode favorite into json
-                var result = this.fs.writeFileSync(favoritefileout, JSON.stringify(favoritedata));
-                if (!result) return false;
+		title = decodeURIComponent(title).replaceAll("+", " ");
+		url = decodeURIComponent(url)
+		var favoritedata = {
+			"title": title,
+			"url": url,
+			"folder": folder,
+			"image": image,
+			"imagetype": imagetype,
+			"id": favoriteid
+		}
+		try {
+			if (this.fs.existsSync(favoritefileout)) {
+				console.log(" * ERROR: Favorite with this UUID (" + favoriteid + ") already exists (should never happen). Favorite lost.");
+				return false;
+			}
 
-            } catch (e) {
-                console.error(" # FavErr: Favorite Store failed\n", e, "\n", favoritefileout, "\n", favorite ,"\n");
-            }
-            return false;
-    }
+			// encode favorite into json
+			var result = this.fs.writeFileSync(favoritefileout, JSON.stringify(favoritedata));
+			if (!result) return false;
+
+		} catch (e) {
+			console.error(" # FavErr: Favorite Store failed\n", e, "\n", favoritefileout, "\n", favorite, "\n");
+		}
+		return false;
+	}
 	
 	listFavorites(folder) {
-            var folderpath = this.getFolderDir(folder);
-            var self = this;
-			self.messageArr = [];
-            var files = this.fs.readdirSync(folderpath)
-                .map(function (v) {
-					var favorite_data_raw = null;
-                    var favoritepath = folderpath + self.path.sep + v;
-					if (self.fs.existsSync(favoritepath)) favorite_data_raw = self.fs.readFileSync(favoritepath);
-                    if (favorite_data_raw) {
-                        var favorite_data = JSON.parse(favorite_data_raw);
-						self.messageArr.push(favorite_data);
-                    }
-                    
-                })
-				return self.messageArr;
-    }
+		var folderpath = this.getFolderDir(folder);
+		var self = this;
+		self.messageArr = [];
+		this.fs.readdirSync(folderpath)
+			.map(function (v) {
+				var favorite_data_raw = null;
+				var favoritepath = folderpath + self.path.sep + v;
+				if (self.fs.existsSync(favoritepath)) favorite_data_raw = self.fs.readFileSync(favoritepath);
+				if (favorite_data_raw) {
+					var favorite_data = JSON.parse(favorite_data_raw);
+					self.messageArr.push(favorite_data);
+				}
+
+			})
+		return self.messageArr;
+	}
 	
 	getFavorite(folder, favoriteid) {
-            var folder_path = this.getFolderDir(folder);
-            var folder_file = favoriteid + this.favFileExt;
-            var folder_file_in = folder_path + this.path.sep + folder_file;
-            var folder_data_raw = null;
+		var folder_path = this.getFolderDir(folder);
+		var folder_file = favoriteid + this.favFileExt;
+		var folder_file_in = folder_path + this.path.sep + folder_file;
+		var folder_data_raw = null;
 
-            if (this.fs.existsSync(folder_file_in)) folder_data_raw = this.fs.readFileSync(folder_file_in);
-            else console.error(" # FavErr: could not find ", folder_file_in);
+		if (this.fs.existsSync(folder_file_in)) folder_data_raw = this.fs.readFileSync(folder_file_in);
+		else console.error(" # FavErr: could not find ", folder_file_in);
 
-            if (folder_data_raw) {
-                var folder_data = JSON.parse(folder_data_raw);
-                folder_data.folder_path = folder_path;
-                folder_data.folder_file = folder_file;
-                if (folder_data) {
-                    folder_data.id = favoriteid;
+		if (folder_data_raw) {
+			var folder_data = JSON.parse(folder_data_raw);
+			folder_data.folder_path = folder_path;
+			folder_data.folder_file = folder_file;
+			if (folder_data) {
+				folder_data.id = favoriteid;
 
-                    return folder_data;
-                }
-                else console.error(" # FavErr: could not parse json in ", folder_file_in);
-            }
-        return false;
+				return folder_data;
+			}
+			else console.error(" # FavErr: could not parse json in ", folder_file_in);
+		}
+		return false;
 	}
 	
 	deleteFolder(folder){

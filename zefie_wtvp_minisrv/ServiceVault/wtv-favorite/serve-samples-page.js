@@ -2,7 +2,8 @@ var minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
-Content-Type: text/html`
+Content-Type: text/html
+wtv-expire-all: wtv-favorite:/serve-`
 
 
 data = `<HTML>
