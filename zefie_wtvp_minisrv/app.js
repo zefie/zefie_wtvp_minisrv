@@ -368,7 +368,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // expose var service_dir for script path to the root of the wtv-service                    
                     socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
                     var script_data = fs.readFileSync(service_vault_file_path + ".js").toString();
-                    var priv = (minisrv_config.services[service_name].privileged) ? true : false;
+                    var priv = false;
+                    if (minisrv_config.services[service_name]) priv = (minisrv_config.services[service_name].privileged) ? true : false;
+                    else if (socket.minisrv_pc_mode) priv = (minisrv_config.services['pc_services'].privileged) ? true : false;
+
                     var vmResults = runScriptInVM(script_data, contextObj, priv, service_vault_file_path + ".js");
                     // Here we read back certain data from the ServiceVault Script Context Object
                     updateFromVM.forEach((item) => {
@@ -409,7 +412,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                     request_headers.service_file_path = catchall_file;
                                     var script_data = fs.readFileSync(catchall_file).toString();
-                                    var priv = (minisrv_config.services[service_name].privileged) ? true : false;
+                                    var priv = false;
+                                    if (minisrv_config.services[service_name]) priv = (minisrv_config.services[service_name].privileged) ? true : false;
+                                    else if (socket.minisrv_pc_mode) priv = (minisrv_config.services['pc_services'].privileged) ? true : false;
+
                                     runScriptInVM(script_data, contextObj, priv, catchall_file);
 
                                     // Here we read back certain data from the ServiceVault Script Context Object
