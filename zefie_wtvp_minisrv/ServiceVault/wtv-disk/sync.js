@@ -1,7 +1,6 @@
 var minisrv_service_file = true;
 
 var diskmap = Object.getCaseInsensitiveKey(request_headers.query, "DiskMap");
-const WTVDownloadList = require("./WTVDownloadList.js");
 var wtvdl = new WTVDownloadList(minisrv_config, service_name);
 
 var force_update = (request_headers.query.force == "true") ? true : false;

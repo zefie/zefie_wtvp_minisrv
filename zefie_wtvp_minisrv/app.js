@@ -106,6 +106,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     var WTVGuide = null;
     if (fs.existsSync(__dirname + "/WTVGuide.js")) WTVGuide = require("./WTVGuide.js");
     var WTVBGMusic = require("./WTVBGMusic.js");
+    var WTVDownloadList = require("./WTVDownloadList.js");
 
     // create global context object
     var contextObj = {
@@ -122,6 +123,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "clientShowAlert": clientShowAlert,
         "WTVClientSessionData": WTVClientSessionData,
         "WTVClientCapabilities": WTVClientCapabilities,
+        "WTVDownloadList": WTVDownloadList,
         "WTVFlashrom": WTVFlashrom,
         "strftime": require('strftime'),
         "CryptoJS": CryptoJS,
