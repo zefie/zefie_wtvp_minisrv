@@ -83,7 +83,7 @@ class WTVFavorites {
 		var self = this;
 		if (folder_templates[folder]) {
 			Object.keys(folder_templates[folder]).forEach(function (k) {
-				self.createFavorite(folder_templates[folder][k].title, folder_templates[folder][k].url, "Recommended", (folder_templates[folder][k].image_type == "image/wtv-bitmap") ? atob(folder_templates[folder][k].image) : folder_templates[folder][k].image, folder_templates[folder][k].image_type);
+				self.createFavorite(folder_templates[folder][k].title, folder_templates[folder][k].url, folder, (folder_templates[folder][k].image_type == "image/wtv-bitmap") ? atob(folder_templates[folder][k].image) : folder_templates[folder][k].image, folder_templates[folder][k].image_type);
             })
         } 
 	}
@@ -211,7 +211,15 @@ class WTVFavorites {
 	
 	deleteFolder(folder){
 		var dir = this.getFolderDir(folder);
-		this.fs.rmdirSync(dir, { recursive: true });
+		if (dir) {
+			try {
+				this.fs.rmdirSync(dir, { recursive: true });
+				return true;
+			} catch (e) {
+				return false;
+			}
+		}
+		return false;
 	}
 	
 	checkFolderName(folder) {
