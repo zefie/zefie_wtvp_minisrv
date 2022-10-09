@@ -158,6 +158,7 @@
       "servicevault_dir": "http_pc",
       "drop_connection_on_wrong_port": false,
       "show_verbose_errors": false,
+      "privileged": true,
       "allow_https": false,
       "force_https": false
     }
