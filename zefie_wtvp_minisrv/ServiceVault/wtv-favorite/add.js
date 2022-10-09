@@ -75,7 +75,7 @@ async function saveFavorite(favstore, title, folder, imagetype, favurl) {
 		if (!favstore.folderExists(folder)) {
 			// user did not define a folder, and the default folder does not exist
 			// so choose the user's first available folder
-			var favfolders = favstore.listFolders();
+			var favfolders = favstore.getFolders();
 			if (favfolders.length > 0) folder = favfolders[0];
 		}
 		if (!folder) {
