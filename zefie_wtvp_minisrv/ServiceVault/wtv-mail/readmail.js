@@ -8,7 +8,7 @@ function mail_end_error(msg) {
     data = errpage[1];
 }
 
-var intro_seen = ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen();
+var intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
@@ -17,11 +17,11 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         mail_end_error("Message ID Required");
     } else {
         var messageid = request_headers.query.message_id;
-        var message = ssid_sessions[socket.ssid].mailstore.getMessageByID(messageid);
+        var message = session_data.mailstore.getMessageByID(messageid);
         if (!message) {
             mail_end_error("Invalid Message ID");
         } else {
-            ssid_sessions[socket.ssid].mailstore.setMessageReadStatus(messageid);
+            session_data.mailstore.setMessageReadStatus(messageid);
             var notImplementedAlert = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "This feature is not available.",
@@ -31,7 +31,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             }).getURL();
 
             if (request_headers.query.message_delete) {
-                ssid_sessions[socket.ssid].mailstore.deleteMessage(messageid);
+                session_data.mailstore.deleteMessage(messageid);
                 headers = `300 OK
 wtv-expire: wtv-mail:/listmail
 Location: wtv-mail:/listmail`;
@@ -39,7 +39,7 @@ Location: wtv-mail:/listmail`;
 
                 headers = `200 OK
 Content-type: text/html`;
-                var message_colors = ssid_sessions[socket.ssid].mailstore.getSignatureColors(message.signature);
+                var message_colors = session_data.mailstore.getSignatureColors(message.signature);
 
                 if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                 data = `<wtvnoscript>

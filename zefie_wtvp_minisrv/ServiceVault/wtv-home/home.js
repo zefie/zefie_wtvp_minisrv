@@ -7,9 +7,9 @@ wtv-expire-all: wtv-flashrom:
 Content-type: text/html`
 
 if (request_headers.query.url) headers += "\nwtv-visit: " + request_headers.query.url;
-var cryptstatus = ((socket_sessions[socket.id].secure === true) ? "Encrypted" : "Not Encrypted")
+var cryptstatus = (wtv_encrypted ? "Encrypted" : "Not Encrypted")
 
-var comp_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid],'text/html');
+var comp_type = wtvmime.shouldWeCompress(session_data,'text/html');
 var compstatus = "uncompressed";
 switch (comp_type) {
 	case 1:
@@ -22,7 +22,7 @@ switch (comp_type) {
 
 data = `<html>
 <head>
-<title>Home for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "minisrv"}</title>
+<title>Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}</title>
 <DISPLAY NoLogo>
 </head>
 <body bgcolor="black" link="gold" vlink="gold" alink="gold" text="gold">
@@ -32,7 +32,7 @@ function go() {
 }
 </script>
 <b>Welcome to ${minisrv_config.config.service_name}`;
-if (ssid_sessions[socket.ssid].getSessionData("registered")) data += ", " + ssid_sessions[socket.ssid].getSessionData("subscriber_username") + "!";
+if (session_data.getSessionData("registered")) data += ", " + session_data.getSessionData("subscriber_username") + "!";
 data += `</b><br>
 <div width="540" align="right">
 <font size="-4"><i>
@@ -45,19 +45,20 @@ minisrv v${minisrv_config.version}${(minisrv_config.config.git_commit) ? ' git-'
 <form name=access onsubmit="go()">
 <ul>
 <li><a href="client:relog">client:relog (direct)</a></li>
-<li><a href="wtv-flashrom:/willie" selected>Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
+<li><a href="wtv-flashrom:/willie">Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
 <li><a href="wtv-setup:/setup">Setup (Including BG Music)</a></li>
 <li><a href="wtv-favorite:/favorite">Favorites</a> <sup>new!</sup></li>
-<li><a href="${ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen() ? 'wtv-mail:/listmail' : 'wtv-mail:/DiplomaMail'}">Mail (beta)</a>
+<li><a href="wtv-admin:/admin">wtv-admin</a> <sup>new!</sup>
+<li><a href="${session_data.mailstore.checkMailIntroSeen() ? 'wtv-mail:/listmail' : 'wtv-mail:/DiplomaMail'}">Mail (beta)</a>
 <li><a href="wtv-news:/lobby">Usenet (not ready)</a>
 `;
-if (ssid_sessions[socket.ssid].hasCap("client-can-do-chat")) {
+if (session_data.hasCap("client-can-do-chat")) {
 	data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
 }
-if (ssid_sessions[socket.ssid].hasCap("client-has-disk")) {
+if (session_data.hasCap("client-has-disk")) {
 	// only show disk stuff if client has disk
 	data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
-	if (ssid_sessions[socket.ssid].hasCap("client-can-do-macromedia-flash2")) {
+	if (session_data.hasCap("client-can-do-macromedia-flash2")) {
 		// only show demo if client can do flash2
 		data += "<li>Old DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\">Access</a></li>\n";
 	}
@@ -65,7 +66,7 @@ if (ssid_sessions[socket.ssid].hasCap("client-has-disk")) {
 
 data += `<li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>`
 
-if (ssid_sessions[socket.ssid].hasCap("client-can-do-javascript")) {
+if (session_data.hasCap("client-can-do-javascript")) {
 	// URL access form requires javascript, hide if client does not support
 	data += `<li><input name=url `;
 

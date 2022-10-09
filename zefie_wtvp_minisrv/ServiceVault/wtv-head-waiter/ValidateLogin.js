@@ -10,17 +10,17 @@ Location: client:gototvhome
 wtv-visit: client:hangupphone`
 } else {
 
-	var user_id = (request_headers.query.user_id) ? request_headers.query.user_id : ssid_sessions[socket.ssid].user_id;
+	var user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
 
-	if (socket.ssid !== null && user_id !== null) ssid_sessions[socket.ssid].switchUserID(user_id);
+	if (socket.ssid !== null && user_id !== null) session_data.switchUserID(user_id);
 
-	if (socket.ssid !== null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
+	if (socket.ssid !== null && !session_data.get("wtvsec_login")) {
 		wtvsec_login = new WTVSec(minisrv_config);
 		wtvsec_login.IssueChallenge();
 		wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
-		ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
+		session_data.set("wtvsec_login", wtvsec_login);
 	} else {
-		wtvsec_login = ssid_sessions[socket.ssid].get("wtvsec_login");
+		wtvsec_login = session_data.get("wtvsec_login");
 	}
 
 	if (socket.ssid !== null) {
@@ -57,8 +57,8 @@ wtv-visit: client:hangupphone`
 			headers = `403 Please enter your password and try again
 minisrv-no-mail-count: true
 `;
-		} else if (ssid_sessions[socket.ssid].validateUserPassword(request_headers.query.password)) {
-			ssid_sessions[socket.ssid].setUserLoggedIn(true);
+		} else if (session_data.validateUserPassword(request_headers.query.password)) {
+			session_data.setUserLoggedIn(true);
 			headers = `200 OK
 minisrv-no-mail-count: true
 Content-Type: text/html
@@ -70,14 +70,14 @@ minisrv-no-mail-count: true
 `;
 		}
 	} else {
-		if (ssid_sessions[socket.ssid].baddisk === true) {
+		if (session_data.baddisk === true) {
 			gourl = "wtv-head-waiter:/bad-disk?"
 		}
-		else if (ssid_sessions[socket.ssid].getNumberOfUserAccounts() > 1 && user_id === 0 && request_headers.query.initial_login) {
+		else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && request_headers.query.initial_login) {
 			gourl = "wtv-head-waiter:/choose-user?"
 		} else {
-			var limitedLogin = (!ssid_sessions[socket.ssid].lockdown && (!ssid_sessions[socket.ssid].get('password_valid') && ssid_sessions[socket.ssid].getUserPasswordEnabled()));
-			var limitedLoginRegistered = (limitedLogin && ssid_sessions[socket.ssid].isRegistered());
+			var limitedLogin = (!session_data.lockdown && (!session_data.get('password_valid') && session_data.getUserPasswordEnabled()));
+			var limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
 		}
 		headers = `200 OK
 wtv-connection-close: true
@@ -87,7 +87,7 @@ Content-Type: text/html`;
 		if (client_challenge_response) {
 			headers += `
 wtv-encrypted: true`;
-			if (wtvsec_login) ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket = true;
+			if (wtvsec_login) session_data.data_store.wtvsec_login.update_ticket = true;
 		}
 		if (limitedLoginRegistered) gourl = "wtv-head-waiter:/password?";
 		headers += `

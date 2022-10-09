@@ -2,7 +2,7 @@ var minisrv_service_file = true;
 
 var favoritenum = 0;
 var folder = request_headers.query.favorite_folder_name;
-var favarray = ssid_sessions[socket.ssid].favstore.listFavorites(folder);
+var favarray = session_data.favstore.listFavorites(folder);
 
 favoritenum = Object.keys(favarray).length;
 
@@ -81,7 +81,7 @@ for (let i = 0; i < favoritenum; i++) {
 		var favname = request_headers.query.favorite17name;
 		break;
 	}
-	ssid_sessions[socket.ssid].favstore.changeFavoriteName(favid, folder, favname);
+	session_data.favstore.changeFavoriteName(favid, folder, favname);
 }
 
 var gourl = `wtv-favorite:/serve-browser?favorite_folder_name=${folder}`;

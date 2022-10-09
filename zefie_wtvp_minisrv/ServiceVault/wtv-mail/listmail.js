@@ -8,20 +8,20 @@ function mail_end_error(msg) {
     data = errpage[1];
 }
 
-var intro_seen = ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen();
+var intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
 } else {
     if (!intro_seen && request_headers.query.intro_seen) {
         // User has come from intro 
-        ssid_sessions[socket.ssid].mailstore.setMailIntroSeen(true);
+        session_data.mailstore.setMailIntroSeen(true);
     }
     // check if mailstore exists (returns null if guest)
-    mailstore_exists = ssid_sessions[socket.ssid].mailstore.mailstoreExists();
+    mailstore_exists = session_data.mailstore.mailstoreExists();
 
     // create mailstore if it doesnt exist (also returns null if guest)
-    if (!mailstore_exists) mailstore_exists = ssid_sessions[socket.ssid].mailstore.createMailstore();
+    if (!mailstore_exists) mailstore_exists = session_data.mailstore.createMailstore();
 
     if (mailstore_exists) {
         // mailstore exists and user is not guest
@@ -33,29 +33,29 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         var page = (request_headers.query.page) ? parseInt(request_headers.query.page) : 0;
 
         // get mailbox name
-        var mailbox_name = ssid_sessions[socket.ssid].mailstore.getMailboxById(parseInt(mailbox));
+        var mailbox_name = session_data.mailstore.getMailboxById(parseInt(mailbox));
 
         // if false or null, then mailbox is invalid
         if (!mailbox_name) {
             mail_end_error("Invalid Mailbox ID");
         } else {
             // mailboxid is ok
-            if (!ssid_sessions[socket.ssid].mailstore.mailboxExists(mailbox)) {
+            if (!session_data.mailstore.mailboxExists(mailbox)) {
                 // mailbox does not yet exist, create it
-                var mailbox_exists = ssid_sessions[socket.ssid].mailstore.createMailbox(mailbox);
+                var mailbox_exists = session_data.mailstore.createMailbox(mailbox);
                 if (!mailbox_exists) {
                     // failed to create mailbox for some reason
                     mail_end_error();
                 } else {
                     if (mailbox === 0) {
                         // Just created Inbox for the first time, so create the welcome message
-                        ssid_sessions[socket.ssid].mailstore.createWelcomeMessage();
+                        session_data.mailstore.createWelcomeMessage();
                     }
                 }
             }
-            var message_list = ssid_sessions[socket.ssid].mailstore.listMessages(mailbox, limit, reverse_sort, (page * limit))
-            var total_message_count = ssid_sessions[socket.ssid].mailstore.countMessages(mailbox);
-            var total_unread_message_count = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(mailbox);
+            var message_list = session_data.mailstore.listMessages(mailbox, limit, reverse_sort, (page * limit))
+            var total_message_count = session_data.mailstore.countMessages(mailbox);
+            var total_unread_message_count = session_data.mailstore.countUnreadMessages(mailbox);
 
             var message_list_string = null;
             if (total_message_count == 0) {
@@ -69,7 +69,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
                 }
             }
 
-            var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
+            var username = session_data.getSessionData("subscriber_username");
             var notImplementedAlert = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "This feature is not available.",
@@ -204,7 +204,7 @@ label="View saved e-mail messages">
             var icon_image = null;
             switch (mailbox_name) {
                 case "Inbox":
-                    icon_image = ssid_sessions[socket.ssid].mailstore.getMailboxIcon();
+                    icon_image = session_data.mailstore.getMailboxIcon();
                     break;
                 case "Sent":
                     icon_image = "MailboxSent.gif";

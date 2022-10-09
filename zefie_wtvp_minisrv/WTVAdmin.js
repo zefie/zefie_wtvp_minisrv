@@ -158,11 +158,13 @@ class WTVAdmin {
     isBanned(ssid) {
         var self = this;
         var isBanned = false;
-        Object.keys(this.minisrv_config.config.ssid_block_list).forEach(function (k) {
-            if (self.minisrv_config.config.ssid_block_list[k] == ssid) {
-                isBanned = true;
-            }
-        });
+        if (this.minisrv_config.config.ssid_block_list) {
+            Object.keys(this.minisrv_config.config.ssid_block_list).forEach(function (k) {
+                if (self.minisrv_config.config.ssid_block_list[k] == ssid) {
+                    isBanned = true;
+                }
+            });
+        }
         return isBanned;
     }
 }

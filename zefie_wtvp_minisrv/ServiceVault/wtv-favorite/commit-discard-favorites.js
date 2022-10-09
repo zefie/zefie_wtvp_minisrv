@@ -25,7 +25,7 @@ Connection: Keep-Alive
 Content-Type: text/html
 Location: wtv-favorite:/serve-browser?favorite_folder_name=${folder}`
 } else if (strName != "getCaseInsensitiveKey") {
-var favorite = ssid_sessions[socket.ssid].favstore.getFavorite(folder, strName);
+var favorite = session_data.favstore.getFavorite(folder, strName);
 
 if (errpage) {
 	headers = errpage[0];
@@ -62,9 +62,9 @@ Location: ${confirmAlert}`
 		var gourl = `wtv-favorite:/serve-discard-favorites?favorite_folder_name=${folder}`;
 		if (discardAll == "Discard All")
 		{
-			ssid_sessions[socket.ssid].favstore.clearFolder(folder);
+			session_data.favstore.clearFolder(folder);
 		} else {
-			ssid_sessions[socket.ssid].favstore.deleteFavorite(strName, folder);
+			session_data.favstore.deleteFavorite(strName, folder);
 		}
 
 		headers = `300 OK

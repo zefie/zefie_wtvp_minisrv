@@ -28,7 +28,7 @@ if (!request_headers.query.registering) {
 wtv-noback-all: wtv-register:
 Content-Type: text/html`;
         var title = "Account Review";
-        var isOldBuild = wtvshared.isOldBuild(ssid_sessions[socket.ssid]);
+        var isOldBuild = wtvshared.isOldBuild(session_data);
         var main_data = '';
         if (!isOldBuild) main_data += `<table cellspacing=0 cellpadding=0 border=0 width=560 bgcolor=#171726>
 <tr><td>`;

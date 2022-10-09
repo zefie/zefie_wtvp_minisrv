@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
 var WTVAdmin = require("./WTVAdmin.js");
-var wtva = new WTVAdmin(minisrv_config, ssid_sessions[socket.ssid], service_name);
+var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
 var auth = wtva.isAuthorized();
 if (auth === true) {
     var password = null;
@@ -80,7 +80,7 @@ data += `
 </form><br><br>`
         if (request_headers.query.username) {
             if (user_info && !request_headers.query.confirm && !request_headers.query.reset) {
-                if (user_info.username == ssid_sessions[socket.ssid].getSessionData("subscriber_username")) {
+                if (user_info.username == session_data.getSessionData("subscriber_username")) {
                     data += `Are you sure you want to Polyzoot <b>yourself</b>?<br>Are you a masochist?`;
                 } else {
                     data += `Are you sure you want to Polyzoot <b>${user_info.username}</b>?<br>Are you a sadist?`;

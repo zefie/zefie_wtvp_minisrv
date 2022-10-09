@@ -2,7 +2,7 @@ var minisrv_service_file = true;
 
 var favoritenum = 0;
 var folder = request_headers.query.favorite_folder_name || null;
-var favarray = ssid_sessions[socket.ssid].favstore.listFavorites(folder);
+var favarray = session_data.favstore.listFavorites(folder);
 var error_occured = false;
 if (!folder) error_occured = true;
 else {
@@ -12,14 +12,14 @@ else {
 		// one favorite
 		var favid = request_headers.query.favoriteid;
 		var favfolder = request_headers.query.favoritefolder;
-		if (folder != favfolder) ssid_sessions[socket.ssid].favstore.moveFavorite(folder, favfolder, favid);
+		if (folder != favfolder) session_data.favstore.moveFavorite(folder, favfolder, favid);
 	} else {
 		if (request_headers.query.favoriteid.length == request_headers.query.favoritefolder.length) {
 			// both queries should have the same number of entries 
 			Object.keys(request_headers.query.favoriteid).forEach(function (k) {
 				var favid = request_headers.query.favoriteid[k];
 				var favfolder = request_headers.query.favoritefolder[k];
-				if (folder != favfolder) ssid_sessions[socket.ssid].favstore.moveFavorite(folder, favfolder, favid);
+				if (folder != favfolder) session_data.favstore.moveFavorite(folder, favfolder, favid);
 			})
 		} else {
 			error_occured = true;

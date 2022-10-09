@@ -1,15 +1,15 @@
 var minisrv_service_file = true;
-ssid_sessions[socket.ssid].loadSessionData();
+session_data.loadSessionData();
 
 var user_id = null;
 if (request_headers.query.user_id) {
     user_id = request_headers.query.user_id;
 } else {
-    user_id = ssid_sessions[socket.ssid].user_id;
+    user_id = session_data.user_id;
 }
 
 // security
-if (ssid_sessions[socket.ssid].user_id != 0 && ssid_sessions[socket.ssid].user_id != request_headers.query.user_id) {
+if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
     var errpage = doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
@@ -19,10 +19,10 @@ if (ssid_sessions[socket.ssid].user_id != 0 && ssid_sessions[socket.ssid].user_i
 if (user_id != null) {
     headers = `200 OK
 Connection: Keep-Alive
-wtv-mail-count: ${ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0)}
+wtv-mail-count: ${session_data.mailstore.countUnreadMessages(0)}
 Content-Type: text/html`
     var userSession = null;
-    if (ssid_sessions[socket.ssid].user_id == request_headers.query.user_id) userSession = ssid_sessions[socket.ssid];
+    if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
         userSession.user_id = user_id;

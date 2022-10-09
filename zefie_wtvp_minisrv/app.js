@@ -6,7 +6,6 @@ const path = require('path');
 const zlib = require('zlib');
 const http = require('http');
 const https = require('https');
-const strftime = require('strftime'); // used externally by service scripts
 const net = require('net');
 const CryptoJS = require('crypto-js');
 const { crc16 } = require('easy-crc');
@@ -39,14 +38,6 @@ var ssid_sessions = new Array();
 var socket_sessions = new Array();
 
 var ports = [];
-
-// for scripts
-function parseBool(val) {
-    if (typeof val === 'string')
-        val = val.toLowerCase();
-
-    return val === true || val === "true";
-}
 
 // add .reverse() feature to all JavaScript Strings in this application
 // works for service vault scripts too.
@@ -95,10 +86,6 @@ function getServiceString(service, overrides = {}) {
     }
 }
 
-// passthrough for old scripts
-function doErrorPage(code, data = null, pc_mode = false) {
-    return wtvshared.doErrorPage(code, data, pc_mode);
-}
 
 async function sendRawFile(socket, path) {
     if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
@@ -111,70 +98,101 @@ async function sendRawFile(socket, path) {
     });
 }
 
+var runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null) {
+    // Here we define the ServiceVault Script Context Object
+    // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
+    // Furthermore, only modifications to variables in `updateFromVM` will be saved.
+    // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
+    var WTVGuide = null;
+    if (fs.existsSync(__dirname + "/WTVGuide.js")) WTVGuide = require("./WTVGuide.js");
+    var WTVBGMusic = require("./WTVBGMusic.js");
+
+    // create global context object
+    var contextObj = {
+        // node core variables and functions
+        "console": console, // needed for per-script debugging
+        "__dirname": __dirname, // needed by services such as wtv-flashrom and wtv-disk
+
+        // Our modules
+        "wtvmime": wtvmime,
+        "http": http,
+        "https": https,
+        "wtvshared": wtvshared,
+        "zlib": zlib,
+        "clientShowAlert": clientShowAlert,
+        "WTVClientSessionData": WTVClientSessionData,
+        "WTVClientCapabilities": WTVClientCapabilities,
+        "WTVFlashrom": WTVFlashrom,
+        "strftime": require('strftime'),
+        "CryptoJS": CryptoJS,
+        "fs": fs,
+        "path": path,
+
+        // Our variables and functions
+        "minisrv_config": minisrv_config,
+        "socket": null,
+        "headers": null,
+        "data": null,
+        "request_is_async": false,
+        "minisrv_version_string": z_title,
+        "getServiceString": getServiceString,
+        "sendToClient": sendToClient,
+        "service_vaults": service_vaults,
+        "cwd": __dirname, // current working directory
+
+        // Our prototype overrides
+        "Buffer": Buffer,
+        "String": String,
+        "Object": Object,
+
+        // add any additional context objects provided with function call
+        ...user_contextObj
+    }
+
+    if (contextObj.socket) {
+        if (contextObj.socket.ssid) {
+            if (WTVGuide) contextObj.wtvguide = new WTVGuide(minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
+            contextObj.wtvbgm = new WTVBGMusic(minisrv_config, ssid_sessions[contextObj.socket.ssid]);
+        }
+        if (contextObj.socket.id)
+            if (socket_sessions[contextObj.socket.id]) contextObj.wtv_encrypted = (socket_sessions[contextObj.socket.id].secure === true);
+    }
+
+    if (privileged) {
+        contextObj = {
+            ...contextObj,
+            "privileged": true,
+            "require": require, // this is dangerous but needed for some scripts at this time
+            "SessionStore": SessionStore,
+            "ssid_sessions": ssid_sessions,
+            "socket_sessions": socket_sessions,
+            "reloadConfig": reloadConfig
+        }
+    }
+
+    var options = {};
+    if (filename) options = { "filename": filename };
+    var eval_ctx = new vm.Script(script_data, options)
+    eval_ctx.runInNewContext(contextObj, {
+        "breakOnSigint": true
+    });
+
+    return contextObj; // updated context object with whatever global varibles the script set
+}
+
 async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name, shared_romcache = null) {
     var headers, data = null;
     var request_is_async = false;
     var service_vault_found = false;
     var service_path = unescape(service_vault_file_path);
     var usingSharedROMCache = false;
-    // Here we define the ServiceVault Script Context Object
-    // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
-    // Furthermore, only modifications to variables in `updateFromVM` will be saved.
-    // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
-
-    // node core variables and functions
     var contextObj = {
-        console: console, // needed for per-script debugging
-        require: require, // this is dangerous but needed for some scripts at this time
-        __dirname: __dirname // needed by services such as wtv-flashrom and wtv-disk
-    }
-
-    // Our modules
-    contextObj = {
-        ...contextObj,
-        wtvmime: wtvmime,
-        http: http,
-        https: https,
-        wtvshared: wtvshared,
-        zlib: zlib,
-        clientShowAlert: clientShowAlert,
-        WTVClientSessionData: WTVClientSessionData,
-        WTVClientCapabilities: WTVClientCapabilities,
-		WTVFlashrom: WTVFlashrom,
-        strftime: strftime,
-        CryptoJS: CryptoJS,
-        fs: fs,
-        path: path
-    }
-
-    // Our variables and functions
-    contextObj = {
-        ...contextObj,
-        minisrv_config: minisrv_config,
-        getServiceString: getServiceString,
-        sendToClient: sendToClient,
-        socket: socket,
-        SessionStore: SessionStore,
-        request_headers: request_headers,
-        service_name: service_name,
-        service_vaults: service_vaults,
-        ssid_sessions: ssid_sessions,
-        socket_sessions: socket_sessions,
-        headers: headers,
-        data: data,
-        request_is_async: request_is_async,
-        minisrv_version_string: z_title,
-        parseBool: parseBool,
-        reloadConfig: reloadConfig,
-        cwd: __dirname // current working directory, updated below in function
-    }
-
-    // Our prototype overrides
-    contextObj = {
-        ...contextObj,
-        Buffer: Buffer,
-        String: String,
-        Object: Object
+        "privileged": false,
+        "socket": socket,
+        "session_data": ssid_sessions[socket.ssid],
+        "request_headers": request_headers,
+        "service_name": service_name,
+        "cwd": __dirname // current working directory, updated below in function
     }
 
     // Define the variables that we want to assign from the evaluated script.
@@ -186,8 +204,9 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         ["headers", "headers"],                     // we need to be able to read the script's response headers
         ["data", "data"],                           // we need to be able to read the script's response data
         ["request_is_async", "request_is_async"],   // we need to know if the script is async or not
-        ["ssid_sessions", "ssid_sessions"],         // certain service scripts need to update the user session, such as wtv-setup, wtv-mail, etc
-        ["socket_sessions", "socket_sessions"]      // certain service scripts need to update the socket session, such as wtv-1800, etc
+        ["ssid_sessions", "ssid_sessions"],         // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
+        ["socket_sessions", "socket_sessions"],      // global socket_sessions object for privileged service scripts, such as wtv-1800, etc
+        [`ssid_sessions[${socket.ssid}]`, "session_data"] // user-specific session data from unprivileged scripts
     ];
 
     try {
@@ -347,18 +366,17 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // expose var service_dir for script path to the root of the wtv-service                    
                     socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
                     var script_data = fs.readFileSync(service_vault_file_path + ".js").toString();
-                    var eval_ctx = new vm.Script(script_data, {
-                        "filename": service_vault_file_path + ".js"
-                    })
-                    eval_ctx.runInNewContext(contextObj, {
-                        "breakOnSigint": true
-                    });
-
+                    var priv = (minisrv_config.services[service_name].privileged) ? true : false;
+                    var vmResults = runScriptInVM(script_data, contextObj, priv, service_vault_file_path + ".js");
                     // Here we read back certain data from the ServiceVault Script Context Object
                     updateFromVM.forEach((item) => {
-                        eval(item[0] +' = contextObj["'+item[1]+'"]');
+                        try {
+                            if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
+                        } catch (e) {
+
+                        }
                     })
-                    
+
                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
                 }
                 else if (fs.existsSync(service_vault_file_path + ".html")) {
@@ -389,19 +407,18 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                     request_headers.service_file_path = catchall_file;
                                     var script_data = fs.readFileSync(catchall_file).toString();
-                                    var eval_ctx = new vm.Script(script_data, {
-                                        "filename": catchall_file
-                                    })
-									eval_ctx.runInNewContext(contextObj, {
-										"breakOnSigint": true
-									});
+                                    var priv = (minisrv_config.services[service_name].privileged) ? true : false;
+                                    runScriptInVM(script_data, contextObj, priv, catchall_file);
 
-									// Here we read back certain data from the ServiceVault Script Context Object
-									updateFromVM.forEach((item) => {
-										eval(item[0] +' = contextObj["'+item[1]+'"]');
-									})
+                                    // Here we read back certain data from the ServiceVault Script Context Object
+                                    try {
+                                        if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
+                                    } catch (e) {
+
+                                    }
+
                                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
-									break;
+                                    break;
                                 } else {
                                     service_check_dir.pop();
                                 }
@@ -452,7 +469,7 @@ function verifyServicePort(service_name, socket) {
                     return minisrv_config.services[service_name].servicevault_dir;
                 else
                     return service_name;
-            }            
+            }
         }
     }
     return false;
@@ -558,7 +575,7 @@ async function processURL(socket, request_headers) {
                     }
                 }
             } catch (e) {
-               console.log("error:",e)
+                console.log("error:", e)
             }
         }
         if ((shortURL.indexOf("http") != 0 && shortURL.indexOf("ftp") != 0 && shortURL.indexOf(":") > 0 && shortURL.indexOf(":/") == -1)) {
@@ -1047,7 +1064,7 @@ async function sendToClient(socket, headers_obj, data) {
         var compression_percentage = ((1 - (compressed_content_length / uncompressed_content_length)) * 100).toFixed(1);
         if (uncompressed_content_length != compressed_content_length) if (minisrv_config.config.debug_flags.debug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_ratio, "~ Saved:", compression_percentage.toString() + "%");
     }
-    
+
 
     // encrypt if needed
     if (socket_sessions[socket.id].secure == true && !socket_sessions[socket.id].do_not_encrypt) {
@@ -1301,7 +1318,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         }
                     }
                 }
-            } 
+            }
 
             if (!headers) return;
 
@@ -1314,7 +1331,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     }
                     if (!ssid_sessions[socket.ssid].data_store.sockets) ssid_sessions[socket.ssid].data_store.sockets = new Set();
                     ssid_sessions[socket.ssid].data_store.sockets.add(socket);
-                } 
+                }
             }
 
             if (!socket.ssid) {
@@ -1521,7 +1538,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 console.log(socket)
                 console.log("pc https?");
             } else {
-            // handle streaming POST
+                // handle streaming POST
                 if (socket_sessions[socket.id].expecting_post_data && headers) {
                     socket_sessions[socket.id].headers = headers;
                     if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
@@ -1866,7 +1883,7 @@ if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 bind_ports.every(function (v) {
     try {
         var server = net.createServer(handleSocket);
-        server.listen(v, minisrv_config.config.bind_ip);            
+        server.listen(v, minisrv_config.config.bind_ip);
         initstring += v + ", ";
         return true;
     } catch (e) {

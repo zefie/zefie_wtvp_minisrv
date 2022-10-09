@@ -1,8 +1,5 @@
 var minisrv_service_file = true;
 
-var WTVBGMusic = require("./WTVBGMusic.js");
-var wtvbgm = new WTVBGMusic(minisrv_config, ssid_sessions[socket.ssid])
-
 var catsListed = 0;
 var categories = wtvbgm.getCategoryList();
 var divide = Math.round(categories.length / 2, 0);

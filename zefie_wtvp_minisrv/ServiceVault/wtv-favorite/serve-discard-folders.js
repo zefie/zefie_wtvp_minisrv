@@ -1,6 +1,6 @@
 var minisrv_service_file = true;
 
-var folder_array = ssid_sessions[socket.ssid].favstore.getFolders();
+var folder_array = session_data.favstore.getFolders();
 var totalfavorites = folder_array.length;
 
 headers = `200 OK

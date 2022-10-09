@@ -4,9 +4,9 @@ var favoritenum = 0;
 
 var foldername = request_headers.query.favorite_folder_name;
 
-var favarray = ssid_sessions[socket.ssid].favstore.listFavorites(foldername);
+var favarray = session_data.favstore.listFavorites(foldername);
 
-var folder_array = ssid_sessions[socket.ssid].favstore.getFolders();
+var folder_array = session_data.favstore.getFolders();
 
 var folderid = folder_array.indexOf(foldername);
 
@@ -121,7 +121,7 @@ Favorites
 </td><td><table width="428" cellspacing="0" cellpadding="0">
 <tbody><tr>
 <td align="left">
-<shadow><blackface><font color="e7ce4a">Favorites for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
+<shadow><blackface><font color="e7ce4a">Favorites for ${session_data.getSessionData("subscriber_username") || "You"}
 </font><shadow><blackface>
 </blackface></shadow></blackface></shadow></td></tr></tbody></table>
 </td></tr><tr>

@@ -4,9 +4,9 @@ var favoritenum = 0;
 
 var foldername = request_headers.query.favorite_folder_name;
 
-var favarray = ssid_sessions[socket.ssid].favstore.listFavorites(foldername);
+var favarray = session_data.favstore.listFavorites(foldername);
 
-var folder_array = ssid_sessions[socket.ssid].favstore.getFolders();
+var folder_array = session_data.favstore.getFolders();
 
 var folderid = folder_array.indexOf(foldername);
 

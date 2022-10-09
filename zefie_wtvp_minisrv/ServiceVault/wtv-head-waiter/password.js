@@ -37,7 +37,7 @@ text="AA9B4A" link=189cd6 vlink=189cd6 hspace=0 fontsize="large"> <form action=/
 <td height=125 valign=center>
 <font size=+1 color=42bd52>Password 
 <img src="ROMCache/Spacer.gif" width=4 height=1> <input type=password size=26 maxlength="${minisrv_config.config.passwords.max_length}" name="password" bgcolor=#444444 text=#ffdd33 cursor=#cc9933 id="password" selected >
-<input type=hidden name="user_id" id="user_id" value=${ssid_sessions[socket.ssid].user_id}> <tr> <td>
+<input type=hidden name="user_id" id="user_id" value=${session_data.user_id}> <tr> <td>
 <td>
 <tr>
 <td> 

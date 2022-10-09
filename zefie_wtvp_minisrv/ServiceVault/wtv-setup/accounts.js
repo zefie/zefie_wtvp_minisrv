@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
-ssid_sessions[socket.ssid].loadSessionData();
+session_data.loadSessionData();
 
-if (ssid_sessions[socket.ssid].user_id != 0) {
+if (session_data.user_id != 0) {
     var errpage = doErrorPage(400, "You are not authorized to edit the primary account.");
     headers = errpage[0];
     data = errpage[1];
@@ -66,9 +66,9 @@ ${minisrv_config.config.service_name} users
 <FONT COLOR="44cc55"><B>
 Subscriber:
 <P>`;
-    var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
+    var accounts = session_data.listPrimaryAccountUsers();
 
-    var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
+    var num_accounts = session_data.getNumberOfUserAccounts();
     if (num_accounts > 1) data += "Additional users:</B></FONT>";
 
     data += "<TD WIDTH=20><TD WIDTH=198 VALIGN=top ALIGN=left>";

@@ -69,7 +69,7 @@ the next time you connect to WebTV.
 <tr>
 <td align=left>
 User Name<form action=validate-messenger-account>
-<INPUT noSubmit name="email" id="email" Value="${ssid_sessions[socket.ssid].getSessionData("messenger_email")}"
+<INPUT noSubmit name="email" id="email" Value="${session_data.getSessionData("messenger_email")}"
 bgcolor=#444444 text=#ffdd33 cursor=#cc9933
 TYPE="input" ASCIIONLY
 SIZE="16"

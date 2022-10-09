@@ -2,7 +2,7 @@ var minisrv_service_file = true;
 var errpage;
 
 var query = request_headers.query
-var folder_array = ssid_sessions[socket.ssid].favstore.getFolders();
+var folder_array = session_data.favstore.getFolders();
 var totalfavorites = folder_array.length;
 
 var strName, strValue ;
@@ -21,8 +21,8 @@ Connection: Keep-Alive
 Content-Type: text/html
 Location: wtv-favorite:/favorite`
 } else if (strName != "getCaseInsensitiveKey") {
-var folder = ssid_sessions[socket.ssid].favstore.getFolders();
-var folderdata = ssid_sessions[socket.ssid].favstore.listFavorites(strName);
+var folder = session_data.favstore.getFolders();
+var folderdata = session_data.favstore.listFavorites(strName);
 var numoffavorites = Object.keys(folderdata).length;
 
 if (totalfavorites == 1) {
@@ -59,7 +59,7 @@ Location: ${confirmAlert}`
 	} else {
 		
 		var gourl = "wtv-favorite:/serve-discard-folders";
-		ssid_sessions[socket.ssid].favstore.deleteFolder(strName);
+		session_data.favstore.deleteFolder(strName);
 
 		headers = `300 OK
 Connection: Keep-Alive

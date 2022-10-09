@@ -1,10 +1,10 @@
 var minisrv_service_file = true;
 var errpage;
 
-if (Object.keys(ssid_sessions[socket.ssid].listPrimaryAccountUsers()).length == 1) {
+if (Object.keys(session_data.listPrimaryAccountUsers()).length == 1) {
 	errpage = wtvshared.doErrorPage(400, "There are no more users to remove.");
 }
-else if (ssid_sessions[socket.ssid].user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
+else if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
 if (errpage) {
 	headers = errpage[0];
 	data = errpage[1];
@@ -95,9 +95,9 @@ noscroll>
 <P><FORM ACTION="wtv-setup:/validate-remove-users" METHOD="POST">
 `;
 
-	var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
+	var accounts = session_data.listPrimaryAccountUsers();
 
-	var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
+	var num_accounts = session_data.getNumberOfUserAccounts();
 	if (num_accounts > 1) {
 		delete accounts.subscriber;
 		for (const [key, value] of Object.entries(accounts)) {

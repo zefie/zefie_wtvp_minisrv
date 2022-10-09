@@ -1,13 +1,13 @@
 var minisrv_service_file = true;
 
-if (!ssid_sessions[socket.ssid].getSessionData("messenger_enabled") == 1) {
-	ssid_sessions[socket.ssid].setSessionData("messenger_enabled", 1);
-	ssid_sessions[socket.ssid].saveSessionData;
+if (!session_data.getSessionData("messenger_enabled") == 1) {
+	session_data.setSessionData("messenger_enabled", 1);
+	session_data.saveSessionData;
 	var justenabled = "true"
 	var enablestatus = "1"
 } else {
-	ssid_sessions[socket.ssid].setSessionData("messenger_enabled", 0);
-	ssid_sessions[socket.ssid].saveSessionData;
+	session_data.setSessionData("messenger_enabled", 0);
+	session_data.saveSessionData;
 	var justenabled = "false"
 	var enablestatus = "0"
 }

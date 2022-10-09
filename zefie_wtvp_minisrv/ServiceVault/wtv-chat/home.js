@@ -2,11 +2,11 @@ var minisrv_service_file = true;
 
 var irc_nick = "";
 headers = "200 OK";
-if (request_headers.query.nick) headers += "\n" + ssid_sessions[socket.ssid].setIRCNick(request_headers.query.nick);
-else if (!ssid_sessions[socket.ssid].getSessionData("subscriber_irc_nick")) ssid_sessions[socket.ssid].getSessionData("subscriber_username") || ssid_sessions[socket.ssid].setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).substring(0, 16);
+if (request_headers.query.nick) headers += "\n" + session_data.setIRCNick(request_headers.query.nick);
+else if (!session_data.getSessionData("subscriber_irc_nick")) session_data.getSessionData("subscriber_username") || session_data.setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).substring(0, 16);
 headers += "\nContent-Type: text/html";
 
-var irc_nick = ssid_sessions[socket.ssid].getSessionData("subscriber_irc_nick") || ssid_sessions[socket.ssid].getSessionData("subscriber_username");
+var irc_nick = session_data.getSessionData("subscriber_irc_nick") || session_data.getSessionData("subscriber_username");
 
 data = `<html>
 <head>

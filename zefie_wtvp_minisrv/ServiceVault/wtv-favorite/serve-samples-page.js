@@ -104,7 +104,7 @@ by going to the folder and choosing <b>Organize</b>.<br>
 <td width=25>
 <tr>
 <td width=25>`
-if (ssid_sessions[socket.ssid].favstore.folderExists("Fun") == true)
+if (session_data.favstore.folderExists("Fun") == true)
 {
 	data += `
 <td width=50% absheight=30 align=left valign=middle>
@@ -124,7 +124,7 @@ if (ssid_sessions[socket.ssid].favstore.folderExists("Fun") == true)
 <input type="checkbox" name="Fun" value="true"> &nbsp;Fun
 </font>`
 }
-if (ssid_sessions[socket.ssid].favstore.folderExists("Money") == true)
+if (session_data.favstore.folderExists("Money") == true)
 {
 	data += `
 <td width=50% absheight=30 align=left valign=middle>
@@ -147,7 +147,7 @@ if (ssid_sessions[socket.ssid].favstore.folderExists("Money") == true)
 <td width=25>
 <tr>
 <td width=25>`
-if (ssid_sessions[socket.ssid].favstore.folderExists("Movies") == true)
+if (session_data.favstore.folderExists("Movies") == true)
 {
 	data += `
 <td width=50% absheight=30 align=left valign=middle>
@@ -167,7 +167,7 @@ if (ssid_sessions[socket.ssid].favstore.folderExists("Movies") == true)
 <input type="checkbox" name="Movies" value="true"> &nbsp;Movies
 </font>`
 }
-if (ssid_sessions[socket.ssid].favstore.folderExists("News") == true)
+if (session_data.favstore.folderExists("News") == true)
 {
 	data += `
 <td width=50% absheight=30 align=left valign=middle>
@@ -191,7 +191,7 @@ data += `
 <td width=25>
 <tr>
 <td width=25>`
-if (ssid_sessions[socket.ssid].favstore.folderExists("Recommended") == true)
+if (session_data.favstore.folderExists("Recommended") == true)
 {
 	data += `
 <td width=50% absheight=30 align=left valign=middle>
@@ -211,7 +211,7 @@ if (ssid_sessions[socket.ssid].favstore.folderExists("Recommended") == true)
 <input type="checkbox" name="Recommended" value="true"> &nbsp;Recommended
 </font>`
 }
-if (ssid_sessions[socket.ssid].favstore.folderExists("Reference") == true)
+if (session_data.favstore.folderExists("Reference") == true)
 {
 	data += `
 <td width=50% absheight=30 align=left valign=middle>

@@ -4,9 +4,9 @@ var favoritenum = 0;
 
 var foldername = request_headers.query.favorite_folder_name;
 
-var favarray = ssid_sessions[socket.ssid].favstore.listFavorites(foldername);
+var favarray = session_data.favstore.listFavorites(foldername);
 
-var folder_array = ssid_sessions[socket.ssid].favstore.getFolders();
+var folder_array = session_data.favstore.getFolders();
 
 var folderid = folder_array.indexOf(foldername);
 
@@ -192,7 +192,7 @@ by name only.
 <td valign=top>
 <input type=hidden name=autosubmit autosubmit=onleave>
 <INPUT TYPE="checkbox" NAME="with_pictures" `
-if (ssid_sessions[socket.ssid].getSessionData("subscriber_fav_images") == "true")
+if (session_data.getSessionData("subscriber_fav_images") == "true")
 	console.log("SELECTED")
 	data += "checked"
 data += ` selected>

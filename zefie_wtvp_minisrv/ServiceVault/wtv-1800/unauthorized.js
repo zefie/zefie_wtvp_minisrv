@@ -54,7 +54,7 @@ Access Denied
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>
 <td colspan=9 width=100 height=258 valign=top align=left>
-<font size=-1>You are not authorized to use this service. <p>Reason: ${ssid_sessions[socket.ssid].lockdownReason}</font>
+<font size=-1>You are not authorized to use this service. <p>Reason: ${session_data.lockdownReason}</font>
 <tr>
 <td width=104 valign=middle align=center>
 <td width=20 valign=middle align=center>

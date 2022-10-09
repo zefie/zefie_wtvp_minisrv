@@ -1,15 +1,15 @@
 var minisrv_service_file = true;
 
-var favstore_exists = ssid_sessions[socket.ssid].favstore.favstoreExists();
+var favstore_exists = session_data.favstore.favstoreExists();
 
 if (favstore_exists != true)
 {
-	ssid_sessions[socket.ssid].favstore.createFavstore();
+	session_data.favstore.createFavstore();
 	headers = `300 OK
 Location: wtv-favorite:/favorite`
 } else {
 
-var folder_array = ssid_sessions[socket.ssid].favstore.getFolders();
+var folder_array = session_data.favstore.getFolders();
 var totalfavorites = folder_array.length;
 var stopdrawing = false;
 
@@ -129,7 +129,7 @@ Favorite folders
 <tbody><tr><td align="left">
 <shadow><blackface><font color="e7ce4a">
 Favorite folders
-for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
+for ${session_data.getSessionData("subscriber_username") || "You"}
 </font><blackface><shadow>
 </shadow></blackface></blackface></shadow></td></tr></tbody></table>
 </td></tr><tr>

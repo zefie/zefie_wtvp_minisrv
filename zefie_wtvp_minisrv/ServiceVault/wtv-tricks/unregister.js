@@ -3,18 +3,18 @@ var minisrv_service_file = true;
 headers = `200 OK
 Content-Type: text/html`;
 
-if (!ssid_sessions[socket.ssid].getSessionData("registered")) {
+if (!session_data.getSessionData("registered")) {
     headers += "\nwtv-noback-all: wtv-";
     headers += "\nwtv-expire-all: wtv-";
     var redirect = [5, "client:relogin?"];
     var message = "Error: Your box is not registered. You are accessing " + minisrv_config.config.service_name + " in Guest Mode. There is nothing to delete!";
-} else if (ssid_sessions[socket.ssid].user_id !== 0) {
+} else if (session_data.user_id !== 0) {
     headers += "\nwtv-noback-all: wtv-";
     headers += "\nwtv-expire-all: wtv-";
     var redirect = [5, "wtv-tricks:/tricks"];
     var message = "Error: You must be the primary user to unregister this box.";
 } else if (request_headers.query.confirm_unregister) {
-    if (ssid_sessions[socket.ssid].unregisterBox()) {
+    if (session_data.unregisterBox()) {
         headers += "\nwtv-noback-all: wtv-";
         headers += "\nwtv-expire-all: wtv-";
         var redirect = [3, "client:relog?"];

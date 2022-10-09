@@ -1,5 +1,4 @@
 var minisrv_service_file = true;
-var { WTVShared, clientShowAlert } = require("./WTVShared.js");
 
 var notImplementedAlert = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
@@ -63,7 +62,7 @@ hspace=0 vspace=0
 <td valign=center absheight=80>
 <shadow><blackface><font color="e7ce4a" font size="+1">
 Settings
-for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}
+for ${session_data.getSessionData("subscriber_username") || "You"}
 </font><blackface><shadow>
 </table>
 <tr>
@@ -117,7 +116,7 @@ data += `
 <a href="wtv-setup:/keyboard">Keyboard</a><BR>
 <spacer type=block width=1 height=5><BR>`;
 
-if (ssid_sessions[socket.ssid].user_id == 0) {
+if (session_data.user_id == 0) {
 	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
 <a href="wtv-setup:/accounts">Extra Users</a><BR>
 <spacer type=block width=1 height=5><BR>`;
@@ -149,7 +148,7 @@ if (!minisrv_config.config.hide_incomplete_features) {
 <spacer type=block width=6 height=5><font size="2"><br>`;
 }
 data += `Choose an on-screen keyboard<BR>`;
-if (ssid_sessions[socket.ssid].user_id == 0) {
+if (session_data.user_id == 0) {
 	data += `<spacer type=block width=6 height=5><font size="2"><br>
 Add, change, or remove users<BR>`;
 }

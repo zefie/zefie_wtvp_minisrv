@@ -295,7 +295,7 @@ async function WebTVShowMessage(client, group, article) {
                 headers = `200 OK
 Content-type: text/html`;
 
-                var message_colors = ssid_sessions[socket.ssid].mailstore.defaultColors;
+                var message_colors = session_data.mailstore.defaultColors;
 
                 data = `<head>
 <sendpanel

@@ -1,13 +1,13 @@
 var minisrv_service_file = true;
 
-var favstore_exists = ssid_sessions[socket.ssid].favstore.favstoreExists();
+var favstore_exists = session_data.favstore.favstoreExists();
 
 if (favstore_exists != true)
 {
-	ssid_sessions[socket.ssid].favstore.createFavstore();
+	session_data.favstore.createFavstore();
 }
 
-var folder_array = ssid_sessions[socket.ssid].favstore.getFolders();
+var folder_array = session_data.favstore.getFolders();
 var data = "";
 
 for (let i = 0; i < folder_array.length; i++) data += folder_array[i] + "\0";

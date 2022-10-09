@@ -1,11 +1,11 @@
 var minisrv_service_file = true;
 
-ssid_sessions[socket.ssid].loadSessionData();
+session_data.loadSessionData();
 
-var user_id = (request_headers.query.user_id) ? request_headers.query.user_id : ssid_sessions[socket.ssid].user_id;
+var user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
 
 // security
-if (ssid_sessions[socket.ssid].user_id != 0 && ssid_sessions[socket.ssid].user_id != request_headers.query.user_id) {
+if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
     var errpage = wtvshared.doErrorPage(400, "You are not authorized to change the selected user's password.");
     headers = errpage[0];
@@ -14,7 +14,7 @@ if (ssid_sessions[socket.ssid].user_id != 0 && ssid_sessions[socket.ssid].user_i
 
 if (user_id != null) {
     var userSession;
-    if (ssid_sessions[socket.ssid].user_id == request_headers.query.user_id) userSession = ssid_sessions[socket.ssid];
+    if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
         userSession.user_id = user_id;

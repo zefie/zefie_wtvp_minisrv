@@ -11,12 +11,12 @@ if (request_headers.query.action == "editfromheader") {
 	}
 	var addresstoadd = parseAddress()
 
-	if (ssid_sessions[socket.ssid].getSessionData("address_book")) {
-		ssid_sessions[socket.ssid].setSessionData("address_book", ssid_sessions[socket.ssid].getSessionData("address_book") + addresstoadd);
-		ssid_sessions[socket.ssid].saveSessionData();
+	if (session_data.getSessionData("address_book")) {
+		session_data.setSessionData("address_book", session_data.getSessionData("address_book") + addresstoadd);
+		session_data.saveSessionData();
 	} else {
-		ssid_sessions[socket.ssid].setSessionData("address_book", addresstoadd);
-		ssid_sessions[socket.ssid].saveSessionData();
+		session_data.setSessionData("address_book", addresstoadd);
+		session_data.saveSessionData();
 	}
 
 
@@ -117,10 +117,10 @@ label="View saved messages">
 
 <TABLE CELLSPACING=0 CELLPADDING=0>
 <TR><TD COLSPAN=3 HEIGHT=12VALIGN=TOP ALIGN=LEFT>
-<TR><TD COLSPAN=3 HEIGHT=35 VALIGN=TOP><FONT SIZE=+3 COLOR="E7CE4A"><B><SHADOW><BLACKFACE>Buddies for ${ssid_sessions[socket.ssid].getSessionData("subscriber_username") || "You"}</BLACKFACE></SHADOW></B></FONT>
+<TR><TD COLSPAN=3 HEIGHT=35 VALIGN=TOP><FONT SIZE=+3 COLOR="E7CE4A"><B><SHADOW><BLACKFACE>Buddies for ${session_data.getSessionData("subscriber_username") || "You"}</BLACKFACE></SHADOW></B></FONT>
 <TR><TD COLSPAN=3 HEIGHT=25 VALIGN=TOP>
 	<TABLE CELLSPACING=0 CELLPADDING=0>
-	<TD WIDTH=400>Your address is ${ssid_sessions[socket.ssid].getSessionData("messenger_email") || "unlinked"}@${ssid_sessions[socket.ssid].getSessionData("messenger_domain") || "escargot.chat"}
+	<TD WIDTH=400>Your address is ${session_data.getSessionData("messenger_email") || "unlinked"}@${session_data.getSessionData("messenger_domain") || "escargot.chat"}
 	<TD ALIGN=RIGHT>
 	</TABLE>
 </TABLE>

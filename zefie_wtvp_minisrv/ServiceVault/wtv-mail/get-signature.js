@@ -5,10 +5,10 @@ var errpage = null;
 var messageid = request_headers.query.message_id || null;
 if (!messageid) {
     // get user signature
-    data = ssid_sessions[socket.ssid].getSessionData("subscriber_signature");
+    data = session_data.getSessionData("subscriber_signature");
 } else {
     // get message signature
-    var message = ssid_sessions[socket.ssid].mailstore.getMessageByID(messageid);
+    var message = session_data.mailstore.getMessageByID(messageid);
     if (!message) errpage = wtvshared.doErrorPage(400, "Invalid Message ID");
     data = message.signature
 }

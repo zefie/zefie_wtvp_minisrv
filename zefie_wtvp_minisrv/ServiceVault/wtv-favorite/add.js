@@ -135,4 +135,4 @@ if (folder) folder = folder.replaceAll("+", " ")
 var imagetype = request_headers.query['favorite-thumbnail-type']
 var favurl = request_headers.query['favorite-url'];
 
-saveFavorite(ssid_sessions[socket.ssid].favstore, title, folder, imagetype, favurl);
+saveFavorite(session_data.favstore, title, folder, imagetype, favurl);

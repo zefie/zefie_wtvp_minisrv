@@ -6,10 +6,10 @@ Connection: Close
 wtv-noback-all: wtv-register:
 wtv-expire-all: wtv-`;
     if (socket.ssid) {
-        if (ssid_sessions[socket.ssid]) {
-            if (ssid_sessions[socket.ssid].data_store) {
-                if (ssid_sessions[socket.ssid].data_store.wtvsec_login) {
-                    headers += "\nwtv-ticket: " + ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64;
+        if (session_data) {
+            if (session_data.data_store) {
+                if (session_data.data_store.wtvsec_login) {
+                    headers += "\nwtv-ticket: " + session_data.data_store.wtvsec_login.ticket_b64;
                 }
             }
         }

@@ -52,5 +52,5 @@ AutoCaps selected>
 </shadow>
 </font>
 </form>`;
-    data = wtvr.getHTMLTemplate(minisrv_config.config.service_name + " Account Setup", main_data, form_data, wtvshared.isOldBuild(ssid_sessions[socket.ssid])); 
+    data = wtvr.getHTMLTemplate(minisrv_config.config.service_name + " Account Setup", main_data, form_data, wtvshared.isOldBuild(session_data)); 
 }

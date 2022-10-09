@@ -5,8 +5,8 @@ Expires: Wed, 09 Oct 1991 22:00:00 GMT
 Content-Type: text/plain`
 
 
-var email = ssid_sessions[socket.ssid].getSessionData("messenger_email") + "%40" + ssid_sessions[socket.ssid].getSessionData("messenger_domain");
-var password = ssid_sessions[socket.ssid].decryptPassword(ssid_sessions[socket.ssid].getSessionData("messenger_password"));
+var email = session_data.getSessionData("messenger_email") + "%40" + session_data.getSessionData("messenger_domain");
+var password = session_data.decryptPassword(session_data.getSessionData("messenger_password"));
 var challenge = request_headers.request.split('?')[1];
 
 if (request_headers.request.split('?')[1].substring(0, 3) != "ct=") {

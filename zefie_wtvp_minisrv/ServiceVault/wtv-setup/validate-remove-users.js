@@ -1,10 +1,10 @@
 var minisrv_service_file = true;
 var errpage;
 
-if (Object.keys(ssid_sessions[socket.ssid].listPrimaryAccountUsers()).length == 1) {
+if (Object.keys(session_data.listPrimaryAccountUsers()).length == 1) {
 	errpage = wtvshared.doErrorPage(400, "There are no more users to remove.");
 }
-else if (ssid_sessions[socket.ssid].user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to remove users from this account.");
+else if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to remove users from this account.");
 
 var usersToRemove = [];
 Object.keys(request_headers.query).forEach(function (k) {
@@ -58,9 +58,9 @@ wtv-visit: ${confirmAlert}
 Location: ${confirmAlert}`
 	} else {
 		Object.keys(usersToRemove).forEach(function (k) {
-			ssid_sessions[socket.ssid].removeUser(usersToRemove[k]);
+			session_data.removeUser(usersToRemove[k]);
 		})
-		var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
+		var num_accounts = session_data.getNumberOfUserAccounts();
 		var gourl = "wtv-setup:/remove-users?";
 		if (num_accounts == 1) gourl = "wtv-setup:/accounts?";
 

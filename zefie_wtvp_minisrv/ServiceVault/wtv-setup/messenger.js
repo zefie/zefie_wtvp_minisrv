@@ -69,7 +69,7 @@ Messenger
 <tr>
 <td absheight=195 valign=top>
 Messenger is currently <b>`;
-if (ssid_sessions[socket.ssid].getSessionData("messenger_enabled") == 1) {
+if (session_data.getSessionData("messenger_enabled") == 1) {
 	data += "on"
 } else {
 	data += "off"
@@ -81,7 +81,7 @@ if (ssid_sessions[socket.ssid].getSessionData("messenger_enabled") == 1) {
 <tr>
 <td align=left>
 <a href="messenger-enable">Turn messenger `;
-if (!ssid_sessions[socket.ssid].getSessionData("messenger_enabled") == 1) {
+if (!session_data.getSessionData("messenger_enabled") == 1) {
 	data += "on"
 } else {
 	data += "off"

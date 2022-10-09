@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 var userSession = null;
 
-ssid_sessions[socket.ssid].loadSessionData();
+session_data.loadSessionData();
 
 var user_id = null;
 if (request_headers.query.user_id) {
@@ -12,7 +12,7 @@ if (request_headers.query.user_id) {
     data = errpage[1];
 }
 
-if (ssid_sessions[socket.ssid].user_id != 0 && ssid_sessions[socket.ssid].user_id != request_headers.query.user_id) {
+if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
     var errpage = doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
@@ -22,10 +22,10 @@ if (ssid_sessions[socket.ssid].user_id != 0 && ssid_sessions[socket.ssid].user_i
 if (user_id && !errpage) {
     headers = `200 OK
 Connection: Keep-Alive
-wtv-mail-count: ${ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0)}
+wtv-mail-count: ${session_data.mailstore.countUnreadMessages(0)}
 Content-Type: text/html`
     var userSession = null;
-    if (ssid_sessions[socket.ssid].user_id == request_headers.query.user_id) userSession = ssid_sessions[socket.ssid];
+    if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
         userSession.user_id = user_id;
@@ -47,7 +47,7 @@ wtv-expire: wtv-setup:/setup
                 headers += `wtv-expire: ${request_headers.query.return_to}
 Location: ${request_headers.query.return_to}`;
             }
-            else headers += "Location: " + (ssid_sessions[socket.ssid].user_id === user_id) ? 'wtv-setup:/setup' : 'wtv-setup:/accounts';
+            else headers += "Location: " + (session_data.user_id === user_id) ? 'wtv-setup:/setup' : 'wtv-setup:/accounts';
         }
         else if (request_headers.query.password.length < minisrv_config.config.passwords.min_length) errpage = wtvshared.doErrorPage(400, "Your password must contain at least " + minisrv_config.config.passwords.min_length + " characters.");
         else if (request_headers.query.password.length > minisrv_config.config.passwords.max_length) errpage = wtvshared.doErrorPage(400, "Your password must contain no more than than " + minisrv_config.config.passwords.max_length + " characters.");
@@ -67,7 +67,7 @@ wtv-expire: wtv-setup:/setup
                     headers += `wtv-expire: ${request_headers.query.return_to}
 Location: ${request_headers.query.return_to}`;
                 }
-                else headers += "Location: "+ (ssid_sessions[socket.ssid].user_id === user_id) ? 'wtv-setup:/setup' : 'wtv-setup:/accounts';
+                else headers += "Location: "+ (session_data.user_id === user_id) ? 'wtv-setup:/setup' : 'wtv-setup:/accounts';
             }
         }
     }

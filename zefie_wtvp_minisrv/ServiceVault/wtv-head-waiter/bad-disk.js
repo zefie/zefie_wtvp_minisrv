@@ -1,9 +1,9 @@
 var minisrv_service_file = true;
 
 // remove restrictions once this page is shown, since the user will be 'trapped' anyway
-ssid_sessions[socket.ssid].disableLockdown();
-ssid_sessions[socket.ssid].delete("wtv-my-disk-sucks-sucks-sucks");
-ssid_sessions[socket.ssid].baddisk = false;
+session_data.disableLockdown();
+session_data.delete("wtv-my-disk-sucks-sucks-sucks");
+session_data.baddisk = false;
 
 headers = `200 OK
 Content-type: text/html`;

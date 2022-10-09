@@ -1,6 +1,6 @@
 var minisrv_service_file = true;
 
-if (ssid_sessions[socket.ssid].lockdown) {
+if (session_data.lockdown) {
     headers = `200 OK
 wtv-printer-model: -1,-1
 wtv-printer-pen: 0,0,1,0
@@ -10,7 +10,7 @@ Content-Type: text/html`;
     data = "";
 } else {
 
-    var settings_obj = ssid_sessions[socket.ssid].getSessionData("wtv-setup");
+    var settings_obj = session_data.getSessionData("wtv-setup");
     if (settings_obj === null) settings_obj = {};
 
     settings_obj["from-server"] = 1;

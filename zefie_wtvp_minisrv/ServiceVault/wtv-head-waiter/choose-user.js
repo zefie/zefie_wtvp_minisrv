@@ -1,6 +1,6 @@
 var minisrv_service_file = true;
 
-if (socket.ssid !== null) ssid_sessions[socket.ssid].switchUserID(0);
+if (socket.ssid !== null) session_data.switchUserID(0);
 
 headers = `200 OK
 minisrv-no-mail-count: true
@@ -74,7 +74,7 @@ Choose your name
 <tr><td absheight=2>
 <tr>`;
 
-var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
+var accounts = session_data.listPrimaryAccountUsers();
 var accounts_listed = 0;
 for (const [key, value] of Object.entries(accounts)) {
     data += "<td absheight=37><td valign=middle abswidth=50% maxlines=1>";

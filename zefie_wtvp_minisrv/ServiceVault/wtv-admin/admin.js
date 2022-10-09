@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
 var WTVAdmin = require("./WTVAdmin.js");
-var wtva = new WTVAdmin(minisrv_config, ssid_sessions[socket.ssid], service_name);
+var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
 var auth = wtva.isAuthorized();
 if (auth === true) {
     var password = null;

@@ -4,7 +4,7 @@ var errpage = null;
 
 var id = request_headers.query.id;
 var folder = request_headers.query.folder;
-var favorite = ssid_sessions[socket.ssid].favstore.getFavorite(folder, id);
+var favorite = session_data.favstore.getFavorite(folder, id);
 if (!favorite) errpage = wtvshared.doErrorPage(400, "Invalid favorite ID");
 
 

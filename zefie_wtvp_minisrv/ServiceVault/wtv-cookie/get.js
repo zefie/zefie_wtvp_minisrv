@@ -3,8 +3,8 @@ var minisrv_service_file = true;
 if (request_headers.post_data) {
     if (request_headers.query.domain && request_headers.query.path) {
         if (socket.ssid) {
-            if (ssid_sessions[socket.ssid]) {
-                data = ssid_sessions[socket.ssid].getCookieString(request_headers.query.domain, request_headers.query.path);
+            if (session_data) {
+                data = session_data.getCookieString(request_headers.query.domain, request_headers.query.path);
                 headers = "200 OK\n";
                 headers += "Content-Type: text/plain";
             }

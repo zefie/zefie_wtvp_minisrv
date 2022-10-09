@@ -56,7 +56,7 @@ Welcome to Mail&nbsp;
 In Mail, you can exchange typed messages&#151;called
 <i>m-mail</i>&#151;with anyone who is on ${minisrv_config.config.service_name}, as well as anyone using other compatible MiniSrvs around the world. This is your m-mail address:
 <blockquote>
-<b>${ssid_sessions[socket.ssid].getSessionData("subscriber_username")}@${minisrv_config.config.service_name}</b>
+<b>${session_data.getSessionData("subscriber_username")}@${minisrv_config.config.service_name}</b>
 </blockquote>
 Choose <b>Begin</b> to start using Mail. <!-- Or to learn more,
 choose this link:

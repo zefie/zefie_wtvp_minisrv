@@ -62,7 +62,8 @@
       "disabled": true
     },
     "wtv-register": {
-      "port": 1607
+      "port": 1607,
+      "privileged": true
     },
     "wtv-log": {
       "port": 1609,
@@ -90,7 +91,8 @@
       "port": 1613,
       "flags": "0x00000010",
       "passport_service": "wtv-passport",
-      "connections": 3
+      "connections": 3,
+      "privileged": true
     },
     "wtv-music": {
       "port": 1656,
@@ -106,6 +108,10 @@
     },
     "wtv-disk": {
       "port": 1635,
+      "connections": 3
+    },
+    "wtv-guide": {
+      "port": 1621,
       "connections": 3
     },
     "wtv-mail": {
@@ -125,6 +131,7 @@
     "wtv-admin": {
       "port": 1698,
       "enable_multi_query": true,
+      "privileged": true,
       "password": "viRak-7"
     },
     "http": {

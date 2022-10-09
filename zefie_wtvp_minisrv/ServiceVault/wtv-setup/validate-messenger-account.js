@@ -10,12 +10,12 @@ if (errpage) {
     headers = errpage[0];
     data = errpage[1];
 } else {
-    var encryptedpass = ssid_sessions[socket.ssid].encryptPassword(request_headers.query.password);
+    var encryptedpass = session_data.encryptPassword(request_headers.query.password);
 
-    ssid_sessions[socket.ssid].setSessionData("messenger_password", encryptedpass);
-    ssid_sessions[socket.ssid].setSessionData("messenger_email", request_headers.query.email);
-    ssid_sessions[socket.ssid].setSessionData("messenger_domain", request_headers.query.domain);
-    ssid_sessions[socket.ssid].saveSessionData();
+    session_data.setSessionData("messenger_password", encryptedpass);
+    session_data.setSessionData("messenger_email", request_headers.query.email);
+    session_data.setSessionData("messenger_domain", request_headers.query.domain);
+    session_data.saveSessionData();
 
     headers = `300 OK
 wtv-expire-all: wtv-setup:/messenger-account

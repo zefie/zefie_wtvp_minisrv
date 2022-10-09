@@ -82,7 +82,7 @@ Dialing options
 <A HREF="wtv-setup:/phone-call-waiting"><BLACKFACE>Call waiting</BLACKFACE></A><BR>
 <FONT SIZE="-1">Call waiting can be turned off automatically</FONT><BR>
 <spacer type=block WIDTH=1 HEIGHT=12><BR>
-<A HREF="${ssid_sessions[socket.ssid].get("wtv-open-access") ? 'file://rom/HTMLs/ConfigureBYOISP.html' : 'client:GoToBYOISPIntro'}"><BLACKFACE>Use an ISP</BLACKFACE></A><BR>
+<A HREF="${session_data.get("wtv-open-access") ? 'file://rom/HTMLs/ConfigureBYOISP.html' : 'client:GoToBYOISPIntro'}"><BLACKFACE>Use an ISP</BLACKFACE></A><BR>
 <FONT SIZE="-1">Save money if you dial long distance to WebTV</FONT><BR>
 
 <TD WIDTH=20>

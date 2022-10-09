@@ -2,7 +2,7 @@ var minisrv_service_file = true;
 var message_snapshot_data = null;
 var message_voicemail_data = null;
 
-var intro_seen = ssid_sessions[socket.ssid].mailstore.checkMailIntroSeen();
+var intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
@@ -20,8 +20,8 @@ if (!intro_seen && !request_headers.query.intro_seen) {
     }
 
     if (request_headers.query.clear == "true") {
-        ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
-        ssid_sessions[socket.ssid].deleteSessionData("mail_draft_attachments");
+        session_data.deleteSessionData("mail_draft");
+        session_data.deleteSessionData("mail_draft_attachments");
         headers = `300 OK
 wtv-expire: wtv-mail:/listmail
 wtv-expire: wtv-mail:/sendmail
@@ -29,7 +29,7 @@ Location: wtv-mail:/sendmail`;
     }
 
     var newsgroup = null;
-    if (parseBool(request_headers.query.discuss)) {
+    if (wtvshared.parseBool(request_headers.query.discuss)) {
         newsgroup = request_headers.query.group || request_headers.query.message_to || null;
     }
 
@@ -48,10 +48,10 @@ Location: wtv-mail:/sendmail`;
     var msg_url_title = request_headers.query.message_title || null;
     var no_signature = false;
 
-    var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft");
-    var mail_draft_attachments = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments") || {};
+    var mail_draft_data = session_data.getSessionData("mail_draft");
+    var mail_draft_attachments = session_data.getSessionData("mail_draft_attachments") || {};
     if (mail_draft_data) {
-        ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
+        session_data.deleteSessionData("mail_draft");
         if (mail_draft_data.to_addr) to_addr = mail_draft_data.to_addr;
         if (mail_draft_data.msg_subject) msg_subject = mail_draft_data.msg_subject;
         if (mail_draft_data.msg_body) msg_body = mail_draft_data.msg_body;
@@ -81,8 +81,8 @@ Content-Type: audio/wav`;
         data = message_voicemail_data;
     } else {
 
-        var username = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
-        var userdisplayname = wtvshared.htmlEntitize(ssid_sessions[socket.ssid].getSessionData("subscriber_name"));
+        var username = session_data.getSessionData("subscriber_username");
+        var userdisplayname = wtvshared.htmlEntitize(session_data.getSessionData("subscriber_name"));
         var address = username + "@" + minisrv_config.config.domain_name
         var notImplementedAlert = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
@@ -94,7 +94,7 @@ Content-Type: audio/wav`;
 
         if ((typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) || request_headers.query.saveoff || request_headers.query.get_snap || request_headers.query.get_gab) {
             var from_addr = address;
-            var signature = ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || null;
+            var signature = session_data.getSessionData("subscriber_signature") || null;
             if (typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) {
                 var attachments = [];
 
@@ -140,7 +140,7 @@ Content-Type: audio/wav`;
                                         'From': from_addr,
                                         'Newsgroups': newsgroup,
                                         'Subject': msg_subject || "(No subject)",
-                                        'Message-ID': "<"+ssid_sessions[socket.ssid].generatePassword(16) + "@" + minisrv_config.config.domain_name+">",
+                                        'Message-ID': "<"+session_data.generatePassword(16) + "@" + minisrv_config.config.domain_name+">",
                                         'Date': strftime('%A, %d-%b-%y %k:%M:%S %z', new Date())
                                     }
                                     if (msg_body) {
@@ -175,14 +175,14 @@ Location: wtv-news:/news?group=${newsgroup}`;
                             });
                     }
                 } else {
-                    var messagereturn = ssid_sessions[socket.ssid].mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
+                    var messagereturn = session_data.mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
                     if (messagereturn !== true) {
                         var errpage = wtvshared.doErrorPage(400, messagereturn);
                         headers = errpage[0];
                         data = errpage[1];
                     } else {
-                        ssid_sessions[socket.ssid].deleteSessionData("mail_draft");
-                        ssid_sessions[socket.ssid].deleteSessionData("mail_draft_attachments");
+                        session_data.deleteSessionData("mail_draft");
+                        session_data.deleteSessionData("mail_draft_attachments");
                         headers = `300 OK
 wtv-expire: wtv-mail:/listmail
 wtv-expire: wtv-mail:/sendmail
@@ -200,7 +200,7 @@ Location: wtv-mail:/listmail`;
                     msg_url_title: msg_url_title,
                     newsgroup: newsgroup
                 }
-                ssid_sessions[socket.ssid].setSessionData("mail_draft", mail_draft_data);
+                session_data.setSessionData("mail_draft", mail_draft_data);
                 headers = `200 OK
 Content-type: text/html
 wtv-expire: wtv-mail:/sendmail`;
@@ -209,31 +209,31 @@ wtv-expire: wtv-mail:/sendmail`;
 
             headers = `200 OK
 Content-type: text/html`;
-            var mail_draft_data = ssid_sessions[socket.ssid].getSessionData("mail_draft_attachments") || {};
+            var mail_draft_data = session_data.getSessionData("mail_draft_attachments") || {};
             if (request_headers.query.snapping == "false") {
                 headers += "\nwtv-expire: cache:snapshot.jpg";
                 if (mail_draft_data.message_snapshot_data) mail_draft_data.message_snapshot_data = null;
-                ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
+                session_data.setSessionData("mail_draft_attachments", mail_draft_data);
             }
 
             if (request_headers.query.gabbing == "false") {
                 headers += "\nwtv-expire: cache:voicemail.wav";
                 if (mail_draft_data.message_voicemail_data) mail_draft_data.message_voicemail_data = null;
-                ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
+                session_data.setSessionData("mail_draft_attachments", mail_draft_data);
             }
 
             if (request_headers.query.message_snapshot_data) {
                 mail_draft_data.message_snapshot_data = request_headers.query.message_snapshot_data
-                ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
+                session_data.setSessionData("mail_draft_attachments", mail_draft_data);
             }
 
             if (request_headers.query.message_voicemail_data) {
                 mail_draft_data.message_voicemail_data = request_headers.query.message_voicemail_data
-                ssid_sessions[socket.ssid].setSessionData("mail_draft_attachments", mail_draft_data);
+                session_data.setSessionData("mail_draft_attachments", mail_draft_data);
             }
             var message_colors = null;
-            if (no_signature) message_colors = ssid_sessions[socket.ssid].mailstore.getSignatureColors(null, true);
-            else message_colors = ssid_sessions[socket.ssid].mailstore.getSignatureColors(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"), true);
+            if (no_signature) message_colors = session_data.mailstore.getSignatureColors(null, true);
+            else message_colors = session_data.mailstore.getSignatureColors(session_data.getSessionData("subscriber_signature"), true);
 
             data = `<HTML>
 <head>
@@ -379,7 +379,7 @@ data += `
 <spacer type=horizontal size=13>
 <td height=80>
 <img src="wtv-mail:/content/images/Mail.gif" width=87 height=45>
-<img src="wtv-mail:/content/images/${ssid_sessions[socket.ssid].mailstore.getMailboxIcon()}" width=74 height=45 transparency=60>
+<img src="wtv-mail:/content/images/${session_data.mailstore.getMailboxIcon()}" width=74 height=45 transparency=60>
 <td width=250 align=left><font sizerange=small>
 </table>
 <tr>
@@ -513,8 +513,8 @@ link=${message_colors.link}
 vlink=${message_colors.vlink}
 vspace=0
 hspace=0>`;
-            if (ssid_sessions[socket.ssid].getSessionData("subscriber_signature") && ssid_sessions[socket.ssid].getSessionData("subscriber_signature") != "" && !no_signature) {
-                data += wtvshared.sanitizeSignature(ssid_sessions[socket.ssid].getSessionData("subscriber_signature"));
+            if (session_data.getSessionData("subscriber_signature") && session_data.getSessionData("subscriber_signature") != "" && !no_signature) {
+                data += wtvshared.sanitizeSignature(session_data.getSessionData("subscriber_signature"));
             }
             if (msg_url) {
                 data += `<input type="hidden" name="message_url" value="${msg_url}">
@@ -538,7 +538,7 @@ Included Page: <a href="${msg_url}">${wtvshared.htmlEntitize(msg_url_title).repl
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td width=305 valign=top>`;
-            if (!ssid_sessions[socket.ssid].getSessionData("subscriber_signature") || ssid_sessions[socket.ssid].getSessionData("subscriber_signature") == "") {
+            if (!session_data.getSessionData("subscriber_signature") || session_data.getSessionData("subscriber_signature") == "") {
                 data += `<input type = hidden name = "togglesign" value = "false"> <td abswidth=13 > `;
             } else if (no_signature) {
                 data += `<a href="javascript:Signing('true')">

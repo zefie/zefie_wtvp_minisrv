@@ -1,14 +1,14 @@
 var minisrv_service_file = true;
 var gourl = null;
 
-if (!ssid_sessions[socket.ssid].isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
+if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
 var home_url = "wtv-home:/home?";
 
 if (gourl) {
 	headers = `200 OK
 wtv-open-isp-disabled: false
 `;
-	if (!ssid_sessions[socket.ssid].isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
+	if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
 		headers += `wtv-encrypted: true
 ${getServiceString('wtv-register')}
 ${getServiceString('wtv-head-waiter')}
@@ -21,7 +21,7 @@ Content-type: text/html`;
 	data = '';
 }
 else {
-	if (ssid_sessions[socket.ssid].lockdown) {
+	if (session_data.lockdown) {
 		home_url = minisrv_config.config.unauthorized_url;
 	}
 	else if (request_headers.query.guest_login && minisrv_config.config.allow_guests) {
@@ -33,30 +33,30 @@ else {
 		var messenger_authorized = 0;
 		if (request_headers.query.skip_splash) gourl = "wtv-home:/home?";
 		else gourl = "wtv-home:/splash?";
-	} else if (!ssid_sessions[socket.ssid].getSessionData("registered")) {
+	} else if (!session_data.getSessionData("registered")) {
 		var errpage = wtvshared.doErrorPage(400);
 		headers = errpage[0];
 		data = errpage[1];
 	} else {
-		var userid = ssid_sessions[socket.ssid].getSessionData("subscriber_userid")
-		var nickname = ssid_sessions[socket.ssid].getSessionData("subscriber_username");
-		var human_name = ssid_sessions[socket.ssid].getSessionData("subscriber_name") || nickname;
-		var messenger_enabled = ssid_sessions[socket.ssid].getSessionData("messenger_enabled") || 0;
-		var messenger_authorized = ssid_sessions[socket.ssid].getSessionData("messenger_authorized") || 0;
-		var messenger_email = ssid_sessions[socket.ssid].getSessionData("messenger_email");
+		var userid = session_data.getSessionData("subscriber_userid")
+		var nickname = session_data.getSessionData("subscriber_username");
+		var human_name = session_data.getSessionData("subscriber_name") || nickname;
+		var messenger_enabled = session_data.getSessionData("messenger_enabled") || 0;
+		var messenger_authorized = session_data.getSessionData("messenger_authorized") || 0;
+		var messenger_email = session_data.getSessionData("messenger_email");
 		var gourl = "wtv-home:/splash?";
 	}
-	var limitedLogin = ssid_sessions[socket.ssid].lockdown;
-	var limitedLoginRegistered = (limitedLogin || (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].isUserLoggedIn()));
+	var limitedLogin = session_data.lockdown;
+	var limitedLoginRegistered = (limitedLogin || (session_data.isRegistered() && !session_data.isUserLoggedIn()));
 	var offline_user_list = null;
-	if (ssid_sessions[socket.ssid].isRegistered()) {
+	if (session_data.isRegistered()) {
 		// check for SMTP Password
-		if (ssid_sessions[socket.ssid].getSessionData("subscriber_smtp_password") === null) {
-			ssid_sessions[socket.ssid].setUserSMTPPassword(ssid_sessions[socket.ssid].generatePassword(16));
+		if (session_data.getSessionData("subscriber_smtp_password") === null) {
+			session_data.setUserSMTPPassword(session_data.generatePassword(16));
         }
-		if (ssid_sessions[socket.ssid].user_id == 0) {
-			var accounts = ssid_sessions[socket.ssid].listPrimaryAccountUsers();
-			var num_accounts = ssid_sessions[socket.ssid].getNumberOfUserAccounts();
+		if (session_data.user_id == 0) {
+			var accounts = session_data.listPrimaryAccountUsers();
+			var num_accounts = session_data.getNumberOfUserAccounts();
 			var offline_user_list_str = "<user-list>\n";
 			var i = 0;
 			Object.keys(accounts).forEach((k) => {
@@ -96,14 +96,14 @@ wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
 `;
 		if (!limitedLogin && !limitedLoginRegistered) {
-			ssid_sessions[socket.ssid].assignMailStore();
+			session_data.assignMailStore();
 			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
 			if (offline_user_list) headers += "wtv-offline-user-list: " + offline_user_list + "\n";
 			headers += `wtv-messenger-authorized: ${messenger_authorized}
 wtv-messenger-enable: ${messenger_enabled}
 wtv-messagewatch-checktimeoffset: off
 wtv-messenger-server: msnmsgr.escargot.chat
-wtv-user-name: ${ssid_sessions[socket.ssid].getSessionData("messenger_email")}
+wtv-user-name: ${session_data.getSessionData("messenger_email")}
 wtv-messenger-login-url: wtv-passport:/messengerlogin
 `;
 		} else {
@@ -127,9 +127,9 @@ wtv-ssl-log-url: wtv-log:/log
 			headers += `wtv-bypass-proxy: false
 user-id: ${userid}
 wtv-human-name: ${human_name}
-${ssid_sessions[socket.ssid].setIRCNick(nickname)}
-wtv-domain: ${ssid_sessions[socket.ssid].getSessionData("messenger_domain")}
-passport-domain: ${ssid_sessions[socket.ssid].getSessionData("messenger_domain")}
+${session_data.setIRCNick(nickname)}
+wtv-domain: ${session_data.getSessionData("messenger_domain")}
+passport-domain: ${session_data.getSessionData("messenger_domain")}
 wtv-mail-url: wtv-mail:/listmail
 wtv-favorite-url: wtv-favorite:/favorite
 wtv-favorites-folders-url: wtv-favorite:/list-folders
@@ -164,7 +164,7 @@ wtv-inactive-timeout: 1440
 			headers += "\nwtv-home-url: " + home_url;
 		}
 
-		if (ssid_sessions[socket.ssid].get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin && !limitedLoginRegistered)
+		if (session_data.get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin && !limitedLoginRegistered)
 			headers += "\nwtv-settings-url: wtv-setup:/get\n";
 
 		if (!limitedLogin && !limitedLoginRegistered) {

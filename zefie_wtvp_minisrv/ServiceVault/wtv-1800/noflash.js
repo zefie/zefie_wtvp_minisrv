@@ -1,12 +1,12 @@
 var minisrv_service_file = true;
 
-if (socket.ssid != null && !ssid_sessions[socket.ssid].get("wtvsec_login")) {
-	var wtvsec_login = ssid_sessions[socket.ssid].createWTVSecSession();
+if (socket.ssid != null && !session_data.get("wtvsec_login")) {
+	var wtvsec_login = session_data.createWTVSecSession();
 	wtvsec_login.IssueChallenge();
 	if (request_headers["wtv-incarnation"]) wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
-	ssid_sessions[socket.ssid].set("wtvsec_login", wtvsec_login);
+	session_data.set("wtvsec_login", wtvsec_login);
 } else if (socket.ssid != null) {
-	var wtvsec_login = ssid_sessions[socket.ssid].get("wtvsec_login");
+	var wtvsec_login = session_data.get("wtvsec_login");
 }
 
 if (wtvsec_login) {

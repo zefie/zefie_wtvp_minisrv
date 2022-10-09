@@ -4,6 +4,6 @@ var folder = request_headers.query.favorite_folder_name;
 var key = request_headers.query.Choose;
 var id = request_headers.query.favoriteid;
 
-ssid_sessions[socket.ssid].favstore.createShortcutKey();
-ssid_sessions[socket.ssid].favstore.updateShortcutKey("none", key, folder, id);
+session_data.favstore.createShortcutKey();
+session_data.favstore.updateShortcutKey("none", key, folder, id);
 

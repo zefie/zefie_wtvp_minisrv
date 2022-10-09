@@ -38,6 +38,36 @@ class WTVShared {
             }
         }
     }
+    getServiceString(service, overrides = {}) {
+        // used externally by service scripts
+        if (service === "all") {
+            var out = "";
+            Object.keys(minisrv_config.services).forEach(function (k) {
+                if (overrides.exceptions) {
+                    Object.keys(overrides.exceptions).forEach(function (j) {
+                        if (k != overrides.exceptions[j]) out += minisrv_config.services[k].toString(overrides) + "\n";
+                    });
+                } else {
+                    out += minisrv_config.services[k].toString(overrides) + "\n";
+                }
+            });
+            return out;
+        } else {
+            if (!minisrv_config.services[service]) {
+                throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
+            } else {
+                return minisrv_config.services[service].toString(overrides);
+            }
+        }
+    }
+
+    parseBool(val) {
+        if (typeof val === 'string')
+            val = val.toLowerCase();
+
+        return val === true || val === "true" || val === 1;
+    }
+
 
     getQueryString(query) {
         // for easy retrofitting old code to work with the webtvism of allowing multiple of the same query name
