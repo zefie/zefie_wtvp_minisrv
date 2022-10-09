@@ -19,7 +19,6 @@ if (session_data.user_id != 0 && session_data.user_id != request_headers.query.u
 if (user_id != null) {
     headers = `200 OK
 Connection: Keep-Alive
-wtv-mail-count: ${session_data.mailstore.countUnreadMessages(0)}
 Content-Type: text/html`
     var userSession = null;
     if (session_data.user_id == request_headers.query.user_id) userSession = session_data;

@@ -2,9 +2,7 @@ var minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
-wtv-mail-count: ${session_data.mailstore.countUnreadMessages(0)}
 Content-Type: text/html`
-
 data = `
 <HTML>
 <HEAD>
