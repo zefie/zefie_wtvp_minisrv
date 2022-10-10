@@ -385,7 +385,7 @@ class WTVShared {
                     return obj.substr(0, 6) + ('*').repeat(9);
                 }
             } else {
-                var newobj = this.v8.deserialize(this.v8.serialize(obj));
+                var newobj = Object.assign({}, obj);
                 if (obj.post_data) newobj.post_data = obj.post_data;
                 if (newobj["wtv-client-serial-number"]) {
                     var ssid = newobj["wtv-client-serial-number"];
@@ -407,7 +407,7 @@ class WTVShared {
     filterRequestLog(obj) {
         if (this.minisrv_config.config.filter_passwords_in_logs === true) {
             if (obj.query) {
-                var newobj = this.v8.deserialize(this.v8.serialize(obj));
+                var newobj = Object.assign({}, obj);
                 if (obj.post_data) newobj.post_data = obj.post_data;
                 Object.keys(newobj.query).forEach(function (k) {
                     var key = k.toLowerCase();
@@ -430,16 +430,20 @@ class WTVShared {
                 // complex, to filter
                 var post_obj = {};
                 post_obj.query = [];
-                var post_text = obj.post_data.toString(this.CryptoJS.enc.Utf8);
-                if (post_text.length > 0) {
-                    post_text = post_text.split("&");
-                    for (let i = 0; i < post_text.length; i++) {
-                        var qraw_split = post_text[i].split("=");
-                        if (qraw_split.length == 2) {
-                            var k = qraw_split[0];
-                            post_obj.query[k] = unescape(post_text[i].split("=")[1].replace(/\+/g, "%20"));
+                try {
+                    var post_text = obj.post_data.toString(this.CryptoJS.enc.Utf8);
+                    if (post_text.length > 0) {
+                        post_text = post_text.split("&");
+                        for (let i = 0; i < post_text.length; i++) {
+                            var qraw_split = post_text[i].split("=");
+                            if (qraw_split.length == 2) {
+                                var k = qraw_split[0];
+                                post_obj.query[k] = unescape(post_text[i].split("=")[1].replace(/\+/g, "%20"));
+                            }
                         }
                     }
+                } catch (e) {
+                   
                 }
                 var post_obj = this.filterRequestLog(post_obj);
                 post_text = "";
