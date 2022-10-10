@@ -181,8 +181,6 @@ data = `<HTML>
 			<!-- END SPAN -->
 
 `;
-//  unreleased for now
-if (fs.existsSync(__dirname + "/WTVGuide.js")) {
 	data += `
 			<!-- BEGIN SPAN -->
 			<tr>
@@ -194,7 +192,7 @@ if (fs.existsSync(__dirname + "/WTVGuide.js")) {
 							<td abswidth=7>
 							<td abswidth=125>
 
-							<table cellspacing=0 cellpadding=0 href="wtv-guide:/help?topic=Index&subtopic=Main&page=1">
+							<table cellspacing=0 cellpadding=0 href="wtv-guide:/help?topic=Index&subtopic=Glossary">
 								<tr>
 									<td>
 										<table cellspacing=0 cellpadding=0>
@@ -222,16 +220,6 @@ if (fs.existsSync(__dirname + "/WTVGuide.js")) {
 							<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 					</table>
 			<!-- END SPAN -->
-`;
-} else {
-	data += `
-			<tr>
-				<td absheight=30>
-`;
-}
-
-data += `
-
 
 			<!-- ADJUST ME FOR HOME TEXT HEIGHT -->
 			<tr>

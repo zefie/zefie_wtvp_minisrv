@@ -107,8 +107,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
-    var WTVGuide = null;
-    if (fs.existsSync(__dirname + "/WTVGuide.js")) WTVGuide = require("./WTVGuide.js");
+    var WTVGuide = require("./WTVGuide.js");
     var WTVBGMusic = require("./WTVBGMusic.js");
     var WTVDownloadList = require("./WTVDownloadList.js");
 

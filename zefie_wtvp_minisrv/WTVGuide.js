@@ -37,8 +37,8 @@ class WTVGuide {
 
 		switch (topic.toLowerCase()) {
 			case "glossary":
-				var template = ServiceDeps+ "/wtv-guide/templates/glossary.js";
-				var glossary_datafile = ServiceDeps+ "/wtv-guide/glossary.json";
+				var template = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/templates/glossary.js");
+				var glossary_datafile = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/glossary.json");
 				if (!this.fs.existsSync(template)) break;
 				if (!this.fs.existsSync(glossary_datafile)) break;
 
@@ -123,7 +123,7 @@ class WTVGuide {
 						}
 					} else {
 						// glossary letter word index
-						var template = ServiceDeps+ "/wtv-guide/templates/glossary_word_index.js";
+						var template = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/templates/glossary_word_index.js");
 						var isPlusBox = false;
 						if (this.session_data.hasCap("client-has-tv-experience")) isPlusBox = true;
 						var worddb = [];
@@ -146,8 +146,9 @@ class WTVGuide {
 			case "index":
 				switch (subtopic.toLowerCase()) {
 					case "glossary":
-						var template = ServiceDeps+ "/wtv-guide/templates/glossary_index.js";
-						var glossary_datafile = ServiceDeps+ "/wtv-guide/glossary.json";
+						var template = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/templates/glossary_index.js");
+						console.log(template);
+						var glossary_datafile = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/glossary.json");
 						if (!this.fs.existsSync(template)) break;
 						if (!this.fs.existsSync(glossary_datafile)) break;
 
@@ -166,9 +167,9 @@ class WTVGuide {
 				// fallback to old js file method
 				try {
 					var prerendered = null;
-					if (!page) prerendered = ServiceDeps+ "/wtv-guide/prerendered/" + topic + "/" + subtopic + ".js";
-					else prerendered = ServiceDeps+ "/wtv-guide/prerendered/" + topic + "/" + subtopic + "/" + page + ".js";
-					console.log(prerendered)
+					if (!page) prerendered = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/prerendered/" + topic + "/" + subtopic + ".js");
+					else prerendered = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/prerendered/" + topic + "/" + subtopic + "/" + page + ".js");
+
 					if (!this.fs.existsSync(prerendered)) break;
 
 
