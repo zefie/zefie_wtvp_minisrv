@@ -141,6 +141,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "minisrv_version_string": z_title,
         "getServiceString": getServiceString,
         "sendToClient": sendToClient,
+        "ServiceDeps": ServiceDeps,
         "service_vaults": service_vaults,
         "cwd": __dirname, // current working directory
 
@@ -1815,6 +1816,13 @@ if (minisrv_config.config.SessionStore) {
     console.log(" * Configured Session Storage at", SessionStore);
 } else {
     throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
+}
+
+if (minisrv_config.config.ServiceDeps) {
+    var ServiceDeps = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps);
+    console.log(" * Configured Service Dependancies at", ServiceDeps);
+} else {
+    throw ("ERROR: No Service Dependancies Directory (SessionDeps) defined!");
 }
 
 var service_ip = minisrv_config.config.service_ip;

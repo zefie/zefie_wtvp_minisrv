@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 var viewer = 2 // debug override
 
-var viewergen_resource_dir = __dirname + "/" + minisrv_config.config.ServiceDeps + "/viewergen/";
+var viewergen_resource_dir = ServiceDeps + "/viewergen/";
 
 var viewers = {
     0: "WebTVIntel--1.0.exe",
