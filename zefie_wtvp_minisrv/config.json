@@ -6,6 +6,7 @@
       "UserServiceVault",
       "ServiceVault"
     ],
+    "ServiceDeps":  "ServiceDeps",
     "SessionStore": "SessionStore",
     "SharedROMCache": "SharedROMCache",
     "enable_shared_romcache": true,
