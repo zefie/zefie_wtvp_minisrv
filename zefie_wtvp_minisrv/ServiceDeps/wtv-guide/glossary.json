@@ -441,7 +441,7 @@
 		},
 		"mattman69": {
 			"word": "MattMan69",
-			"definition": "A <boxname_plus> user who was notorious for hacking the <boxname_plus> service. <b>MattMan69</b> created a <b><word>Web site</word></b> to expose all of the <boxname_plus> service secrets.<br><br> To this day, <b>MattMan69</b>'s Web site, found at <br><u><b><a href=\"http://turdinc.kicks-ass.net/Msntv\">http://turdinc.kicks-ass.net/Msntv</a></b></u>, is still one of the largest and most comprehensive archives of <br> <boxname_plus> service history."
+			"definition": "A <boxname_plus> user who was notorious for hacking the <boxname_plus> service. <b>MattMan69</b> created a <b><word>Web site</word></b> to expose all of the <boxname_plus> service secrets.<br><br> To this day, <b>MattMan69</b>'s Web site, found at <br><u><b><a href=\"http://turdinc.kicks-ass.net/Msntv/index2.html\">http://turdinc.kicks-ass.net/Msntv/index2.html</a></b></u>, is still one of the largest and most comprehensive archives of <br> <boxname_plus> service history."
 		},
 		"megabytes": {
 			"word": "megabytes",
@@ -747,7 +747,7 @@
 		},
 		"tvwindow": {
 			"word": "TV Window",
-			"definition": "Also known as <b><word>Picture-in-Picture</word></b> or PIP. A feature that lets you watch television while surfing the Web. To activate the TV window, select <b>PIP</b>from the <b>Options </B> panel, or press the <b>Cmd</b> key and the <b>W</b> key on your keyboard at the same time.",
+			"definition": "Also known as <b>Picture-in-Picture</b> or <b><word>PIP</word></b>. A feature that lets you watch television while surfing the Web. To activate the TV window, select <b>PIP</b>from the <b>Options </B> panel, or press the <b>Cmd</b> key and the <b>W</b> key on your keyboard at the same time.",
 			"plusonly": true
 		}
 	},
