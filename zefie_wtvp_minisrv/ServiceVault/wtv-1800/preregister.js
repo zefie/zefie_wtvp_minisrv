@@ -79,21 +79,21 @@ if (session_data.data_store.wtvsec_login) {
 				// if wtv-open-access: true then client expects OpenISP
 				if (session_data.get("wtv-open-access")) file_path = __dirname + "/" +
 					+ "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
-				else var file_path = ServiceDeps+ "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
+				else var file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
 				if (wtvshared.isMiniBrowser(session_data)) {
 					prereg_contype = "text/tellyscript";
-					if (session_data.get("wtv-open-access")) file_path = ServiceDeps+ "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
-					else file_path = ServiceDeps+ "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
+					if (session_data.get("wtv-open-access")) file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
+					else file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				} else {
 					prereg_contype = "text/dialscript";
 					if (session_data.get("wtv-lan") == "true") {
-						file_path = ServiceDeps+ "/wtv-1800/tellyscripts/UTV/utv_hsd.tok";
+						file_path = ServiceDeps + "/wtv-1800/tellyscripts/UTV/utv_hsd.tok";
 					} else {
 						// todo OpenISP telly
-						file_path = ServiceDeps+ "/wtv-1800/tellyscripts/UTV/utv_normal.tok";
+						file_path = ServiceDeps + "/wtv-1800/tellyscripts/UTV/utv_normal.tok";
 					}
 				}
 				break;
@@ -101,8 +101,8 @@ if (session_data.data_store.wtvsec_login) {
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (session_data.get("wtv-open-access")) file_path = ServiceDeps+ "/wtv-1800/tellyscripts/bf0app/bf0app_OISP.tok";
-				else file_path = ServiceDeps+ "/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
+				if (session_data.get("wtv-open-access")) file_path = ServiceDeps + "/wtv-1800/tellyscripts/bf0app/bf0app_OISP.tok";
+				else file_path = ServiceDeps + "/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
 				break;
 
 			// the following are not yet zefie generated and may have an unknown username/password attached
@@ -110,8 +110,8 @@ if (session_data.data_store.wtvsec_login) {
 			case "JP-Fiji":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (session_data.get("wtv-open-access")) var file_path = ServiceDeps+ "/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok";
-				else var file_path = ServiceDeps+ "/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok";
+				if (session_data.get("wtv-open-access")) var file_path = ServiceDeps + "/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok";
+				else var file_path = ServiceDeps + "/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok";
 				break;
 
 			default:
@@ -121,7 +121,7 @@ if (session_data.data_store.wtvsec_login) {
 
 		if (socket.ssid.substr(0, 8) == "MSTVSIMU") {
 			prereg_contype = "text/dialscript";
-			var file_path = ServiceDeps+ "/wtv-1800/tellyscripts/UTV/utv_hsd.tok";
+			var file_path = ServiceDeps + "/wtv-1800/tellyscripts/UTV/utv_hsd.tok";
 		}
 	}
 
@@ -130,7 +130,7 @@ if (session_data.data_store.wtvsec_login) {
 		// assume old classic in flash mode, override user setting and send tellyscript
 		// because it is required to proceed in flash mode
 		prereg_contype = "text/tellyscript";
-		var file_path = ServiceDeps+ "/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
+		var file_path = ServiceDeps + "/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
 		var bf0app_update = true;
 		session_data.set("bf0app_update", bf0app_update);
 	}
