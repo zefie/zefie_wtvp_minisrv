@@ -442,9 +442,6 @@ class WTVShared {
                             }
                         }
                     }
-                } catch (e) {
-                   
-                }
                 var post_obj = this.filterRequestLog(post_obj);
                 post_text = "";
                 Object.keys(post_obj.query).forEach(function (k) {
@@ -452,6 +449,9 @@ class WTVShared {
                 });
                 post_text = post_text.substring(0, post_text.length - 1);
                 obj.post_data = post_text.hexEncode();
+                } catch (e) {
+                    obj.post_data = obj.post_data.toString(this.CryptoJS.enc.Hex);
+                }
             } else {
                 // simple, no filter
                 obj.post_data = obj.post_data.toString();

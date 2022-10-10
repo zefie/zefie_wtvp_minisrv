@@ -583,7 +583,7 @@ async function processURL(socket, request_headers) {
                     }
                 }
             } catch (e) {
-                console.log("error:", e)
+               
             }
         }
         if ((shortURL.indexOf("http") != 0 && shortURL.indexOf("ftp") != 0 && shortURL.indexOf(":") > 0 && shortURL.indexOf(":/") == -1)) {
