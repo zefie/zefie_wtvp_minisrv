@@ -32,7 +32,7 @@ data = `<HTML>
 	<HEAD>
 
 		<TITLE>Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}</TITLE>
-		<DISPLAY noscroll options fontsize="medium">
+		<DISPLAY noscroll fontsize="medium">
 	</HEAD>
 
 	<body background="wtv-home:/images/BackgroundGradient.gif" text="44cc55" link="6977a9" vlink="6977a9" hspace=0 vspace=0 >
@@ -248,16 +248,16 @@ data += `
 	</sidebar>
 
 
-		<table cellspacing=0 cellpadding=0 width=100% height=100%>
+		<table cellspacing=0 cellpadding=0 width=100% height=383>
 			<tr>
-				<td rowspan=99 background="wtv-home:/images/BackgroundGradientEdge.gif" width=6 height=100%>
+				<td rowspan=10 background="wtv-home:/images/BackgroundGradientEdge.gif" width=6 height=100%>
 
 			<tr>
-				<td valign=top>
-					<table cellspacing=0 cellpadding=0 width=100% absheight=113>
+				<td valign=top absheight=113>
+					<table cellspacing=0 cellpadding=0 width=100%>
 						<tr>
 							<!-- BEGIN ICON #1 -->
-							<td width=5%>
+							<td width=9%>
 							<td absheight=113 width=18%>
 								<LINK REL=next HREF="wtv-mail:/listmail">
 								<table cellspacing=0 cellpadding=0 border=0 href="wtv-mail:/listmail" selected nocolor width=100%>
@@ -338,16 +338,13 @@ data += `
 								</table>
 							<td width=9%>
 					</table>
+
 				<tr>
-					<!-- I AM A SPACER / MARGIN MAKER -->
-					<td absheight=3>
-				<tr>
-					<td valign=middle align=center>
-						
+					<td valign=middle align=center>						
 						<!-- BEGIN MAIN SUB-CONTENT AREA -->
 						<table cellspacing=0 cellpadding=0 width=480>						
 							<tr>
-								<td abswidth=100% absheight=18 valign=middle align=center>
+								<td abswidth=100% absheight=18 align=center>
 <font size="2"><b>Welcome to ${minisrv_config.config.service_name}`;
 if (session_data.getSessionData("registered")) data += ", " + session_data.getSessionData("subscriber_username") + "!";
 data += `</font></b>
@@ -396,6 +393,8 @@ data += `</table>
 <font size="-4"><i>minisrv v${minisrv_config.version}${(minisrv_config.config.git_commit) ? ' git-' + minisrv_config.config.git_commit : ''}, hosted by ${minisrv_config.config.service_owner}</i></small></font> &nbsp; <br>
 <tr>
 <td width=100% align=center absheight=2 bgcolor="000000">
+
+</table>
 </table>
 </body>
 </html>`
