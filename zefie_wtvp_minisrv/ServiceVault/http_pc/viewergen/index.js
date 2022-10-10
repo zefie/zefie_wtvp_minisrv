@@ -1,7 +1,4 @@
 var minisrv_service_file = true;
-const crypto = require('crypto')
-
-
 var viewer = 2 // debug override
 
 var viewers = {

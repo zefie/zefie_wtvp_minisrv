@@ -11,7 +11,7 @@ var challenge = request_headers.request.split('?')[1];
 
 if (request_headers.request.split('?')[1].substring(0, 3) != "ct=") {
 	console.log(" *** Logging into Messenger via MSNP3")
-	data = require('crypto').createHash('md5').update(request_headers.request.split('?')[1] + password).digest("hex");
+	data = crypto.createHash('md5').update(request_headers.request.split('?')[1] + password).digest("hex");
 } else {
 	console.log(" *** Logging into Messenger via MSNP8")
 	request_is_async = true; // Make us async

@@ -7,6 +7,7 @@ const zlib = require('zlib');
 const http = require('http');
 const https = require('https');
 const net = require('net');
+const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
 const { crc16 } = require('easy-crc');
 const process = require('process');
@@ -127,6 +128,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "WTVFlashrom": WTVFlashrom,
         "strftime": require('strftime'),
         "CryptoJS": CryptoJS,
+        "crypto": crypto,
         "fs": fs,
         "path": path,
 
