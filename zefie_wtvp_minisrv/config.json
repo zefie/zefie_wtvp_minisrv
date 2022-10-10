@@ -155,6 +155,8 @@
     },
     "pc_services": {
       "port": 1699,
+      "pc_services": true,
+      "hide_minisrv_version":  true,
       "disabled": true,
       "servicevault_dir": "http_pc",
       "drop_connection_on_wrong_port": false,
