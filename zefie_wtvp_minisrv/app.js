@@ -498,12 +498,13 @@ function verifyServicePort(service_name, socket) {
 }
 
 async function processURL(socket, request_headers, pc_services = false) {
-    var shortURL, headers, data, service_name = "";
+    var shortURL, headers, data, service_name, original_service_name = "";
     var enable_multi_query = false;
     request_headers.query = {};
     if (request_headers.request_url) {
         if (pc_services) {
-            service_name = verifyServicePort(request_headers.service_name, socket);
+            original_service_name = request_headers.service_name; // store PC Services service name
+            service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
             delete request_headers.service_name;
         }
         if (request_headers.request_url.indexOf('?') >= 0) {
@@ -660,6 +661,10 @@ minisrv-no-mail-count: true`;
             }
         }
 
+        if (pc_services) {
+            if (original_service_name == service_name) console.log(" * PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
+            else console.log(" * PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
+        }
         // Check URL for :/, but not :// (to differentiate wtv urls)
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') == -1) {
             var ssid = socket.ssid;
@@ -668,15 +673,15 @@ minisrv-no-mail-count: true`;
                 ssid = wtvshared.makeSafeSSID(request_headers["wtv-client-serial-number"]);
                 if (ssid == "") ssid = null;
             }
-
-            var reqverb = "Request";
-            if (request_headers.encrypted || request_headers.secure) reqverb = "Encrypted " + reqverb;
-            if (ssid != null) {
-                console.log(" * " + reqverb + " for " + request_headers.request_url + " from WebTV SSID " + (await wtvshared.filterSSID(ssid)), 'on', socket.id);
-            } else {
-                console.log(" * " + reqverb + " for " + request_headers.request_url, 'on', socket.id);
-            }
             if (!pc_services) {
+                var reqverb = "Request";
+                if (request_headers.encrypted || request_headers.secure) reqverb = "Encrypted " + reqverb;
+                if (ssid != null) {
+                    console.log(" * " + reqverb + " for " + request_headers.request_url + " from WebTV SSID " + (await wtvshared.filterSSID(ssid)), 'on', socket.id);
+                } else {
+                    console.log(" * " + reqverb + " for " + request_headers.request_url, 'on', socket.id);
+                }
+
                 var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
                 if (!service_name) {
                     var errpage = wtvshared.doErrorPage(500, null, pc_services);
@@ -1142,6 +1147,7 @@ async function sendToClient(socket, headers_obj, data) {
         socket.res.end(data);
         var log_obj = Object.assign({}, socket.res.getHeaders());
         if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing PC headers on " + socket.service_name + " socket ID", socket.id, log_obj);
+        if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent response " + headers_obj.Response + " to PC client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
     } else {
         var toClient = null;
         if (typeof data == 'string') {
@@ -1831,10 +1837,13 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         }
         return outstr;
     }
-    console.log(" * Configured Service", k, "on Port", minisrv_config.services[k].port, "- Host", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind);
+    console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
 })
 if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
 else console.log(" * Full SSIDs will be shown in console logs");
+
+if (minisrv_config.config.filter_passwords_in_logs) console.log(" * Will attempt to filter passwords in browser queries")
+else console.log(" * Passwords in browser queries will not be filtered")
 
 if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
 if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
@@ -1879,6 +1888,7 @@ function findServiceByPort(port) {
 
 
 var initstring = '';
+var initstring_pc = '';
 ports.sort();
 pc_ports.sort();
 
@@ -1905,7 +1915,7 @@ pc_bind_ports.every(function (v) {
     try {
         var server = express();
         server.listen(v, minisrv_config.config.bind_ip);
-        initstring += v + ", ";
+        initstring_pc += v + ", ";
         server.get('*', (req, res) => {
             var request_headers = {};
             req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
@@ -1930,9 +1940,11 @@ pc_bind_ports.every(function (v) {
     }
     return false;
 });
-initstring = initstring.substring(0, initstring.length - 2);
+if (initstring.length > 0) initstring = initstring.substring(0, initstring.length - 2);
+if (initstring_pc.length > 0) initstring_pc = initstring_pc.substring(0, initstring_pc.length - 2);
 
+if (initstring.length > 0) console.log(" * Started WTVP Server on port(s) " + initstring + "...")
+if (initstring_pc.length > 0) console.log(" * Started HTTP Server on port(s) " + initstring_pc + "...")
 
-console.log(" * Started server on ports " + initstring + "...")
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
 console.log(" * Listening on", listening_ip_string, "~", "Service IP:", service_ip);
