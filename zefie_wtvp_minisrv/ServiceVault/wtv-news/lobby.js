@@ -21,7 +21,7 @@ data = `<HTML>
 <table href="wtv-home:/home" absheight=76 cellspacing=0 cellpadding=0>
 <tr>
 <td align=right>
-<img src="wtv-home:/ROMCache/WebTVLogoJewel.gif" width=87 height=67>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
 </table>
 <td abswidth=5>
 <tr>

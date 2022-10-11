@@ -1,5 +1,7 @@
 var minisrv_service_file = true;
 
+const wtvbgm = new WTVBGMusic(minisrv_config, session_data);
+
 var catsListed = 0;
 var categories = wtvbgm.getCategoryList();
 var divide = Math.round(categories.length / 2, 0);

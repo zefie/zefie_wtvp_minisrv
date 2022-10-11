@@ -302,7 +302,7 @@ class WTVDownloadList {
 <head>
         <meta
                 http-equiv=refresh
-                    content="0;url=client:Fetch?group=${escape(group)}&source=${escape(url)}&message=${escape(message)}"
+                    content="0;url=client:Fetch?group=${encodeURIComponent(group)}&source=${encodeURIComponent(url)}&message=${encodeURIComponent(message)}"
         >
         <display downloadsuccess="${success_url}" downloadfail="${fail_url}">
         <title>${title}</title>
@@ -343,6 +343,8 @@ class WTVDownloadList {
                            message="Preparing..."
                            height=40 width=250>
                         </font>
+
+<br>
 </table>
 </body>
 </html>

@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
 var diskmap = Object.getCaseInsensitiveKey(request_headers.query, "DiskMap");
-var wtvdl = new WTVDownloadList(minisrv_config, service_name);
+var wtvdl = new WTVDisk(minisrv_config, service_name);
 
 var force_update = (request_headers.query.force == "true") ? true : false;
 var no_delete = (request_headers.query.dont_delete_files == "true") ? true : false;
@@ -318,6 +318,6 @@ if (request_headers['wtv-request-type'] == 'download') {
 } else if (request_headers.query.group && diskmap) {
     var message = request_headers.query.message || "Retrieving files...";
     var main_message = request_headers.query.main_message || "Your receiver is downloading files.";
-    headers = "200 OK\nwtv-connection-close: close\nConnection: close\nContent-Type: text/html";
+    headers = "200 OK\nContent-Type: text/html\nwtv-expire-all: wtv-disk:";
     data = wtvdl.getSyncPage(message, request_headers.query.group, diskmap, main_message, message, force_update, no_delete);
 }

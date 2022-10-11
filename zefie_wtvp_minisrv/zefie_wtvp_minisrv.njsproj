@@ -1013,8 +1013,7 @@
     <Content Include="ServiceVault\wtv-setup\validate-screen-border.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="ServiceVault\wtv-star\ROMCache\HackTVLogoJewel.gif" />
-    <Content Include="ServiceVault\wtv-star\ROMCache\WebTVLogoJewel.gif" />
+    <Content Include="ServiceVault\wtv-star\star.js" />
     <Content Include="ServiceVault\wtv-tricks\access.js" />
     <Content Include="ServiceVault\wtv-tricks\blastbacklist.js" />
     <Content Include="ServiceVault\wtv-tricks\go-offline.js" />
@@ -1116,7 +1115,7 @@
     <Content Include="includes\WTVClientCapabilities.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="includes\WTVDownloadList.js">
+    <Content Include="includes\WTVDisk.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="includes\WTVFavorites.js" />
@@ -1260,7 +1259,6 @@
     <Folder Include="ServiceVault\wtv-register\" />
     <Folder Include="ServiceVault\wtv-setup\" />
     <Folder Include="ServiceVault\wtv-star\" />
-    <Folder Include="ServiceVault\wtv-star\ROMCache\" />
     <Folder Include="ServiceVault\wtv-tricks\" />
     <Folder Include="ServiceVault\wtv-disk\" />
     <Folder Include="ServiceVault\wtv-1800\" />

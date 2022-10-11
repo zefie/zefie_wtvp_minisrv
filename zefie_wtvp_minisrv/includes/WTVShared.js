@@ -556,9 +556,21 @@ class WTVShared {
         });
     }
 
-    doErrorPage(code, data = null, pc_mode = false) {
+    doErrorPage(code, data = null, details = null,  pc_mode = false) {
         var headers = null;
         switch (code) {
+            case 401:
+                if (data === null) data = "Authorization Required.";
+                if (pc_mode) headers = "401 Unauthorized\n";
+                else headers = code + " " + data + "\n";
+                headers += "Content-Type: text/html\n";
+                break;
+            case 403:
+                if (data === null) data = "The publisher of that page has not authorized you to view it.";
+                if (pc_mode) headers = "403 Forbidden\n";
+                else headers = code + " " + data + "\n";
+                headers += "Content-Type: text/html\n";
+                break;
             case 404:
                 if (data === null) data = "The service could not find the requested page.";
                 if (pc_mode) headers = "404 Not Found\n";
@@ -568,13 +580,8 @@ class WTVShared {
             case 400:
             case 500:
                 if (data === null) data = this.minisrv_config.config.service_name + " ran into a technical problem.";
+                if (details) data += "<br>Details:<br>" + details;
                 if (pc_mode) headers = "500 Internal Server Error\n";
-                else headers = code + " " + data + "\n";
-                headers += "Content-Type: text/html\n";
-                break;
-            case 401:
-                if (data === null) data = "Access Denied.";
-                if (pc_mode) headers = "401 Access Denied\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;

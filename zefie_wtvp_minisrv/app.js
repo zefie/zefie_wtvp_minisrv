@@ -109,10 +109,6 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
-    var WTVGuide = require(classPath + "/WTVGuide.js");
-    var WTVBGMusic = require(classPath + "/WTVBGMusic.js");
-    var WTVDownloadList = require(classPath + "/WTVDownloadList.js");
-    var WTVNews = require(classPath + "/WTVNews.js");
 
     // create global context object
     var contextObj = {
@@ -129,9 +125,6 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "clientShowAlert": clientShowAlert,
         "WTVClientSessionData": WTVClientSessionData,
         "WTVClientCapabilities": WTVClientCapabilities,
-        "WTVDownloadList": WTVDownloadList,
-        "WTVFlashrom": WTVFlashrom,
-        "WTVNews": WTVNews,
         "strftime": require('strftime'),
         "CryptoJS": CryptoJS,
         "crypto": crypto,
@@ -160,11 +153,38 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         ...user_contextObj
     }
 
-    if (contextObj.socket) {
-        if (contextObj.socket.ssid) {
-            if (WTVGuide) contextObj.wtvguide = new WTVGuide(minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
-            contextObj.wtvbgm = new WTVBGMusic(minisrv_config, ssid_sessions[contextObj.socket.ssid]);
+    // per service overrides
+    var modules_loaded = [];
+    if (minisrv_config.services[contextObj.service_name]) {
+        if (minisrv_config.services[contextObj.service_name].modules) {
+            var vm_modules = minisrv_config.services[contextObj.service_name].modules;
+            Object.keys(vm_modules).forEach(function (k) {
+                var module_file = classPath + path.sep + vm_modules[k] + ".js"
+                try {
+                    contextObj[vm_modules[k]] = require(module_file);
+                    modules_loaded.push(module_file)
+                } catch (e) {
+                    console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name)
+                }
+            })            
         }
+    }
+    switch (contextObj.service_name) {
+        case "wtv-guide":
+            // wtv-guide is a special case due to needing this function
+            modules_to_load.push({ "name": "WTVGuide", "file": classPath + "/WTVGuide.js" });
+            contextObj.wtvguide = new tmpmod(minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
+            break;
+
+        case "wtv-1800":
+        case "wtv-flashrom":
+            // these are special cases because the primary app already loaded this
+            contextObj = { ...contextObj, "WTVFlashrom": WTVFlashrom }
+            break;
+    }
+
+
+    if (contextObj.socket) {
         if (contextObj.socket.id)
             if (socket_sessions[contextObj.socket.id]) contextObj.wtv_encrypted = (socket_sessions[contextObj.socket.id].secure === true);
     }
@@ -193,10 +213,12 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         console.error(e);
     }
 
-    // unload modules
-    wtvshared.unloadModule(classPath + "/WTVGuide.js");
-    wtvshared.unloadModule(classPath + "/WTVBGMusic.js");
-    wtvshared.unloadModule(classPath + "/WTVDownloadList.js");
+    // unload any loaded modules for this vm
+    if (modules_loaded.length > 0) {
+        Object.keys(modules_loaded).forEach(function (k) {
+            wtvshared.unloadModule(modules_loaded[k]);
+        })
+    }
 
     return contextObj; // updated context object with whatever global varibles the script set
 }
@@ -272,7 +294,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     if (minisrv_catchall) {
                         if (service_path_request_file == minisrv_catchall) {
                             request_is_async = true;
-                            var errpage = wtvshared.doErrorPage(401, "Access Denied");
+                            var errpage = wtvshared.doErrorPage(401);
                             sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
@@ -323,7 +345,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                             wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
                                 if (!status) {
                                     if (line.match(/minisrv\_service\_file.*true/i)) {
-                                        var errpage = wtvshared.doErrorPage(403, "Access Denied");
+                                        var errpage = wtvshared.doErrorPage(403);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                     } else {
                                         sendRawFile(socket, service_vault_file_path);
@@ -339,7 +361,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                             wtvshared.getLineFromFile(service_vault_file_path, 0, function (status, line) {
                                 if (!status) {
                                     if (line.match(/^#!minisrv/i)) {
-                                        var errpage = wtvshared.doErrorPage(403, "Access Denied");
+                                        var errpage = wtvshared.doErrorPage(403);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                     } else {
                                         sendRawFile(socket, service_vault_file_path);
@@ -477,12 +499,12 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     if (!request_is_async) {
         if (!service_vault_found) {
             console.error(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, "").replace(path.sep, '/'));
-            var errpage = wtvshared.doErrorPage(404, null, pc_services);
+            var errpage = wtvshared.doErrorPage(404, null, null, pc_services);
             headers = errpage[0];
             data = errpage[1];
         }
         if (headers == null && !request_is_async) {
-            var errpage = wtvshared.doErrorPage(400, null, pc_services);
+            var errpage = wtvshared.doErrorPage(400, null, null, pc_services);
             headers = errpage[0];
             data = errpage[1];
             console.error(" * Scripting or Data error: Headers were not defined. (headers,data) as follows:")
@@ -493,21 +515,6 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         }
         sendToClient(socket, headers, data);
     }
-}
-
-function verifyServicePort(service_name, socket) {
-    if (socket._server._connectionKey) {
-        var socketPort = parseInt(socket._server._connectionKey.split(':')[2])
-        if (minisrv_config.services[service_name]) {
-            if (minisrv_config.services[service_name].port == socketPort) {
-                if (minisrv_config.services[service_name].servicevault_dir)
-                    return minisrv_config.services[service_name].servicevault_dir;
-                else
-                    return service_name;
-            }
-        }
-    }
-    return false;
 }
 
 async function processURL(socket, request_headers, pc_services = false) {
@@ -522,14 +529,7 @@ async function processURL(socket, request_headers, pc_services = false) {
         }
         if (request_headers.request_url.indexOf('?') >= 0) {
             shortURL = request_headers.request_url.split('?')[0];
-            if (!service_name) service_name = verifyServicePort(shortURL.split(':')[0], socket);
 
-            if (!service_name) {
-                var errpage = wtvshared.doErrorPage(500, null, pc_services);
-                socket_sessions[socket.id].close_me = true;
-                sendToClient(socket, errpage[0], errpage[1]);
-                return
-            }
             if (request_headers.request_url.indexOf('?') >= 0) {
                 shortURL = request_headers.request_url.split('?')[0];
                 if (minisrv_config.services[service_name]) enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
@@ -697,10 +697,19 @@ minisrv-no-mail-count: true`;
 
                 var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
                 if (!service_name) {
-                    var errpage = wtvshared.doErrorPage(500, null, pc_services);
-                    socket_sessions[socket.id].close_me = true;
-                    sendToClient(socket, errpage[0], errpage[1]);
-                    return
+                    // detect if client is trying to load wtv-star due to client-perceived error
+                    if (getSocketDestinationPort(socket) == getPortByService("wtv-star")) {
+                        // is wtv-star
+                        if (minisrv_config.config.debug_flags.debug) console.log(" * client requested", shortURL, "on wtv-star port", getSocketDestinationPort(socket))
+                        shortURL = "wtv-star:/star";
+                        service_name = "wtv-star";
+                    } else {
+                        // is actually a request on then wrong port
+                        var errpage = wtvshared.doErrorPage(500, null, null, pc_services);
+                        socket_sessions[socket.id].close_me = true;
+                        sendToClient(socket, errpage[0], errpage[1]);
+                        return
+                    }
                 }
             }
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
@@ -1516,7 +1525,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         processURL(socket, headers);
                     } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                         // got too much data ? ... should not ever reach this code (section 2)
-                        var errpage = wtvshared.doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
+                        var errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
                         headers = errpage[0];
                         data = errpage[1];
                         sendToClient(socket, headers, data);
@@ -1599,7 +1608,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                     socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                     // got too much data ? ... should not ever reach this code
-                    var errpage = wtvshared.doErrorPage(400, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
+                    var errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
                     headers = errpage[0];
                     data = errpage[1];
                     sendToClient(socket, headers, data);
@@ -1898,6 +1907,30 @@ function findServiceByPort(port) {
     return service_name;
 }
 
+
+function getPortByService(service) {
+    if (minisrv_config.services[service]) return minisrv_config.services[service].port;
+    else return null;
+}
+
+function getSocketDestinationPort(socket) {
+    return parseInt(socket._server._connectionKey.split(':')[2]);
+}
+
+function verifyServicePort(service_name, socket) {
+    if (socket._server._connectionKey) {
+        var socketPort = getSocketDestinationPort(socket);
+        if (minisrv_config.services[service_name]) {
+            if (minisrv_config.services[service_name].port == socketPort) {
+                if (minisrv_config.services[service_name].servicevault_dir)
+                    return minisrv_config.services[service_name].servicevault_dir;
+                else
+                    return service_name;
+            }
+        }
+    }
+    return false;
+}
 
 var initstring = '';
 var initstring_pc = '';

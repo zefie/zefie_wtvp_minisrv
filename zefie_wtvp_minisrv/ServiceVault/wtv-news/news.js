@@ -1,93 +1,28 @@
 var minisrv_service_file = true;
 
-async function clientConnect(client) {
-    response = await client.connect()
-    if (response.code == 200) {
-        return true;
-    }
-    return false;
-}
+console.log('f')
 
-async function listGroup(client, group) {
-    try {
-        return await client.listGroup(group)
-    } catch (e) {
-        console.log("WTVNews Error -", "Command: listGroup", e);
-    }
-    return null;
-}
-
-async function selectGroup(client, group) {
-    try {
-        response = await client.group(request_headers.query.group)
-        if (response.code == 211) {
-            return true;
-        }
-        return false;
-    } catch (e) {
-        console.log("WTVNews Error -", "Command: selectGroup", e);
-    }
-    return false;
-    
-}
-
-async function getArticle(client, articleID) {
-    try {
-        return await client.article(articleID)
-    } catch (e) {
-        console.log("WTVNews Error -", "Command: article", e);
-    }
-    return null;
-}
-
-async function getHeader(client, articleID) {
-    try {
-        return await client.head(articleID)
-    } catch (e) {
-        console.log("WTVNews Error -", "Command: head -", "Article ID: "+articleID, e);
-    }
-    return null;
-}
-
-async function quitUsenet(client) {
-    response = await client.quit()
-    if (response.code == 205) {
-        return true;
-    }
-    return false;
-}
-
-async function getHeaderObj(client, NGArticles) {
-    var messages = [];
-    for (var article in NGArticles) {
-        if (article == "getCaseInsensitiveKey") continue;
-        try {
-            var data = await getHeader(client, NGArticles[article]);
-            if (data.article) messages.push(data.article)
-        } catch (e) {
-            console.log(e, article);
-        }
-    }
-    return messages;
+async function throwError(e) {
+    var errpage = wtvshared.doErrorPage(400, null, e.toString());
+    sendToClient(socket, errpage[0], errpage[1]);
 }
 
 
-async function WebTVListGroup(client, group) {
-    var connected = await clientConnect(client)
-    if (connected) {
-        response = await selectGroup(client, group);
-        if (response) {
-            response = await listGroup(client, group);
-            if (response.code == 211) {
-                NGCount = response.group.number;
-                NGArticles = response.group.articleNumbers;
-                messages = await getHeaderObj(client, NGArticles);
-                quitUsenet(client);
-                headers = `200 OK
+async function WebTVListGroup(group) {
+    wtvnews.connectUsenet().then(() => {
+        wtvnews.selectGroup(group).then(() => {
+            wtvnews.listGroup(group).then((response) => {
+                if (response.code == 211) {
+                    NGCount = response.group.number;
+                    NGArticles = response.group.articleNumbers;
+
+                    wtvnews.getHeaderObj(NGArticles).then((messages) => {
+                        wtvnews.quitUsenet();
+                        headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire: wtv-news:/news?group=${request_headers.query.group}`
-                data = `<HTML>
+                        data = `<HTML>
 <HEAD>
 <script language=javascript>
 if (top.frames.length > 1)
@@ -107,7 +42,7 @@ top.location="news:${request_headers.query.group}";
 <table href="wtv-home:/home" absheight=76 cellspacing=0 cellpadding=0>
 <tr>
 <td align=right>
-<img src="wtv-home:/ROMCache/WebTVLogoJewel.gif" width=87 height=67>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
 </table>
 <td abswidth=5>
 <tr>
@@ -202,14 +137,14 @@ Group: ${request_headers.query.group}
 <td height=33 width=256 valign=bottom>
 <font size=4>
 `
-                if (NGCount == 0) {
-                    data += `This group has no postings`;
-                } else {
-                    data += NGCount + " posting";
-                    if (NGCount != 1)
-                        data += "s"
-                }
-                data += `
+                        if (NGCount == 0) {
+                            data += `This group has no postings`;
+                        } else {
+                            data += NGCount + " posting";
+                            if (NGCount != 1)
+                                data += "s"
+                        }
+                        data += `
 </font>
 <br>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=0 height=8>
@@ -227,12 +162,12 @@ Group: ${request_headers.query.group}
 <tr>
 <td height=6>
 </TABLE>`
-                if (NGCount > 0) {
+                        if (NGCount > 0) {
 
-                    Object.keys(messages).forEach(function (k) {
-                        var message = messages[k]
-                        var message_date = message.headers.DATE;
-                        data += `
+                            Object.keys(messages).forEach(function (k) {
+                                var message = messages[k]
+                                var message_date = message.headers.DATE;
+                                data += `
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=10>
@@ -249,9 +184,9 @@ ${message.headers.FROM}, ${message.headers.DATE}
 </table>
 <td abswidth=10>
 </table>`;
-                    });
-                }
-                data += `
+                            });
+                        }
+                        data += `
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=6><br>
 <TABLE width=446 cellspacing=0 cellpadding=0>
 <tr>
@@ -274,15 +209,14 @@ ${message.headers.FROM}, ${message.headers.DATE}
 <td height=33 width=256 valign=bottom>
 </BODY>
 </HTML>`;
-                sendToClient(socket, headers, data);
-            } else {
-                var errpage = wtvshared.doErrorPage("400", "No such group.");
-                sendToClient(socket, errpage[0], errpage[1]);
-            }
-        }
-    }
-}
 
+                        sendToClient(socket, headers, data);
+                    }).catch((e) => { throwError(e) });;
+                }
+            }).catch((e) => { throwError(e) });;
+        }).catch((e) => { throwError(e) });;
+    }).catch((e) => { throwError(e) });
+}
 
 async function WebTVShowMessage(client, group, article) {
     var connected = await clientConnect(client)
@@ -321,7 +255,7 @@ ${(response.article.headers.SUBJECT) ? wtvshared.htmlEntitize(response.article.h
 <td abswidth=6>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1>
 <td align=center>
-<img src="wtv-mail:/ROMCache/WebTVLogoJewel.gif" width=87 height=67>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
 </table>
 <td abswidth=5>
 <tr>
@@ -592,33 +526,27 @@ ${wtvshared.htmlEntitize(message_body, true)}
 `;
                 sendToClient(socket, headers, data);
             } else {
-                var errpage = wtvshared.doErrorPage("400", "No such article in group <b>"+group+"</b>");
+                var errpage = wtvshared.doErrorPage(400, null, "No such article in group <b>"+group+"</b>");
                 sendToClient(socket, errpage[0], errpage[1]);
             }
         } else {
-            var errpage = wtvshared.doErrorPage("400", "No such group: <b>"+group+"</b>");
+            var errpage = wtvshared.doErrorPage(400, null, "No such group: <b>"+group+"</b>");
             sendToClient(socket, errpage[0], errpage[1]);
         }
     }
 }
 
-
 if (!minisrv_config.services[service_name].upstream_address || !minisrv_config.services[service_name].upstream_port) {
-    var errpage = doErrorPage("400");
+    var errpage = doErrorPage();
     headers = errpage[0];
     data = errpage[1];
 } else {
     var request_is_async = true;
     if (request_headers.query.group) {
-        const Client = require('newsie').default
-        const client = new Client({
-            host: minisrv_config.services[service_name].upstream_address,
-            port: minisrv_config.services[service_name].upstream_port
-        })
         if (request_headers.query.article) {
-            WebTVShowMessage(client, request_headers.query.group, request_headers.query.article);
+            WebTVShowMessage(request_headers.query.group, request_headers.query.article);
         } else {
-            WebTVListGroup(client, request_headers.query.group);
+            WebTVListGroup(request_headers.query.group);
         }
     }
 }

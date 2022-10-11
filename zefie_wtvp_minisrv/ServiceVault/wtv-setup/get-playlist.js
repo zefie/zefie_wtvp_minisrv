@@ -1,5 +1,6 @@
 var minisrv_service_file = true;
 
+const wtvbgm = new WTVBGMusic(minisrv_config, session_data);
 var music_obj = wtvbgm.getMusicObj();
 
 headers = `

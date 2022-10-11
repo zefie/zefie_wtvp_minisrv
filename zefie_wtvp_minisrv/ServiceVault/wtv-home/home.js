@@ -1,34 +1,37 @@
 var minisrv_service_file = true;
 
-headers =`200 OK
+
+if (request_headers.query.url) {
+	headers = `300 OK
+Location: ${request_headers.query.url}`;
+} else {
+	headers = `200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-home:/splash
 wtv-expire-all: wtv-flashrom:
 Content-type: text/html`
+	var cryptstatus = (wtv_encrypted ? "Encrypted" : "Not Encrypted")
 
-if (request_headers.query.url) headers += "\nwtv-visit: " + request_headers.query.url;
-var cryptstatus = (wtv_encrypted ? "Encrypted" : "Not Encrypted")
+	var comp_type = wtvmime.shouldWeCompress(session_data, 'text/html');
+	var compstatus = "uncompressed";
+	switch (comp_type) {
+		case 1:
+			compstatus = "wtv-lzpf";
+			break;
+		case 2:
+			compstatus = "gzip (level 9)";
+			break;
+	}
 
-var comp_type = wtvmime.shouldWeCompress(session_data,'text/html');
-var compstatus = "uncompressed";
-switch (comp_type) {
-	case 1:
-		compstatus = "wtv-lzpf";
-		break;
-	case 2:
-		compstatus = "gzip (level 9)";
-		break;
-}
-
-var unread_mailcount = session_data.mailstore.countUnreadMessages(0)
-var mailbox_gif_num = 0; // no messages
-if (unread_mailcount > 0) {
-	if (unread_mailcount == 1) mailbox_gif_num = 1;
-	else mailbox_gif_num = 2;
-}
+	var unread_mailcount = session_data.mailstore.countUnreadMessages(0)
+	var mailbox_gif_num = 0; // no messages
+	if (unread_mailcount > 0) {
+		if (unread_mailcount == 1) mailbox_gif_num = 1;
+		else mailbox_gif_num = 2;
+	}
 
 
-data = `<HTML>
+	data = `<HTML>
 	<HEAD>
 
 		<TITLE>Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}</TITLE>
@@ -46,7 +49,7 @@ data = `<HTML>
 
 					<a HREF="client:showservices">
 						<img src="file://rom/Images/Spacer.gif" width=1 height=2>
-						<img src="file://rom/Cache/WebTVLogoJewel.gif" width=127 height=98>
+						<img src="${minisrv_config.config.service_logo}"" width=127 height=98>
 					</A>
 
 			<!-- BEGIN SEPARATOR -->
@@ -334,8 +337,8 @@ data = `<HTML>
 							<tr>
 								<td abswidth=100% absheight=18 align=center>
 <font size="2"><b>Welcome to ${minisrv_config.config.service_name}`;
-if (session_data.getSessionData("registered")) data += ", " + session_data.getSessionData("subscriber_username") + "!";
-data += `</font></b>
+	if (session_data.getSessionData("registered")) data += ", " + session_data.getSessionData("subscriber_username") + "!";
+	data += `</font></b>
 <tr>
 <td width=100% align=center absheight=2 bgcolor="000000">
 <tr>
@@ -350,23 +353,23 @@ data += `</font></b>
 <ul>
 <font size="2"><li><a href="wtv-admin:/admin">wtv-admin</a> <sup>new!</sup></li>
 `;
-if (session_data.hasCap("client-can-do-chat")) {
-	data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
-}
-if (session_data.hasCap("client-has-disk")) {
-	// only show disk stuff if client has disk
-	data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
-	if (session_data.hasCap("client-can-do-macromedia-flash2")) {
-		// only show demo if client can do flash2
-		data += "<li>Old DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\">Access</a></li>\n";
+	if (session_data.hasCap("client-can-do-chat")) {
+		data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
 	}
-}
-data += `</ul></font>`;
-// for development
-if (fs.existsSync(service_vaults[0] + "/" + service_name + "/home.zefie.html")) {
-	data += fs.readFileSync(service_vaults[0] + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });
-}
-data += `</table>
+	if (session_data.hasCap("client-has-disk")) {
+		// only show disk stuff if client has disk
+		data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
+		if (session_data.hasCap("client-can-do-macromedia-flash2")) {
+			// only show demo if client can do flash2
+			data += "<li>Old DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\">Access</a></li>\n";
+		}
+	}
+	data += `</ul></font>`;
+	// for development
+	if (fs.existsSync(service_vaults[0] + "/" + service_name + "/home.zefie.html")) {
+		data += fs.readFileSync(service_vaults[0] + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });
+	}
+	data += `</table>
 <tr>
 <td width=100% absheight=28>
 <tr>
@@ -386,50 +389,4 @@ data += `</table>
 </table>
 </body>
 </html>`
-
-/*
-data = `<html>
-<head>
-<title>Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}</title>
-<DISPLAY NoLogo>
-</head>
-<body bgcolor="#191919" text="#44cc55" link="#36d5ff" vlink="#36d5ff">
-<b>Welcome to ${minisrv_config.config.service_name}`;
-if (session_data.getSessionData("registered")) data += ", " + session_data.getSessionData("subscriber_username") + "!";
-data += `</b><br>
-<div width="540" align="right">
-<font size="-4"><i>
-minisrv v${minisrv_config.version}${(minisrv_config.config.git_commit) ? ' git-'+minisrv_config.config.git_commit : ''}, hosted by ${minisrv_config.config.service_owner}</i></small></font></div><br>
-
-<hr>
-<b>Status</b>: ${cryptstatus} (${compstatus})<br>
-<b>Connection Speed</b>: &rate;
-<hr>
-<ul>
-<li><a href="client:relog">client:relog (direct)</a></li>
-<li><a href="wtv-flashrom:/willie">Ultra Willies</a> ~ <a href="wtv-tricks:/tricks">Tricks</a></li>
-<li><a href="wtv-setup:/setup">Setup (Including BG Music)</a></li>
-<li><a href="wtv-favorite:/favorite">Favorites</a> <sup>new!</sup> - <a href="wtv-admin:/admin">wtv-admin</a> <sup>new!</sup></li>
-<li><a href="wtv-guide:/help?topic=Index&subtopic=Main&page=1">Guide/Help</a> <sup>(alpha)</sup> - <a href="${session_data.mailstore.checkMailIntroSeen() ? 'wtv-mail:/listmail' : 'wtv-mail:/DiplomaMail'}">Mail</a> <sup>(beta)</sup>
-`;
-if (session_data.hasCap("client-can-do-chat")) {
-	data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
 }
-if (session_data.hasCap("client-has-disk")) {
-	// only show disk stuff if client has disk
-	data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
-	if (session_data.hasCap("client-can-do-macromedia-flash2")) {
-		// only show demo if client can do flash2
-		data += "<li>Old DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\">Access</a></li>\n";
-	}
-}
-
-data += `<li><a href="http://duckduckgo.com/lite/">DuckDuckGo Lite</a></li>`
-
-data += "</ul>";
-
-// for development
-if (fs.existsSync(service_vaults[0] + "/" + service_name + "/home.zefie.html")) {
-	data += fs.readFileSync(service_vaults[0] + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });
-}
-*/

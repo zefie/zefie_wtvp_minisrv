@@ -60,7 +60,10 @@
     },
     "wtv-news": {
       "port": 1605,
-      "disabled": true
+      "disabled": true,
+      "modules": [
+        "WTVNews"
+      ]
     },
     "wtv-register": {
       "port": 1607,
@@ -93,7 +96,10 @@
       "flags": "0x00000010",
       "passport_service": "wtv-passport",
       "connections": 3,
-      "privileged": true
+      "privileged": true,
+      "modules": [
+        "WTVBGMusic"
+      ]
     },
     "wtv-music": {
       "port": 1656,
@@ -109,7 +115,10 @@
     },
     "wtv-disk": {
       "port": 1635,
-      "connections": 3
+      "connections": 3,
+      "modules": [
+        "WTVDisk"
+      ]
     },
     "wtv-guide": {
       "port": 1621,
