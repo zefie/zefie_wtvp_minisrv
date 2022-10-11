@@ -6,13 +6,13 @@ class WTVAdmin {
     wtvr = null;
     wtvshared = null;
     wtvclient = null;
-    WTVClientSessionData = require('./WTVClientSessionData.js');
+    WTVClientSessionData = require("./WTVClientSessionData.js");
     service_name = "wtv-admin";
 
     constructor(minisrv_config, wtvclient, service_name) {
         this.minisrv_config = minisrv_config;
-        var { WTVShared } = require('./WTVShared.js');
-        var WTVRegister = require('./WTVRegister.js');
+        var { WTVShared } = require("./WTVShared.js");
+        var WTVRegister = require("./WTVRegister.js");
         this.wtvclient = wtvclient;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvr = new WTVRegister(minisrv_config);

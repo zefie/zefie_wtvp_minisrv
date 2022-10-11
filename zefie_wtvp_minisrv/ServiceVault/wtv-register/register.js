@@ -3,7 +3,7 @@ var minisrv_service_file = true;
 headers = `200 OK
 Content-Type: text/html`;
 
-var WTVRegister = require("./WTVRegister.js");
+var WTVRegister = require(classPath + "/WTVRegister.js");
 var wtvr = new WTVRegister(minisrv_config);
 var namerand = Math.floor(Math.random() * 100000);
 var nickname = (minisrv_config.config.service_name + '_' + namerand)

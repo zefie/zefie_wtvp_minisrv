@@ -25,7 +25,7 @@ async function selectGroup(client, group) {
         }
         return false;
     } catch (e) {
-        console.log("WTVNews Error -", "Command: grop", e);
+        console.log("WTVNews Error -", "Command: selectGroup", e);
     }
     return false;
     

@@ -5,7 +5,7 @@ if (!request_headers.query.registering) {
     headers = errpage[0];
     data = errpage[1];
 } else {
-    const WTVRegister = require("./WTVRegister.js")
+    const WTVRegister = require(classPath + "/WTVRegister.js")
     var wtvr = new WTVRegister(minisrv_config, SessionStore);
     var errpage = null;
     if (!request_headers.query.registering) errpage = wtvshared.doErrorPage(400);

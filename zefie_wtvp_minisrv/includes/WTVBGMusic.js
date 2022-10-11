@@ -1246,7 +1246,7 @@ class WTVBGMusic {
     constructor(minisrv_config, session_data) {
         if (!minisrv_config) throw ("minisrv_config required");
         if (!session_data) throw ("WTVClientSessionData required");
-        var WTVShared = require('./WTVShared.js')['WTVShared'];
+        var WTVShared = require("./WTVShared.js")['WTVShared'];
         this.minisrv_config = minisrv_config;
         this.session_data = session_data;
         this.wtvshared = new WTVShared(minisrv_config);

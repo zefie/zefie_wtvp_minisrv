@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 var errpage = null;
 
-const WTVRegister = require("./WTVRegister.js")
+const WTVRegister = require(classPath + "/WTVRegister.js")
 const wtvr = new WTVRegister(minisrv_config, SessionStore);
 
 if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");

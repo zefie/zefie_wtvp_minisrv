@@ -22,9 +22,9 @@ class WTVMail {
 
     constructor(minisrv_config, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
-        var WTVShared = require('./WTVShared.js')['WTVShared'];
-        var WTVMime = require('./WTVMime.js');
-        this.WTVClientSessionData = require('./WTVClientSessionData.js');
+        var WTVShared = require("./WTVShared.js")['WTVShared'];
+        var WTVMime = require("./WTVMime.js");
+        this.WTVClientSessionData = require("./WTVClientSessionData.js");
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);

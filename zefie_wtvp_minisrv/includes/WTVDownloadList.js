@@ -16,7 +16,7 @@ class WTVDownloadList {
      * @param {string} service_name Service name to use in wtv-urls
      */
     constructor(minisrv_config, service_name = "wtv-disk") {
-        var { WTVShared, clientShowAlert } = require('./WTVShared.js');
+        var { WTVShared, clientShowAlert } = require("./WTVShared.js");
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.clientShowAlert = clientShowAlert;

@@ -1,6 +1,6 @@
 var minisrv_service_file = true;
 
-var WTVAdmin = require("./WTVAdmin.js");
+var WTVAdmin = require(classPath + "/WTVAdmin.js");
 var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
 var auth = wtva.isAuthorized();
 if (auth === true) {

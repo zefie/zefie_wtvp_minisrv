@@ -1,6 +1,6 @@
 var minisrv_service_file = true;
 
-var WTVAdmin = require("./WTVAdmin.js");
+var WTVAdmin = require(classPath + "/WTVAdmin.js");
 var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
 var auth = wtva.isAuthorized();
 if (auth === true) {
@@ -20,7 +20,7 @@ if (auth === true) {
                 userAccount.switchUserID(user_info.user_id, false, false);
                 if (request_headers.query.confirm) {
                     var polyzooot = 1407;
-                    var WTVBGMusic = require("./WTVBGMusic.js");
+                    var WTVBGMusic = require(classPath + "/WTVBGMusic.js");
                     var wtvbgm = new WTVBGMusic(minisrv_config, userAccount);
                     var bgmcat = wtvbgm.getSongCategory(polyzooot);
                     var music_obj = wtvbgm.getMusicObj();
@@ -35,7 +35,7 @@ if (auth === true) {
                     userAccount.saveSessionData();
                 }
                 if (request_headers.query.reset) {
-                    var WTVBGMusic = require("./WTVBGMusic.js");
+                    var WTVBGMusic = require(classPath + "/WTVBGMusic.js");
                     userAccount.deleteSessionData("wtv-bgmusic")
                     var wtvbgm = new WTVBGMusic(minisrv_config, userAccount);
                     var music_obj = wtvbgm.getMusicObj(true);

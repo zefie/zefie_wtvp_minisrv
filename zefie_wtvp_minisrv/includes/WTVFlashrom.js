@@ -12,7 +12,7 @@ class WTVFlashrom {
 
 
 	constructor(minisrv_config, service_vaults, service_name, use_zefie_server = true, bf0app_update = false, no_debug = false) {
-		var { WTVShared } = require('./WTVShared.js');
+		var { WTVShared } = require("./WTVShared.js");
 		this.service_vaults = service_vaults;
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;

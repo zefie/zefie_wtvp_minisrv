@@ -13,6 +13,7 @@ class WTVShared {
     html_entities = require('html-entities'); // used externally by service scripts
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
+    parentDirectory = process.cwd()
 
     minisrv_config = [];
     
@@ -38,6 +39,7 @@ class WTVShared {
             }
         }
     }
+
     getServiceString(service, overrides = {}) {
         // used externally by service scripts
         if (service === "all") {
@@ -159,7 +161,7 @@ class WTVShared {
     returnAbsolutePath(check_path) {
         if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 1) != ":") {
             // non-absolute path, so use current directory as base
-            check_path = (__dirname + this.path.sep + check_path);
+            check_path = this.parentDirectory + this.path.sep + check_path;
         } else {
             // already absolute path
         }
@@ -176,9 +178,10 @@ class WTVShared {
 
     getUserConfig() {
         try {
-            if (this.fs.lstatSync(__dirname + "/user_config.json")) {
+            var user_config_filename = this.getAbsolutePath("user_config.json", this.parentDirectory);
+            if (this.fs.lstatSync(user_config_filename)) {
                 try {
-                    var minisrv_user_config = JSON.parse(this.fs.readFileSync(__dirname + this.path.sep + "user_config.json"));
+                    var minisrv_user_config = JSON.parse(this.fs.readFileSync(user_config_filename));
                 } catch (e) {
                     console.error("ERROR: Could not read user_config.json", e);
                     var throw_me = true;
@@ -198,7 +201,7 @@ class WTVShared {
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
         if (notices || reload_notice) console.log(" *** Reading global configuration...");
         try {
-            var minisrv_config = JSON.parse(this.fs.readFileSync(__dirname + this.path.sep + "config.json"));
+            var minisrv_config = JSON.parse(this.fs.readFileSync(this.getAbsolutePath("config.json", __dirname)));
         } catch (e) {
             throw ("ERROR: Could not read config.json", e);
         }
@@ -222,6 +225,7 @@ class WTVShared {
             try {
                 if (notices || reload_notice) console.log(" *** Reading user configuration...");
                 var minisrv_user_config = this.getUserConfig()
+                if (!minisrv_user_config) throw "ERROR: Could not read user_config.json";
                 try {
                     minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
                 } catch (e) {
@@ -290,7 +294,7 @@ class WTVShared {
                     var new_user_config = {};
                     Object.assign(new_user_config, minisrv_user_config, config);
                     if (this.minisrv_config.config.debug_flags.debug) console.log(" * Writing new user configuration...");
-                    this.fs.writeFileSync(__dirname + this.path.sep + "user_config.json", JSON.stringify(new_user_config, null, "\t"));
+                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", parentDirectory), JSON.stringify(new_user_config, null, "\t"));
                 }
                 catch (e) {
                     if (this.minisrv_config.config.debug_flags) {
@@ -460,19 +464,35 @@ class WTVShared {
         return obj;
     }
 
+    unloadModule(moduleName) {
+        // for handling template classes
+        var solvedName = require.resolve(moduleName),
+            nodeModule = require.cache[solvedName];
+        if (nodeModule) {
+            for (var i = 0; i < nodeModule.children.length; i++) {
+                var child = nodeModule.children[i];
+                this.unloadModule(child.filename);
+            }
+            delete require.cache[solvedName];
+        }
+    }
+
     /**
     * Returns an absolute path
     * @param {string} path 
     * @param {string} directory Root directory
     */
-    getAbsolutePath(path, directory = __dirname) {
-        if (path.substring(0, 1) != this.path.sep && path.substring(1, 1) != ":") {
-            // non-absolute path, so use current directory as base
-            path = (directory + this.path.sep + path);
-        } else {
-            // already absolute path
+    getAbsolutePath(path, directory = null) {
+        if (directory) {
+            if (path.indexOf(directory) == -1) {
+                directory = this.getAbsolutePath(directory);
+                try {
+                    if (this.fs.lstatSync(directory).isDirectory()) directory = directory + this.path.sep;
+                } catch (e) { }
+                path = directory + path;
+            }
         }
-        return this.fixPathSlashes(path);
+        return this.fixPathSlashes(this.path.resolve(path));
     }
 
     /**

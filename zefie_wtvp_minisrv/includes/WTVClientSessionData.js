@@ -1,8 +1,8 @@
 const { lib } = require('crypto-js');
 const CryptoJS = require('crypto-js');
-const WTVMail = require('./WTVMail.js')
-const WTVSec = require('./WTVSec.js');
-const WTVFavorites = require('./WTVFavorites.js');
+const WTVMail = require("./WTVMail.js")
+const WTVSec = require("./WTVSec.js");
+const WTVFavorites = require("./WTVFavorites.js");
 
 
 class WTVClientSessionData {
@@ -31,8 +31,8 @@ class WTVClientSessionData {
 
     constructor(minisrv_config, ssid) {
         if (!minisrv_config) throw ("minisrv_config required");
-        var WTVShared = require('./WTVShared.js')['WTVShared'];
-        var WTVMime = require('./WTVMime.js');
+        var WTVShared = require("./WTVShared.js")['WTVShared'];
+        var WTVMime = require("./WTVMime.js");
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);

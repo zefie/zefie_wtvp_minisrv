@@ -31,7 +31,10 @@
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="app.js" />
-    <Content Include="config.json" />
+    <Content Include="includes\WTVNews.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="includes\config.json" />
     <Content Include="diskmap_gen.js">
       <SubType>Code</SubType>
     </Content>
@@ -1101,47 +1104,48 @@
     <Content Include="SharedROMCache\UsingWebTVBanner.gif" />
     <Content Include="SharedROMCache\WebTVLogoJewel.gif" />
     <Content Include="test.js" />
-    <Content Include="WTVAdmin.js" />
-    <Content Include="WTVBGMusic.js">
+    <Content Include="includes\WTVAdmin.js" />
+    <Content Include="includes\WTVBGMusic.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVClientSessionData.js">
+    <Content Include="includes\WTVClientSessionData.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="user_config.example.json" />
     <Content Include="user_config.json" />
-    <Content Include="WTVClientCapabilities.js">
+    <Content Include="includes\WTVClientCapabilities.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVDownloadList.js">
+    <Content Include="includes\WTVDownloadList.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVFavorites.js" />
-    <Content Include="WTVFlashrom.js">
+    <Content Include="includes\WTVFavorites.js" />
+    <Content Include="includes\WTVFlashrom.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVGuide.js" />
-    <Content Include="WTVLzpf.js">
+    <Content Include="includes\WTVGuide.js" />
+    <Content Include="includes\WTVLzpf.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVMail.js">
+    <Content Include="includes\WTVMail.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVMime.js">
+    <Content Include="includes\WTVMime.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVRegister.js">
+    <Content Include="includes\WTVRegister.js">
       <SubType>Code</SubType>
     </Content>
-    <Content Include="WTVSec.js">
+    <Content Include="includes\WTVSec.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="package.json" />
-    <Content Include="WTVShared.js">
+    <Content Include="includes\WTVShared.js">
       <SubType>Code</SubType>
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="includes\" />
     <Folder Include="ServiceDeps\" />
     <Folder Include="ServiceDeps\viewergen\" />
     <Folder Include="ServiceDeps\wtv-1800\" />

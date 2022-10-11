@@ -1,4 +1,4 @@
-const { WTVShared } = require("./WTVShared.js");
+const { WTVShared } = require(classPath + "/WTVShared.js");
 var wtvshared = new WTVShared(null, true);
 const fs = require('fs');
 

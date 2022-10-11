@@ -11,7 +11,7 @@ class WTVMime {
 
 
     constructor(minisrv_config) {
-        var WTVShared = require('./WTVShared.js')['WTVShared'];
+        var WTVShared = require("./WTVShared.js")['WTVShared'];
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         if (!String.prototype.reverse) {

@@ -1,4 +1,8 @@
 'use strict';
+var classPath = __dirname + "/includes/";
+const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
+const wtvshared = new WTVShared(); // creates minisrv_config
+classPath = wtvshared.getAbsolutePath(classPath, __dirname);
 
 const fs = require('fs');
 const tls = require('tls');
@@ -11,16 +15,14 @@ const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
 const { crc16 } = require('easy-crc');
 const process = require('process');
-const WTVSec = require('./WTVSec.js');
-const WTVLzpf = require('./WTVLzpf.js');
-const WTVClientCapabilities = require('./WTVClientCapabilities.js');
-const WTVClientSessionData = require('./WTVClientSessionData.js');
-const WTVMime = require("./WTVMime.js");
-const { WTVShared, clientShowAlert } = require("./WTVShared.js");
-const WTVFlashrom = require("./WTVFlashrom.js");
+const WTVSec = require(classPath + "/WTVSec.js");
+const WTVLzpf = require(classPath + "/WTVLzpf.js");
+const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
+const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
+const WTVMime = require(classPath + "/WTVMime.js");
+const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const vm = require('vm');
 const express = require('express');
-const { url } = require('inspector');
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -107,9 +109,10 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
-    var WTVGuide = require("./WTVGuide.js");
-    var WTVBGMusic = require("./WTVBGMusic.js");
-    var WTVDownloadList = require("./WTVDownloadList.js");
+    var WTVGuide = require(classPath + "/WTVGuide.js");
+    var WTVBGMusic = require(classPath + "/WTVBGMusic.js");
+    var WTVDownloadList = require(classPath + "/WTVDownloadList.js");
+    var WTVNews = require(classPath + "/WTVNews.js");
 
     // create global context object
     var contextObj = {
@@ -128,6 +131,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "WTVClientCapabilities": WTVClientCapabilities,
         "WTVDownloadList": WTVDownloadList,
         "WTVFlashrom": WTVFlashrom,
+        "WTVNews": WTVNews,
         "strftime": require('strftime'),
         "CryptoJS": CryptoJS,
         "crypto": crypto,
@@ -173,16 +177,26 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
             "SessionStore": SessionStore,
             "ssid_sessions": ssid_sessions,
             "socket_sessions": socket_sessions,
-            "reloadConfig": reloadConfig
+            "reloadConfig": reloadConfig,
+            "classPath": classPath
         }
     }
 
     var options = {};
     if (filename) options = { "filename": filename };
     var eval_ctx = new vm.Script(script_data, options)
-    eval_ctx.runInNewContext(contextObj, {
-        "breakOnSigint": true
-    });
+    try {
+        eval_ctx.runInNewContext(contextObj, {
+            "breakOnSigint": true
+        });
+    } catch (e) {
+        console.error(e);
+    }
+
+    // unload modules
+    wtvshared.unloadModule(classPath + "/WTVGuide.js");
+    wtvshared.unloadModule(classPath + "/WTVBGMusic.js");
+    wtvshared.unloadModule(classPath + "/WTVDownloadList.js");
 
     return contextObj; // updated context object with whatever global varibles the script set
 }
@@ -1764,7 +1778,6 @@ var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
 if (git_commit) z_title += " (git " + git_commit + ")";
 console.log("**** Welcome to " + z_title + "  ****");
 
-const wtvshared = new WTVShared(); // creates minisrv_config
 minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
 const wtvmime = new WTVMime(minisrv_config);
 

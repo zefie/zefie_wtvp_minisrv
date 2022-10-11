@@ -8,24 +8,11 @@ class WTVGuide {
 	constructor(minisrv_config, session_data, socket, runScriptInVM) {
 		if (!minisrv_config) throw ("minisrv_config required");
 		if (!session_data) throw ("WTVClientSessionData required");
-		var WTVShared = require('./WTVShared.js')['WTVShared'];
+		var WTVShared = require("./WTVShared.js")['WTVShared'];
 		this.minisrv_config = minisrv_config;
 		this.session_data = session_data;
 		this.wtvshared = new WTVShared(minisrv_config);
 		this.runScriptInVM = runScriptInVM;
-	}
-
-	unloadModule(moduleName) {
-		// for handling template classes
-		var solvedName = require.resolve(moduleName),
-			nodeModule = require.cache[solvedName];
-		if (nodeModule) {
-			for (var i = 0; i < nodeModule.children.length; i++) {
-				var child = nodeModule.children[i];
-				deleteModule(child.filename);
-			}
-			delete require.cache[solvedName];
-		}
 	}
 
 	generatePage(topic, subtopic, page = null) {
@@ -197,7 +184,7 @@ class WTVGuide {
 					console.log(" * wtv-template error:", e)
 				}
 				// unload and clean up module
-				this.unloadModule(template);
+				wtvshared.unloadModule(template);
 			}
 
 			// return generated page
