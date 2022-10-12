@@ -23,6 +23,7 @@ const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const vm = require('vm');
 const express = require('express');
+var wtvnewsserver = null;
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -38,12 +39,51 @@ function shutdown(signal = 'SIGTERM') {
     };
 }
 
+function findServiceByPort(port) {
+    var service_name = null;
+    Object.keys(minisrv_config.services).forEach(function(k) {
+        if (service_name) return;
+        if (minisrv_config.services[k].port) {
+            if (port == parseInt(minisrv_config.services[k].port))
+                service_name = k;
+        }
+    })
+    return service_name;
+}
+
+
+function getPortByService(service) {
+    if (minisrv_config.services[service]) return minisrv_config.services[service].port;
+    else return null;
+}
+
+function getSocketDestinationPort(socket) {
+    return parseInt(socket._server._connectionKey.split(':')[2]);
+}
+
+function verifyServicePort(service_name, socket) {
+    if (!minisrv_config.config.enable_port_isolation) return service_name;
+    if (socket._server._connectionKey) {
+        var socketPort = getSocketDestinationPort(socket);
+        if (minisrv_config.services[service_name]) {
+            if (minisrv_config.services[service_name].port == socketPort) {
+                if (minisrv_config.services[service_name].servicevault_dir)
+                    return minisrv_config.services[service_name].servicevault_dir;
+                else
+                    return service_name;
+            }
+        }
+    }
+    return false;
+}
+
 // Where we store our session information
 var ssid_sessions = new Array();
 var socket_sessions = new Array();
 
 var ports = [];
 var pc_ports = [];
+
 
 // add .reverse() feature to all JavaScript Strings in this application
 // works for service vault scripts too.
@@ -166,13 +206,14 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
                 } catch (e) {
                     console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name, e)
                 }
+                if (vm_modules[k] === "WTVNews") contextObj['wtvnewsserver'] = wtvnewsserver;
             })            
         }
     }
     switch (contextObj.service_name) {
         case "wtv-guide":
             // wtv-guide is a special case due to needing this function
-            modules_to_load.push({ "name": "WTVGuide", "file": classPath + "/WTVGuide.js" });
+            modules_loaded.push({ "name": "WTVGuide", "file": classPath + "/WTVGuide.js" });
             contextObj.wtvguide = new tmpmod(minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
             break;
 
@@ -1836,6 +1877,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         if (minisrv_config.services[k].pc_services) pc_ports.push(minisrv_config.services[k].port);
         else ports.push(minisrv_config.services[k].port);
     }
+
     // minisrv_config service toString
     minisrv_config.services[k].toString = function (overrides) {
         var self = Object.assign({}, this);
@@ -1858,7 +1900,32 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         }
         return outstr;
     }
+
     console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
+    
+    if (minisrv_config.services[k].local_nntp_port) {
+        if (!wtvnewsserver) {
+            const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
+            var local_nntp_using_auth = false;
+            if (minisrv_config.services[k].local_nntp_requires_auth) {
+                local_nntp_using_auth = true;
+                if (minisrv_config.services[k].local_auth) {
+                    // auth required, and info defined in config
+                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true, minisrv_config.services[k].local_auth.username, minisrv_config.services[k].local_auth.password);
+                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: As Configured");
+                } else {
+                    // auth required, but randomly generated
+                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true);
+                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth (randgen): User:", wtvnewsserver.username, "Pass:", wtvnewsserver.password);
+                }
+            } else {
+                // no auth required on local server
+                wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port);
+                console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: None");
+            }
+        }
+    }
+
 })
 if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
 else console.log(" * Full SSIDs will be shown in console logs");
@@ -1893,44 +1960,6 @@ if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
 process.on('uncaughtException', function (err) {
     console.error((err && err.stack) ? err.stack : err);
 });
-
-
-function findServiceByPort(port) {
-    var service_name = null;
-    Object.keys(minisrv_config.services).forEach(function (k) {
-        if (service_name) return;
-        if (minisrv_config.services[k].port) {
-            if (port == parseInt(minisrv_config.services[k].port))
-                service_name = k;
-        }
-    })
-    return service_name;
-}
-
-
-function getPortByService(service) {
-    if (minisrv_config.services[service]) return minisrv_config.services[service].port;
-    else return null;
-}
-
-function getSocketDestinationPort(socket) {
-    return parseInt(socket._server._connectionKey.split(':')[2]);
-}
-
-function verifyServicePort(service_name, socket) {
-    if (socket._server._connectionKey) {
-        var socketPort = getSocketDestinationPort(socket);
-        if (minisrv_config.services[service_name]) {
-            if (minisrv_config.services[service_name].port == socketPort) {
-                if (minisrv_config.services[service_name].servicevault_dir)
-                    return minisrv_config.services[service_name].servicevault_dir;
-                else
-                    return service_name;
-            }
-        }
-    }
-    return false;
-}
 
 var initstring = '';
 var initstring_pc = '';
