@@ -100,32 +100,37 @@ class WTVNews {
         });
     }
 
-    getArticle(articleID) {
+    getArticle(articleID, get_next_last = true) {
         var articleID = parseInt(articleID);
         return new Promise((resolve, reject) => {
             var promises = [];
             this.client.article(articleID).then((data) => {
-                // ask server for next article
-                promises.push(new Promise((resolve, reject) => {
-                    this.client.next().then((res) => {
-                        data.next_article = res.article.articleNumber;
-                        resolve(data.next_article);
-                    }).catch((e) => {
-                        console.log(e);
-                        data.next_article = null;
-                        resolve(data.next_article);
-                    })
-                }));
+                if (get_next_last) {
+                    // ask server for next article
+                    promises.push(new Promise((resolve, reject) => {
+                        this.client.next().then((res) => {
+                            data.next_article = res.article.articleNumber;
+                            resolve(data.next_article);
+                        }).catch((e) => {
+                            console.log(e);
+                            data.next_article = null;
+                            resolve(data.next_article);
+                        })
+                    }));
 
-                // ask server for previous article
-                promises.push(new Promise((resolve, reject) => {
-                    this.client.last().then((res) => {
-                        data.prev_article = res.article.articleNumber;
-                        // do it again
-                        this.client.article(data.prev_article).then(() => {
-                            this.client.last().then((res) => {
-                                data.prev_article = res.article.articleNumber;
-                                resolve(data.prev_article);
+                    // ask server for previous article
+                    promises.push(new Promise((resolve, reject) => {
+                        this.client.last().then((res) => {
+                            data.prev_article = res.article.articleNumber;
+                            // do it again
+                            this.client.article(data.prev_article).then(() => {
+                                this.client.last().then((res) => {
+                                    data.prev_article = res.article.articleNumber;
+                                    resolve(data.prev_article);
+                                }).catch(() => {
+                                    data.prev_article = null;
+                                    resolve(data.prev_article);
+                                });
                             }).catch(() => {
                                 data.prev_article = null;
                                 resolve(data.prev_article);
@@ -133,16 +138,15 @@ class WTVNews {
                         }).catch(() => {
                             data.prev_article = null;
                             resolve(data.prev_article);
-                        });
-                    }).catch(() => {
-                        data.prev_article = null;
-                        resolve(data.prev_article);
-                    })
-                }));
+                        })
+                    }));
 
-                Promise.all(promises).then(() => {
+                    Promise.all(promises).then(() => {
+                        resolve(data);
+                    });
+                } else {
                     resolve(data);
-                });
+                }
             }).catch((e) => {
                 reject(`Error reading article ID ${articleID}`);
                 console.error(" * WTVNews Error:", "Command: article", "args:", articleID, "Error:", e);

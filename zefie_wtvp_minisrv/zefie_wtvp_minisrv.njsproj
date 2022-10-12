@@ -1103,6 +1103,7 @@
     <Content Include="SharedROMCache\up-arrows.swf" />
     <Content Include="SharedROMCache\UsingWebTVBanner.gif" />
     <Content Include="SharedROMCache\WebTVLogoJewel.gif" />
+    <Content Include="sync_nntp.js" />
     <Content Include="test.js" />
     <Content Include="includes\WTVAdmin.js" />
     <Content Include="includes\WTVBGMusic.js">

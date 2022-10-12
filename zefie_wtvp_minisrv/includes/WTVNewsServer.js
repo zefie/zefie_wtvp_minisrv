@@ -15,32 +15,7 @@ class WTVNewsServer {
         const { WTVShared } = require("./WTVShared.js");
         this.wtvshared = new WTVShared(minisrv_config);
         const nntp_server = require('nntp-server');
-        var nntp_commands = {
-            ...nntp_server.commands,
-            "LAST": {
-                head: 'LAST',
-                validate: /^LAST( [^\s]+)$/i,
-
-                // All supported params are defined in separate files
-                run() {
-                    console.log('hi');
-                    throw new Error('method LAST is not implemented');
-                }
-            },
-            "NEXT": {
-                head: 'NEXT',
-                validate: /^NEXT( [^\s]+)$/i,
-
-                // All supported params are defined in separate files
-                run() {
-                    console.log('hi');
-                    throw new Error('method NEXT is not implemented');
-                }
-            }
-        }
-
-        console.log(nntp_commands);
-
+        const nntp_statuses = require('nntp-server/lib/status');
         this.username == username || null;
         this.password == password || null;
         this.using_auth = using_auth;
@@ -53,10 +28,52 @@ class WTVNewsServer {
         // nntp-server module overrides
         var self = this;
 
+        var nntp_commands = {
+            ...nntp_server.commands,
+            "LAST": {
+                head: 'LAST',
+                validate: /^LAST$/i,
+
+                // All supported params are defined in separate files
+                run: function (session) {
+                    try {
+                        if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
+                        if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                        if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                        var res = self.getLastArticle(session.group.name, session.group.current_article);
+                        if (!res) return nntp_statuses._422_NO_LAST_ARTICLE;
+                        var last = `${nntp_statuses._223_ARTICLE_EXISTS} ${res.articleNumber} ${res.message_id}`
+                        return last
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+            },
+            "NEXT": {
+                head: 'NEXT',
+                validate: /^NEXT$/i,
+
+                // All supported params are defined in separate files
+                run: function (session) {
+                    try {
+                        if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
+                        if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                        if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                        var res = self.getNextArticle(session.group.name, session.group.current_article);
+                        if (!res) return nntp_statuses._421_NO_NEXT_ARTICLE;
+                        var next = `${nntp_statuses._223_ARTICLE_EXISTS} ${res.articleNumber} ${res.message_id}`
+                        return next
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+            }
+        }
+
         nntp_server.prototype = {
             ...nntp_server.prototype,
             _authenticate: function (session) {
-                // authenticte
+                // authenticate
                 if (session.authinfo_user == self.username && session.authinfo_pass == self.password) return Promise.resolve(true);
                 return Promise.resolve(false);
             },
@@ -89,12 +106,10 @@ class WTVNewsServer {
             _getArticle: function (session, message_id) {
                 // getArticle
                 return new Promise((resolve, reject) => {
-                    self.getArticle(session.group.name, message_id).then((res) => {
-                        resolve(res);
-                    }).catch((e) => {
-                        console.log(" * WTVNewsServer Error:", e);
-                        reject(e);
-                    });
+                    var res = self.getArticle(session.group.name, message_id);
+                    console.log(res);
+                    if (!res.messageId) reject(res);
+                    else resolve(res)
                 });
             },
 
@@ -137,23 +152,28 @@ class WTVNewsServer {
         return this.getGroupPath(group) + this.path.sep + article + ".newz";
     }
 
+    articleExists(group, article) {
+        const g = this.getArticlePath(group, article);
+        if (this.fs.existsSync(g)) return true;
+        return false;
+    }
+
     createGroup(group) {
         if (!this.fs.existsSync(getGroupPath(group))) return this.fs.mkdirSync(getGroupPath(group));
         return true;
     }
 
     getArticle(group, article) {
-        return new Promise((resolve, reject) => {
-            const g = this.getArticlePath(group, article);
-            if (!this.fs.existsSync(g)) return false;
-            try {
-                var data = JSON.parse(this.fs.readFileSync(g));
-                resolve(data);
-            } catch (e) {
-                console.log(" * WTVNewsServer Error:", e);
-                reject(e)
-            }
-        });
+        const g = this.getArticlePath(group, article);
+        if (!this.fs.existsSync(g)) return false;
+        try {
+            var data = JSON.parse(this.fs.readFileSync(g));
+            data.index = data.articleNumber;
+            return data
+        } catch (e) {
+            console.log(" * WTVNewsServer Error:", e);
+        }
+        return null;
     }
 
     selectGroup(group) {
@@ -178,6 +198,55 @@ class WTVNewsServer {
         }
         if (out.min_index === null) out.min_index = 0;
         return out;
+    }
+
+    getLastArticle(group, current) {
+        var g = this.getGroupPath(group);
+        var res = null;
+        try {
+            this.fs.readdirSync(g).forEach(file => {
+                var articleNumber = parseInt(file.split('.')[0]);
+                if (articleNumber > current) return false;
+                res = articleNumber;
+                return false;
+            });
+        } catch (e) {
+            console.log(e);
+            return e;
+        }
+        if (res) {
+            if (res == current) return null;
+            var message = this.getArticle(group, res);
+            if (message.messageId) {
+                res = { "articleNumber": res, "message_id": message.messageId };
+            }
+        }
+        return res;
+    }
+
+    getNextArticle(group, current) {
+        var g = this.getGroupPath(group);
+        var res = null;
+        try {
+            this.fs.readdirSync(g).forEach(file => {
+                var articleNumber = parseInt(file.split('.')[0]);
+                if (articleNumber <= current) return;
+
+                res = articleNumber;
+                return false;
+            });
+        } catch (e) {
+            console.log(e);
+            return e;
+        }
+        if (res) {
+            if (res == current) return null;
+            var message = this.getArticle(group, res);
+            if (message.messageId) {
+                res = { "articleNumber": res, "message_id": message.messageId };
+            }
+        }
+        return res;
     }
 
     listGroup(group, start, end) {

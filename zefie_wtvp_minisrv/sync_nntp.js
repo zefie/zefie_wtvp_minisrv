@@ -7,6 +7,7 @@ const groups_to_sync = [
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 var classPath = __dirname + "/includes/";
 const { WTVShared } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
@@ -58,20 +59,27 @@ function createGroup(group) {
 function createArticle(group, articleNumber, article) {
 	var g = getGroupPath(group);
 	var file = g + path.sep + articleNumber + ".newz";
-	if (fs.existsSync(file)) return "exists";
+	if (verifyMessage(group, articleNumber, article)) return "exists";
 	else {
 		try {
-			article.article.index = article.article.articleNumber;
-			delete article.article.articleNumber;
-			article.article['message-id'] = article.article.messageId;
-			delete article.article.messageId;
-
 			fs.writeFileSync(file, JSON.stringify(article.article));
 			return file;
 		} catch (e) {
 			return e;
 		}
 	}
+}
+
+function verifyMessage(group, articleNumber, article) {
+	var g = getGroupPath(group);
+	var file = g + path.sep + articleNumber + ".newz";
+	if (!fs.existsSync(file)) return false;
+	var old_data = fs.readFileSync(file);
+	var new_data = JSON.stringify(article.article);
+
+	var old_data_hash = crypto.createHash('md5').update(old_data).digest("hex");
+	var new_data_hash = crypto.createHash('md5').update(new_data).digest("hex");
+	return (old_data_hash === new_data_hash);
 }
 
 function deleteMissing(group, articles) {
@@ -108,7 +116,7 @@ wtvnews.connectUsenet().then((res) => {
 						deleteMissing(group, res.group.articleNumbers)
 						res.group.articleNumbers.forEach((article) => {
 							promises.push(new Promise((resolve, reject) => {
-								wtvnews.getArticle(article).then((message) => {
+								wtvnews.getArticle(article, false).then((message) => {
 									res = createArticle(group, article, message);
 									if (res) {
 										if (res == "exists") {
