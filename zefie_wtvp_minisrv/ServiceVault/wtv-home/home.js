@@ -152,13 +152,13 @@ Content-type: text/html`
 							<td abswidth=7>
 							<td abswidth=125>
 
-							<table cellspacing=0 cellpadding=0 href="wtv-tricks:/tricks">
+							<table cellspacing=0 cellpadding=0 href="wtv-news:/lobby">
 								<tr>
 									<td>
 										<table cellspacing=0 cellpadding=0>
 											<tr>
 												<td>
-													<shadow><font size=3 color=e7ce4a>Tricks</font></shadow>
+													<shadow><font size=3 color=e7ce4a>Discuss</font></shadow>
 										</table>
 							</table>
 
