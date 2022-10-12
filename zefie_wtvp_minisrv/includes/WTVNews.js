@@ -114,7 +114,6 @@ class WTVNews {
                             data.next_article = res.article.articleNumber;
                             resolve(data.next_article);
                         }).catch((e) => {
-                            console.log(e);
                             data.next_article = null;
                             resolve(data.next_article);
                         })
@@ -124,7 +123,6 @@ class WTVNews {
                     promises.push(new Promise((resolve, reject) => {
                         this.client.last().then((res) => {
                             data.prev_article = res.article.articleNumber;
-                            console.log(data.prev_article, articleID)
                             if (data.prev_article === articleID) {
                                 // do it again, needed this for CodoSoft NNTPd?
                                 this.client.article(data.prev_article).then(() => {

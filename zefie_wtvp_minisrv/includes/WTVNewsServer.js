@@ -202,11 +202,9 @@ class WTVNewsServer {
                 articleNumbers.push(articleNumber);
             });
             articleNumbers.sort((a, b) => a - b)
-            var index = articleNumbers.findIndex((e) => e = current);
-            console.log('index last', index, "article", articleNumbers[index], "current", current)
+            var index = articleNumbers.findIndex((e) => e == current) - 1;
             if (index >= 0) res = articleNumbers[index];
         } catch (e) {
-            console.log(e);
             return e;
         }
         if (res) {
@@ -229,16 +227,12 @@ class WTVNewsServer {
                 articleNumbers.push(articleNumber);
             });
             articleNumbers.sort((a, b) => a - b)
-            console.log(articleNumbers)
-            var index = articleNumbers.findIndex((e) => e = current) + 1;
-            console.log('index next', index, "article", articleNumbers[index], "current", current)
+            var index = articleNumbers.findIndex((e) => e == current) + 1;
             if (index < articleNumbers.length) res = articleNumbers[index];
         } catch (e) {
-            console.log(e);
             return e;
         }
         if (res) {
-            if (res == current) return null;
             var message = this.getArticle(group, res);
             if (message.messageId) {
                 res = { "articleNumber": res, "message_id": message.messageId };
@@ -269,7 +263,6 @@ class WTVNewsServer {
                 out.total++;
             });
         } catch (e) {
-            console.log(e);
             out.failed = e;
         }
         articleNumbers.sort((a, b) => a.index - b.index)
