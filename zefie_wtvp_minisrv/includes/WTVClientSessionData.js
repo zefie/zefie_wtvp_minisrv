@@ -52,6 +52,8 @@ class WTVClientSessionData {
             "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
 			"wtv-head-waiter:/images/NameBanner.gif",
             "wtv-head-waiter:/bad-disk",
+            "wtv-head-waiter:/images/signin_new_mail.gif",
+            "wtv-head-waiter:/images/signin_no_mail.gif",
             "wtv-log:/log"
         ];
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
