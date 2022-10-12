@@ -149,7 +149,7 @@ class WTVNewsServer {
             post_data.articleNumber = articleNumber;
             post_data.messageId = this.getHeader(post_data, "message-id");
             //Tue, 11 Oct 2022 17:25:16 -0400
-            post_data.headers.date = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(post_data.headers.date))
+            post_data.headers.Date = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(post_data.headers.date))
             post_data.headers['INJECTION-DATE'] = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(Date.now()))
             if (this.articleExists(group, articleNumber)) return false // should not occur, but just in case
             return this.createArticle(group, articleNumber, post_data);
