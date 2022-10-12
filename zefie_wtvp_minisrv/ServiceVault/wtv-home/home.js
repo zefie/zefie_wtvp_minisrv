@@ -38,10 +38,10 @@ Content-type: text/html`
 		<DISPLAY noscroll fontsize="medium">
 	</HEAD>
 
-	<body background="wtv-home:/images/BackgroundGradient.gif" text="44cc55" link="6977a9" vlink="6977a9" hspace=0 vspace=0 >
+	<body background="wtv-home:/images/BackgroundGradient_dark.gif" text="44cc55" link="36d5ff" vlink="36d5ff" hspace=0 vspace=0 >
 
 	<sidebar width=138>
-		<table cellspacing=0 cellpadding=0 bgcolor="30364D">
+		<table cellspacing=0 cellpadding=0 bgcolor="202020" gradcolor=080808>
 			<!-- BEGIN LOGO SPAN -->
 			<tr>
 				<td width=138 absheight=112 valign=top align=center>
@@ -57,12 +57,12 @@ Content-type: text/html`
 				<td absheight=5>
 					<table cellspacing=0 cellpadding=0>
 						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="1C1E28">
+							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 						<tr>
 							<td abswidth=138 absheight=1 valign=top align=left>
 						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="4D5573">
+							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 					</table>
 			<!-- END LOGO SPAN -->
@@ -93,12 +93,12 @@ Content-type: text/html`
 				<td absheight=5>
 					<table cellspacing=0 cellpadding=0>
 						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="1C1E28">
+							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 						<tr>
 							<td abswidth=138 absheight=1 valign=top align=left>
 						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="4D5573">
+							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 					</table>
 			<!-- END SPAN -->
@@ -131,12 +131,12 @@ Content-type: text/html`
 				<td absheight=5>
 					<table cellspacing=0 cellpadding=0>
 						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="1C1E28">
+							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 						<tr>
 							<td abswidth=138 absheight=1 valign=top align=left>
 						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="4D5573">
+							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 					</table>
 			<!-- END SPAN -->
@@ -152,13 +152,13 @@ Content-type: text/html`
 							<td abswidth=7>
 							<td abswidth=125>
 
-							<table cellspacing=0 cellpadding=0 href="wtv-tricks:/tricks">
+							<table cellspacing=0 cellpadding=0 href="wtv-news:/lobby">
 								<tr>
 									<td>
 										<table cellspacing=0 cellpadding=0>
 											<tr>
 												<td>
-													<shadow><font size=3 color=e7ce4a>Tricks</font></shadow>
+													<shadow><font size=3 color=e7ce4a>Discuss</font></shadow>
 										</table>
 							</table>
 
@@ -173,12 +173,12 @@ Content-type: text/html`
 				<td absheight=5>
 					<table cellspacing=0 cellpadding=0>
 						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="1C1E28">
+							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 						<tr>
 							<td abswidth=138 absheight=1 valign=top align=left>
 						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="4D5573">
+							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 					</table>
 			<!-- END SPAN -->
@@ -214,12 +214,12 @@ Content-type: text/html`
 
 					<table cellspacing=0 cellpadding=0>
 						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="1C1E28">
+							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
 								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 						<tr>
 							<td abswidth=138 absheight=1 valign=top align=left>
 						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="4D5573">
+							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
 							<img src="file://rom/Images/Spacer.gif" width=1 height=1>
 					</table>
 			<!-- END SPAN -->
@@ -230,7 +230,7 @@ Content-type: text/html`
 
 			<tr>
 				<td align=right>
-					<img src="wtv-home:/images/HomeBanner.gif" width=48 height=126>
+					<img src="wtv-home:/images/HomeBanner_dark.gif" width=48 height=126>
 
 			<tr>
 			<td absheight=5>
@@ -241,7 +241,7 @@ Content-type: text/html`
 
 		<table cellspacing=0 cellpadding=0 width=100% height=383>
 			<tr>
-				<td rowspan=10 background="wtv-home:/images/BackgroundGradientEdge.gif" width=6 height=100%>
+				<td rowspan=10 background="wtv-home:/images/BackgroundGradientEdge_dark.gif" width=6 height=100%>
 
 			<tr>
 				<td valign=top absheight=113>
@@ -264,7 +264,7 @@ Content-type: text/html`
 											<table cellspacing=0 cellpadding=0 width=100%>
 												<tr>
 													<td align=center>
-														<font size=3 color=#000000>Mail</font>	
+														<font size=3 color=#36d5ff>Mail</font>	
 											</table>
 								</table>
 							
@@ -284,7 +284,7 @@ Content-type: text/html`
 											<table cellspacing=0 cellpadding=0 width=100%>
 												<tr>
 													<td align=center>
-														<font size=3 color=#000000>Favorites</font>
+														<font size=3 color=#36d5ff>Favorites</font>
 											</table>
 								</table>
 							
@@ -304,7 +304,7 @@ Content-type: text/html`
 											<table cellspacing=0 cellpadding=0 width=100%>
 												<tr>
 													<td align=center>
-														<font size=3 color=#000000>Flashroms</font>
+														<font size=3 color=#36d5ff>Flashroms</font>
 											</table>
 								</table>
 
@@ -324,7 +324,7 @@ Content-type: text/html`
 											<table cellspacing=0 cellpadding=0 width=100%>
 												<tr>
 													<td align=center>
-														<font size=3 color=#000000>Search</font>
+														<font size=3 color=#36d5ff>Search</font>
 											</table>
 								</table>
 							<td width=9%>

@@ -8,7 +8,7 @@ ServiceLogPost/*_*
 
 # Large files not pertaining to the service code
 UserServiceVault/*-*
-UserServiceVault/*_*
+UserTemplates/*_*
 package-lock.json
 
 

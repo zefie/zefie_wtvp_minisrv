@@ -98,6 +98,8 @@ Display name<br>
 bgcolor=#444444 text=#ffdd33 cursor=#cc9933
 TYPE="text" ASCIIONLY
 SIZE="18"
+selected
+autoactivate
 MAXLENGTH="18">
 </a>
 </table>

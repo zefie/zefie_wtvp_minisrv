@@ -24,7 +24,6 @@ class WTVRegister {
     checkUsernameSanity(username) {
         var regex_str = "^([A-Za-z0-9\-\_]{" + this.minisrv_config.config.user_accounts.min_username_length + "," + this.minisrv_config.config.user_accounts.max_username_length + "})$";
         var regex = new RegExp(regex_str);
-        console.log(username, username.length, regex.test(username));
         return regex.test(username);
     }
 
@@ -37,12 +36,14 @@ class WTVRegister {
         if (directory) search_dir = directory;
         this.fs.readdirSync(search_dir).forEach(file => {
             if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
-                return_val =  self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
+                if (search_dir.match(/minisrv\_internal\_nntp/)) return;
+                return_val = !self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
             }
-            if (!file.match(/.*\.json/ig)) return;
+            if (!file.match(/user.*\.json/ig)) return;
             try {
                 var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
+                console.log(temp_session_data.subscriber_username.toLowerCase());
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
                     return_val = true;
                 }

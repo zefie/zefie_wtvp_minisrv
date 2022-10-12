@@ -6,7 +6,11 @@
       "UserServiceVault",
       "ServiceVault"
     ],
-    "ServiceDeps":  "ServiceDeps",
+    "ServiceTemplates": [
+      "UserTemplates",
+      "ServiceDeps/templates"
+    ],
+    "ServiceDeps": "ServiceDeps",
     "SessionStore": "SessionStore",
     "SharedROMCache": "SharedROMCache",
     "enable_shared_romcache": true,
@@ -31,8 +35,12 @@
     "show_detailed_splash": true,
     "show_diskmap": false,
     "unauthorized_url": "wtv-1800:/unauthorized?",
+    "enable_port_isolation": true,
     "allow_guests": true,
     "domain_name": "wtv.zefie.com",
+    "ssid_block_list": [
+      "minisrv_internal_nntp"
+    ],
     "user_accounts": {
       "max_users_per_account": 6,
       "min_username_length": 5,
@@ -43,7 +51,30 @@
       "min_length": 5,
       "max_length": 32,
       "form_size": 16
-    }
+    },
+    "errorMessages": {
+      "400": "${service_name} ran into a technical problem. Please try again.",
+      "401": "Authorization Required.",
+      "403": "The publisher of that page has not authorized you to view it.",
+      "404": "The service could not find the requested page.",
+      "500": "${service_name} ran into a technical problem. Please try again."
+    },
+    "lockdownWhitelist": [
+      "wtv-1800:/preregister",
+      "wtv-head-waiter:/login",
+      "wtv-head-waiter:/ValidateLogin",
+      "wtv-head-waiter:/login-stage-two",
+      "wtv-head-waiter:/relogin",
+      "wtv-head-waiter:/ROMCache/Spacer.gif",
+      "wtv-head-waiter:/ROMCache/NameStrip.gif",
+      "wtv-head-waiter:/images/PasswordBanner.gif",
+      "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
+      "wtv-head-waiter:/images/NameBanner.gif",
+      "wtv-head-waiter:/bad-disk",
+      "wtv-head-waiter:/images/signin_new_mail.gif",
+      "wtv-head-waiter:/images/signin_no_mail.gif",
+      "wtv-log:/log"
+    ]
   },
   "services": {
     "wtv-head-waiter": {
@@ -60,10 +91,34 @@
     },
     "wtv-news": {
       "port": 1605,
-      "disabled": true,
+      "local_nntp_port": 57319,
+      "local_nntp_requires_auth": true,
       "modules": [
         "WTVNews"
-      ]
+      ],
+      "featuredGroups": [
+        {
+          "name": "WebTV",
+          "group": "webtv.users",
+          "description": "A moderated discussion with WebTV customers"
+        },
+        {
+          "name": "Hacking",
+          "group": "alt.discuss.webtv.hacking",
+          "description": "Not advertiser friendly"
+        },
+        {
+          "name": "minisrv",
+          "group": "minisrv.users",
+          "description": "The server behind it all"
+        },
+        {
+          "name": "MIDIs",
+          "group": "alt.discuss.midis",
+          "description": "Explore the sounds of Beatnik with your WebTV"
+        }
+      ],
+      "groupMetaRefreshInterval": 86400
     },
     "wtv-register": {
       "port": 1607,
@@ -122,11 +177,17 @@
     },
     "wtv-guide": {
       "port": 1621,
-      "connections": 3
+      "connections": 3,
+      "modules": [
+        "WTVGuide"
+      ]
     },
     "wtv-mail": {
       "port": 1608,
-      "connections": 3
+      "connections": 3,
+      "modules": [
+        "WTVNews"
+      ]
     },
     "wtv-passport": {
       "port": 1654

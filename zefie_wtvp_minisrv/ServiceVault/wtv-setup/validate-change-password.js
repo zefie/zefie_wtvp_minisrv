@@ -36,7 +36,7 @@ Content-Type: text/html`
         data = errpage[1];
     }
     else {
-        if (request_headers.query.password.length == 0 && request_headers.query.verify.length == 0) {
+        if (request_headers.query.password.length == 0 && request_headers.query.password_verify.length == 0) {
             userSession.disableUserPassword();
             headers = `300 OK
 Content-type: text/html
@@ -50,7 +50,7 @@ Location: ${request_headers.query.return_to}`;
         }
         else if (request_headers.query.password.length < minisrv_config.config.passwords.min_length) errpage = wtvshared.doErrorPage(400, "Your password must contain at least " + minisrv_config.config.passwords.min_length + " characters.");
         else if (request_headers.query.password.length > minisrv_config.config.passwords.max_length) errpage = wtvshared.doErrorPage(400, "Your password must contain no more than than " + minisrv_config.config.passwords.max_length + " characters.");
-        else if (request_headers.query.password !== request_headers.query.verify) errpage = wtvshared.doErrorPage(400, "The passwords you entered did not match. Please check them and try again.");
+        else if (request_headers.query.password !== request_headers.query.password_verify) errpage = wtvshared.doErrorPage(400, "The passwords you entered did not match. Please check them and try again.");
         else {
             if (errpage) {
                 headers = errpage[0];

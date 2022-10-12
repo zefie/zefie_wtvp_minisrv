@@ -8,8 +8,8 @@ const fs = require('fs');
 const tls = require('tls');
 const path = require('path');
 const zlib = require('zlib');
-const http = require('http');
-const https = require('https');
+const http = require('follow-redirects').http
+const https = require('follow-redirects').https
 const net = require('net');
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
@@ -23,6 +23,7 @@ const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const vm = require('vm');
 const express = require('express');
+var wtvnewsserver = null;
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -38,12 +39,51 @@ function shutdown(signal = 'SIGTERM') {
     };
 }
 
+function findServiceByPort(port) {
+    var service_name = null;
+    Object.keys(minisrv_config.services).forEach(function(k) {
+        if (service_name) return;
+        if (minisrv_config.services[k].port) {
+            if (port == parseInt(minisrv_config.services[k].port))
+                service_name = k;
+        }
+    })
+    return service_name;
+}
+
+
+function getPortByService(service) {
+    if (minisrv_config.services[service]) return minisrv_config.services[service].port;
+    else return null;
+}
+
+function getSocketDestinationPort(socket) {
+    return parseInt(socket._server._connectionKey.split(':')[2]);
+}
+
+function verifyServicePort(service_name, socket) {
+    if (!minisrv_config.config.enable_port_isolation) return service_name;
+    if (socket._server._connectionKey) {
+        var socketPort = getSocketDestinationPort(socket);
+        if (minisrv_config.services[service_name]) {
+            if (minisrv_config.services[service_name].port == socketPort) {
+                if (minisrv_config.services[service_name].servicevault_dir)
+                    return minisrv_config.services[service_name].servicevault_dir;
+                else
+                    return service_name;
+            }
+        }
+    }
+    return false;
+}
+
 // Where we store our session information
 var ssid_sessions = new Array();
 var socket_sessions = new Array();
 
 var ports = [];
 var pc_ports = [];
+
 
 // add .reverse() feature to all JavaScript Strings in this application
 // works for service vault scripts too.
@@ -164,16 +204,16 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
                     contextObj[vm_modules[k]] = require(module_file);
                     modules_loaded.push(module_file)
                 } catch (e) {
-                    console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name)
+                    console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name, e)
                 }
+                if (vm_modules[k] === "WTVNews") contextObj['wtvnewsserver'] = wtvnewsserver;
             })            
         }
     }
     switch (contextObj.service_name) {
         case "wtv-guide":
             // wtv-guide is a special case due to needing this function
-            modules_to_load.push({ "name": "WTVGuide", "file": classPath + "/WTVGuide.js" });
-            contextObj.wtvguide = new tmpmod(minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
+            contextObj.wtvguide = new contextObj["WTVGuide"](minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
             break;
 
         case "wtv-1800":
@@ -254,9 +294,16 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     ]
 
     if (!pc_services) {
+        updateFromVM.push([`ssid_sessions[${socket.ssid}]`, "session_data"]); // user-specific session data from unprivileged scripts
+    }
+
+    var privileged = false;
+    if (minisrv_config.services[service_name]) privileged = (minisrv_config.services[service_name].privileged) ? true : false;
+    else if (pc_services) privileged = (minisrv_config.services['pc_services'].privileged) ? true : false;
+
+    if (privileged) {
         updateFromVM.push(["ssid_sessions", "ssid_sessions"]);             // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
         updateFromVM.push(["socket_sessions", "socket_sessions"]);         // global socket_sessions object for privileged service scripts, such as wtv-1800, etc
-        updateFromVM.push([`ssid_sessions[${socket.ssid}]`, "session_data"]); // user-specific session data from unprivileged scripts
     }
 
     try {
@@ -417,11 +464,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // expose var service_dir for script path to the root of the wtv-service                    
                     socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
                     var script_data = fs.readFileSync(service_vault_file_path + ".js").toString();
-                    var priv = false;
-                    if (minisrv_config.services[service_name]) priv = (minisrv_config.services[service_name].privileged) ? true : false;
-                    else if (pc_services) priv = (minisrv_config.services['pc_services'].privileged) ? true : false;
 
-                    var vmResults = runScriptInVM(script_data, contextObj, priv, service_vault_file_path + ".js");
+                    var vmResults = runScriptInVM(script_data, contextObj, privileged, service_vault_file_path + ".js");
                     // Here we read back certain data from the ServiceVault Script Context Object
                     updateFromVM.forEach((item) => {
                         try {
@@ -461,11 +505,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                     request_headers.service_file_path = catchall_file;
                                     var script_data = fs.readFileSync(catchall_file).toString();
-                                    var priv = false;
-                                    if (minisrv_config.services[service_name]) priv = (minisrv_config.services[service_name].privileged) ? true : false;
-                                    else if (pc_services) priv = (minisrv_config.services['pc_services'].privileged) ? true : false;
 
-                                    runScriptInVM(script_data, contextObj, priv, catchall_file);
+                                    runScriptInVM(script_data, contextObj, privileged, catchall_file);
 
                                     // Here we read back certain data from the ServiceVault Script Context Object
                                     try {
@@ -771,6 +812,7 @@ async function doHTTPProxy(socket, request_headers) {
             port: request_data.port,
             path: request_data.path,
             method: request_data.method,
+            followAllRedirects: true,
             headers: {
                 "User-Agent": request_headers["User-Agent"] || "WebTV"
             }
@@ -968,7 +1010,7 @@ function headerStringToObj(headers, response = false) {
 async function sendToClient(socket, headers_obj, data) {
     var headers = "";
     var content_length = 0;
-    if (typeof (data) === 'undefined') data = '';
+    if (typeof (data) === 'undefined' || data === null) data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
         headers_obj = headerStringToObj(headers_obj, true);
@@ -984,7 +1026,11 @@ async function sendToClient(socket, headers_obj, data) {
         if (!headers_obj['minisrv-no-mail-count']) {
             if (ssid_sessions[socket.ssid]) {
                 if (ssid_sessions[socket.ssid].isRegistered()) {
-                    if (ssid_sessions[socket.ssid].mailstore) {
+                    if (!ssid_sessions[socket.ssid].isUserLoggedIn()) {
+                        // not logged in probe all users
+                        headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].getAccountTotalUnreadMessages();
+                    } else if (ssid_sessions[socket.ssid].mailstore) {
+                        // logged in
                         headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0);
                     }
                 }
@@ -998,7 +1044,7 @@ async function sendToClient(socket, headers_obj, data) {
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
         headers_obj.Connection = "Keep-Alive";
-        headers_obj = moveObjectElement('Connection', 'Response', headers_obj);
+        headers_obj = wtvshared.moveObjectElement('Connection', 'Response', headers_obj);
     }
 
     var content_length = 0;
@@ -1090,7 +1136,7 @@ async function sendToClient(socket, headers_obj, data) {
         // encrypt if needed
         if (socket_sessions[socket.id].secure == true && !socket_sessions[socket.id].do_not_encrypt) {
             headers_obj["wtv-encrypted"] = 'true';
-            headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
+            headers_obj = wtvshared.moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
             if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
                 if (!minisrv_config.config.debug_flags.quiet) console.log(" * Encrypting response to client ...")
                 var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
@@ -1127,7 +1173,7 @@ async function sendToClient(socket, headers_obj, data) {
                 if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64) {
                     if (ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket) {
                         headers_obj["wtv-ticket"] = ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64;
-                        headers_obj = moveObjectElement("wtv-ticket", "Connection", headers_obj);
+                        headers_obj = wtvshared.moveObjectElement("wtv-ticket", "Connection", headers_obj);
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket = false;
                     }
                 }
@@ -1240,30 +1286,6 @@ function concatArrayBuffer(buffer1, buffer2) {
     tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
     return tmp.buffer;
 }
-
-function moveObjectElement(currentKey, afterKey, obj) {
-    var result = {};
-    var val = obj[currentKey];
-    delete obj[currentKey];
-    var next = -1;
-    var i = 0;
-    if (typeof afterKey == 'undefined' || afterKey == null) afterKey = '';
-    Object.keys(obj).forEach(function (k) {
-        var v = obj[k];
-        if ((afterKey == '' && i == 0) || next == 1) {
-            result[currentKey] = val;
-            next = 0;
-        }
-        if (k == afterKey) { next = 1; }
-        result[k] = v;
-        ++i;
-    });
-    if (next == 1) {
-        result[currentKey] = val;
-    }
-    if (next !== -1) return result; else return obj;
-}
-
 
 function isUnencryptedString(string) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 
@@ -1392,8 +1414,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
                         if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id != null) {
-                            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0)
+                            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0) {
                                 ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
+                                ssid_sessions[socket.ssid].setUserLoggedIn(true);
+                            }
                         }
                     } else {
                         if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"]) {
@@ -1403,8 +1427,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                 ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
                                 if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                                 if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0) {
-                                    if (ssid_sessions[socket.ssid].user_id != ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id)
+                                    if (ssid_sessions[socket.ssid].user_id != ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id) {
                                         ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
+                                        ssid_sessions[socket.ssid].setUserLoggedIn(true);
+                                    }
                                 }
                             }
                         }
@@ -1836,6 +1862,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         if (minisrv_config.services[k].pc_services) pc_ports.push(minisrv_config.services[k].port);
         else ports.push(minisrv_config.services[k].port);
     }
+
     // minisrv_config service toString
     minisrv_config.services[k].toString = function (overrides) {
         var self = Object.assign({}, this);
@@ -1858,7 +1885,37 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         }
         return outstr;
     }
+
     console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
+    
+    if (minisrv_config.services[k].local_nntp_port) {
+        if (!wtvnewsserver) {
+            const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
+            var local_nntp_using_auth = false;
+            if (minisrv_config.services[k].local_nntp_requires_auth) {
+                local_nntp_using_auth = true;
+                if (minisrv_config.services[k].local_auth) {
+                    // auth required, and info defined in config
+                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true, minisrv_config.services[k].local_auth.username, minisrv_config.services[k].local_auth.password);
+                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: As Configured");
+                } else {
+                    // auth required, but randomly generated
+                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true);
+                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth (randgen): User:", wtvnewsserver.username, "Pass:", wtvnewsserver.password);
+                }
+            } else {
+                // no auth required on local server
+                wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port);
+                console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: None");
+            }
+            if (minisrv_config.services[k].featuredGroups) {
+                Object.keys(minisrv_config.services[k].featuredGroups).forEach((j) => {
+                    wtvnewsserver.createGroup(minisrv_config.services[k].featuredGroups[j].group, minisrv_config.services[k].featuredGroups[j].description || null);
+                })
+            }
+        }
+    }
+
 })
 if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
 else console.log(" * Full SSIDs will be shown in console logs");
@@ -1893,44 +1950,6 @@ if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
 process.on('uncaughtException', function (err) {
     console.error((err && err.stack) ? err.stack : err);
 });
-
-
-function findServiceByPort(port) {
-    var service_name = null;
-    Object.keys(minisrv_config.services).forEach(function (k) {
-        if (service_name) return;
-        if (minisrv_config.services[k].port) {
-            if (port == parseInt(minisrv_config.services[k].port))
-                service_name = k;
-        }
-    })
-    return service_name;
-}
-
-
-function getPortByService(service) {
-    if (minisrv_config.services[service]) return minisrv_config.services[service].port;
-    else return null;
-}
-
-function getSocketDestinationPort(socket) {
-    return parseInt(socket._server._connectionKey.split(':')[2]);
-}
-
-function verifyServicePort(service_name, socket) {
-    if (socket._server._connectionKey) {
-        var socketPort = getSocketDestinationPort(socket);
-        if (minisrv_config.services[service_name]) {
-            if (minisrv_config.services[service_name].port == socketPort) {
-                if (minisrv_config.services[service_name].servicevault_dir)
-                    return minisrv_config.services[service_name].servicevault_dir;
-                else
-                    return service_name;
-            }
-        }
-    }
-    return false;
-}
 
 var initstring = '';
 var initstring_pc = '';

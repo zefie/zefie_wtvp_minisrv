@@ -1,6 +1,9 @@
 var minisrv_service_file = true;
 
-if (socket.ssid !== null) session_data.switchUserID(0);
+if (socket.ssid !== null) {
+    session_data.switchUserID(0);
+    session_data.setUserLoggedIn(false);
+}
 
 headers = `200 OK
 minisrv-no-mail-count: true

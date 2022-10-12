@@ -1,7 +1,7 @@
 /** 
  * Shared functions across all classes and apps
  */
-
+const CryptoJS = require('crypto-js');
 
 class WTVShared {
 
@@ -9,11 +9,11 @@ class WTVShared {
     fs = require('fs');
     v8 = require('v8');
     zlib = require('zlib');
-    CryptoJS = require('crypto-js');
     html_entities = require('html-entities'); // used externally by service scripts
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
     parentDirectory = process.cwd()
+    extend = require('util')._extend;
 
     minisrv_config = [];
     
@@ -38,6 +38,25 @@ class WTVShared {
                 return result;
             }
         }
+    }
+
+    cloneObj(src) {
+        if (src instanceof RegExp) {
+            return new RegExp(src);
+        } else if (src instanceof Date) {
+            return new Date(src.getTime());
+        } else if (typeof src === 'object' && src !== null) {
+            var clone = null;
+            if (Array.isArray(src)) clone = [];
+            else clone = {};
+
+            var self = this;
+            Object.keys(src).forEach((k )=> {
+                clone[k] = self.cloneObj(src[k]);
+            });
+            return clone;
+        }
+        return src;
     }
 
     getServiceString(service, overrides = {}) {
@@ -67,7 +86,7 @@ class WTVShared {
         if (typeof val === 'string')
             val = val.toLowerCase();
 
-        return val === true || val === "true" || val === 1;
+        return (val === true || val == "on" || val === "true" || val === 1);
     }
 
 
@@ -123,6 +142,7 @@ class WTVShared {
 
 
     isASCII(str) {
+        if (typeof str !== 'string') return false;
         for (var i = 0, strLen = str.length; i < strLen; ++i) {
             if (str.charCodeAt(i) > 127) return false;
         }
@@ -130,7 +150,37 @@ class WTVShared {
     }
 
     isHTML(str) {
-        return /<[a-z][\s\S]*>/i.test(str);
+        return /<\/?[a-z][\s\S]*>/i.test()
+    }
+
+    isBase64(str, opts) {
+        // from https://github.com/miguelmota/is-base64/blob/master/is-base64.js
+        if (str instanceof Boolean || typeof str === 'boolean') {
+            return false
+        }
+
+        if (!(opts instanceof Object)) {
+            opts = {}
+        }
+
+        if (opts.allowEmpty === false && str === '') {
+            return false
+        }
+
+        var regex = '(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}==|[A-Za-z0-9+\/]{3}=)?'
+        var mimeRegex = '(data:\\w+\\/[a-zA-Z\\+\\-\\.]+;base64,)'
+
+        if (opts.mimeRequired === true) {
+            regex = mimeRegex + regex
+        } else if (opts.allowMime === true) {
+            regex = mimeRegex + '?' + regex
+        }
+
+        if (opts.paddingRequired === false) {
+            regex = '(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}(==)?|[A-Za-z0-9+\\/]{3}=?)?'
+        }
+
+        return (new RegExp('^' + regex + '$', 'gi')).test(str)
     }
 
     utf8Decode(utf8String) {
@@ -197,6 +247,36 @@ class WTVShared {
         }
     }
 
+    moveObjectElement(currentKey, afterKey, obj, caseInsensitive = false) {
+        var result = {};
+        if (caseInsensitive) {
+            Object.keys(obj).forEach((k) => {
+                if (k.toLowerCase() == currentKey.toLowerCase()) {
+                    currentKey = k;
+                    return false;
+                }
+            })
+        }       
+        var val = obj[currentKey];
+        delete obj[currentKey];
+        var next = -1;
+        var i = 0;
+        if (typeof afterKey == 'undefined' || afterKey == null) afterKey = '';
+        Object.keys(obj).forEach(function (k) {
+            var v = obj[k];
+            if ((afterKey == '' && i == 0) || next == 1) {
+                result[currentKey] = val;
+                next = 0;
+            }
+            if (k == afterKey || (caseInsensitive && k.toLowerCase() == afterKey.toLowerCase())) { next = 1; }
+            result[k] = v;
+            ++i;
+        });
+        if (next == 1) {
+            result[currentKey] = val;
+        }
+        if (next !== -1) return result; else return obj;
+    }
 
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
         if (notices || reload_notice) console.log(" *** Reading global configuration...");
@@ -294,7 +374,8 @@ class WTVShared {
                     var new_user_config = {};
                     Object.assign(new_user_config, minisrv_user_config, config);
                     if (this.minisrv_config.config.debug_flags.debug) console.log(" * Writing new user configuration...");
-                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", parentDirectory), JSON.stringify(new_user_config, null, "\t"));
+                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.parentDirectory), JSON.stringify(new_user_config, null, "\t"));
+                    return true;
                 }
                 catch (e) {
                     if (this.minisrv_config.config.debug_flags) {
@@ -308,10 +389,46 @@ class WTVShared {
                 }
             }
         }
+        return false;
+    }
+
+    generateString(len, extra_chars = null) {
+        var result = '';
+        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        if (extra_chars) characters += extra_chars;
+        var charactersLength = characters.length;
+        for (var i = 0; i < len; i++) {
+            result += characters.charAt(Math.floor(Math.random() *
+                charactersLength));
+        }
+        return result;
+    }
+
+    generatePassword(len, simple = false) {
+        return this.generateString(len, (simple) ? null : '!@#$%&()[]-_+=?.');
     }
 
     getMiniSrvConfig() {
         return this.minisrv_config;
+    }
+
+    lineWrap(string, len = 72, join = "\n") {
+        if (string.length <= len) return string;
+        var split;
+
+        if (string.match(" ")) {
+            // split if text with space, respecting words
+            split = string.match(new RegExp('([\\s\\S]){1,' + len + '}?!\\S', "g"));
+        }
+        if (!split) {
+            // fallback if above failed, or if its just a really long word (eg base64)
+            split = string.match(new RegExp('.{1,' + len + '}', "g"));
+        } else Object.keys(split).forEach((k) => {
+            if (split[k].substr(0, 1) == ' ') split[k] = split[k].trim(' ');
+        });
+
+        if (split) return split.join(join);
+        else return null;            
     }
 
 
@@ -389,7 +506,7 @@ class WTVShared {
                     return obj.substr(0, 6) + ('*').repeat(9);
                 }
             } else {
-                var newobj = Object.assign({}, obj);
+                var newobj = this.cloneObj(obj);
                 if (obj.post_data) newobj.post_data = obj.post_data;
                 if (newobj["wtv-client-serial-number"]) {
                     var ssid = newobj["wtv-client-serial-number"];
@@ -411,18 +528,22 @@ class WTVShared {
     filterRequestLog(obj) {
         if (this.minisrv_config.config.filter_passwords_in_logs === true) {
             if (obj.query) {
-                var newobj = Object.assign({}, obj);
-                if (obj.post_data) newobj.post_data = obj.post_data;
-                Object.keys(newobj.query).forEach(function (k) {
-                    var key = k.toLowerCase();
-                    switch (true) {
-                        case /passw(or)?d/.test(key):
-                        case /^pass$/.test(key):
-                            newobj.query[key] = ('*').repeat(newobj.query[key].length);
-                            break;
-                    }
-                });
-                return newobj;
+                var newobj = this.cloneObj(obj);
+                try {
+                    Object.keys(obj.query).forEach(function (k) {
+                        var key = k.toLowerCase();
+                        switch (true) {
+                            case /passw(or)?d/.test(key):
+                            case /^pass$/.test(key):
+                                newobj.query[key] = ('*').repeat(newobj.query[key].length);
+                                break;
+                        }
+                    });
+                    return newobj;
+                } catch (e) {
+                    if (!this.minisrv_config.config.debug_flags.quiet) console.error(' *** error filtering logs', e);
+                    return obj;
+                }
             }
         }
         return obj;
@@ -435,7 +556,7 @@ class WTVShared {
                 var post_obj = {};
                 post_obj.query = [];
                 try {
-                    var post_text = obj.post_data.toString(this.CryptoJS.enc.Utf8);
+                    var post_text = obj.post_data.toString(CryptoJS.enc.Utf8);
                     if (post_text.length > 0) {
                         post_text = post_text.split("&");
                         for (let i = 0; i < post_text.length; i++) {
@@ -454,7 +575,7 @@ class WTVShared {
                 post_text = post_text.substring(0, post_text.length - 1);
                 obj.post_data = post_text.hexEncode();
                 } catch (e) {
-                    obj.post_data = obj.post_data.toString(this.CryptoJS.enc.Hex);
+                    obj.post_data = obj.post_data.toString(CryptoJS.enc.Hex);
                 }
             } else {
                 // simple, no filter
@@ -558,34 +679,36 @@ class WTVShared {
 
     doErrorPage(code, data = null, details = null,  pc_mode = false) {
         var headers = null;
+        var minisrv_config = this.minisrv_config;
         switch (code) {
             case 401:
-                if (data === null) data = "Authorization Required.";
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (pc_mode) headers = "401 Unauthorized\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
             case 403:
-                if (data === null) data = "The publisher of that page has not authorized you to view it.";
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (pc_mode) headers = "403 Forbidden\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
             case 404:
-                if (data === null) data = "The service could not find the requested page.";
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (pc_mode) headers = "404 Not Found\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
             case 400:
             case 500:
-                if (data === null) data = this.minisrv_config.config.service_name + " ran into a technical problem.";
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (details) data += "<br>Details:<br>" + details;
                 if (pc_mode) headers = "500 Internal Server Error\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
             default:
+                if (data === null && this.minisrv_config.config.errorMessages[code]) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { return minisrv_config.config[x.replace("${",'').replace('}','')] });
                 headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
@@ -652,7 +775,23 @@ class WTVShared {
         return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
     }
 
-
+    getTemplate(service_name, path, path_only = false) {
+        var self = this;
+        var outdata = null;
+        var found = false
+        this.minisrv_config.config.ServiceTemplates.forEach(function (template_vault_dir) {
+            if (found) return;
+            var search = self.getAbsolutePath(template_vault_dir + self.path.sep + service_name + self.path.sep + path);
+            if (self.fs.existsSync(search)) {
+                if (path_only) outdata = search;
+                else outdata = self.fs.readFileSync(search);
+                if (!self.minisrv_config.config.debug_flags.quiet) console.log(" * Found " + search + " to handle template");
+                found = true;
+                return false;
+            }
+        });
+        return outdata;
+    }
 }
 
 class clientShowAlert {
