@@ -17,6 +17,26 @@ class WTVShared {
     minisrv_config = [];
     
     constructor(minisrv_config, quiet = false) {
+        Object.prototype.clone = Array.prototype.clone = function () {
+            if (Object.prototype.toString.call(this) === '[object Array]') {
+                var clone = [];
+                for (var i = 0; i < this.length; i++)
+                    clone[i] = this[i].clone();
+
+                return clone;
+            }
+            else if (typeof (this) == "object") {
+                var clone = {};
+                for (var prop in this)
+                    if (this.hasOwnProperty(prop))
+                        clone[prop] = this[prop].clone();
+
+                return clone;
+            }
+            else
+                return this;
+        }
+
         if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
 
@@ -392,7 +412,7 @@ class WTVShared {
                     return obj.substr(0, 6) + ('*').repeat(9);
                 }
             } else {
-                var newobj = Object.assign({}, obj);
+                var newobj = obj.clone();
                 if (obj.post_data) newobj.post_data = obj.post_data;
                 if (newobj["wtv-client-serial-number"]) {
                     var ssid = newobj["wtv-client-serial-number"];
@@ -414,8 +434,7 @@ class WTVShared {
     filterRequestLog(obj) {
         if (this.minisrv_config.config.filter_passwords_in_logs === true) {
             if (obj.query) {
-                var newobj = Object.assign({}, obj);
-                if (obj.post_data) newobj.post_data = obj.post_data;
+                var newobj = obj.clone();
                 Object.keys(newobj.query).forEach(function (k) {
                     var key = k.toLowerCase();
                     switch (true) {
