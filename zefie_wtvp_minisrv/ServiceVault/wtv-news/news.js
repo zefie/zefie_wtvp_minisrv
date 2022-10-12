@@ -1,11 +1,31 @@
 var minisrv_service_file = true;
-const wtvnews = new WTVNews(minisrv_config, service_name);
 
+const wtvnews = new WTVNews(minisrv_config, service_name);
+var service_config = minisrv_config.services[service_name];
+if (service_config.local_nntp_port && wtvnewsserver) {
+    var tls_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news');
+    var tls_options = {
+        ca: this.fs.readFileSync(tls_path + '/localserver_ca.pem'),
+        key: this.fs.readFileSync(tls_path + '/localserver_key.pem'),
+        cert: this.fs.readFileSync(tls_path + '/localserver_cert.pem'),
+        checkServerIdentity: () => { return null; }
+    }
+    if (wtvnewsserver.username)
+        wtvnews.initializeUsenet("127.0.0.1", minisrv_config.services[service_name].local_nntp_port, tls_options, wtvnewsserver.username, wtvnewsserver.password);
+    else
+        wtvnews.initializeUsenet("127.0.0.1", minisrv_config.services[service_name].local_nntp_port, tls_options);
+} else {
+    if (service_config.upstream_auth)
+        wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null, service_config.upstream_auth.username || null, service_config.upstream_auth.password || null);
+    else
+        wtvnews.initializeUsenet(service_config.upstream_address, service_configupstream_port, service_config.upstream_tls || null);
+}
+ 
 async function throwError(e) {
+    console.log(e);
     var errpage = wtvshared.doErrorPage(400, null, e.toString());
     sendToClient(socket, errpage[0], errpage[1]);
 }
-
 
 function isToday (chkdate) {
     const today = new Date()
@@ -28,7 +48,6 @@ async function WebTVListGroup(group) {
                     page_start = (limit_per_page * page) + 1;
                     page_end = (page + 1) * limit_per_page;
                     if (page_end > NGCount) page_end = NGCount;
-
                     wtvnews.getHeaderObj(NGArticles).then((messages) => {
                         messages = wtvnews.sortByResponse(messages);
                         wtvnews.quitUsenet();
@@ -157,7 +176,9 @@ Group: ${request_headers.query.group}
 </font>
 <br>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=0 height=8>
-
+`;
+                        if (NGCount > 0) {
+                            data += `
 <td width=180 valign=bottom align=right>
 <table cellspacing=0 cellpadding=0>
 <td rowspan=4 height=26 width=30>
@@ -182,8 +203,9 @@ ${page_start}-${page_end}
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
 <tr>
 <td colspan=5 height=3>
-</table>	</table>
-
+</table>	`;
+                        }
+                        data += `</table>
 <TABLE width=446 cellspacing=0 cellpadding=0>
 <tr>
 <td rowspan=4>
@@ -206,6 +228,7 @@ ${page_start}-${page_end}
                                 var has_relation = (messages[k].relation !== null) ? true : false;
                                 var date_obj = new Date(Date.parse(message.headers.DATE));
                                 var date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d", date_obj)
+                                console.log(message);
                                 data += `
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -230,8 +253,6 @@ ${(message.headers.FROM.indexOf(' ') > 0) ? message.headers.FROM.split(' ')[0] :
 <TABLE width=446 cellspacing=0 cellpadding=0>
 <tr>
 <td rowspan=4 width=10 height=1>
-<img src="wtv-home:/ROMCache/Spacer.gif" width=10 height=1>
-<td height=2 width=436 bgcolor="2B2B2B">
 <img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
 <tr>
 <td height=1>
@@ -264,7 +285,6 @@ async function WebTVShowMessage(group, article) {
             wtvnews.getArticle(article).then((response) => {
                 wtvnews.quitUsenet();
                 if (response.code == 220) {
-                    console.log(response);
                     headers = `200 OK
 Content-type: text/html
 wtv-expire-all: wtv-news:/news?group=${group}&article=`;
@@ -573,7 +593,7 @@ ${wtvshared.htmlEntitize(message_body, true)}
     });;
 }
 
-if (!minisrv_config.services[service_name].upstream_address || !minisrv_config.services[service_name].upstream_port) {
+if (!wtvnews.client) {
     var errpage = doErrorPage();
     headers = errpage[0];
     data = errpage[1];

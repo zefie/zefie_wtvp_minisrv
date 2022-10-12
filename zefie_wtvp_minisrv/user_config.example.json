@@ -67,8 +67,13 @@
 			"upstream_address": "192.168.11.8",
 			"upstream_port": 1699,
 			"upstream_auth": {
-				"username": "not_yet",
-				"password": "implemented"
+				"username": "myusername",
+				"password": "mypassword"
+			},
+			"upstream_tls": true,
+			"local_auth": {
+				"username": "mylocaluser",
+				"password": "mylocalpass"
 			}
 		}
 	},
@@ -77,16 +82,17 @@
 			"Personal": [
 				{
 					"title": "The Midnight Archive",
-					"url": "http://archive.midnightchanne.net/",
+					"url": "http://archive.midnightchannel.net/",
 					"image_type": "url",
 					"image": "canned/midnightchannel.gif"
 				},
 				{
 					"title": "WebTV/MSNTV Secrets",
-					"url": "http://turdinc.kicks-ass.net/Msntv/",
+					"url": "http://turdinc.kicks-ass.net/Msntv/index2.html",
 					"image_type": "url",
 					"image": "canned/mattman69.gif"
 				}
 			]
 		}
 	}
+}

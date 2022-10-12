@@ -123,7 +123,7 @@ MAXLENGTH="${minisrv_config.config.passwords.max_length}">
 <tr>
 <td colspan=3 align=left>
 <br>Type again to confirm<br>
-<INPUT noSubmit name="verify" id="verify" Value=""
+<INPUT noSubmit name="password_verify" id="password_verify" Value=""
 bgcolor=#444444 text=#ffdd33 cursor=#cc9933
 TYPE="password" ASCIIONLY
 SIZE="${minisrv_config.config.passwords.form_size}"

@@ -6,23 +6,55 @@ class WTVNews {
     wtvshared = null;
     service_name = null;
     client = null;
+    username = null;
+    password = null;
 
     constructor(minisrv_config, service_name) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         const { WTVShared } = require("./WTVShared.js");
         this.wtvshared = new WTVShared(minisrv_config);
-        this.client = new this.newsie({
-            host: this.minisrv_config.services[service_name].upstream_address,
-            port: this.minisrv_config.services[service_name].upstream_port
-        })
+    }
+
+    initializeUsenet(host, port = 119, tls_options = null, username = null, password = null) {
+        // use local self-signed cert for local server
+        var newsie_options = {
+            host: host,
+            port: port,
+            tlsPort: (tls_options !== null) ? true : false,            
+        }
+        if (newsie_options.tlsPort) newsie_options.tlsOptions = tls_options;
+        this.client = new this.newsie(newsie_options);
+        if (username && password) {
+            this.username = username;
+            this.password = password;
+        }
     }
 
     connectUsenet() {
         return new Promise((resolve, reject) => {
             this.client.connect().then((response) => {
-                if (response.code == 200) {
-                    resolve(true);
+                if (response.code == 200 || response.code == 201) {
+                    if (this.username && this.password) {
+                        this.client.authInfoUser(this.username).then((res) => {
+                            if (res.code == "381") {
+                                res.authInfoPass(this.password).then((res) => {
+                                    if (res.code == 281) resolve(true);
+                                    else reject(res.description);
+                                }).catch((e) => {
+                                    console.error(" * WTVNews Error:", "Command: connect", e);
+                                    reject("Could not connect to upstream usenet server");
+                                });
+                            } else {
+                                reject(res.description)
+                            }
+                        }).catch((e) => {
+                            console.error(" * WTVNews Error:", "Command: connect", e);
+                            reject("Could not connect to upstream usenet server");
+                        });
+                    } else {
+                        resolve(true);
+                    }
                 }
             }).catch((e) => {
                 console.error(" * WTVNews Error:", "Command: connect", e);
@@ -31,16 +63,19 @@ class WTVNews {
         }); 
     }
 
-    listGroup(group, page = 0, limit = 100) {
+    listGroup(group, page = 0, limit = 100, raw_range = null) {
         return new Promise((resolve, reject) => {
             this.selectGroup(group).then((res) => {
-                var range = {
-                    start: (limit * page) + res.group.low,
+                if (!raw_range) {
+                    var range = {
+                        start: (limit * page) + res.group.low,
+                    }
+                    range.end = range.start + limit;
+                    if (page) range.start++;
+                    if (range.end > res.high) delete range.group.end;
+                } else {
+                    range = raw_range;
                 }
-                range.end = range.start + limit;
-                if (page) range.start++;
-                if (range.end > res.high) delete range.group.end;
-                console.log(res, range);
                 this.client.listGroup(group, range).then((data) => {
                     resolve(data);
                 }).catch((e) => {
@@ -75,7 +110,8 @@ class WTVNews {
                     this.client.next().then((res) => {
                         data.next_article = res.article.articleNumber;
                         resolve(data.next_article);
-                    }).catch(() => {
+                    }).catch((e) => {
+                        console.log(e);
                         data.next_article = null;
                         resolve(data.next_article);
                     })
@@ -150,15 +186,12 @@ class WTVNews {
                         promises.push(new Promise((resolve, reject) => {
                             this.selectGroup(group).then((res) => {
                                 this.getArticleMessageID(article).then((data) => {
-                                    console.log(data);
                                     messageid = data;
                                     resolve(data);
                                 }).catch((e) => {
-                                    console.log(e);
                                     reject(e)
                                 });
                             }).catch((e) => {
-                                console.log(e);
                                 reject(e)
                             });
                         }));
@@ -185,7 +218,6 @@ class WTVNews {
                                     } else {
                                         articleData.body = [];
                                     }
-                                    console.log(articleData);
                                     response.send(articleData).then((response) => {
                                         this.client.quit();
                                         if (response.code !== 240) {
@@ -233,7 +265,6 @@ class WTVNews {
                         if (data.article) messages.push(data.article)
                         resolve();
                     }).catch((e) => {
-                        console.log(e, article);
                         reject(e);
                     });
                 }));
@@ -285,9 +316,6 @@ class WTVNews {
                                 });
                             }
                         })
-                        if (!found) {
-                            message_id_roots.push({ "messageId": messageId, "index": j });
-                        }
                     } else {
                         message_id_roots.push({ "messageId": messageId, "index": k });
                     }
@@ -306,7 +334,7 @@ class WTVNews {
             var article_date = Date.parse(article.headers.DATE);
             message_roots_sorted.push({ "article": article, "relation": null, "date": article_date });
         });
-        message_roots_sorted.sort((a, b) => { return (a.date > b.date) });
+        message_roots_sorted.sort((a, b) => { return (a.date - b.date) });
         Object.keys(message_roots_sorted).forEach((k) => {
             sorted.push(message_roots_sorted[k]);
 
@@ -318,7 +346,7 @@ class WTVNews {
                     var article_date = Date.parse(article.headers.DATE);
                     relations.push({ "article": article, "relation": message_id_roots[k].messageId, "date": article_date })
                 });
-                relations.sort((a, b) => { return (a.date > b.date) });
+                relations.sort((a, b) => { return (a.date - b.date) });
                 Object.keys(relations).forEach((j) => {
                     sorted.push(relations[j]);
                 });

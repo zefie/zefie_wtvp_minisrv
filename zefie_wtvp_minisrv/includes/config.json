@@ -6,7 +6,7 @@
       "UserServiceVault",
       "ServiceVault"
     ],
-    "ServiceDeps":  "ServiceDeps",
+    "ServiceDeps": "ServiceDeps",
     "SessionStore": "SessionStore",
     "SharedROMCache": "SharedROMCache",
     "enable_shared_romcache": true,
@@ -31,8 +31,12 @@
     "show_detailed_splash": true,
     "show_diskmap": false,
     "unauthorized_url": "wtv-1800:/unauthorized?",
+    "enable_port_isolation": true,
     "allow_guests": true,
     "domain_name": "wtv.zefie.com",
+    "ssid_block_list": [
+      "minisrv_internal_nntp"
+    ],
     "user_accounts": {
       "max_users_per_account": 6,
       "min_username_length": 5,
@@ -60,7 +64,8 @@
     },
     "wtv-news": {
       "port": 1605,
-      "disabled": true,
+      "local_nntp_port": 57319,
+      "local_nntp_requires_auth": true,
       "modules": [
         "WTVNews"
       ]
