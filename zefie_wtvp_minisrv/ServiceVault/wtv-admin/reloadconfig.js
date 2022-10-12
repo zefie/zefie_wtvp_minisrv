@@ -25,7 +25,7 @@ wtv-noback-all: wtv-admin:/reloadconfig`;
 <sidebar width=20%>
 <img src="wtv-tricks:/images/Favorites_bg.jpg">
 </sidebar>
-<body bgcolor="#0a0a0a" text="#CC1111" link="#ff55ff" vlink="#ff55ff" vspace=0>
+<body bgcolor="#101010" text="#FF3455" link="#ff55ff" vlink="#ff55ff" vspace=0>
 <br>
 <br>
 <h1>${minisrv_config.config.service_name} Admin Tricks</h1>

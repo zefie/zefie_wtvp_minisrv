@@ -49,8 +49,8 @@ function getPatchDataType(type, invert = false) {
         patch_data += "wtv-system-version: %s\r\n";
         patch_data += "wtv-capability-flags: %s\r\n";
         patch_data += "wtv-client-bootrom-version: %s\r\n";
-        patch_data += "wtv-need-upgrade: %s\n";
-        patch_data += "wtv-used-8675309: %s\n";
+        patch_data += "wtv-need-upgrade: %s\r\n";
+        patch_data += "wtv-used-8675309: %s\r\n";
         patch_data += "wtv-client-rom-type: %s\r\n";
         patch_data += "wtv-system-chipversion: %s\r\n";
         patch_data += "User-Agent: %s\r\n";
@@ -192,7 +192,6 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
     var customized_patch_data = patch_data[fname];
     Object.keys(customized_patch_data).forEach(function (idx) {
         var val = customized_patch_data[idx];
-
         if (typeof val === 'string') {
             // start url override
             if (start_url != patch_defaults.start_url && start_url.length <= patch_limits.start_url) {
@@ -209,7 +208,7 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
             if (!val.byteLength) {
                 // not a buffer object
                 var block_length = val['length'];
-                var patch_data = getPatchDataType(val['type'], (fname.substr(12,3) != "1.1"));
+                var patch_data = getPatchDataType(val['type'], (fname.substr(12, 3) != "1.1"));
                 if (patch_data) {
                     var patch_data_array = patch_data.split("\r\n");
                     var patch_data_string = "";
@@ -365,6 +364,7 @@ if (request_headers.query.viewer &&
                 data: viewer_data,
                 patch_data: getPatchData(viewer_file, client_data_obj)
             }
+            
             if (!patchDataObject.patch_data) {
                 errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
                 headers = errpage[0];

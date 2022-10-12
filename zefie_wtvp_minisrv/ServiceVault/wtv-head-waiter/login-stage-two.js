@@ -9,6 +9,8 @@ if (gourl) {
 wtv-open-isp-disabled: false
 `;
 	if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
+		// fake logged in for reg
+		session_data.setUserLoggedIn(true);
 		headers += `wtv-encrypted: true
 ${getServiceString('wtv-register')}
 ${getServiceString('wtv-head-waiter')}
@@ -47,12 +49,13 @@ else {
 		var gourl = "wtv-home:/splash?";
 	}
 	var limitedLogin = session_data.lockdown;
-	var limitedLoginRegistered = (limitedLogin || (session_data.isRegistered() && !session_data.isUserLoggedIn()));
+	var limitedLoginRegistered = (limitedLogin || (session_data.isRegistered() && !session_data.isUserLoggedIn()) && session_data.getUserPasswordEnabled());
+	if (!session_data.getUserPasswordEnabled()) session_data.setUserLoggedIn(true);
 	var offline_user_list = null;
 	if (session_data.isRegistered()) {
 		// check for SMTP Password
 		if (session_data.getSessionData("subscriber_smtp_password") === null) {
-			session_data.setUserSMTPPassword(session_data.generatePassword(16));
+			session_data.setUserSMTPPassword(wtvshared.generatePassword(16));
         }
 		if (session_data.user_id == 0) {
 			var accounts = session_data.listPrimaryAccountUsers();

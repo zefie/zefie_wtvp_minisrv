@@ -274,8 +274,8 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
                 if (typeof message.body === "object" && message.body) {
                     message.body = wtvshared.decodeBufferText(message.body);
                 }
-                data += `
-${wtvshared.htmlEntitize(message.body, true)}
+                message.body = message.body.replace(/\n/g, "<br><br>");
+                data += `${(message.allow_html) ? message.body : wtvshared.htmlEntitize(message.body, true)}
 <br>
 <br>`;
                 if (message.signature) {
@@ -283,7 +283,8 @@ ${wtvshared.htmlEntitize(message.body, true)}
                 }
                 data += `<p>
 `;
-                if (message.attachments) {
+                console.log(message.allow_html)
+                if (Array.isArray(message.attachments)) {
                     message.attachments.forEach((v, k) => {
                         if (v) {
                             console.log("*****************", v['Content-Type']);

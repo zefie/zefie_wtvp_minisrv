@@ -40,13 +40,16 @@ if (socket.ssid) {
 	data = errpage[1];
 }
 
-if (request_headers.query.relogin && session_data.getSessionData("registered")) gourl += "relogin=true";
+if (request_headers.query.relogin && session_data.getSessionData("registered")) {
+	gourl += "relogin=true";
+	session_data.setUserLoggedIn(false);
+}
 if (request_headers.query.reconnect && session_data.getSessionData("registered")) gourl += "reconnect=true";
 
 if (session_data.data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
 
-	if (request_headers.query.relogin) { // relogin
+	if (request_headers.query.relogin || request_headers.query.guest_login) { // relogin
 		session_data.data_store.wtvsec_login.ticket_b64 = null; // clear old ticket
 	}
 
@@ -55,7 +58,7 @@ if (session_data.data_store.wtvsec_login) {
 	var file_path = null;
 	var bf0app_update = false;
 	var romtype = session_data.get("wtv-client-rom-type");
-	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin);
+	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin && !request_headers.query.guest_login);
 	var wtv_script_id = parseInt(session_data.get("wtv-script-id"));
 	var bootrom = session_data.get("wtv-client-bootrom-version");
 	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscript = false;
@@ -68,7 +71,6 @@ if (session_data.data_store.wtvsec_login) {
 		} else {
 			romtype = session_data.get("wtv-client-rom-type");
 		}
-		var file_path = null;
 		switch (romtype) {
 			case "US-LC2-disk-0MB-8MB":
 			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
@@ -77,9 +79,8 @@ if (session_data.data_store.wtvsec_login) {
 			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (session_data.get("wtv-open-access")) file_path = __dirname + "/" +
-					+ "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
-				else var file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
+				if (session_data.get("wtv-open-access")) file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
+				else file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
@@ -164,7 +165,7 @@ if (session_data.data_store.wtvsec_login) {
 
 	if (bf0app_update) headers += getServiceString('wtv-star', { "no_star_word": true }) + "\n";
 	else headers += getServiceString('wtv-star') + "\n";
-	if (request_headers.query.reconnect && !session_data.getSessionData("registered") && !session_data.lockdown) headers += getServiceString('wtv-register') + "\n";
+	if (request_headers.query.reconnect && !session_data.isRegistered() && !session_data.lockdown) headers += getServiceString('wtv-register') + "\n";
 	if (!session_data.lockdown) headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {

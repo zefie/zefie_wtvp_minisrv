@@ -54,7 +54,6 @@ Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire-all: wtv-setup:/remove-users
 wtv-expire-all: wtv-setup:/accounts
-wtv-visit: ${confirmAlert}
 Location: ${confirmAlert}`
 	} else {
 		Object.keys(usersToRemove).forEach(function (k) {
@@ -69,7 +68,6 @@ Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire-all: wtv-setup:/remove-users
 wtv-expire-all: wtv-setup:/accounts
-wtv-visit: ${gourl}
 Location: ${gourl}`
 	}
 }

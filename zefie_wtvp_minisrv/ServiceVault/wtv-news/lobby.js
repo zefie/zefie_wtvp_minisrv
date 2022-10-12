@@ -1,5 +1,7 @@
 var minisrv_service_file = true;
 
+// max of 6, any more will be ignored
+
 headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`
@@ -35,7 +37,7 @@ data = `<HTML>
 <tr>
 <td abswidth=6 >
 <td abswidth=93 absheight=26 >
-<table href="wtv-news:news?category=1"
+<table href="wtv-news:/news?category=1"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>
@@ -82,7 +84,8 @@ cellspacing=0 cellpadding=0>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
 <tr>
 <td colspan=3 height=237 valign=bottom align=right >
-<img src="wtv-forum:/images/BannerDiscuss.gif" width=50 height=165>	<tr><td colspan=3 absheight=36>
+<img src="wtv-news:/images/BannerDiscuss.gif" width=50 height=165>
+<tr><td colspan=3 absheight=36>
 </table>
 </sidebar>
 <body
@@ -103,27 +106,26 @@ Featured discussions
 <td abswidth=20>
 <tr>
 <td>
-<td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>
-<a href="wtv-news:/news?group=webtv.users"><b>WebTV</b></a><br>
-A moderated discussion with WebTV customers<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=alt.discuss.webtv.hacking"><b>Hacking</b></a><br>
-Not grandma friendly<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=rec.autos.4x4"><b>4x4s</b></a><br>
-The on and off-road four wheel drive vehicle<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<td WIDTH=20>
-<td WIDTH=198 HEIGHT=220 VALIGN=top ALIGN=left>
-<a href="wtv-news:/news?group=webtv.plus"><b>WebTV Plus</b></a><br>
-bf0 is for bitches and BPS is boring<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=alt.discuss.midis"><b>MIDIs</b></a><br>
-The best music format<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=alt.discuss.html"><b>HTML</b></a><br>
-Every timeline starts with HTML<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
+<td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>`;
+
+var featuredGroups = minisrv_config.services[service_name].featuredGroups;
+var limit = 6;
+while (featuredGroups.length > limit) featuredGroups.pop(); // remove anything passing our limit
+
+function printGroup(group) {
+    return `<a href="wtv-news:/news?group=${group.group}"><b>${group.name}</b></a><br>${group.description}<br><IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>`;
+}
+
+// evens
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 == 0) { data += printGroup(featuredGroups[k]); } });
+
+if (featuredGroups.length > 1) data += `<td WIDTH=20><td WIDTH=198 HEIGHT=220 VALIGN=top ALIGN=left>`;
+
+// odds
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 != 0) data += printGroup(featuredGroups[k]); });
+
+
+data += `
 </table>
 <TABLE width=446 cellspacing=0 cellpadding=0>
 <tr>
@@ -145,7 +147,7 @@ Every timeline starts with HTML<br>
 <td abswidth=416 valign=top align=left>
 Type a discussion topic<br>
 <img src="/ROMCache/Spacer.gif" width=1 height=4>
-<form action="wtv-news:search">
+<form action="wtv-news:/news" method="GET">
 <input name="search" bgcolor=#202020 cursor=#cc9933 text="E7CE4A" font=proportional value="" SIZE=28 MAXLENGTH=100>
 &nbsp;
 <font color=E7CE4A><shadow>

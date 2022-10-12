@@ -21,7 +21,7 @@ if (auth === true) {
 <sidebar width=20%>
 <img src="wtv-tricks:/images/Favorites_bg.jpg">
 </sidebar>
-<body bgcolor="#0a0a0a" text="#CC1111" link="#ff55ff" vlink="#ff55ff" vspace=0>
+<body bgcolor="#101010" text="#FF3455" link="#ff55ff" vlink="#ff55ff" vspace=0>
 <font size="-1">
 <br>
 <br>
@@ -57,19 +57,19 @@ if (auth === true) {
 <tr>
 <td><strike><a href="wtv-admin:/addadmin">Grant Admin to SSID</a></strike>
 <td width = 10>
-<td><strike><a href="wtv-admin:/modadmin">Modify Admin for SSID</a></strike>
+<td><a href="wtv-admin:/polyzoot">Polyzoot a User</a>
 <tr>
 <td colspan=3 height=6>
 <tr>
-<td><a href="wtv-admin:/polyzoot">Polyzoot a User</a>
+<td><strike><a href="wtv-admin:/modadmin">Modify Admin for SSID</a></strike>
 <td width = 10>
-<td><a href="wtv-admin:/reloadconfig">Reload Config</a>
+<td><a href="wtv-admin:/operatortweaks">Edit Config</a>
 <tr>
 <td colspan=3 height=6>
 <tr>
 <td><a href="wtv-admin:/regenfavs">Restore Favs for User</a>
 <td width = 10>
-<td><!-- TODO -->
+<td><a href="wtv-admin:/reloadconfig">Reload Config</a>
 <tr>
 <td colspan=3 height=6>
 <tr>

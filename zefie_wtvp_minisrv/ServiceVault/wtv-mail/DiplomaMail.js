@@ -78,7 +78,7 @@ choose this link:
 </table>
 <tr>
 <td valign=top height=55 align=right>
-<form method="POST" action="wtv-mail:/listmail">
+<form method="POST" action="${(request_headers.query['came-from']) ? request_headers.query['came-from'] : "wtv-mail:/listmail"}">
 <input type="hidden" name="intro_seen"  value="true">
 <font color=ffcf69><shadow>
 <input type=submit usestyle borderimage="file://ROM/Borders/ButtonBorder2.bif"

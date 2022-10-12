@@ -40,20 +40,7 @@ class WTVClientSessionData {
         this.ssid = ssid;
         this.data_store = new Array();
         this.session_store = {};
-        this.lockdownWhitelist = [
-            "wtv-1800:/preregister",
-            "wtv-head-waiter:/login",
-            "wtv-head-waiter:/ValidateLogin",
-            "wtv-head-waiter:/login-stage-two",
-            "wtv-head-waiter:/relogin",
-			"wtv-head-waiter:/ROMCache/Spacer.gif",
-			"wtv-head-waiter:/ROMCache/NameStrip.gif",
-            "wtv-head-waiter:/images/PasswordBanner.gif",
-            "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
-			"wtv-head-waiter:/images/NameBanner.gif",
-            "wtv-head-waiter:/bad-disk",
-            "wtv-log:/log"
-        ];
+        this.lockdownWhitelist = minisrv_config.config.lockdownWhitelist;
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
         this.lockdownWhitelist.push(minisrv_config.config.service_logo);
         this.mailstore = new WTVMail(this.minisrv_config, this)
@@ -61,12 +48,14 @@ class WTVClientSessionData {
         this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
         this.loginWhitelist.push("wtv-head-waiter:/choose-user");
         this.loginWhitelist.push("wtv-head-waiter:/password");
-        this.loginWhitelist.push("http://*"); // allow http proxy without login
-        this.loginWhitelist.push("https://*"); // allow https proxy without login
     }
 
     assignMailStore() {
         this.mailstore = new WTVMail(this.minisrv_config, this)
+    }
+
+    assignFavoriteStore() {
+        this.mailstore = this.favstore = new WTVFavorites(this.minisrv_config, this)
     }
 
     createWTVSecSession() {
@@ -79,22 +68,39 @@ class WTVClientSessionData {
 
 
         var total_unread_messages = 0;
-        for (var i = 0; i < this.minisrv_config.config.user_accounts.max_users_per_account; i++) {
-            var subUserSession = new this.constructor(this.minisrv_config, this.ssid);
-            subUserSession.switchUserID(i, false, false);
+        var accounts = this.listPrimaryAccountUsers();
+        var self = this;
+        Object.keys(accounts).forEach((k) => {
+            var user_id = accounts[k].user_id;
+            var subUserSession = new self.constructor(self.minisrv_config, self.ssid);
+            subUserSession.switchUserID(user_id, false, false);
             subUserSession.assignMailStore();
             if (subUserSession.mailstore) {
                 total_unread_messages += subUserSession.mailstore.countUnreadMessages(0);
             }
-        }
+        });
         return total_unread_messages;
     }
 
-    switchUserID(user_id, update_mail = true, update_ticket = true) {
+    clearUserSessionMemory() {
+        this.setUserLoggedIn(false);
+        this.data_store = new Array();
+        this.session_store = {};
+        this.assignFavoriteStore();
+        this.assignMailStore()
+    }
+
+    switchUserID(user_id, update_mail = true, update_ticket = true, update_favorite = true) {
         this.user_id = user_id;
-        this.loadSessionData();
-        if (this.isRegistered()) this.assignMailStore();
-        if (this.data_store.wtvsec_login && update_ticket) this.setTicketData('user_id', user_id);
+        if (user_id != null) {
+            this.loadSessionData();
+            if (this.isRegistered() && update_mail) this.assignMailStore();
+            if (this.isRegistered() && update_favorite) this.assignMailStore();
+            if (this.data_store.wtvsec_login && update_ticket) this.setTicketData('user_id', user_id);
+        } else {
+            this.user_id = 0;
+            this.clearUserSessionMemory();
+        }
     }
 
     setTicketData(key, value) {
@@ -153,8 +159,14 @@ class WTVClientSessionData {
                 if (f.substr(0, 4) == "user") {
                     var user_file = master_directory + self.path.sep + f + self.path.sep + f + ".json";
                     if (self.fs.existsSync(user_file)) {
-                        if (f == "user0") account_data['subscriber'] = JSON.parse(this.fs.readFileSync(user_file));
-                        else account_data[f] = JSON.parse(this.fs.readFileSync(user_file));
+                        if (f == "user0") {
+                            account_data['subscriber'] = JSON.parse(this.fs.readFileSync(user_file));
+                            account_data['subscriber'].user_id = 0;
+                        }
+                        else {
+                            account_data[f] = JSON.parse(this.fs.readFileSync(user_file));
+                            account_data[f].user_id = parseInt(f.replace("user", ''))
+                        }
                     }
                 }
             }
@@ -426,10 +438,6 @@ class WTVClientSessionData {
         return encoded_passwd.toString(CryptoJS.enc.Base64);
     }
 
-    generatePassword(len) {
-        return CryptoJS.lib.WordArray.random(Math.round(len / 2)).toString(CryptoJS.enc.Hex);
-    }
-
     setUserPassword(passwd) {
         var encoded_passwd = this.encodePassword(passwd);
         this.setSessionData("subscriber_password", encoded_passwd);
@@ -465,7 +473,6 @@ class WTVClientSessionData {
     }
 
     isUserLoggedIn() {
-        if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
         var password_valid = this.get("password_valid");
         return (password_valid);
     }

@@ -38,132 +38,129 @@
     <Content Include="diskmap_gen.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="includes\WTVNewsServer.js" />
     <Content Include="packer.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\glossary.json" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Alerts\Forbidden.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Alerts\HostMissing.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Alerts\InternalServerError.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Alerts\NotFound.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Alerts\ServiceUnavailable.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\Index.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISP.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ1.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ3B.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ4.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ4B.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ4C.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ5.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\OISPQ5B.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\PayMethods\Ach.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\PayMethods\Credit.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\PayMethods\Debit.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\PayMethods\PayMethods.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Chat\ChatDiploma.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Index\Main\1.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Keyboard\Cmd\Cmd.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Keyboard\Cmd\Cmd2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Keyboard\Cmd\Cmd3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Keyboard\Cmd\Cmd4.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Keyboard\Cmd\Cmd5.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\MailPOP\WhatIs\WhatIs.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\MailPOP\WhatIs\WhatIs2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Attach\Attach.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Attach\More.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Attach\Show.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\CarbCops\CarbCops.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\CarbCops\More.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\CarbCops\Show.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Compose.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\GetStarted\Privacy.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\GetStarted\Reading.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\GetStarted\WriteMail.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\GettingStarted.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\mail.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Main.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Picture\Picture.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Picture\Picture2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Picture\Picture3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Picture\Picture4.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Picture\Picture5.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Reply\Reply.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Reply\Reply2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Signature\Signature.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Signature\Signature2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Signature\Signature3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Storage\Storage.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Storage\Storage2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\WhatIs.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Write\Writing.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Write\Writing2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Write\Writing3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Write\Writing4.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Write\Writing5.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Write\Writing6.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Scrapbook\AddFromMail\AddFromMail.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Scrapbook\AddFromMail\AddFromMail2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Scrapbook\AddFromMail\AddFromMail3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Spelling\Overview\Overview.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Spelling\Overview\Overview2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Spelling\Overview\Overview3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Spelling\Overview\Overview4.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Spelling\Overview\Overview5.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\Find.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\Paste.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\PasteWord.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\Review.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\Select.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\SelectWord.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\Start.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\Capitals.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\Erasing.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\GettingRidOf.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\InsertingSpace.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\NextLine.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\NextTextBox.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\OnScreenKeyboard.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\PreviousTextBox.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\Send.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Find.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Goto.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=HangUp.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Info.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=logo.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Messenger.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Print.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Reload.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Save.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=TVvsWeb.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=TvWindow.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options.htm" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\Addresses\Addresses.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\Addresses\Addresses2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\1.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\2.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\3.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\4.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\5.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\6.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\7.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\templates\glossary.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\templates\glossary_index.js" />
+    <Content Include="ServiceDeps\templates\wtv-guide\templates\glossary_word_index.js" />
+    <Content Include="ServiceDeps\templates\wtv-mail\welcomeMail.txt" />
+    <Content Include="ServiceDeps\templates\wtv-news\post-unavailable.html" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\bf0app\bf0app_OISP.tok" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\bf0app\bf0app_WTV_18006138199.detok.txt" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\bf0app\bf0app_WTV_18006138199.tok" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\FIJI\dc_production_normal.tok" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\UTV\utv_hsd.tok" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\UTV\utv_normal.tok" />
-    <Content Include="ServiceDeps\wtv-guide\glossary.json" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\LC2\LC2_OpenISP_56k.tok" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\LC2\LC2_WTV_18006138199.detok.txt" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\LC2\LC2_WTV_18006138199.tok" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Alerts\Forbidden.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Alerts\HostMissing.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Alerts\InternalServerError.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Alerts\NotFound.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Alerts\ServiceUnavailable.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\Index.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISP.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ1.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ3B.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ4.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ4B.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ4C.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ5.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\OISPQ5B.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\PayMethods\Ach.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\PayMethods\Credit.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\PayMethods\Debit.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Billing\PayMethods\PayMethods.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Chat\ChatDiploma.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Index\Main.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Keyboard\Cmd\Cmd.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Keyboard\Cmd\Cmd2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Keyboard\Cmd\Cmd3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Keyboard\Cmd\Cmd4.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Keyboard\Cmd\Cmd5.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\MailPOP\WhatIs\WhatIs.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\MailPOP\WhatIs\WhatIs2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Attach\Attach.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Attach\More.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Attach\Show.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\CarbCops\CarbCops.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\CarbCops\More.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\CarbCops\Show.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Compose.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\GetStarted\Privacy.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\GetStarted\Reading.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\GetStarted\WriteMail.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\GettingStarted.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\mail.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Main.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Picture\Picture.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Picture\Picture2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Picture\Picture3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Picture\Picture4.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Picture\Picture5.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Reply\Reply.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Reply\Reply2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Signature\Signature.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Signature\Signature2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Signature\Signature3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Storage\Storage.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Storage\Storage2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\WhatIs.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Write\Writing.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Write\Writing2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Write\Writing3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Write\Writing4.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Write\Writing5.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Mail\Write\Writing6.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Scrapbook\AddFromMail\AddFromMail.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Scrapbook\AddFromMail\AddFromMail2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Scrapbook\AddFromMail\AddFromMail3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Spelling\Overview\Overview.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Spelling\Overview\Overview2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Spelling\Overview\Overview3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Spelling\Overview\Overview4.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Spelling\Overview\Overview5.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\Find.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\Paste.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\PasteWord.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\Review.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\Select.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\SelectWord.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\Start.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\Capitals.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\Erasing.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\GettingRidOf.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\InsertingSpace.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\NextLine.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\NextTextBox.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\OnScreenKeyboard.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\PreviousTextBox.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\Send.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Find.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Goto.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=HangUp.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Info.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=logo.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Messenger.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Print.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Reload.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=Save.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=TVvsWeb.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options&amp;page=TvWindow.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\topic=Tips&amp;subtopic=Options.htm" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\Addresses\Addresses.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\Addresses\Addresses2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\1.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\2.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\3.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\4.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\5.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\6.js" />
-    <Content Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\7.js" />
-    <Content Include="ServiceDeps\wtv-guide\templates\glossary.js">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="ServiceDeps\wtv-guide\templates\glossary_index.js">
-      <SubType>Code</SubType>
-    </Content>
-    <Content Include="ServiceDeps\wtv-guide\templates\glossary_word_index.js">
-      <SubType>Code</SubType>
-    </Content>
     <Content Include="ServiceVault\http_pc\index.js" />
     <Content Include="ServiceVault\http_pc\viewergen\index.js" />
     <Content Include="ServiceDeps\viewergen\AppData--1.0-HE.zip" />
@@ -192,6 +189,12 @@
     <Content Include="ServiceVault\wtv-admin\images\nuke.gif" />
     <Content Include="ServiceVault\wtv-admin\images\nuke_inverted.gif" />
     <Content Include="ServiceVault\wtv-admin\images\polyzoot.jpg" />
+    <Content Include="ServiceVault\wtv-admin\validate-operator-tweaks.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-admin\operatortweaks.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-admin\polyzoot.js" />
     <Content Include="ServiceVault\wtv-admin\regenfavs.js" />
     <Content Include="ServiceVault\wtv-admin\reloadconfig.js" />
@@ -933,6 +936,9 @@
     <Content Include="ServiceVault\wtv-music\get-playlist.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-news\get-attachment.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-news\lobby.js" />
     <Content Include="ServiceVault\wtv-news\news.js" />
     <Content Include="ServiceVault\wtv-passport\messengerlogin.js" />
@@ -979,7 +985,7 @@
     <Content Include="ServiceVault\wtv-setup\messenger-info.js" />
     <Content Include="ServiceVault\wtv-setup\messenger-mode.js" />
     <Content Include="ServiceVault\wtv-setup\messenger.js" />
-    <Content Include="ServiceVault\wtv-setup\phone-advanced.js" />
+    <Content Include="ServiceVault\wtv-setup\tweaks.js" />
     <Content Include="ServiceVault\wtv-setup\phone-basic.js" />
     <Content Include="ServiceVault\wtv-setup\phone-call-wait-thresh.js" />
     <Content Include="ServiceVault\wtv-setup\phone-call-waiting.js" />
@@ -1012,6 +1018,9 @@
     <Content Include="ServiceVault\wtv-setup\validate-change-password.js" />
     <Content Include="ServiceVault\wtv-setup\validate-mail-signature.js" />
     <Content Include="ServiceVault\wtv-setup\validate-screen-border.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\validate-tweaks.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-star\star.js" />
@@ -1103,6 +1112,7 @@
     <Content Include="SharedROMCache\up-arrows.swf" />
     <Content Include="SharedROMCache\UsingWebTVBanner.gif" />
     <Content Include="SharedROMCache\WebTVLogoJewel.gif" />
+    <Content Include="sync_nntp.js" />
     <Content Include="test.js" />
     <Content Include="includes\WTVAdmin.js" />
     <Content Include="includes\WTVBGMusic.js">
@@ -1147,48 +1157,51 @@
   <ItemGroup>
     <Folder Include="includes\" />
     <Folder Include="ServiceDeps\" />
+    <Folder Include="ServiceDeps\templates\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Addressbook\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Alerts\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Billing\PayMethods\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Chat\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Index\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Index\Main\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Keyboard\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Keyboard\Cmd\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\MailPOP\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\MailPOP\WhatIs\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Attach\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\CarbCops\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\GetStarted\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Picture\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Reply\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Signature\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Storage\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Mail\Write\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Scrapbook\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Scrapbook\AddFromMail\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Spelling\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Spelling\Overview\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\CutPaste\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\OnScreenKeyboard\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Tips\Options\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Users\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Users\Addresses\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\WhatIs\" />
+    <Folder Include="ServiceDeps\templates\wtv-guide\templates\" />
+    <Folder Include="ServiceDeps\templates\wtv-mail\" />
+    <Folder Include="ServiceDeps\templates\wtv-news\" />
     <Folder Include="ServiceDeps\viewergen\" />
     <Folder Include="ServiceDeps\wtv-1800\" />
     <Folder Include="ServiceDeps\wtv-1800\tellyscripts\bf0app\" />
     <Folder Include="ServiceDeps\wtv-1800\tellyscripts\FIJI\" />
     <Folder Include="ServiceDeps\wtv-1800\tellyscripts\UTV\" />
-    <Folder Include="ServiceDeps\wtv-guide\" />
     <Folder Include="ServiceDeps\wtv-1800\tellyscripts\" />
     <Folder Include="ServiceDeps\wtv-1800\tellyscripts\LC2\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Addressbook\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Alerts\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Billing\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Billing\PayMethods\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Chat\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Index\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Index\Main\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Keyboard\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Keyboard\Cmd\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\MailPOP\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\MailPOP\WhatIs\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\Attach\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\CarbCops\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\GetStarted\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\Picture\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\Reply\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\Signature\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\Storage\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Mail\Write\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Scrapbook\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Scrapbook\AddFromMail\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Spelling\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Spelling\Overview\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Tips\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Tips\CutPaste\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Tips\OnScreenKeyboard\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Tips\Options\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Users\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Users\Addresses\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\" />
-    <Folder Include="ServiceDeps\wtv-guide\prerendered\WhatIs\" />
-    <Folder Include="ServiceDeps\wtv-guide\templates\" />
     <Folder Include="ServiceVault\" />
     <Folder Include="ServiceVault\http_pc\" />
     <Folder Include="ServiceVault\http_pc\viewergen\" />
