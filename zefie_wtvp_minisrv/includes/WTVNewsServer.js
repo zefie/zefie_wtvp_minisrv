@@ -15,7 +15,8 @@ class WTVNewsServer {
         const { WTVShared } = require("./WTVShared.js");
         this.wtvshared = new WTVShared(minisrv_config);
         const nntp_server = require('nntp-server');
-        const nntp_statuses = require('nntp-server/lib/status');
+        var nntp_statuses = require('nntp-server/lib/status');
+
         this.username == username || null;
         this.password == password || null;
         this.using_auth = using_auth;
@@ -30,42 +31,13 @@ class WTVNewsServer {
 
         var nntp_commands = {
             ...nntp_server.commands,
-            "LAST": {
-                head: 'LAST',
-                validate: /^LAST$/i,
-
-                // All supported params are defined in separate files
-                run: function (session) {
-                    try {
-                        if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
-                        if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                        if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                        var res = self.getLastArticle(session.group.name, session.group.current_article);
-                        if (!res) return nntp_statuses._422_NO_LAST_ARTICLE;
-                        var last = `${nntp_statuses._223_ARTICLE_EXISTS} ${res.articleNumber} ${res.message_id}`
-                        return last
-                    } catch (e) {
-                        console.log(e);
-                    }
-                }
-            },
-            "NEXT": {
-                head: 'NEXT',
-                validate: /^NEXT$/i,
-
-                // All supported params are defined in separate files
-                run: function (session) {
-                    try {
-                        if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
-                        if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                        if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                        var res = self.getNextArticle(session.group.name, session.group.current_article);
-                        if (!res) return nntp_statuses._421_NO_NEXT_ARTICLE;
-                        var next = `${nntp_statuses._223_ARTICLE_EXISTS} ${res.articleNumber} ${res.message_id}`
-                        return next
-                    } catch (e) {
-                        console.log(e);
-                    }
+            "POST": {
+                head: 'POST',
+                validate: /^POST$/i,
+                run: function (session, post_data) {
+                    if (!session.posting_allowed) return 
+                    console.log(post_data);
+                    throw new Error("not implemented");
                 }
             }
         }
@@ -74,8 +46,29 @@ class WTVNewsServer {
             ...nntp_server.prototype,
             _authenticate: function (session) {
                 // authenticate
-                if (session.authinfo_user == self.username && session.authinfo_pass == self.password) return Promise.resolve(true);
+                if (session.authinfo_user == self.username && session.authinfo_pass == self.password) {
+                    session.posting_allowed = true;
+                    return Promise.resolve(true);
+                }
                 return Promise.resolve(false);
+            },
+
+            _getLast: function (session) {
+                if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
+                if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                var res = self.getLastArticle(session.group.name, session.group.current_article);
+                if (!res) return nntp_statuses._422_NO_LAST_ARTICLE;
+                return res;
+            },
+
+            _getNext: function (session) {
+                if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
+                if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                var res = self.getNextArticle(session.group.name, session.group.current_article);
+                if (!res) return nntp_statuses._421_NO_NEXT_ARTICLE;
+                return res;
             },
 
             _selectGroup: function (session, name) {
@@ -107,7 +100,6 @@ class WTVNewsServer {
                 // getArticle
                 return new Promise((resolve, reject) => {
                     var res = self.getArticle(session.group.name, message_id);
-                    console.log(res);
                     if (!res.messageId) reject(res);
                     else resolve(res)
                 });
@@ -135,7 +127,7 @@ class WTVNewsServer {
             key: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_key.pem'),
             cert: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_cert.pem'),
         }
-        this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, commands: nntp_commands });
+        this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true, commands: nntp_commands });
         this.local_server.listen('nntps://localhost:' + local_server_port);
     }
 
@@ -204,12 +196,15 @@ class WTVNewsServer {
         var g = this.getGroupPath(group);
         var res = null;
         try {
+            var articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
                 var articleNumber = parseInt(file.split('.')[0]);
-                if (articleNumber > current) return false;
-                res = articleNumber;
-                return false;
+                articleNumbers.push(articleNumber);
             });
+            articleNumbers.sort((a, b) => a - b)
+            var index = articleNumbers.findIndex((e) => e = current);
+            console.log('index last', index, "article", articleNumbers[index], "current", current)
+            if (index >= 0) res = articleNumbers[index];
         } catch (e) {
             console.log(e);
             return e;
@@ -228,13 +223,16 @@ class WTVNewsServer {
         var g = this.getGroupPath(group);
         var res = null;
         try {
+            var articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
                 var articleNumber = parseInt(file.split('.')[0]);
-                if (articleNumber <= current) return;
-
-                res = articleNumber;
-                return false;
+                articleNumbers.push(articleNumber);
             });
+            articleNumbers.sort((a, b) => a - b)
+            console.log(articleNumbers)
+            var index = articleNumbers.findIndex((e) => e = current) + 1;
+            console.log('index next', index, "article", articleNumbers[index], "current", current)
+            if (index < articleNumbers.length) res = articleNumbers[index];
         } catch (e) {
             console.log(e);
             return e;
@@ -274,6 +272,7 @@ class WTVNewsServer {
             console.log(e);
             out.failed = e;
         }
+        articleNumbers.sort((a, b) => a.index - b.index)
         if (out.min_index === null) out.min_index = 0;
         return {
             articleNumbers: articleNumbers,

@@ -13,6 +13,7 @@ class WTVShared {
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
     parentDirectory = process.cwd()
+    extend = require('util')._extend;
 
     minisrv_config = [];
     
@@ -39,8 +40,21 @@ class WTVShared {
         }
     }
 
-    cloneObj(obj) {
-        return JSON.parse(JSON.stringify(obj));
+    cloneObj(src) {
+        if (src instanceof RegExp) {
+            return new RegExp(src);
+        } else if (src instanceof Date) {
+            return new Date(src.getTime());
+        } else if (Array.isArray(src)) {
+            return src.map(this.cloneObj);
+        } else if (typeof src === 'object' && src !== null) {
+            const clone = {};
+            Object.keys(src).forEach(k => {
+                clone[k] = this.cloneObj(src[k]);
+            });
+            return clone;
+        }
+        return src;
     }
 
     getServiceString(service, overrides = {}) {
@@ -418,17 +432,22 @@ class WTVShared {
     filterRequestLog(obj) {
         if (this.minisrv_config.config.filter_passwords_in_logs === true) {
             if (obj.query) {
-                var newobj = this.cloneObj(obj);
-                Object.keys(newobj.query).forEach(function (k) {
-                    var key = k.toLowerCase();
-                    switch (true) {
-                        case /passw(or)?d/.test(key):
-                        case /^pass$/.test(key):
-                            newobj.query[key] = ('*').repeat(newobj.query[key].length);
-                            break;
-                    }
-                });
-                return newobj;
+                var newobj = this.cloneObj(obj) || {};
+                try {
+                    Object.keys(obj.query).forEach(function (k) {
+                        var key = k.toLowerCase();
+                        switch (true) {
+                            case /passw(or)?d/.test(key):
+                            case /^pass$/.test(key):
+                                newobj.query[key] = ('*').repeat(newobj.query[key].length);
+                                break;
+                        }
+                    });
+                    return newobj;
+                } catch (e) {
+                    if (!this.minisrv_config.config.debug_flags.quiet) console.error(' *** error filtering logs', e);
+                    return obj;
+                }
             }
         }
         return obj;

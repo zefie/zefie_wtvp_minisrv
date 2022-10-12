@@ -135,7 +135,27 @@ Content-Type: audio/wav`;
                         headers = doClientError("Please type a message to send to the group.");
                         sendToClient(socket, headers, '');
                     } else {
-                        const wtvnews = new WTVNews(minisrv_config, request_headers.query['discuss-prefix'] || "wtv-news");
+                        var local_service_name = request_headers.query['discuss-prefix'] || "wtv-news"
+                        const wtvnews = new WTVNews(minisrv_config, local_service_name);
+                        var service_config = minisrv_config.services[local_service_name];
+                        if (wtvnewsserver) {
+                            var tls_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news');
+                            var tls_options = {
+                                ca: this.fs.readFileSync(tls_path + '/localserver_ca.pem'),
+                                key: this.fs.readFileSync(tls_path + '/localserver_key.pem'),
+                                cert: this.fs.readFileSync(tls_path + '/localserver_cert.pem'),
+                                checkServerIdentity: () => { return null; }
+                            }
+                            if (wtvnewsserver.username)
+                                wtvnews.initializeUsenet("127.0.0.1", service_config.local_nntp_port, tls_options, wtvnewsserver.username, wtvnewsserver.password);
+                            else
+                                wtvnews.initializeUsenet("127.0.0.1", service_config.local_nntp_port, tls_options);
+                        } else {
+                            if (service_config.upstream_auth)
+                                wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null, service_config.upstream_auth.username || null, service_config.upstream_auth.password || null);
+                            else
+                                wtvnews.initializeUsenet(service_config.upstream_address, service_configupstream_port, service_config.upstream_tls || null);
+                        }
                         from_addr = userdisplayname + " <" + from_addr + ">";
                         wtvnews.postToGroup(newsgroup, from_addr, msg_subject, msg_body, article).then(() => {
                             session_data.deleteSessionData("usenet_draft");

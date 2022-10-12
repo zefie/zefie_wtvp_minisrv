@@ -8,6 +8,7 @@ class WTVNews {
     client = null;
     username = null;
     password = null;
+    posting_allowed = true;
 
     constructor(minisrv_config, service_name) {
         this.minisrv_config = minisrv_config;
@@ -35,6 +36,7 @@ class WTVNews {
         return new Promise((resolve, reject) => {
             this.client.connect().then((response) => {
                 if (response.code == 200 || response.code == 201) {
+                    if (response.code == 201) this.posting_allowed = false;
                     if (this.username && this.password) {
                         this.client.authInfoUser(this.username).then((res) => {
                             if (res.code == "381") {
@@ -122,19 +124,24 @@ class WTVNews {
                     promises.push(new Promise((resolve, reject) => {
                         this.client.last().then((res) => {
                             data.prev_article = res.article.articleNumber;
-                            // do it again
-                            this.client.article(data.prev_article).then(() => {
-                                this.client.last().then((res) => {
-                                    data.prev_article = res.article.articleNumber;
-                                    resolve(data.prev_article);
+                            console.log(data.prev_article, articleID)
+                            if (data.prev_article === articleID) {
+                                // do it again, needed this for CodoSoft NNTPd?
+                                this.client.article(data.prev_article).then(() => {
+                                    this.client.last().then((res) => {
+                                        data.prev_article = res.article.articleNumber;
+                                        resolve(data.prev_article);
+                                    }).catch(() => {
+                                        data.prev_article = null;
+                                        resolve(data.prev_article);
+                                    });
                                 }).catch(() => {
                                     data.prev_article = null;
                                     resolve(data.prev_article);
                                 });
-                            }).catch(() => {
-                                data.prev_article = null;
+                            } else {
                                 resolve(data.prev_article);
-                            });
+                            }
                         }).catch(() => {
                             data.prev_article = null;
                             resolve(data.prev_article);

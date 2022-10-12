@@ -11,9 +11,9 @@ if (service_config.local_nntp_port && wtvnewsserver) {
         checkServerIdentity: () => { return null; }
     }
     if (wtvnewsserver.username)
-        wtvnews.initializeUsenet("127.0.0.1", minisrv_config.services[service_name].local_nntp_port, tls_options, wtvnewsserver.username, wtvnewsserver.password);
+        wtvnews.initializeUsenet("127.0.0.1", service_config.local_nntp_port, tls_options, wtvnewsserver.username, wtvnewsserver.password);
     else
-        wtvnews.initializeUsenet("127.0.0.1", minisrv_config.services[service_name].local_nntp_port, tls_options);
+        wtvnews.initializeUsenet("127.0.0.1", service_config.local_nntp_port, tls_options);
 } else {
     if (service_config.upstream_auth)
         wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null, service_config.upstream_auth.username || null, service_config.upstream_auth.password || null);
@@ -228,7 +228,6 @@ ${page_start}-${page_end}
                                 var has_relation = (messages[k].relation !== null) ? true : false;
                                 var date_obj = new Date(Date.parse(message.headers.DATE));
                                 var date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d", date_obj)
-                                console.log(message);
                                 data += `
 <table cellspacing=0 cellpadding=0>
 <tr>
