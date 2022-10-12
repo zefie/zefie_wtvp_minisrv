@@ -1,7 +1,7 @@
 /** 
  * Shared functions across all classes and apps
  */
-
+const CryptoJS = require('crypto-js');
 
 class WTVShared {
 
@@ -9,7 +9,6 @@ class WTVShared {
     fs = require('fs');
     v8 = require('v8');
     zlib = require('zlib');
-    CryptoJS = require('crypto-js');
     html_entities = require('html-entities'); // used externally by service scripts
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
@@ -310,6 +309,10 @@ class WTVShared {
         }
     }
 
+    generatePassword(len) {
+        return CryptoJS.lib.WordArray.random(Math.round(len / 2)).toString(CryptoJS.enc.Hex);
+    }
+
     getMiniSrvConfig() {
         return this.minisrv_config;
     }
@@ -435,7 +438,7 @@ class WTVShared {
                 var post_obj = {};
                 post_obj.query = [];
                 try {
-                    var post_text = obj.post_data.toString(this.CryptoJS.enc.Utf8);
+                    var post_text = obj.post_data.toString(CryptoJS.enc.Utf8);
                     if (post_text.length > 0) {
                         post_text = post_text.split("&");
                         for (let i = 0; i < post_text.length; i++) {
@@ -454,7 +457,7 @@ class WTVShared {
                 post_text = post_text.substring(0, post_text.length - 1);
                 obj.post_data = post_text.hexEncode();
                 } catch (e) {
-                    obj.post_data = obj.post_data.toString(this.CryptoJS.enc.Hex);
+                    obj.post_data = obj.post_data.toString(CryptoJS.enc.Hex);
                 }
             } else {
                 // simple, no filter

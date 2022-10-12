@@ -126,7 +126,10 @@
     },
     "wtv-mail": {
       "port": 1608,
-      "connections": 3
+      "connections": 3,
+      "modules": [
+        "WTVNews"
+      ]
     },
     "wtv-passport": {
       "port": 1654

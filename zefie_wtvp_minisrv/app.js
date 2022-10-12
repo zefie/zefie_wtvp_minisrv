@@ -164,7 +164,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
                     contextObj[vm_modules[k]] = require(module_file);
                     modules_loaded.push(module_file)
                 } catch (e) {
-                    console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name)
+                    console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name, e)
                 }
             })            
         }

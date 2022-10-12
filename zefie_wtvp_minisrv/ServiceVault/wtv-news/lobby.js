@@ -1,5 +1,15 @@
 var minisrv_service_file = true;
 
+// max of 6, any more will be ignored
+var featuredGroups = [
+    { "name": "WebTV", "group": "webtv.users", "description": "A moderated discussion with WebTV customers" },
+    { "name": "Hacking", "group": "alt.discuss.webtv.hacking", "description": "Not grandma friendly" },
+    { "name": "4x4s", "group": "rec.autos.4x4", "description": "The on and off-road four wheel drive vehicle" },
+    { "name": "WebTV Plus", "group": "webtv.plus", "description": "bf0 is for bitches and BPS is boring" },
+    { "name": "MIDIs", "group": "alt.discuss.midis", "description": "The best music format" },
+    { "name": "HTML", "group": "alt.discuss.html", "description": "Every timeline starts with HTML" }
+];
+
 headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`
@@ -82,7 +92,8 @@ cellspacing=0 cellpadding=0>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
 <tr>
 <td colspan=3 height=237 valign=bottom align=right >
-<img src="wtv-forum:/images/BannerDiscuss.gif" width=50 height=165>	<tr><td colspan=3 absheight=36>
+<img src="wtv-news:/images/BannerDiscuss.gif" width=50 height=165>
+<tr><td colspan=3 absheight=36>
 </table>
 </sidebar>
 <body
@@ -103,27 +114,25 @@ Featured discussions
 <td abswidth=20>
 <tr>
 <td>
-<td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>
-<a href="wtv-news:/news?group=webtv.users"><b>WebTV</b></a><br>
-A moderated discussion with WebTV customers<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=alt.discuss.webtv.hacking"><b>Hacking</b></a><br>
-Not grandma friendly<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=rec.autos.4x4"><b>4x4s</b></a><br>
-The on and off-road four wheel drive vehicle<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<td WIDTH=20>
-<td WIDTH=198 HEIGHT=220 VALIGN=top ALIGN=left>
-<a href="wtv-news:/news?group=webtv.plus"><b>WebTV Plus</b></a><br>
-bf0 is for bitches and BPS is boring<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=alt.discuss.midis"><b>MIDIs</b></a><br>
-The best music format<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
-<a href="wtv-news:/news?group=alt.discuss.html"><b>HTML</b></a><br>
-Every timeline starts with HTML<br>
-<IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>
+<td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>`;
+
+var limit = 6;
+while (featuredGroups.length > limit) featuredGroups.pop(); // remove anything passing our limit
+
+function printGroup(group) {
+    return `<a href="wtv-news:/news?group=${group.group}"><b>${group.name}</b></a><br>${group.description}<br><IMG SRC="wtv-home:/ROMCache/Spacer.gif" WIDTH=1 HEIGHT=18><BR>`;
+}
+
+// evens
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 == 0) { data += printGroup(featuredGroups[k]); } });
+
+if (featuredGroups.length > 1) data += `<td WIDTH=20><td WIDTH=198 HEIGHT=220 VALIGN=top ALIGN=left>`;
+
+// odds
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 != 0) data += printGroup(featuredGroups[k]); });
+
+
+data += `
 </table>
 <TABLE width=446 cellspacing=0 cellpadding=0>
 <tr>

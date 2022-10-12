@@ -427,7 +427,7 @@ class WTVClientSessionData {
     }
 
     generatePassword(len) {
-        return CryptoJS.lib.WordArray.random(Math.round(len / 2)).toString(CryptoJS.enc.Hex);
+        return this.wtvshared.generatePassword(len);
     }
 
     setUserPassword(passwd) {
