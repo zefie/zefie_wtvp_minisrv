@@ -1,14 +1,6 @@
 var minisrv_service_file = true;
 
 // max of 6, any more will be ignored
-var featuredGroups = [
-    { "name": "WebTV", "group": "webtv.users", "description": "A moderated discussion with WebTV customers" },
-    { "name": "Hacking", "group": "alt.discuss.webtv.hacking", "description": "Not grandma friendly" },
-    { "name": "4x4s", "group": "rec.autos.4x4", "description": "The on and off-road four wheel drive vehicle" },
-    { "name": "WebTV Plus", "group": "webtv.plus", "description": "bf0 is for bitches and BPS is boring" },
-    { "name": "MIDIs", "group": "alt.discuss.midis", "description": "The best music format" },
-    { "name": "HTML", "group": "alt.discuss.html", "description": "Every timeline starts with HTML" }
-];
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -116,6 +108,7 @@ Featured discussions
 <td>
 <td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>`;
 
+var featuredGroups = minisrv_config.services[service_name].featuredGroups;
 var limit = 6;
 while (featuredGroups.length > limit) featuredGroups.pop(); // remove anything passing our limit
 

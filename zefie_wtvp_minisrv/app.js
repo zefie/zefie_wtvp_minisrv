@@ -1923,6 +1923,11 @@ Object.keys(minisrv_config.services).forEach(function (k) {
                 wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port);
                 console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: None");
             }
+            if (minisrv_config.services["wtv-news"].featuredGroups) {
+                Object.keys(minisrv_config.services["wtv-news"].featuredGroups).forEach((k) => {
+                    wtvnewsserver.createGroup(minisrv_config.services["wtv-news"].featuredGroups[k].group);
+                })
+            }
         }
     }
 

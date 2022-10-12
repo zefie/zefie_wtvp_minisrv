@@ -29,19 +29,6 @@ class WTVNewsServer {
         // nntp-server module overrides
         var self = this;
 
-        var nntp_commands = {
-            ...nntp_server.commands,
-            "POST": {
-                head: 'POST',
-                validate: /^POST$/i,
-                run: function (session, post_data) {
-                    if (!session.posting_allowed) return 
-                    console.log(post_data);
-                    throw new Error("not implemented");
-                }
-            }
-        }
-
         nntp_server.prototype = {
             ...nntp_server.prototype,
             _authenticate: function (session) {
@@ -52,7 +39,16 @@ class WTVNewsServer {
                 }
                 return Promise.resolve(false);
             },
-
+            _postArticle: function (session) {
+                try {
+                    session.group.name = self.getHeader(session.post_data, "newsgroups");
+                    if (session.group.name.indexOf(',') >= 0) return false; // cross post not implemented
+                    return self.postArticle(session.group.name, session.post_data)
+                } catch (e) {
+                    console.log(e)
+                    return false;
+                }
+            },
             _getLast: function (session) {
                 if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
                 if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
@@ -91,7 +87,7 @@ class WTVNewsServer {
             },
 
             _buildHeaderField: function (session, message, field) {
-                var search = Object.keys(message.headers).find(e => (e.toLowerCase() == field.toLowerCase()));
+                var search = self.getHeader(message, field);
                 if (search) return message.headers[search];
                 else return null;
             },
@@ -127,13 +123,52 @@ class WTVNewsServer {
             key: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_key.pem'),
             cert: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_cert.pem'),
         }
-        this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true, commands: nntp_commands });
+        this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true });
         this.local_server.listen('nntps://localhost:' + local_server_port);
+    }
+
+    getHeader(message, header) {
+        var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
+        if (search) return message.headers[search];
+        return null;
     }
 
     createDataStore() {
         if (!this.fs.existsSync(this.data_path)) return this.fs.mkdirSync(this.data_path);
         return true;
+    }
+
+    getNextAvailableArticleID(group) {
+        return this.selectGroup(group).max_index + 1;
+    }
+
+    postArticle(group, post_data) {
+        var articleNumber = this.getNextAvailableArticleID(group);
+        if (!articleNumber) return false;
+        try {
+            post_data.articleNumber = articleNumber;
+            post_data.messageId = this.getHeader(post_data, "message-id");
+            //Tue, 11 Oct 2022 17:25:16 -0400
+            post_data.headers.date = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(post_data.headers.date))
+            post_data.headers['INJECTION-DATE'] = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(Date.now()))
+            if (this.articleExists(group, articleNumber)) return false // should not occur, but just in case
+            return this.createArticle(group, articleNumber, post_data);
+        } catch (e) {
+            console.error(" * WTVNewsServer Error: postArticle: ", e);
+        }
+        return false;
+    }
+
+    createArticle(group, articleNumber, article) {
+        var g = this.getGroupPath(group);
+        var file = g + this.path.sep + articleNumber + ".newz";
+        try {
+            this.fs.writeFileSync(file, JSON.stringify(article));
+            return true;
+        } catch (e) {
+            console.error(" * WTVNewsServer Error: createArticle: ", e);
+            return false;
+        }
     }
 
     getGroupPath(group) {
@@ -151,7 +186,8 @@ class WTVNewsServer {
     }
 
     createGroup(group) {
-        if (!this.fs.existsSync(getGroupPath(group))) return this.fs.mkdirSync(getGroupPath(group));
+        var g = this.getGroupPath(group);
+        if (!this.fs.existsSync(g)) return this.fs.mkdirSync(g);
         return true;
     }
 
@@ -163,7 +199,7 @@ class WTVNewsServer {
             data.index = data.articleNumber;
             return data
         } catch (e) {
-            console.log(" * WTVNewsServer Error:", e);
+            console.error(" * WTVNewsServer Error: getArticle: ", e);
         }
         return null;
     }

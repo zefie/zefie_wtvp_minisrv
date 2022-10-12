@@ -36,7 +36,7 @@
     "iconv-lite": "^0.6.3",
     "mime-types": "^2.1.35",
     "newsie": "^1.2.1",
-    "nntp-server": "^3.1.0",
+    "nntp-server": "github:zefie/nntp-server",
     "proxy-agent": "^5.0.0",
     "sanitize-html": "^2.7.2",
     "socks-proxy-agent": "^6.2.1",

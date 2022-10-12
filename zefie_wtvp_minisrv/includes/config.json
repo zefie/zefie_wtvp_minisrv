@@ -68,6 +68,28 @@
       "local_nntp_requires_auth": true,
       "modules": [
         "WTVNews"
+      ],
+      "featuredGroups": [
+        {
+          "name": "WebTV",
+          "group": "webtv.users",
+          "description": "A moderated discussion with WebTV customers"
+        },
+        {
+          "name": "Hacking",
+          "group": "alt.discuss.webtv.hacking",
+          "description": "Not advertiser friendly"
+        },
+        {
+          "name": "minisrv",
+          "group": "minisrv.users",
+          "description": "The server behind it all"
+        },
+        {
+          "name": "MIDIs",
+          "group": "alt.discuss.midis",
+          "description": "Explore the sounds of Beatnik with your WebTV"
+        }
       ]
     },
     "wtv-register": {
