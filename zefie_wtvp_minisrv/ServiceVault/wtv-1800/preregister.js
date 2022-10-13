@@ -68,7 +68,6 @@ if (session_data.data_store.wtvsec_login) {
 		} else {
 			romtype = session_data.get("wtv-client-rom-type");
 		}
-		var file_path = null;
 		switch (romtype) {
 			case "US-LC2-disk-0MB-8MB":
 			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
@@ -77,9 +76,8 @@ if (session_data.data_store.wtvsec_login) {
 			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (session_data.get("wtv-open-access")) file_path = __dirname + "/" +
-					+ "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
-				else var file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
+				if (session_data.get("wtv-open-access")) file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok";
+				else file_path = ServiceDeps + "/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok";
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
