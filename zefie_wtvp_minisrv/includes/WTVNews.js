@@ -247,9 +247,11 @@ class WTVNews {
                                     messageid = data;
                                     resolve(data);
                                 }).catch((e) => {
+                                    console.log('Error getting articleID',article, e)
                                     reject(e)
                                 });
                             }).catch((e) => {
+                                console.log('Error selecting group', e)
                                 reject(e)
                             });
                         }));
@@ -273,12 +275,9 @@ class WTVNews {
                                         articleData.headers.References = messageid;
                                         articleData.headers['In-Reply-To'] = messageid;
                                     }
+                                    if (msg_body) articleData.body = msg_body.split("\n");
+                                    else articleData.body = [];
 
-                                    if (msg_body) {
-                                        articleData.body = msg_body.split("\n");
-                                    } else {
-                                        articleData.body = [];
-                                    }
                                     response.send(articleData).then((response) => {
                                         this.client.quit();
                                         if (response.code !== 240) {
@@ -290,8 +289,7 @@ class WTVNews {
                                         this.client.quit();
                                         reject("Could not send post. Server returned error " + response.code);
                                     });
-                                }
-                                else {
+                                } else {
                                     this.client.quit();
                                     console.log('usenet upstream uncaught error', e);
                                     reject("Could not send post. Server returned unknown error");
@@ -310,6 +308,7 @@ class WTVNews {
             this.client.article(articleID).then((data) => {
                 resolve(data.article.messageId);
             }).catch((e) => {
+                console.log("error getting messageID from article", articleID, e)
                 reject(e);
             });
         });
