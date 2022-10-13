@@ -39,7 +39,6 @@ if ((!attachment_id && attachment_id != 0) || !group || !article) {
                     if (message_data.attachments) {
                         if (attachment_id < message_data.attachments.length) {
                             var attachment = message_data.attachments[attachment_id];
-                            console.log(attachment);
                             var encoding = attachment.content_encoding.toLowerCase()
                             if (encoding == 'base64') {
                                 data = Buffer.from(attachment.data, encoding);

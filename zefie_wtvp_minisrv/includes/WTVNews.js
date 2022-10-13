@@ -398,10 +398,16 @@ class WTVNews {
                     attachments: attachments
                 }
             } else {
-                return { text: message.article.body.join("\n") }
+                var message_body = '';
+                if (message.article.body) message_body = message.article.body.join("\n")
+
+                return { text: message_body }
             }
         } else {
-            return { text: message.article.body.join("\n") }
+            var message_body = '';
+            if (message.article.body) message_body = message.article.body.join("\n")
+            
+            return { text: message_body }
         }
 
     }

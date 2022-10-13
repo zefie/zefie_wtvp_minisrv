@@ -562,14 +562,14 @@ ${wtvshared.htmlEntitize(message_body, true)}
                                     case "image/jpeg":
                                     case "image/png":
                                     case "image/gif":
-                                        data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}wtv-title=Video%20Snapshot" width="380" height="290"><br><br>`;
+                                        data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Video%20Snapshot"><br><br>`;
                                         break;
                                     case "audio/wav":
                                     case "audio/mp2":
                                     case "audio/mp3":
                                     case "audio/mid":
                                     case "audio/midi":
-                                        data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Audio%20file" width=386 cellspacing=0 cellpadding=0>
+                                        data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? encodeURIComponent(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
     <td align=left valign=middle><img src="wtv-news:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;${(v.filename) ? (v.filename) : "Audio file"} (${v.content_type.split('/')[1]} attachment)</font>
     <td align=right valign=middle>
     </table><br><br>

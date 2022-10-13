@@ -1039,7 +1039,7 @@ async function sendToClient(socket, headers_obj, data) {
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
         headers_obj.Connection = "Keep-Alive";
-        headers_obj = moveObjectElement('Connection', 'Response', headers_obj);
+        headers_obj = wtvshared.moveObjectElement('Connection', 'Response', headers_obj);
     }
 
     var content_length = 0;
@@ -1131,7 +1131,7 @@ async function sendToClient(socket, headers_obj, data) {
         // encrypt if needed
         if (socket_sessions[socket.id].secure == true && !socket_sessions[socket.id].do_not_encrypt) {
             headers_obj["wtv-encrypted"] = 'true';
-            headers_obj = moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
+            headers_obj = wtvshared.moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
             if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
                 if (!minisrv_config.config.debug_flags.quiet) console.log(" * Encrypting response to client ...")
                 var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
@@ -1168,7 +1168,7 @@ async function sendToClient(socket, headers_obj, data) {
                 if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64) {
                     if (ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket) {
                         headers_obj["wtv-ticket"] = ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64;
-                        headers_obj = moveObjectElement("wtv-ticket", "Connection", headers_obj);
+                        headers_obj = wtvshared.moveObjectElement("wtv-ticket", "Connection", headers_obj);
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket = false;
                     }
                 }
@@ -1281,30 +1281,6 @@ function concatArrayBuffer(buffer1, buffer2) {
     tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
     return tmp.buffer;
 }
-
-function moveObjectElement(currentKey, afterKey, obj) {
-    var result = {};
-    var val = obj[currentKey];
-    delete obj[currentKey];
-    var next = -1;
-    var i = 0;
-    if (typeof afterKey == 'undefined' || afterKey == null) afterKey = '';
-    Object.keys(obj).forEach(function (k) {
-        var v = obj[k];
-        if ((afterKey == '' && i == 0) || next == 1) {
-            result[currentKey] = val;
-            next = 0;
-        }
-        if (k == afterKey) { next = 1; }
-        result[k] = v;
-        ++i;
-    });
-    if (next == 1) {
-        result[currentKey] = val;
-    }
-    if (next !== -1) return result; else return obj;
-}
-
 
 function isUnencryptedString(string) {
     // a generic "isAscii" check is not sufficient, as the test will see the binary 

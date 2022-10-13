@@ -43,6 +43,7 @@ class WTVNewsServer {
             },
             _postArticle: function (session) {
                 try {
+                    console.log(session.post_data);
                     session.group.name = self.getHeader(session.post_data, "newsgroups");
                     if (session.group.name.indexOf(',') >= 0) return false; // cross post not implemented
                     return self.postArticle(session.group.name, session.post_data)
@@ -147,8 +148,10 @@ class WTVNewsServer {
     }
 
     getHeader(message, header) {
-        var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
-        if (search) return message.headers[search];
+        if (message.headers) {
+            var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
+            if (search) return message.headers[search];
+        }
         return null;
     }
 
@@ -157,12 +160,21 @@ class WTVNewsServer {
         return true;
     }
 
-    getNextAvailableArticleID(group) {
-        return this.selectGroup(group).max_index + 1;
+    getArticleIdMeta(group) {
+        const g = this.getGroupPath(group) + this.path.sep + "meta.json";
+        if (this.fs.existsSync(g)) return JSON.parse(this.fs.readFileSync(g));
+        return { group: group, last_article_id: (this.selectGroup(group).max_index + 1) }
+    }
+
+    incrementArticleIdMeta(group) {
+        const g = this.getGroupPath(group) + this.path.sep + "meta.json";
+        var meta = this.getArticleIdMeta(group);
+        meta.last_article_id = meta.last_article_id + 1;
+        this.fs.writeFileSync(g, JSON.stringify(meta))
     }
 
     postArticle(group, post_data) {
-        var articleNumber = this.getNextAvailableArticleID(group);
+        var articleNumber = this.getArticleIdMeta(group).last_article_id;
         if (!articleNumber) return false;
         try {
             post_data.articleNumber = articleNumber;
@@ -171,9 +183,19 @@ class WTVNewsServer {
                 var messageId = "<" + this.wtvshared.generatePassword(16) + "@" + this.minisrv_config.config.domain_name + ">";
                 post_data.messageId = post_data.headers['Message-ID'] = messageId;
             }
-            //Tue, 11 Oct 2022 17:25:16 -0400
+
+            if (!post_data.headers.Path) post_data.headers.Path = "@" + this.minisrv_config.config.domain_name;
+            if (!post_data.headers.Subject) post_data.headers.Subject = "(No subject)";
+
             post_data.headers.Date = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(post_data.headers.date))
-            post_data.headers['INJECTION-DATE'] = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(Date.now()))
+            post_data.headers['Injection-Date'] = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(Date.now()))
+            post_data.headers = this.wtvshared.moveObjectElement('Path', null, post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectElement('From', 'Path', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectElement('Newsgroups', 'From', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectElement('Subject', 'Newsgroups', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectElement('Date', 'Subject', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectElement('Organization', 'Date', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectElement('Message-ID', 'Organization', post_data.headers, true);
             if (this.articleExists(group, articleNumber)) return false // should not occur, but just in case
             return this.createArticle(group, articleNumber, post_data);
         } catch (e) {
@@ -187,6 +209,7 @@ class WTVNewsServer {
         var file = g + this.path.sep + articleNumber + ".newz";
         try {
             this.fs.writeFileSync(file, JSON.stringify(article));
+            this.incrementArticleIdMeta(group);
             return true;
         } catch (e) {
             console.error(" * WTVNewsServer Error: createArticle: ", e);
@@ -220,6 +243,8 @@ class WTVNewsServer {
         try {
             var data = JSON.parse(this.fs.readFileSync(g));
             data.index = data.articleNumber;
+            if (!data.body) data.body = [''];
+            if (!data.headers.Subject) data.headers.Subject = "(No subject)";
             return data
         } catch (e) {
             console.error(" * WTVNewsServer Error: getArticle: ", e);
@@ -246,6 +271,7 @@ class WTVNewsServer {
         }
         try {
             this.fs.readdirSync(g).forEach(file => {
+                if (file == "meta.json") return;
                 var articleNumber = parseInt(file.split('.')[0]);
                 if (out.min_index == null) out.min_index = articleNumber;
                 else if (articleNumber < out.min_index) out.min_index = articleNumber;
@@ -263,7 +289,6 @@ class WTVNewsServer {
     getGroups() {
         var groups = [];
         this.fs.readdirSync(this.data_path).forEach(file => {
-            console.log(file);
             if (this.fs.lstatSync(this.data_path + this.path.sep + file).isDirectory()) groups.push(this.selectGroup(file));
         });
         return groups;
@@ -275,6 +300,7 @@ class WTVNewsServer {
         try {
             var articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
+                if (file == "meta.json") return;
                 var articleNumber = parseInt(file.split('.')[0]);
                 articleNumbers.push(articleNumber);
             });
@@ -300,6 +326,7 @@ class WTVNewsServer {
         try {
             var articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
+                if (file == "meta.json") return;
                 var articleNumber = parseInt(file.split('.')[0]);
                 articleNumbers.push(articleNumber);
             });
@@ -329,6 +356,7 @@ class WTVNewsServer {
         var articles = [];
         try {
             this.fs.readdirSync(g).forEach(file => {
+                if (file == "meta.json") return;
                 var articleNumber = parseInt(file.split('.')[0]);
                 if (articleNumber < start) return;
                 if (articleNumber > end) return false;

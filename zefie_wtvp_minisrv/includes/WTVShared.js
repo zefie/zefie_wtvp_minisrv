@@ -214,6 +214,36 @@ class WTVShared {
         }
     }
 
+    moveObjectElement(currentKey, afterKey, obj, caseInsensitive = false) {
+        var result = {};
+        if (caseInsensitive) {
+            Object.keys(obj).forEach((k) => {
+                if (k.toLowerCase() == currentKey.toLowerCase()) {
+                    currentKey = k;
+                    return false;
+                }
+            })
+        }       
+        var val = obj[currentKey];
+        delete obj[currentKey];
+        var next = -1;
+        var i = 0;
+        if (typeof afterKey == 'undefined' || afterKey == null) afterKey = '';
+        Object.keys(obj).forEach(function (k) {
+            var v = obj[k];
+            if ((afterKey == '' && i == 0) || next == 1) {
+                result[currentKey] = val;
+                next = 0;
+            }
+            if (k == afterKey || (caseInsensitive && k.toLowerCase() == afterKey.toLowerCase())) { next = 1; }
+            result[k] = v;
+            ++i;
+        });
+        if (next == 1) {
+            result[currentKey] = val;
+        }
+        if (next !== -1) return result; else return obj;
+    }
 
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
         if (notices || reload_notice) console.log(" *** Reading global configuration...");
