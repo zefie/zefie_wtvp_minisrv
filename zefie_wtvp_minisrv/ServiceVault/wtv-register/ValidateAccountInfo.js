@@ -61,7 +61,7 @@ correct an item, press <b>Back</b>.<p>`;
 <table cellspacing=0 cellpadding=0 border=0> <TR><TD>
 <img src="images/arrow.gif"><font size=-2>&nbsp;&nbsp;<b>USERNAME</b></font><br>
 <tr><td maxlines=1 >
-<tt><font color=#d1d3d3><spacer type=horizontal size=17>${request_headers.query.subscriber_name}</font></tt></a>
+<tt><font color=#d1d3d3><spacer type=horizontal size=17>${request_headers.query.subscriber_username}</font></tt></a>
 </table>
 <p>
 <table cellspacing=0 cellpadding=0 border=0>
