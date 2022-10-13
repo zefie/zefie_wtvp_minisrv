@@ -9,11 +9,13 @@ class WTVNewsServer {
     using_auth = false;
     local_server = null;
     data_path = null;
+    featuredGroups = null
 
     constructor(minisrv_config, local_server_port, using_auth = false, username = null, password = null) {
         this.minisrv_config = minisrv_config;
         const { WTVShared } = require("./WTVShared.js");
         this.wtvshared = new WTVShared(minisrv_config);
+        this.featuredGroups = minisrv_config.services['wtv-news'].featuredGroups;
         const nntp_server = require('nntp-server');
         var nntp_statuses = require('nntp-server/lib/status');
 
@@ -48,6 +50,10 @@ class WTVNewsServer {
                     console.log(e)
                     return false;
                 }
+            },
+
+            _getGroups: function (session) {
+                return self.getGroups();
             },
             _getLast: function (session) {
                 if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
@@ -87,11 +93,25 @@ class WTVNewsServer {
             },
 
             _buildHeaderField: function (session, message, field) {
+                console.log(message,field);
+                if (field.indexOf(':') > 0) field = field.replace(/\:/g, '');
                 var search = self.getHeader(message, field);
-                if (search) return message.headers[search];
+                if (search) return search;
                 else return null;
             },
 
+            _getOverviewFmt: function (session) {
+                var headers = [
+                    "Subject:",
+                    "From:",
+                    "Date:",
+                    "Message-ID:",
+                    "References:",
+                    ":bytes",
+                    ":lines"
+                ]
+                return headers;
+            },
             _getArticle: function (session, message_id) {
                 // getArticle
                 return new Promise((resolve, reject) => {
@@ -109,7 +129,7 @@ class WTVNewsServer {
                 var res = self.listGroup(session.group.name, first, last)
                 if (res.failed) return false;
                 session.group = res.group_data;
-                return res.articleNumbers;
+                return res.articles;
             }
 
         }
@@ -128,9 +148,13 @@ class WTVNewsServer {
     }
 
     getHeader(message, header) {
-        var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
-        if (search) return message.headers[search];
-        return null;
+        try {
+            var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
+            if (search) return message.headers[search];
+            return null;
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     createDataStore() {
@@ -204,6 +228,7 @@ class WTVNewsServer {
         return null;
     }
 
+
     selectGroup(group) {
         var g = this.getGroupPath(group);
         var out = {
@@ -211,6 +236,14 @@ class WTVNewsServer {
             min_index: null,
             max_index: 0,
             name: group
+        }
+        if (this.featuredGroups) {
+            Object.keys(this.featuredGroups).forEach((k) => {
+                if (group == this.featuredGroups[k].group) {
+                    out.wildmat = 'y';
+                    return false;
+                }
+            })
         }
         try {
             this.fs.readdirSync(g).forEach(file => {
@@ -226,6 +259,15 @@ class WTVNewsServer {
         }
         if (out.min_index === null) out.min_index = 0;
         return out;
+    }
+
+    getGroups() {
+        var groups = [];
+        this.fs.readdirSync(this.data_path).forEach(file => {
+            console.log(file);
+            if (this.fs.lstatSync(this.data_path + this.path.sep + file).isDirectory()) groups.push(this.selectGroup(file));
+        });
+        return groups;
     }
 
     getLastArticle(group, current) {
@@ -285,7 +327,7 @@ class WTVNewsServer {
             max_index: 0,
             name: group
         }
-        var articleNumbers = [];
+        var articles = [];
         try {
             this.fs.readdirSync(g).forEach(file => {
                 var articleNumber = parseInt(file.split('.')[0]);
@@ -295,16 +337,17 @@ class WTVNewsServer {
                 else if (articleNumber < out.min_index) out.min_index = articleNumber;
 
                 if (articleNumber > out.max_index) out.max_index = articleNumber;
-                articleNumbers.push({ index: articleNumber });
+                articles.push(this.getArticle(group, articleNumber));
                 out.total++;
             });
         } catch (e) {
+            console.error(" * WTVNewsServer Error: listGroup: ", e);
             out.failed = e;
         }
-        articleNumbers.sort((a, b) => a.index - b.index)
+        articles.sort((a, b) => a.index - b.index)
         if (out.min_index === null) out.min_index = 0;
         return {
-            articleNumbers: articleNumbers,
+            articles: articles,
             group_data: out
         }
     }
