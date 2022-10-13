@@ -544,25 +544,33 @@ ${(response.article.headers.SUBJECT) ? wtvshared.htmlEntitize(response.article.h
 <td abswidth=20 rowspan=99>
 <tr>
 <td>
-`;
-                    var message_body = response.article.body.join("\n");
+`;                    
+                    var message = wtvnews.parseAttachments(response);
+                    var message_body = message.text;
+                    var attachments = null;
+                    if (message.attachments) attachments = message.attachments;
                     data += `
 ${wtvshared.htmlEntitize(message_body, true)}
 <br>
 <br>`;
                     data += "<p>";
-                    /*
-                    if (message.attachments) {
-                        message.attachments.forEach((v, k) => {
+                    
+                    if (attachments) {
+                        attachments.forEach((v, k) => {
                             if (v) {
-                                console.log("*****************", v['Content-Type']);
-                                switch (v['Content-Type']) {
+                                switch (v.content_type) {
                                     case "image/jpeg":
-                                        data += `<img border=2 src="wtv-news:/get-attachment?message_id=${messageid}&attachment_id=${k}&group=${(message.to_group)}&wtv-title=Video%20Snapshot" width="380" height="290"><br><br>`;
+                                    case "image/png":
+                                    case "image/gif":
+                                        data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}wtv-title=Video%20Snapshot" width="380" height="290"><br><br>`;
                                         break;
                                     case "audio/wav":
-                                        data += `<table href="wtv-news:/get-attachment?message_id=${messageid}&attachment_id=${k}&group=${(message.to_group)}&wtv-title=Voice%20Mail" width=386 cellspacing=0 cellpadding=0>
-    <td align=left valign=middle><img src="wtv-mail:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;recording.wav (wav attachment)</font>
+                                    case "audio/mp2":
+                                    case "audio/mp3":
+                                    case "audio/mid":
+                                    case "audio/midi":
+                                        data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Audio%20file" width=386 cellspacing=0 cellpadding=0>
+    <td align=left valign=middle><img src="wtv-news:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;${(v.filename) ? (v.filename) : "Audio file"} (${v.content_type.split('/')[1]} attachment)</font>
     <td align=right valign=middle>
     </table><br><br>
     `;
@@ -571,6 +579,7 @@ ${wtvshared.htmlEntitize(message_body, true)}
                             }
                         });
                     }
+                    /*
                     if (message.url) {
                         data += `Included Page: <a href="${(message.url)}">${wtvshared.htmlEntitize(message.url_title).replace(/&apos;/gi, "'")}`;
                     }

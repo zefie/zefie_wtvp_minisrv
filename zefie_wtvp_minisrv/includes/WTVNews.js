@@ -147,9 +147,17 @@ class WTVNews {
                     }));
 
                     Promise.all(promises).then(() => {
+                        var self = this;
+                        if (data.article.headers) Object.keys(data.article.headers).forEach((k) => {
+                            data.article.headers[k] = self.decodeCharset(data.article.headers[k])
+                        });
                         resolve(data);
                     });
                 } else {
+                    var self = this;
+                    if (data.article.headers) Object.keys(data.article.headers).forEach((k) => {
+                        data.article.headers[k] = self.decodeCharset(data.article.headers[k])
+                    });
                     resolve(data);
                 }
             }).catch((e) => {
@@ -159,15 +167,56 @@ class WTVNews {
         });
     }
 
+    decodeCharset(string) {
+        var regex = /=\?{1}(.+)\?{1}([B|Q])\?{1}(.+)\?{1}=/;
+        var decoded = null;
+        var check = string.match(regex);
+        if (check) {
+            var match = check[0];
+            var charset = check[1];
+            var encoding = check[2];
+            var encoded_text = check[3];
+            switch (encoding) {
+                case "B":
+                    var buffer = new Buffer.from(encoded_text, 'base64')
+                    decoded = buffer.toString(charset).replace(/[^\x00-\x7F]/g, "");;
+                    break;
+
+                case "Q":
+                    // unimplemented
+                    return string;
+            }
+            if (decoded) return string.replace(match, decoded);
+        }
+        return string;
+    }
+
     getHeader(articleID) {
         return new Promise((resolve, reject) => {
             this.client.head(articleID).then((data) => {
+                var self = this;
+                if (data.article.headers) Object.keys(data.article.headers).forEach((k) => {
+                    data.article.headers[k] = self.decodeCharset(data.article.headers[k])
+                });
                 resolve(data);
             }).catch((e) => {
                 reject(`Error getting header for article ID ${articleID}`);
                 console.error(" * WTVNews Error:", "Command: head -", "Article ID: " + articleID, e);
             });
         });
+    }
+
+    getHeaderFromMessage(message, header) {
+        var response = null;
+        if (message.article.headers) {
+            Object.keys(message.article.headers).forEach((k) => {
+                if (k.toLowerCase() == header.toLowerCase()) {
+                    response = message.article.headers[k];
+                    return false;
+                }
+            })
+        }
+        return response;
     }
 
     quitUsenet() {
@@ -220,7 +269,10 @@ class WTVNews {
                                         'Message-ID': "<" + this.wtvshared.generatePassword(16) + "@" + this.minisrv_config.config.domain_name + ">",
                                         'Date': this.strftime('%A, %d-%b-%y %k:%M:%S %z', new Date())
                                     }
-                                    if (messageid) articleData.headers.References = messageid;
+                                    if (messageid) {
+                                        articleData.headers.References = messageid;
+                                        articleData.headers['In-Reply-To'] = messageid;
+                                    }
 
                                     if (msg_body) {
                                         articleData.body = msg_body.split("\n");
@@ -289,6 +341,70 @@ class WTVNews {
             }
         });
     }    
+
+
+    parseAttachments(message) {
+        var contype = this.getHeaderFromMessage(message, 'Content-Type');
+        if (contype) {
+            var regex = /multipart\/mixed\; boundary=\"(.+)\"/i;
+            var match = contype.match(regex);
+            if (match) {
+                var boundary = "--" + match[1];
+                var body = message.article.body.join("\n").split(boundary);
+                var attachments = [];
+                var i = 0;
+                var message_body = '';
+                var message_type = 'text/plain';
+                body.forEach((element) => {
+                    var section_type = null;
+                    var section = element.split("\n");
+                    attachments[i] = {};
+                    section.forEach((line) => {
+                        var section_header_match = line.match(/^Content\-/i)
+                        if (section_header_match) {
+                            var section_match = line.match(/^Content\-Type\: (.+)\;/i)
+                            if (section_match) {
+                                if (section_match[1].match(/text\/(html|plain)/)) {
+                                    section_type = section_match[1].match(/(text\/(html|plain))/)[1];
+                                    message_type = section_type;
+                                } else {
+                                    section_type = section_match[1];
+                                    attachments[i].content_type = section_match[1]
+                                }
+                            }
+                            section_match = line.match(/^Content\-Disposition\: (.+)\;/i)
+                            if (section_match) {
+                                section_match = line.match(/^Content\-Disposition\: (.+)\; filename=\"(.+)\"/i)
+                                if (section_match) attachments[i].filename = section_match[2];
+                            }
+                            section_match = line.match(/^Content-Transfer-Encoding: (.+)/i)
+                            if (section_match) attachments[i].content_encoding = section_match[1];
+                        } else {
+                            if (section_type != null) {
+                                if (section_type.match(/(text\/[html|plain])/)) message_body += line;
+                                else {
+                                    if (attachments[i].data) attachments[i].data += line;
+                                    else attachments[i].data = line;
+                                }
+                            }
+                        }
+                    })
+                    if (attachments[i].content_type) i++;
+                })
+                attachments.pop();
+                return {
+                    text: message_body,
+                    text_type: message_type,
+                    attachments: attachments
+                }
+            } else {
+                return { text: message.article.body.join("\n") }
+            }
+        } else {
+            return { text: message.article.body.join("\n") }
+        }
+
+    }
 
     sortByResponse(messages) {
         var sorted = [];

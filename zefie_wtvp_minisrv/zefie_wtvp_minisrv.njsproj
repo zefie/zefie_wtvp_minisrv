@@ -934,6 +934,9 @@
     <Content Include="ServiceVault\wtv-music\get-playlist.js">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="ServiceVault\wtv-news\get-attachment.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-news\lobby.js" />
     <Content Include="ServiceVault\wtv-news\news.js" />
     <Content Include="ServiceVault\wtv-passport\messengerlogin.js" />

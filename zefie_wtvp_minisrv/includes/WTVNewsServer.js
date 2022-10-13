@@ -93,7 +93,6 @@ class WTVNewsServer {
             },
 
             _buildHeaderField: function (session, message, field) {
-                console.log(message,field);
                 if (field.indexOf(':') > 0) field = field.replace(/\:/g, '');
                 var search = self.getHeader(message, field);
                 if (search) return search;
@@ -148,13 +147,9 @@ class WTVNewsServer {
     }
 
     getHeader(message, header) {
-        try {
-            var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
-            if (search) return message.headers[search];
-            return null;
-        } catch (e) {
-            console.log(e);
-        }
+        var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
+        if (search) return message.headers[search];
+        return null;
     }
 
     createDataStore() {
@@ -172,6 +167,10 @@ class WTVNewsServer {
         try {
             post_data.articleNumber = articleNumber;
             post_data.messageId = this.getHeader(post_data, "message-id");
+            if (!post_data.messageId) {
+                var messageId = "<" + this.wtvshared.generatePassword(16) + "@" + this.minisrv_config.config.domain_name + ">";
+                post_data.messageId = post_data.headers['Message-ID'] = messageId;
+            }
             //Tue, 11 Oct 2022 17:25:16 -0400
             post_data.headers.Date = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(post_data.headers.date))
             post_data.headers['INJECTION-DATE'] = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(Date.now()))
