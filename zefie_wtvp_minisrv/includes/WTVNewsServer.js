@@ -17,8 +17,8 @@ class WTVNewsServer {
         const nntp_server = require('nntp-server');
         var nntp_statuses = require('nntp-server/lib/status');
 
-        this.username == username || null;
-        this.password == password || null;
+        this.username = username || null;
+        this.password = password || null;
         this.using_auth = using_auth;
         if (using_auth && (!username && !password)) {
             // using auth, but no auth info specified, so randomly generate it

@@ -18,7 +18,7 @@ if (service_config.local_nntp_port && wtvnewsserver) {
     if (service_config.upstream_auth)
         wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null, service_config.upstream_auth.username || null, service_config.upstream_auth.password || null);
     else
-        wtvnews.initializeUsenet(service_config.upstream_address, service_configupstream_port, service_config.upstream_tls || null);
+        wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null);
 }
  
 async function throwError(e) {
