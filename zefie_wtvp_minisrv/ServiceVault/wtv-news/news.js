@@ -556,26 +556,19 @@ ${wtvshared.htmlEntitize(message_body, true)}
                     data += "<p>";
                     
                     if (attachments) {
+                        var supported_images = /image\/(jpe?g|png|gif|x-wtv-bitmap)/;
+                        var supported_audio = /audio\/(mp[eg|2|3]|midi?|wav|x-wav|mod|x-mod)/;
                         attachments.forEach((v, k) => {
-                            if (v) {
-                                switch (v.content_type) {
-                                    case "image/jpeg":
-                                    case "image/png":
-                                    case "image/gif":
-                                        data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Video%20Snapshot"><br><br>`;
-                                        break;
-                                    case "audio/wav":
-                                    case "audio/mp2":
-                                    case "audio/mp3":
-                                    case "audio/mid":
-                                    case "audio/midi":
-                                        data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? encodeURIComponent(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
+                            if (v.content_type) {
+                                if (v.content_type.match(supported_images))
+                                    data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Video%20Snapshot"><br><br>`;
+                                else if (v.content_type.match(supported_audio))
+                                    data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? encodeURIComponent(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
     <td align=left valign=middle><img src="wtv-news:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;${(v.filename) ? (v.filename) : "Audio file"} (${v.content_type.split('/')[1]} attachment)</font>
     <td align=right valign=middle>
-    </table><br><br>
-    `;
-                                        break;
-                                }
+    </table><br><br>`;
+                                else
+                                    data += `<table width=386><td><td align=left valign=middle><font color="#565656"><i>A file ${(v.filename) ? `(${v.filename}) ` : ''}that WebTV cannot use, with type ${v.content_type} is attached to this message.</i></font>`
                             }
                         });
                     }
