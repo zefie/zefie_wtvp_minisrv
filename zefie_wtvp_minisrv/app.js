@@ -1902,7 +1902,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
             }
             if (minisrv_config.services[k].featuredGroups) {
                 Object.keys(minisrv_config.services[k].featuredGroups).forEach((j) => {
-                    wtvnewsserver.createGroup(minisrv_config.services[k].featuredGroups[j].group);
+                    wtvnewsserver.createGroup(minisrv_config.services[k].featuredGroups[j].group, minisrv_config.services[k].featuredGroups[j].description || null);
                 })
             }
         }
