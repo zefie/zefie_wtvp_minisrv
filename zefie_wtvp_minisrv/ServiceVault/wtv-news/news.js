@@ -37,9 +37,16 @@ function isToday (chkdate) {
 async function WebTVListGroup(group) {
     var page_limit_default = 100;
     wtvnews.connectUsenet().then(() => {
-        wtvnews.selectGroup(group).then(() => {
+        wtvnews.selectGroup(group).then((response) => {
             var limit_per_page = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : page_limit_default;
             var page = (request_headers.query.chunk) ? parseInt(request_headers.query.chunk) : 0;
+            console.log(response);
+            var page_start = (limit_per_page * page) + 1;
+            var page_end = (page + 1) * limit_per_page;
+            if (page_end > response.group.high) {
+                page_end = response.group.high;
+                limit_per_page = (page_end - (limit_per_page / (page + 1))) + limit_per_page;
+            }
 
             wtvnews.listGroup(group, page, limit_per_page).then((response) => {
                 if (response.code == 211) {
@@ -47,7 +54,6 @@ async function WebTVListGroup(group) {
                     NGArticles = response.group.articleNumbers;
                     page_start = (limit_per_page * page) + 1;
                     page_end = (page + 1) * limit_per_page;
-                    if (page_end > NGCount) page_end = NGCount;
                     wtvnews.getHeaderObj(NGArticles).then((messages) => {
                         messages = wtvnews.sortByResponse(messages);
                         wtvnews.quitUsenet();
@@ -654,7 +660,6 @@ ${wtvshared.htmlEntitize(message_body, true)}
 function WebTVSearchGroups(search) {
     wtvnews.connectUsenet().then(() => {
         wtvnews.listGroups(search).then((response) => {
-            console.log('WebTVSearchGroups listGroups response', response)
             wtvnews.quitUsenet();
             headers = `200 OK
 Content-type: text/html

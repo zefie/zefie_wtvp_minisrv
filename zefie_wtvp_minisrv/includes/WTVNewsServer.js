@@ -315,6 +315,7 @@ class WTVNewsServer {
             var meta = this.getMetadata(group);
             var out = { ...meta }
         } 
+        if (meta.min_index == 0) force_update = true;
         if (this.featuredGroups) {
             Object.keys(this.featuredGroups).forEach((k) => {
                 if (group == this.featuredGroups[k].group) {
@@ -325,13 +326,15 @@ class WTVNewsServer {
         }
         try {
             if (force_update || this.doesMetaNeedRefreshing(meta)) {
+                out.total = 0;
                 this.fs.readdirSync(g).forEach(file => {
                     if (file == "meta.json") return;
                     var articleNumber = parseInt(file.split('.')[0]);
-                    if (out.min_index == null) out.min_index = articleNumber;
+                    if (out.min_index == 0) out.min_index = articleNumber;
                     else if (articleNumber < out.min_index) out.min_index = articleNumber;
+                    else if (articleNumber > out.max_index) out.max_index = articleNumber;
 
-                    if (articleNumber > out.max_index) out.max_index = articleNumber;
+
                     out.total++;
                 });
                 if (initial_update) {
@@ -438,7 +441,6 @@ class WTVNewsServer {
         var articles = [];
         try {
             var meta = this.getMetadata(group);
-            if (force_update || this.doesMetaNeedRefreshing(meta)) {
                 this.fs.readdirSync(g).forEach(file => {
                     if (file == "meta.json") return;
                     var articleNumber = parseInt(file.split('.')[0]);
@@ -451,6 +453,7 @@ class WTVNewsServer {
                     articles.push(this.getArticle(group, articleNumber));
                     out.total++;
                 });
+            if (force_update || this.doesMetaNeedRefreshing(meta)) {
                 meta = { ...meta, ...out }
                 meta.last_scan = Math.floor(Date.now() / 1000);
                 this.saveMetadata(group, meta);
