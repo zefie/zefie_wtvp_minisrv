@@ -83,7 +83,10 @@ Mail signature
 <td>
 <td colspan=3 WIDTH=416 HEIGHT=68 VALIGN=top ALIGN=left>
 <spacer type=block height=24 width=1>
-Type a short text <B>signature</B> here and it will be added to the end of each mail message you send.
+Type a short text <B>signature</B> here and it will be added to the end of each mail message you send.<br>
+If you wish to use HTML, the first line of your signature should be <b>&lt;html&gt;</b>.
+<TR>
+<TD absheight=6>
 <TR>
 <TD>
 <TD colspan=3 WIDTH=416 HEIGHT=118 VALIGN=top ALIGN=left>
