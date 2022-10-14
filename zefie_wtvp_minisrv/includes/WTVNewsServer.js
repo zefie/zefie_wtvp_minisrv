@@ -22,6 +22,7 @@ class WTVNewsServer {
         this.username = username || null;
         this.password = password || null;
         this.using_auth = using_auth;
+        this.scan_interval = minisrv_config.services['wtv-news'].groupMetaRefreshInterval || 86400;
         this.data_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + '/minisrv_internal_nntp');
         this.createDataStore();
 

@@ -90,7 +90,8 @@
           "group": "alt.discuss.midis",
           "description": "Explore the sounds of Beatnik with your WebTV"
         }
-      ]
+      ],
+      "groupMetaRefreshInterval": 86400
     },
     "wtv-register": {
       "port": 1607,
