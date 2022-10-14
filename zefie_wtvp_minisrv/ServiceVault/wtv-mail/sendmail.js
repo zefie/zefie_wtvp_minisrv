@@ -37,6 +37,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
     }
 
     if (request_headers.query.clear == "true") {
+        if (request_headers.query.saveoff) delete request_headers.query.saveoff;
         session_data.deleteSessionData("usenet_draft");
         session_data.deleteSessionData("usenet_draft_attachments");
         session_data.deleteSessionData("mail_draft");
@@ -322,6 +323,10 @@ function DoneGabbing() {	var myURL;
 myURL = "client:submitform?name=sendform&submitname=gabbing&submitvalue=cache%3Avoicemail.wav";
 location = "client:submitform?name=sendform&submitname=gabbing&submitvalue=true";
 location.reload();	}
+function clearDraft() {
+    location = "client:submitform?name=sendform&submitname=clear&submitvalue=true";
+    location.reload();
+}
 </script>
 <title>
 ${pageTitle}
@@ -415,7 +420,7 @@ data += `
 <tr>
 <td width=10 height=26>
 <td width=89 valgn=middle>
-<table cellspacing=0 cellpadding=0 href="client:showalert?sound=none&message=Are%20you%20sure%20you%20want%20to%20erase%20this%20entire%20message%3F&buttonlabel2=Don't%20Erase&buttonaction2=client:donothing&buttonlabel1=Erase&buttonaction1=wtv-mail:/sendmail%3Fclear%3Dtrue%26wtv-saved-message-id%3Dwritemessage-outbox" id=addressbook>
+<table cellspacing=0 cellpadding=0 href="client:showalert?sound=none&message=Are%20you%20sure%20you%20want%20to%20erase%20this%20entire%20message%3F&buttonlabel2=Don't%20Erase&buttonaction2=client:donothing&buttonlabel1=Erase&buttonaction1=javascript:clearDraft()" id=addressbook>
 <tr>
 <td height=1>
 <tr>
