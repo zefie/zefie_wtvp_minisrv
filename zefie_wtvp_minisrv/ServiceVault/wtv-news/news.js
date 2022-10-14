@@ -807,8 +807,8 @@ ${(response.length == 0) ? "No " : ""}Discussion groups found
 <td abswidth=416 valign=top align=left>
 Do you want to look for something else?<br>
 <img src="/ROMCache/Spacer.gif" width=1 height=4>
-<form action="wtv-news:search">
-<input name="search" bgcolor=#202020 cursor=#cc9933 text="E7CE4A" font=proportional value="" SIZE=28 MAXLENGTH=100>
+<form action="wtv-news:/news">
+<input name="search" bgcolor=#202020 cursor=#cc9933 text="E7CE4A" font=proportional value="${request_headers.query.search}" SIZE=28 MAXLENGTH=100>
 &nbsp;
 <font color=E7CE4A><shadow>
 <input type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Look for" usestyle>
