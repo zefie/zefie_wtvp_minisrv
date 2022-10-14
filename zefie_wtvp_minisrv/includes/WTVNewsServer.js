@@ -11,7 +11,7 @@ class WTVNewsServer {
     data_path = null;
     featuredGroups = null
 
-    constructor(minisrv_config, local_server_port, using_auth = false, username = null, password = null) {
+    constructor(minisrv_config, local_server_port, using_auth = false, username = null, password = null, run_server = true) {
         this.minisrv_config = minisrv_config;
         const { WTVShared } = require("./WTVShared.js");
         this.wtvshared = new WTVShared(minisrv_config);
@@ -22,129 +22,137 @@ class WTVNewsServer {
         this.username = username || null;
         this.password = password || null;
         this.using_auth = using_auth;
-        if (using_auth && (!username && !password)) {
-            // using auth, but no auth info specified, so randomly generate it
-            this.username = this.wtvshared.generatePassword(8);
-            this.password = this.wtvshared.generatePassword(16);
-        }
-
-        // nntp-server module overrides
-        var self = this;
-
-        nntp_server.prototype = {
-            ...nntp_server.prototype,
-            _authenticate: function (session) {
-                // authenticate
-                if (session.authinfo_user == self.username && session.authinfo_pass == self.password) {
-                    session.posting_allowed = true;
-                    return Promise.resolve(true);
-                }
-                return Promise.resolve(false);
-            },
-            _postArticle: function (session) {
-                try {
-                    console.log(session.post_data);
-                    session.group.name = self.getHeader(session.post_data, "newsgroups");
-                    if (session.group.name.indexOf(',') >= 0) return false; // cross post not implemented
-                    return self.postArticle(session.group.name, session.post_data)
-                } catch (e) {
-                    console.log(e)
-                    return false;
-                }
-            },
-
-            _getGroups: function (session) {
-                return self.getGroups();
-            },
-            _getLast: function (session) {
-                if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
-                if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                var res = self.getLastArticle(session.group.name, session.group.current_article);
-                if (!res) return nntp_statuses._422_NO_LAST_ARTICLE;
-                return res;
-            },
-
-            _getNext: function (session) {
-                if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
-                if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                var res = self.getNextArticle(session.group.name, session.group.current_article);
-                if (!res) return nntp_statuses._421_NO_NEXT_ARTICLE;
-                return res;
-            },
-
-            _selectGroup: function (session, name) {
-                // selectGroup
-                var res = self.selectGroup(name);
-                if (!res.failed) {
-                    session.group = res;
-                    return true;
-                }
-                return false;
-            },
-
-            _buildHead: function (session, message) {
-                var out = "";
-                Object.keys(message.headers).forEach((k) => {
-                    if (k.length > 0) out += `${k}: ${message.headers[k]}\r\n`;
-                });
-                out = out.substr(0,out.length - 2);
-                return out;
-            },
-
-            _buildHeaderField: function (session, message, field) {
-                if (field.indexOf(':') > 0) field = field.replace(/\:/g, '');
-                var search = self.getHeader(message, field);
-                if (search) return search;
-                else return null;
-            },
-
-            _getOverviewFmt: function (session) {
-                var headers = [
-                    "Subject:",
-                    "From:",
-                    "Date:",
-                    "Message-ID:",
-                    "References:",
-                    ":bytes",
-                    ":lines"
-                ]
-                return headers;
-            },
-            _getArticle: function (session, message_id) {
-                // getArticle
-                return new Promise((resolve, reject) => {
-                    var res = self.getArticle(session.group.name, message_id);
-                    if (!res.messageId) reject(res);
-                    else resolve(res)
-                });
-            },
-
-            _buildBody: function (session, message) {
-                return message.body;
-            },
-
-            _getRange: function (session, first, last) {
-                var res = self.listGroup(session.group.name, first, last)
-                if (res.failed) return false;
-                session.group = res.group_data;
-                return res.articles;
-            }
-
-        }
-
         this.data_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + '/minisrv_internal_nntp');
         this.createDataStore();
 
-        var tls_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news');
-        var tls_options = {
-            ca: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_ca.pem'),
-            key: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_key.pem'),
-            cert: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_cert.pem'),
+        if (using_auth && (!username && !password)) {
+            // using auth, but no auth info specified, so randomly generate it
+            this.username = this.wtvshared.generateString(8);
+            this.password = this.wtvshared.generatePassword(16);
         }
-        this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true });
-        this.local_server.listen('nntps://localhost:' + local_server_port);
+
+        if (run_server) {
+            // nntp-server module overrides
+            var self = this;
+
+            nntp_server.prototype = {
+                ...nntp_server.prototype,
+                _authenticate: function (session) {
+                    // authenticate
+                    if (session.authinfo_user == self.username && session.authinfo_pass == self.password) {
+                        session.posting_allowed = true;
+                        return Promise.resolve(true);
+                    }
+                    return Promise.resolve(false);
+                },
+                _postArticle: function (session) {
+                    try {
+                        session.group.name = self.getHeader(session.post_data, "newsgroups");
+                        if (session.group.name.indexOf(',') >= 0) return false; // cross post not implemented
+                        return self.postArticle(session.group.name, session.post_data)
+                    } catch (e) {
+                        console.error(e)
+                        return false;
+                    }
+                },
+
+                _getGroups: function (session, time = 0, wildmat = null) {
+                    if (time > 0) return false // unimplemented
+                    return self.getGroups(wildmat);
+                },
+                _getLast: function (session) {
+                    if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
+                    if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                    if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                    var res = self.getLastArticle(session.group.name, session.group.current_article);
+                    if (!res) return nntp_statuses._422_NO_LAST_ARTICLE;
+                    return res;
+                },
+
+                _getNext: function (session) {
+                    if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
+                    if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                    if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
+                    var res = self.getNextArticle(session.group.name, session.group.current_article);
+                    if (!res) return nntp_statuses._421_NO_NEXT_ARTICLE;
+                    return res;
+                },
+
+                _selectGroup: function (session, name) {
+                    // selectGroup
+                    var res = self.selectGroup(name);
+                    if (!res.failed) {
+                        session.group = res;
+                        return true;
+                    }
+                    return false;
+                },
+
+                _buildHead: function (session, message) {
+                    var out = "";
+                    Object.keys(message.headers).forEach((k) => {
+                        if (k.length > 0) out += `${k}: ${message.headers[k]}\r\n`;
+                    });
+                    out = out.substr(0, out.length - 2);
+                    return out;
+                },
+
+                _buildHeaderField: function (session, message, field) {
+                    if (field.indexOf(':') > 0) field = field.replace(/\:/g, '');
+                    var search = self.getHeader(message, field);
+                    if (search) return search;
+                    else return null;
+                },
+
+                _getOverviewFmt: function (session) {
+                    var headers = [
+                        "Subject:",
+                        "From:",
+                        "Date:",
+                        "Message-ID:",
+                        "References:",
+                        ":bytes",
+                        ":lines"
+                    ]
+                    return headers;
+                },
+                _getArticle: function (session, message_id) {
+                    // getArticle
+                    return new Promise((resolve, reject) => {
+                        var res = self.getArticle(session.group.name, message_id);
+                        if (!res.messageId) reject(res);
+                        else resolve(res)
+                    });
+                },
+
+                _buildBody: function (session, message) {
+                    return message.body;
+                },
+
+                _getRange: function (session, first, last) {
+                    var res = self.listGroup(session.group.name, first, last)
+                    if (res.failed) return false;
+                    session.group = res.group_data;
+                    return res.articles;
+                }
+
+            }
+
+            var tls_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news');
+            var tls_options = {
+                ca: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_ca.pem'),
+                key: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_key.pem'),
+                cert: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_cert.pem'),
+            }
+            this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true });
+            this.local_server.listen('nntps://localhost:' + local_server_port);
+        }
+    }
+
+    getMetaFilename(group) {
+        var g = this.getGroupPath(group);
+        if (g) return g + this.path.sep + "meta.json";
+        else return null;
     }
 
     getHeader(message, header) {
@@ -160,27 +168,62 @@ class WTVNewsServer {
         return true;
     }
 
-    getArticleIdMeta(group) {
-        const g = this.getGroupPath(group) + this.path.sep + "meta.json";
-        if (this.fs.existsSync(g)) return JSON.parse(this.fs.readFileSync(g));
-        return { group: group, last_article_id: (this.selectGroup(group).max_index + 1) }
+
+    createMetaFile(group, description = null) {
+        const g = this.getMetaFilename(group);
+        if (this.fs.existsSync(g)) return false;
+        var metadata = {};
+        metadata.group = group;
+        metadata.last_article_id = this.selectGroup(group).max_index;
+        if (description) metadata.description = description;
+        this.saveMetadata(group, metadata, true);
+        return metadata;
+    }
+
+    saveMetadata(group, metadata, creating = false) {
+        const g = this.getMetaFilename(group);
+        if (g) {
+            if (!this.fs.existsSync(g) && !creating) this.createMetaFile(group);
+            else this.fs.writeFileSync(g, JSON.stringify(metadata));
+        } else return false;
+    }
+
+    getMetadata(group) {
+        const g = this.getMetaFilename(group);
+        if (g) {
+            if (this.fs.existsSync(g)) return JSON.parse(this.fs.readFileSync(g));
+            else return this.createMetaFile(group);
+        } else return false;
     }
 
     incrementArticleIdMeta(group) {
-        const g = this.getGroupPath(group) + this.path.sep + "meta.json";
-        var meta = this.getArticleIdMeta(group);
-        meta.last_article_id = meta.last_article_id + 1;
-        this.fs.writeFileSync(g, JSON.stringify(meta))
+        var metadata = this.getMetadata(group);
+        metadata.last_article_id = metadata.last_article_id + 1;
+        this.saveMetadata(group, metadata)
+    }
+
+    findHeaderCaseInsensitive(headers, header) {
+        // returns the key with the found case
+        var response = null;
+        if (headers) {
+            Object.keys(headers).forEach((k) => {
+                if (k.toLowerCase() == header.toLowerCase()) {
+                    response = k;
+                    return false;
+                }
+            })
+        }
+        return response;
     }
 
     postArticle(group, post_data) {
-        var articleNumber = this.getArticleIdMeta(group).last_article_id;
+        var articleNumber = this.getMetadata(group).last_article_id + 1;
         if (!articleNumber) return false;
         try {
             post_data.articleNumber = articleNumber;
             post_data.messageId = this.getHeader(post_data, "message-id");
             if (!post_data.messageId) {
-                var messageId = "<" + this.wtvshared.generatePassword(16) + "@" + this.minisrv_config.config.domain_name + ">";
+                var messageId = "<" + this.wtvshared.generateString(16) + "@" + this.minisrv_config.config.domain_name + ">";
                 post_data.messageId = post_data.headers['Message-ID'] = messageId;
             }
 
@@ -188,7 +231,11 @@ class WTVNewsServer {
             if (!post_data.headers.Subject) post_data.headers.Subject = "(No subject)";
 
             post_data.headers.Date = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(post_data.headers.date))
+
+            // server added Injection-Date
             post_data.headers['Injection-Date'] = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(Date.now()))
+
+            // Reorder headers per examples in RFC3977 sect 6.2.1.3, not sure if needed
             post_data.headers = this.wtvshared.moveObjectElement('Path', null, post_data.headers, true);
             post_data.headers = this.wtvshared.moveObjectElement('From', 'Path', post_data.headers, true);
             post_data.headers = this.wtvshared.moveObjectElement('Newsgroups', 'From', post_data.headers, true);
@@ -196,8 +243,10 @@ class WTVNewsServer {
             post_data.headers = this.wtvshared.moveObjectElement('Date', 'Subject', post_data.headers, true);
             post_data.headers = this.wtvshared.moveObjectElement('Organization', 'Date', post_data.headers, true);
             post_data.headers = this.wtvshared.moveObjectElement('Message-ID', 'Organization', post_data.headers, true);
-            if (this.articleExists(group, articleNumber)) return false // should not occur, but just in case
-            return this.createArticle(group, articleNumber, post_data);
+            // end reordering of headers
+
+            if (this.articleExists(group, post_data.articleNumber)) return false // should not occur, but just in case
+            return this.createArticle(group, post_data.articleNumber, post_data);
         } catch (e) {
             console.error(" * WTVNewsServer Error: postArticle: ", e);
         }
@@ -231,10 +280,14 @@ class WTVNewsServer {
         return false;
     }
 
-    createGroup(group) {
+    createGroup(group, description = null) {
         var g = this.getGroupPath(group);
-        if (!this.fs.existsSync(g)) return this.fs.mkdirSync(g);
-        return true;
+        if (!this.fs.existsSync(g)) {
+            this.fs.mkdirSync(g);
+            this.createMetaFile(group, description)
+            return this.fs.existsSync(g);
+        }
+        return false
     }
 
     getArticle(group, article) {
@@ -242,9 +295,10 @@ class WTVNewsServer {
         if (!this.fs.existsSync(g)) return false;
         try {
             var data = JSON.parse(this.fs.readFileSync(g));
+            if (data.article) data = data.article;
             data.index = data.articleNumber;
             if (!data.body) data.body = [''];
-            if (!data.headers.Subject) data.headers.Subject = "(No subject)";
+            if (!this.findHeaderCaseInsensitive(data.headers,'subject')) data.headers.Subject = "(No subject)";
             return data
         } catch (e) {
             console.error(" * WTVNewsServer Error: getArticle: ", e);
@@ -286,10 +340,14 @@ class WTVNewsServer {
         return out;
     }
 
-    getGroups() {
+    getGroups(wildmat = null) {
         var groups = [];
         this.fs.readdirSync(this.data_path).forEach(file => {
-            if (this.fs.lstatSync(this.data_path + this.path.sep + file).isDirectory()) groups.push(this.selectGroup(file));
+            if (this.fs.lstatSync(this.data_path + this.path.sep + file).isDirectory()) {
+                if (wildmat) {
+                    if (file.match(wildmat)) groups.push(this.selectGroup(file));
+                } else groups.push(this.selectGroup(file));
+            }
         });
         return groups;
     }

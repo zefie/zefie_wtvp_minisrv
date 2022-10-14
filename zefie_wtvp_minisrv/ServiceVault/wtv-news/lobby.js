@@ -37,7 +37,7 @@ data = `<HTML>
 <tr>
 <td abswidth=6 >
 <td abswidth=93 absheight=26 >
-<table href="wtv-news:news?category=1"
+<table href="wtv-news:/news?category=1"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>
@@ -147,7 +147,7 @@ data += `
 <td abswidth=416 valign=top align=left>
 Type a discussion topic<br>
 <img src="/ROMCache/Spacer.gif" width=1 height=4>
-<form action="wtv-news:search">
+<form action="wtv-news:/news" method="GET">
 <input name="search" bgcolor=#202020 cursor=#cc9933 text="E7CE4A" font=proportional value="" SIZE=28 MAXLENGTH=100>
 &nbsp;
 <font color=E7CE4A><shadow>

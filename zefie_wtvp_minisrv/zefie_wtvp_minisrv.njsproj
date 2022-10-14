@@ -1193,6 +1193,7 @@
     <Folder Include="ServiceDeps\wtv-guide\prerendered\Users\AddUser\" />
     <Folder Include="ServiceDeps\wtv-guide\prerendered\WhatIs\" />
     <Folder Include="ServiceDeps\wtv-guide\templates\" />
+    <Folder Include="ServiceDeps\wtv-news\" />
     <Folder Include="ServiceVault\" />
     <Folder Include="ServiceVault\http_pc\" />
     <Folder Include="ServiceVault\http_pc\viewergen\" />

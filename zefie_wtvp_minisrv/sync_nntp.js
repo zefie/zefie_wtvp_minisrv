@@ -14,6 +14,7 @@ const wtvshared = new WTVShared(); // creates minisrv_config
 classPath = wtvshared.getAbsolutePath(classPath, __dirname);
 const minisrv_config = wtvshared.getMiniSrvConfig();
 const WTVNews = require(classPath + "/WTVNews.js");
+const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
 var data_path = wtvshared.getAbsolutePath(minisrv_config.config.SessionStore + '/minisrv_internal_nntp');
 const service_name = "wtv-news";
 
@@ -31,6 +32,8 @@ if (!minisrv_config.config.debug_flags.quiet) console.log(" *** Successfully rea
 
 
 const service_config = minisrv_config.services[service_name];
+const wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services['wtv-news'].local_server_port, false, null, null, false);
+
 const wtvnews = new WTVNews(minisrv_config, service_name);
 
 if (service_config.upstream_auth) {
@@ -41,37 +44,8 @@ if (service_config.upstream_auth) {
 
 
 
-function createDataStore() {
-	if (!fs.existsSync(data_path)) return fs.mkdirSync(data_path);
-	return true;
-}
-
-function getGroupPath(group) {
-	return data_path + path.sep + group;
-}
-
-function createGroup(group) {
-	createDataStore();
-	if (!fs.existsSync(getGroupPath(group))) return fs.mkdirSync(getGroupPath(group));
-	return true;
-}
-
-function createArticle(group, articleNumber, article) {
-	var g = getGroupPath(group);
-	var file = g + path.sep + articleNumber + ".newz";
-	if (verifyMessage(group, articleNumber, article)) return "exists";
-	else {
-		try {
-			fs.writeFileSync(file, JSON.stringify(article.article));
-			return file;
-		} catch (e) {
-			return e;
-		}
-	}
-}
-
 function verifyMessage(group, articleNumber, article) {
-	var g = getGroupPath(group);
+	var g = wtvnewsserver.getGroupPath(group);
 	var file = g + path.sep + articleNumber + ".newz";
 	if (!fs.existsSync(file)) return false;
 	var old_data = fs.readFileSync(file);
@@ -83,7 +57,7 @@ function verifyMessage(group, articleNumber, article) {
 }
 
 function deleteMissing(group, articles) {
-	var g = getGroupPath(group);
+	var g = wtvnewsserver.getGroupPath(group);
 	try {
 		fs.readdirSync(g).forEach(file => {
 			var articleNumber = parseInt(file.split('.')[0]);
@@ -112,12 +86,15 @@ wtvnews.connectUsenet().then((res) => {
 				wtvnews.listGroup(group, null, null, range).then((res) => {
 					if (res.group.articleNumbers) {
 						var promises = [];
-						createGroup(group);
-						deleteMissing(group, res.group.articleNumbers)
+						wtvnewsserver.createGroup(group);
+						var meta = wtvnewsserver.getMetadata(group);
+						meta.last_article_id = res.group.high;
+						wtvnewsserver.saveMetadata(group, meta);
+						//deleteMissing(group, res.group.articleNumbers)
 						res.group.articleNumbers.forEach((article) => {
 							promises.push(new Promise((resolve, reject) => {
 								wtvnews.getArticle(article, false).then((message) => {
-									res = createArticle(group, article, message);
+									res = wtvnewsserver.createArticle(group, article, message);
 									if (res) {
 										if (res == "exists") {
 											console.log(" * ", group, "article", article, "already exists")

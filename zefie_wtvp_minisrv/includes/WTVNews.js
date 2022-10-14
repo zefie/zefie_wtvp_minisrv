@@ -66,6 +66,7 @@ class WTVNews {
     }
 
     listGroup(group, page = 0, limit = 100, raw_range = null) {
+        // list of articles from group
         return new Promise((resolve, reject) => {
             this.selectGroup(group).then((res) => {
                 if (!raw_range) {
@@ -87,6 +88,35 @@ class WTVNews {
             }).catch((e) => {
                 console.error(" * WTVNews Error:", "Command: selectGroup", e);
             });
+        })
+    }
+
+    processGroupList(list) {
+        if (list) return list.newsgroups;
+        else return null;
+    }
+
+    listGroups(search = null) {
+        // list of groups on the server
+        return new Promise((resolve, reject) => {
+            console.log('listGroups search', search)
+            if (!search) {
+                this.client.list().then((data) => {
+                    console.log('listGroups data', data)
+                    resolve(this.processGroupList(data));
+                }).catch((e) => {
+                    console.error(" * WTVNews Error:", "Command: listGroups (all)", e);
+                    reject(`No such group <b>${group}</b>`);
+                });
+            } else {
+                this.client.listNewsgroups('*' + search + '*').then((data) => {
+                    console.log('listGroups data', data)
+                    resolve(this.processGroupList(data));
+                }).catch((e) => {
+                    console.error(" * WTVNews Error:", "Command: listGroups (all)", e);
+                    reject(`No such group <b>${group}</b>`);
+                });
+            }
         })
     }
 
@@ -234,7 +264,7 @@ class WTVNews {
         });
     }
 
-    postToGroup(group, from_addr, msg_subject, msg_body, article = null) {
+    postToGroup(group, from_addr, msg_subject, msg_body, article = null, headers = null) {
         return new Promise((resolve, reject) => {
             var promises = [];
             var messageid = null;
@@ -268,8 +298,13 @@ class WTVNews {
                                         'From': from_addr,
                                         'Newsgroups': group,
                                         'Subject': msg_subject || "(No subject)",
-                                        'Message-ID': "<" + this.wtvshared.generatePassword(16) + "@" + this.minisrv_config.config.domain_name + ">",
-                                        'Date': this.strftime('%A, %d-%b-%y %k:%M:%S %z', new Date())
+                                        'Message-ID': "<" + this.wtvshared.generateString(16) + "@" + this.minisrv_config.config.domain_name + ">",
+                                        'Date': this.strftime('%a, %-d %b %Y %H:%M:%S %z', new Date())
+                                    }
+                                    if (headers) {
+                                        Object.keys(headers).forEach((k) => {
+                                            articleData.headers[k] = headers[k];
+                                        });
                                     }
                                     if (messageid) {
                                         articleData.headers.References = messageid;
@@ -286,16 +321,17 @@ class WTVNews {
                                             resolve(true);
                                         }
                                     }).catch((e) => {
+                                        console.error(e);
                                         this.client.quit();
                                         reject("Could not send post. Server returned error " + response.code);
                                     });
                                 } else {
                                     this.client.quit();
-                                    console.log('usenet upstream uncaught error', e);
+                                    console.error('usenet upstream uncaught error', e);
                                     reject("Could not send post. Server returned unknown error");
                                 };
                             }).catch((e) => {
-                                console.log('could not connect to server', e);
+                                console.error('could not connect to server', e);
                                 reject("could not connect to server");
                             });
                     });
@@ -308,7 +344,7 @@ class WTVNews {
             this.client.article(articleID).then((data) => {
                 resolve(data.article.messageId);
             }).catch((e) => {
-                console.log("error getting messageID from article", articleID, e)
+                console.error("error getting messageID from article", articleID, e)
                 reject(e);
             });
         });
@@ -363,8 +399,8 @@ class WTVNews {
                         if (section_header_match) {
                             var section_match = line.match(/^Content\-Type\: (.+)\;/i)
                             if (section_match) {
-                                if (section_match[1].match(/text\/(html|plain)/)) {
-                                    section_type = section_match[1].match(/(text\/(html|plain))/)[1];
+                                if (section_match[1].match("text/plain")) {
+                                    section_type = section_match[1].match("text/plain")[1];
                                     message_type = section_type;
                                 } else {
                                     section_type = section_match[1];
@@ -380,7 +416,7 @@ class WTVNews {
                             if (section_match) attachments[i].content_encoding = section_match[1];
                         } else {
                             if (section_type != null) {
-                                if (section_type.match(/(text\/[html|plain])/)) message_body += line;
+                                if (section_type.match("text/plain")) message_body += line;
                                 else {
                                     if (attachments[i].data) attachments[i].data += line;
                                     else attachments[i].data = line;
@@ -393,7 +429,7 @@ class WTVNews {
                 attachments.pop();
                 return {
                     text: message_body,
-                    text_type: message_type,
+                    text_type: message_type || "text/plain",
                     attachments: attachments
                 }
             } else {

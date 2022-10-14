@@ -428,10 +428,6 @@ class WTVClientSessionData {
         return encoded_passwd.toString(CryptoJS.enc.Base64);
     }
 
-    generatePassword(len) {
-        return this.wtvshared.generatePassword(len);
-    }
-
     setUserPassword(passwd) {
         var encoded_passwd = this.encodePassword(passwd);
         this.setSessionData("subscriber_password", encoded_passwd);

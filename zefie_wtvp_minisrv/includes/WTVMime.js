@@ -11,7 +11,7 @@ class WTVMime {
 
 
     constructor(minisrv_config) {
-        var WTVShared = require("./WTVShared.js")['WTVShared'];
+        const { WTVShared }  = require("./WTVShared.js");
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         if (!String.prototype.reverse) {
@@ -198,6 +198,67 @@ class WTVMime {
         if (modern_mime_type === false) modern_mime_type = "application/octet-stream";
         if (wtv_mime_type == "") wtv_mime_type = modern_mime_type;
         return new Array(wtv_mime_type, modern_mime_type);
+    }
+
+    // modified from https://github.com/sergi/mime-multipart/blob/master/index.js
+
+    generateMultipartMIME(tuples, options) {
+        // modified for creating usenet compliant headers/content from an attachment
+        var CRLF = '\n';
+        if (tuples.length === 0) {
+            // according to rfc1341 there should be at least one encapsulation
+            throw new Error('Missing argument. At least one part to generate is required');
+        }
+
+        options = options || {};
+        var preamble = options.preamble || "This is a multi-part message in MIME format.";
+        var epilogue = options.epilogue;
+        var boundary = options.boundary || "------------" + this.wtvshared.generateString(24);
+
+        if (boundary.length < 1 || boundary.length > 70) {
+            throw new Error('Boundary should be between 1 and 70 characters long');
+        }
+
+        var boundary_header = 'multipart/mixed; boundary="' + boundary + '"';
+
+        var delimiter = CRLF + '--' + boundary;
+        var closeDelimiter = delimiter + '--';
+
+        var wtvshared = this.wtvshared;
+
+        var encapsulations = tuples.map(function (tuple, i) {
+            var mimetype = tuple.mime || 'text/plain';
+            var encoding = tuple.encoding || 'utf-8';
+            var use_base64 = tuple.use_base64 || !wtvshared.isASCII(tuple.content);
+            var is_base64 = tuple.is_base64 || wtvshared.isBase64(tuple.content);
+            var filename = (tuple.filename) ? tuple.filename : (use_base64) ? ('file' + i) : null;
+            
+            var headers = [
+                `Content-Type: ${mimetype}; ${(use_base64) ? `name="${filename}"` : `charset=${encoding.toUpperCase()}; format=flowed`}`,
+            ];
+
+            if (filename) headers.push(`Content-Disposition: attachment; filename="${filename}"`);
+            headers.push(`Content-Transfer-Encoding: ${(use_base64) ? 'base64' : '7bit'}`);
+
+            var bodyPart = headers.join(CRLF) + CRLF + CRLF;
+            if (use_base64 && !is_base64) bodyPart += wtvshared.lineWrap(Buffer.from(tuple.content).toString('base64'),72) + CRLF;
+            else bodyPart += wtvshared.lineWrap(tuple.content,72);
+
+            return delimiter + CRLF + bodyPart;
+        });
+
+        var multipartBody = [
+            preamble ? preamble : undefined,
+            encapsulations.join(''),
+            closeDelimiter,
+            epilogue ? CRLF + epilogue : undefined,
+        ].filter(function (element) { return !!element; });
+
+        return {
+            "mime_version": "1.0",
+            "content_type": boundary_header,
+            "content": multipartBody.join('')
+        };
     }
 
 }

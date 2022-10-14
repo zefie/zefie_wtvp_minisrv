@@ -84,7 +84,7 @@ class WTVShared {
         if (typeof val === 'string')
             val = val.toLowerCase();
 
-        return val === true || val === "true" || val === 1;
+        return (val === true || val === "true" || val === 1);
     }
 
 
@@ -140,6 +140,7 @@ class WTVShared {
 
 
     isASCII(str) {
+        if (typeof str !== 'string') return false;
         for (var i = 0, strLen = str.length; i < strLen; ++i) {
             if (str.charCodeAt(i) > 127) return false;
         }
@@ -147,7 +148,37 @@ class WTVShared {
     }
 
     isHTML(str) {
-        return /<[a-z][\s\S]*>/i.test(str);
+        return /<\/?[a-z][\s\S]*>/i.test()
+    }
+
+    isBase64(str, opts) {
+        // from https://github.com/miguelmota/is-base64/blob/master/is-base64.js
+        if (str instanceof Boolean || typeof str === 'boolean') {
+            return false
+        }
+
+        if (!(opts instanceof Object)) {
+            opts = {}
+        }
+
+        if (opts.allowEmpty === false && str === '') {
+            return false
+        }
+
+        var regex = '(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}==|[A-Za-z0-9+\/]{3}=)?'
+        var mimeRegex = '(data:\\w+\\/[a-zA-Z\\+\\-\\.]+;base64,)'
+
+        if (opts.mimeRequired === true) {
+            regex = mimeRegex + regex
+        } else if (opts.allowMime === true) {
+            regex = mimeRegex + '?' + regex
+        }
+
+        if (opts.paddingRequired === false) {
+            regex = '(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}(==)?|[A-Za-z0-9+\\/]{3}=?)?'
+        }
+
+        return (new RegExp('^' + regex + '$', 'gi')).test(str)
     }
 
     utf8Decode(utf8String) {
@@ -357,12 +388,43 @@ class WTVShared {
         }
     }
 
-    generatePassword(len) {
-        return CryptoJS.lib.WordArray.random(Math.round(len / 2)).toString(CryptoJS.enc.Hex);
+    generateString(len, extra_chars = null) {
+        var result = '';
+        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        if (extra_chars) characters += extra_chars;
+        var charactersLength = characters.length;
+        for (var i = 0; i < len; i++) {
+            result += characters.charAt(Math.floor(Math.random() *
+                charactersLength));
+        }
+        return result;
+    }
+
+    generatePassword(len, simple = false) {
+        return this.generateString(len, (simple) ? null : '!@#$%&()[]-_+=?.');
     }
 
     getMiniSrvConfig() {
         return this.minisrv_config;
+    }
+
+    lineWrap(string, len = 72, join = "\n") {
+        if (string.length <= len) return string;
+        var split;
+
+        if (string.match(" ")) {
+            // split if text with space, respecting words
+            split = string.match(new RegExp('([\\s\\S]){1,' + len + '}?!\\S', "g"));
+        }
+        if (!split) {
+            // fallback if above failed, or if its just a really long word (eg base64)
+            split = string.match(new RegExp('.{1,' + len + '}', "g"));
+        } else Object.keys(split).forEach((k) => {
+            if (split[k].substr(0, 1) == ' ') split[k] = split[k].trim(' ');
+        });
+
+        if (split) return split.join(join);
+        else return null;            
     }
 
 

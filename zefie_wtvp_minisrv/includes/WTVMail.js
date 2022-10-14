@@ -39,7 +39,7 @@ class WTVMail {
             this.trashMailboxName
         ];
         this.defaultColors = {
-            bgcolor: "#171726",
+            bgcolor: "#191919",
             text: "#82A9D9",
             link: "#BDA73A",
             vlink: "#62B362"

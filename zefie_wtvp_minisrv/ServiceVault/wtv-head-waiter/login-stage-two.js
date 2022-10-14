@@ -52,7 +52,7 @@ else {
 	if (session_data.isRegistered()) {
 		// check for SMTP Password
 		if (session_data.getSessionData("subscriber_smtp_password") === null) {
-			session_data.setUserSMTPPassword(session_data.generatePassword(16));
+			session_data.setUserSMTPPassword(wtvshared.generatePassword(16));
         }
 		if (session_data.user_id == 0) {
 			var accounts = session_data.listPrimaryAccountUsers();
