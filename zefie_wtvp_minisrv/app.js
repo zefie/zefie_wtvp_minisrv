@@ -812,6 +812,7 @@ async function doHTTPProxy(socket, request_headers) {
             port: request_data.port,
             path: request_data.path,
             method: request_data.method,
+            followAllRedirects: true,
             headers: {
                 "User-Agent": request_headers["User-Agent"] || "WebTV"
             }

@@ -99,13 +99,18 @@ font=proportional>${session_data.getSessionData("subscriber_signature") || ""}</
 <tr>
 <TD>
 <td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
+${(request_headers.query.preview) ? `<b>Signature Preview:</b><br><br><embed src="wtv-mail:/get-signature?sanitize=true&demotext=${encodeURIComponent(`This is a preview of your signature. You can <a href="wtv-setup:/mail-signature">edit it here</a>.`)}" height=40></embed><br><br>` : ''}
 <img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
 <TR>
 <TD>
-<TD COLSPAN=4 HEIGHT=4 VALIGN=top ALIGN=left>
-<TR>
+<TD  VALIGN=top ALIGN=left>
+<FORM action="mail-signature">
+<FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
+<INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Preview NAME="preview" USESTYLE WIDTH=103>
+</SHADOW></FONT></FORM>
+
 <TD>
-<TD COLSPAN=3 VALIGN=top ALIGN=right>
+<TD VALIGN=top ALIGN=right>
 <FORM action="client:goback">
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
 <INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Done NAME="Done" USESTYLE WIDTH=103>
