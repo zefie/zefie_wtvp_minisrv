@@ -336,16 +336,18 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                 var attachments = null;
                 var signature_index = null;
                 if (message.attachments) attachments = message.attachments;
-                Object.keys(attachments).forEach((k) => {
-                    if (attachments[k].filename == "wtv_signature.html" && attachments[k].content_type.match(/text\/html/)) {
-                        signature = attachments[k].data;
-                        signature_index = k;
-                        return false;
+                if (attachments) {
+                    if (Object.keys(attachments).length > 0) {
+                        Object.keys(attachments).forEach((k) => {
+                            if (attachments[k].filename == "wtv_signature.html" && attachments[k].content_type.match(/text\/html/)) {
+                                signature = attachments[k].data;
+                                signature_index = k;
+                                return false;
+                            }
+                        });
+                        attachments.splice(signature_index, 1);
                     }
-                });
-                attachments.splice(signature_index, 1);
-                console.log(signature)
-
+                }
                 if (signature) message_colors = session_data.mailstore.getSignatureColors(signature);
 
                 data = `<head>
@@ -639,6 +641,7 @@ ${wtvshared.htmlEntitize(message_body, true)}
             }).catch((e) => {
                 // no such article
                 var post_unavailable_file = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news/post-unavailable.html');
+                console.log(e);
                 if (fs.existsSync(post_unavailable_file)) {
                     headers = "200 OK\nContent-type: text/html";
                     data = fs.readFileSync(post_unavailable_file).toString('ascii').replace("${group}", group).replace("${minisrv_config.config.service_logo}", minisrv_config.config.service_logo).replace("${message_colors.bgcolor}",session_data.mailstore.defaultColors.bgcolor);
