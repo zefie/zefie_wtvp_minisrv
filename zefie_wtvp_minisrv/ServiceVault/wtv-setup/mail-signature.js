@@ -9,6 +9,9 @@ wtv-expire-all: wtv-mail:/sendmail
 wtv-expire-all: http
 Content-Type: text/html`
 
+var signature = session_data.getSessionData("subscriber_signature")
+if (request_headers.query.preview) var message_colors = session_data.mailstore.getSignatureColors(signature)
+
 data = `<HTML>
 <HEAD>
 <TITLE>
@@ -70,7 +73,7 @@ Mail signature
 <td abswidth=20>
 <TR>
 <td>
-<td colspan=3 WIDTH=416 HEIGHT=98 VALIGN=top ALIGN=left>
+<td colspan=3 WIDTH=416 HEIGHT=68 VALIGN=top ALIGN=left>
 <spacer type=block height=24 width=1>
 Type a short text <B>signature</B> here and it will be added to the end of each mail message you send.
 <TR>
@@ -87,7 +90,7 @@ cols=45 rows=5
 autoactivate
 nosoftbreaks
 maxlength=4096
-font=proportional>${session_data.getSessionData("subscriber_signature") || ""}</TEXTAREA></FORM></TD>
+font=proportional>${signature || ""}</TEXTAREA></FORM></TD>
 </FORM>
 <TR>
 <TD>
@@ -99,11 +102,15 @@ font=proportional>${session_data.getSessionData("subscriber_signature") || ""}</
 <tr>
 <TD>
 <td colspan=4 height=1 valign=top align=left>
+${(request_headers.query.preview) ? "<tr><td><td colspan=3><b>Signature Preview:</b>" : ""}
 <tr>
 <TD>
-<td colspan=3 height=2 valign=top align=left bgcolor="0D0D0D">
-${(request_headers.query.preview) ? `<b>Signature Preview:</b><br><br><embed src="wtv-mail:/get-signature?sanitize=true&demotext=${encodeURIComponent(`This is a preview of your signature.<br><a href="client:donothing">This is what a link looks like</a>.`)}" height=40></embed><br><br>` : ''}
-<img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=1>
+<td colspan=3 valign=top align=left bgcolor="${(request_headers.query.preview) ? message_colors.bgcolor : "0D0D0D"}">
+${(request_headers.query.preview) ? `<embed src="wtv-mail:/get-signature?sanitize=true&demotext=${encodeURIComponent(`This is a preview of your signature.<br><a href="client:donothing">This is what a link looks like</a>.`)}" height=40></embed><br><br>` : ''}
+<tr>
+<td>
+<td colspan=3 height=2 valign=top align=left>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=436 height=6>
 <TR>
 <TD>
 <TD  VALIGN=top ALIGN=left>
