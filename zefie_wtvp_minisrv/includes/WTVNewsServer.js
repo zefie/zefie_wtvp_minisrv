@@ -172,12 +172,10 @@ class WTVNewsServer {
     createMetaFile(group, description = null) {
         const g = this.getMetaFilename(group);
         if (this.fs.existsSync(g)) return false;
-        var metadata = {};
-        metadata.group = group;
-        metadata.last_article_id = this.selectGroup(group).max_index;
+        var metadata = this.selectGroup(group, true, true);
         if (description) metadata.description = description;
         this.saveMetadata(group, metadata, true);
-        return metadata;
+        return (!metadata.failed) ? metadata : false
     }
 
     saveMetadata(group, metadata, creating = false) {
@@ -196,12 +194,6 @@ class WTVNewsServer {
         } else return false;
     }
 
-    incrementArticleIdMeta(group) {
-        var metadata = this.getMetadata(group);
-        metadata.last_article_id = metadata.last_article_id + 1;
-        this.saveMetadata(group, metadata)
-    }
-
     findHeaderCaseInsensitive(headers, header) {
         // returns the key with the found case
         var response = null;
@@ -217,7 +209,7 @@ class WTVNewsServer {
     }
 
     postArticle(group, post_data) {
-        var articleNumber = this.getMetadata(group).last_article_id + 1;
+        var articleNumber = this.getMetadata(group).max_index + 1;
         if (!articleNumber) return false;
         try {
             post_data.articleNumber = articleNumber;
@@ -258,7 +250,10 @@ class WTVNewsServer {
         var file = g + this.path.sep + articleNumber + ".newz";
         try {
             this.fs.writeFileSync(file, JSON.stringify(article));
-            this.incrementArticleIdMeta(group);
+            var metadata = this.getMetadata(group);
+            metadata.max_index = metadata.max_index + 1;
+            metadata.total = metadata.total + 1;
+            this.saveMetadata(group, metadata)
             return true;
         } catch (e) {
             console.error(" * WTVNewsServer Error: createArticle: ", e);
@@ -284,8 +279,7 @@ class WTVNewsServer {
         var g = this.getGroupPath(group);
         if (!this.fs.existsSync(g)) {
             this.fs.mkdirSync(g);
-            this.createMetaFile(group, description)
-            return this.fs.existsSync(g);
+            return this.createMetaFile(group, description)
         }
         return false
     }
@@ -307,14 +301,19 @@ class WTVNewsServer {
     }
 
 
-    selectGroup(group) {
+    selectGroup(group, force_update = false, initial_update = false) {
         var g = this.getGroupPath(group);
-        var out = {
-            total: 0,
-            min_index: null,
-            max_index: 0,
-            name: group
-        }
+        if (initial_update) {
+            var out = {
+                total: 0,
+                min_index: 0,
+                max_index: 0,
+                name: group
+            }
+        } else {
+            var meta = this.getMetadata(group);
+            var out = { ...meta }
+        } 
         if (this.featuredGroups) {
             Object.keys(this.featuredGroups).forEach((k) => {
                 if (group == this.featuredGroups[k].group) {
@@ -324,19 +323,28 @@ class WTVNewsServer {
             })
         }
         try {
-            this.fs.readdirSync(g).forEach(file => {
-                if (file == "meta.json") return;
-                var articleNumber = parseInt(file.split('.')[0]);
-                if (out.min_index == null) out.min_index = articleNumber;
-                else if (articleNumber < out.min_index) out.min_index = articleNumber;
+            if (force_update || this.doesMetaNeedRefreshing(meta)) {
+                this.fs.readdirSync(g).forEach(file => {
+                    if (file == "meta.json") return;
+                    var articleNumber = parseInt(file.split('.')[0]);
+                    if (out.min_index == null) out.min_index = articleNumber;
+                    else if (articleNumber < out.min_index) out.min_index = articleNumber;
 
-                if (articleNumber > out.max_index) out.max_index = articleNumber;
-                out.total++;
-            });
+                    if (articleNumber > out.max_index) out.max_index = articleNumber;
+                    out.total++;
+                });
+                if (initial_update) {
+                    out.last_scan = Math.floor(Date.now() / 1000);
+                } else {
+                    meta = { ...meta, ...out }
+                    if (meta.wildmat) delete meta.wildmat;
+                    meta.last_scan = Math.floor(Date.now() / 1000);
+                    this.saveMetadata(group, meta);
+                } 
+            }
         } catch (e) {
             out.failed = e;
         }
-        if (out.min_index === null) out.min_index = 0;
         return out;
     }
 
@@ -403,28 +411,49 @@ class WTVNewsServer {
         return res;
     }
 
-    listGroup(group, start, end) {
+    doesMetaNeedRefreshing(meta) {
+        if (!meta) return true;
+        if (!meta.max_index) return true;
+        if (!meta.min_index) return true;
+        if (!meta.total) return true;
+        if (!meta.last_scan) return true;
+        if (meta.last_scan) {
+            if ((Math.floor(Date.now() / 1000) - this.scan_interval) > meta.last_scan) {
+                return true;
+            }
+        } 
+
+        return false;
+    }
+
+    listGroup(group, start, end, force_update = false) {
         var g = this.getGroupPath(group);
         var out = {
             total: 0,
-            min_index: null,
+            min_index: 0,
             max_index: 0,
             name: group
         }
         var articles = [];
         try {
-            this.fs.readdirSync(g).forEach(file => {
-                if (file == "meta.json") return;
-                var articleNumber = parseInt(file.split('.')[0]);
-                if (articleNumber < start) return;
-                if (articleNumber > end) return false;
-                if (out.min_index == null) out.min_index = articleNumber;
-                else if (articleNumber < out.min_index) out.min_index = articleNumber;
+            var meta = this.getMetadata(group);
+            if (force_update || this.doesMetaNeedRefreshing(meta)) {
+                this.fs.readdirSync(g).forEach(file => {
+                    if (file == "meta.json") return;
+                    var articleNumber = parseInt(file.split('.')[0]);
+                    if (articleNumber < start) return;
+                    if (articleNumber > end) return false;
+                    if (out.min_index == null) out.min_index = articleNumber;
+                    else if (articleNumber < out.min_index) out.min_index = articleNumber;
 
-                if (articleNumber > out.max_index) out.max_index = articleNumber;
-                articles.push(this.getArticle(group, articleNumber));
-                out.total++;
-            });
+                    if (articleNumber > out.max_index) out.max_index = articleNumber;
+                    articles.push(this.getArticle(group, articleNumber));
+                    out.total++;
+                });
+                meta = { ...meta, ...out }
+                meta.last_scan = Math.floor(Date.now() / 1000);
+                this.saveMetadata(group, meta);
+            }
         } catch (e) {
             console.error(" * WTVNewsServer Error: listGroup: ", e);
             out.failed = e;
@@ -433,7 +462,7 @@ class WTVNewsServer {
         if (out.min_index === null) out.min_index = 0;
         return {
             articles: articles,
-            group_data: out
+            group_data: meta
         }
     }
 }

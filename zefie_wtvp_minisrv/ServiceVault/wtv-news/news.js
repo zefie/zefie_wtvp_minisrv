@@ -652,9 +652,7 @@ ${wtvshared.htmlEntitize(message_body, true)}
 }
 
 function WebTVSearchGroups(search) {
-    console.log('WebTVSearchGroups init')
     wtvnews.connectUsenet().then(() => {
-        console.log('WebTVSearchGroups connected')
         wtvnews.listGroups(search).then((response) => {
             console.log('WebTVSearchGroups listGroups response', response)
             wtvnews.quitUsenet();
