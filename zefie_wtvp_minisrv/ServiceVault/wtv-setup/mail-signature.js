@@ -2,7 +2,10 @@ var minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
-wtv-expire-all: wtv-
+wtv-noback-all: wtv-setup:/mail-signature
+wtv-expire-all: wtv-setup:/mail-signature
+wtv-expire-all: wtv-mail:/get-signature
+wtv-expire-all: wtv-mail:/sendmail
 wtv-expire-all: http
 Content-Type: text/html`
 
