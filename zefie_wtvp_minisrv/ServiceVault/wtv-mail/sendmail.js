@@ -43,8 +43,8 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         session_data.deleteSessionData("mail_draft");
         session_data.deleteSessionData("mail_draft_attachments");
         headers = `300 OK
-wtv-expire: wtv-mail:/listmail
-wtv-expire: wtv-mail:/sendmail
+wtv-expire-all: wtv-mail:/listmail
+wtv-expire-all: wtv-mail:/sendmail
 ${gourl}`;
     }
 
@@ -220,8 +220,8 @@ Content-Type: audio/wav`;
                         session_data.deleteSessionData("usenet_draft");
                         session_data.deleteSessionData("usenet_draft_attachments");
                         headers = `300 OK
-wtv-expire: wtv-news:/news?group=${newsgroup}
-wtv-expire: wtv-mail:/sendmail
+wtv-expire-all: wtv-news:/news?group=${newsgroup}
+wtv-expire-all wtv-mail:/sendmail
 Location: wtv-news:/news?group=${newsgroup}`;
                         sendToClient(socket, headers, '');
                     }).catch((e) => {
@@ -240,8 +240,8 @@ Location: wtv-news:/news?group=${newsgroup}`;
                         session_data.deleteSessionData("mail_draft");
                         session_data.deleteSessionData("mail_draft_attachments");
                         headers = `300 OK
-wtv-expire: wtv-mail:/listmail
-wtv-expire: wtv-mail:/sendmail
+wtv-expire-all: wtv-mail:/listmail
+wtv-expire-all: wtv-mail:/sendmail
 Location: wtv-mail:/listmail`;
                     }
                 }
@@ -259,7 +259,7 @@ Location: wtv-mail:/listmail`;
                 session_data.setSessionData((newsgroup) ? "usenet_draft" : "mail_draft", mail_draft_data);
                 headers = `200 OK
 Content-type: text/html
-wtv-expire: wtv-mail:/sendmail`;
+wtv-expire-all: wtv-mail:/sendmail`;
             }
             } else {
 
@@ -267,13 +267,13 @@ wtv-expire: wtv-mail:/sendmail`;
 Content-type: text/html`;
             var mail_draft_data = session_data.getSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments") || {};
             if (request_headers.query.snapping == "false") {
-                headers += "\nwtv-expire: cache:snapshot.jpg";
+                headers += "\nwtv-expire-all: cache:snapshot.jpg";
                 if (mail_draft_data.message_snapshot_data) mail_draft_data.message_snapshot_data = null;
                 session_data.setSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments", mail_draft_data);
             }
 
             if (request_headers.query.gabbing == "false") {
-                headers += "\nwtv-expire: cache:voicemail.wav";
+                headers += "\nwtv-expire-all: cache:voicemail.wav";
                 if (mail_draft_data.message_voicemail_data) mail_draft_data.message_voicemail_data = null;
                 session_data.setSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments", mail_draft_data);
             }
