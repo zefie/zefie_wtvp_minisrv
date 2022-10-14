@@ -99,14 +99,14 @@ class WTVNews {
     listGroups(search = null) {
         // list of groups on the server
         return new Promise((resolve, reject) => {
-            console.log('listGroups search', search)
+            if (search === "*") search = null;
             if (!search) {
                 this.client.list().then((data) => {
                     console.log('listGroups data', data)
                     resolve(this.processGroupList(data));
                 }).catch((e) => {
                     console.error(" * WTVNews Error:", "Command: listGroups (all)", e);
-                    reject(`No such group <b>${group}</b>`);
+                    reject(e);
                 });
             } else {
                 this.client.listNewsgroups('*' + search + '*').then((data) => {
@@ -114,7 +114,7 @@ class WTVNews {
                     resolve(this.processGroupList(data));
                 }).catch((e) => {
                     console.error(" * WTVNews Error:", "Command: listGroups (all)", e);
-                    reject(`No such group <b>${group}</b>`);
+                    reject(e);
                 });
             }
         })
