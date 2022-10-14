@@ -191,7 +191,7 @@ class WTVNewsServer {
         const g = this.getMetaFilename(group);
         if (g) {
             if (this.fs.existsSync(g)) return JSON.parse(this.fs.readFileSync(g));
-            else return this.createMetaFile(group);
+            else return false
         } else return false;
     }
 
@@ -304,6 +304,9 @@ class WTVNewsServer {
 
     selectGroup(group, force_update = false, initial_update = false) {
         var g = this.getGroupPath(group);
+        var meta = this.getMetadata(group);
+        if (!meta) force_update, initial_update = true;
+
         if (initial_update) {
             var out = {
                 total: 0,
@@ -311,15 +314,14 @@ class WTVNewsServer {
                 max_index: 0,
                 name: group
             }
-        } else {
-            var meta = this.getMetadata(group);
-            var out = { ...meta }
-        } 
+        } else var out = { ...meta }
+
         if (meta.min_index == 0) force_update = true;
         if (this.featuredGroups) {
             Object.keys(this.featuredGroups).forEach((k) => {
-                if (group == this.featuredGroups[k].group) {
+                if (group == this.featuredGroups[k].name) {
                     out.wildmat = 'y';
+                    out.description = this.featuredGroups[k].description
                     return false;
                 }
             })
