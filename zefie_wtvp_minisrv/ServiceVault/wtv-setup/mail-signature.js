@@ -9,8 +9,16 @@ wtv-expire-all: wtv-mail:/sendmail
 wtv-expire-all: http
 Content-Type: text/html`
 
-var signature = session_data.getSessionData("subscriber_signature")
-if (request_headers.query.preview) var message_colors = session_data.mailstore.getSignatureColors(signature)
+var signature = session_data.getSessionData("subscriber_signature");
+
+if (request_headers.query.mail_signature) {
+    if (signature != request_headers.query.mail_signature) {
+        session_data.setSessionData("subscriber_signature", (request_headers.query.mail_signature) ? request_headers.query.mail_signature : "");
+        session_data.saveSessionData();
+        signature = request_headers.query.mail_signature;
+    }
+} 
+var message_colors = session_data.mailstore.getSignatureColors(signature)
 
 data = `<HTML>
 <HEAD>
@@ -79,7 +87,7 @@ Type a short text <B>signature</B> here and it will be added to the end of each 
 <TR>
 <TD>
 <TD colspan=3 WIDTH=416 HEIGHT=118 VALIGN=top ALIGN=left>
-<FORM method="POST" action="/validate-mail-signature">
+<FORM method="POST" name="sig" action="/validate-mail-signature">
 <INPUT type=hidden autosubmit=onleave>
 <TEXTAREA name="mail_signature"
 action="/validate-mail-signature"
@@ -106,7 +114,7 @@ ${(request_headers.query.preview) ? "<tr><td><td colspan=3><b>Signature Preview:
 <tr>
 <TD>
 <td colspan=3 valign=top align=left bgcolor="${(request_headers.query.preview) ? message_colors.bgcolor : "0D0D0D"}">
-${(request_headers.query.preview) ? `<embed src="wtv-mail:/get-signature?sanitize=true&demotext=${encodeURIComponent(`This is a preview of your signature.<br><a href="client:donothing">This is what a link looks like</a>.`)}" height=40></embed><br><br>` : ''}
+${(request_headers.query.preview) ? `<embed src="wtv-mail:/get-signature?sanitize=true&demotext=${encodeURIComponent(`<hr>This is a preview of your signature. The text below the line will not appear in your outgoing messages. It is provided to demonstrate what a message composed with this signature may look like. <a href="client:donothing">This is what a link looks like</a>.`)}" height=40></embed><br><br>` : ''}
 <tr>
 <td>
 <td colspan=3 height=2 valign=top align=left>
@@ -114,7 +122,8 @@ ${(request_headers.query.preview) ? `<embed src="wtv-mail:/get-signature?sanitiz
 <TR>
 <TD>
 <TD  VALIGN=top ALIGN=left>
-<FORM action="mail-signature">
+<FORM action="/mail-signature" METHOD="POST" onsubmit="this.mail_signature.value = document.forms[0].mail_signature.value">
+<INPUT type=hidden name="mail_signature">
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
 <INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Preview NAME="preview" USESTYLE WIDTH=103>
 </SHADOW></FONT></FORM>
