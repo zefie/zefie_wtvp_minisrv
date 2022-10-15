@@ -213,8 +213,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     switch (contextObj.service_name) {
         case "wtv-guide":
             // wtv-guide is a special case due to needing this function
-            modules_loaded.push({ "name": "WTVGuide", "file": classPath + "/WTVGuide.js" });
-            contextObj.wtvguide = new tmpmod(minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
+            contextObj.wtvguide = new contextObj["WTVGuide"](minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
             break;
 
         case "wtv-1800":

@@ -59,7 +59,6 @@ Choose a word to see what it means.
         var table_split = Math.floor(this.page_args.words.length / 2);
         var words_rendered = 0;
         var self = this;
-        console.log(this.page_args.words);
         Object.keys(this.page_args.words).forEach(function (k) {
             // test
             data += `<a href="wtv-guide:/help?topic=Glossary&subtopic=${self.page_args.letter}&page=${self.page_args.words[k].link}" selected>${self.page_args.words[k].word}</a><br>\n`

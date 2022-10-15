@@ -8,7 +8,7 @@ class WTVGuide {
 	constructor(minisrv_config, session_data, socket, runScriptInVM) {
 		if (!minisrv_config) throw ("minisrv_config required");
 		if (!session_data) throw ("WTVClientSessionData required");
-		var WTVShared = require("./WTVShared.js")['WTVShared'];
+		const WTVShared = require("./WTVShared.js")['WTVShared'];
 		this.minisrv_config = minisrv_config;
 		this.session_data = session_data;
 		this.wtvshared = new WTVShared(minisrv_config);
@@ -24,8 +24,8 @@ class WTVGuide {
 
 		switch (topic.toLowerCase()) {
 			case "glossary":
-				var template = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/templates/glossary.js");
-				var glossary_datafile = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/glossary.json");
+				var template =this.wtvshared.getTemplate("wtv-guide", "templates/glossary.js", true);
+				var glossary_datafile =this.wtvshared.getTemplate("wtv-guide", "glossary.json", true);
 				if (!this.fs.existsSync(template)) break;
 				if (!this.fs.existsSync(glossary_datafile)) break;
 
@@ -44,13 +44,9 @@ class WTVGuide {
 								var start = definition.indexOf(search) + search.length;
 								original_start = start;
 								// handle <word="whatever">
-								console.log("start:", start)
-								console.log("debug > position:", definition.substr(start, 1));
 								if (definition.substr(start, 1) != ">") {
-									console.log("debug: detecting word in tag")
 									start++; // +1 to skip =
 									end = definition.indexOf(">", start);
-									console.log("debug > position 2:", definition.indexOf(">", start));
 									link_word_override = definition.substring(start, end);
 									// strip any quotes
 									if (link_word_override.substr(0, 1).match(/[\"\']/)) link_word_override = link_word_override.substring(1);
@@ -60,10 +56,8 @@ class WTVGuide {
 									link_word_start_letter = link_word_for_link.substr(0, 1).toUpperCase();
 									start = end + 1; // update start pos for rest of processing
 								} else {
-									console.log("debug: generating word")
 									start++;
 								}
-								console.log("end:", end)
 								end = definition.indexOf("</word>", start);
 								var link_word = definition.substring(start, end);
 								if (!link_word_for_link) link_word_for_link = link_word.replace(/ /g, '').replace(/\'/g,'').replace(/\"/g,'').toLowerCase();
@@ -72,13 +66,6 @@ class WTVGuide {
 
 								var link = `wtv-guide:/help?topic=Glossary&subtopic=${link_word_start_letter}&page=${link_word_for_link}&word=${encodeURIComponent(link_word_override)}`
 								var new_definition = definition.substring(0, original_start - search.length) + `<a href="${link}">${link_word}</a>` + definition.substring(end + 7);
-								console.log("start:", start)
-								console.log("end:", end)
-								console.log("link_word:", link_word)
-								console.log("link_word_for_link:", link_word_for_link);
-								console.log("link_word_start_letter:", link_word_start_letter);
-								console.log("link:", link)
-								console.log("new_definition:", new_definition)
 								definition = new_definition;
 							}
 							// replaces <boxname> with the friendly name of the type of unit the user has
@@ -110,7 +97,7 @@ class WTVGuide {
 						}
 					} else {
 						// glossary letter word index
-						var template = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/templates/glossary_word_index.js");
+						var template =this.wtvshared.getTemplate("wtv-guide", "templates/glossary_word_index.js", true);
 						var isPlusBox = false;
 						if (this.session_data.hasCap("client-has-tv-experience")) isPlusBox = true;
 						var worddb = [];
@@ -133,9 +120,8 @@ class WTVGuide {
 			case "index":
 				switch (subtopic.toLowerCase()) {
 					case "glossary":
-						var template = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/templates/glossary_index.js");
-						console.log(template);
-						var glossary_datafile = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/glossary.json");
+						var template =this.wtvshared.getTemplate("wtv-guide", "templates/glossary_index.js", true);
+						var glossary_datafile =this.wtvshared.getTemplate("wtv-guide", "glossary.json", true);
 						if (!this.fs.existsSync(template)) break;
 						if (!this.fs.existsSync(glossary_datafile)) break;
 
@@ -154,8 +140,8 @@ class WTVGuide {
 				// fallback to old js file method
 				try {
 					var prerendered = null;
-					if (!page) prerendered = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/prerendered/" + topic + "/" + subtopic + ".js");
-					else prerendered = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + "/wtv-guide/prerendered/" + topic + "/" + subtopic + "/" + page + ".js");
+					if (!page) prerendered = this.wtvshared.getTemplate("wtv-guide", "prerendered/" + topic + "/" + subtopic + ".js", true);
+					else prerendered =this.wtvshared.getTemplate("wtv-guide", "prerendered/" + topic + "/" + subtopic + "/" + page + ".js", true);
 
 					if (!this.fs.existsSync(prerendered)) break;
 
@@ -184,7 +170,7 @@ class WTVGuide {
 					console.log(" * wtv-template error:", e)
 				}
 				// unload and clean up module
-				wtvshared.unloadModule(template);
+				this.wtvshared.unloadModule(template);
 			}
 
 			// return generated page

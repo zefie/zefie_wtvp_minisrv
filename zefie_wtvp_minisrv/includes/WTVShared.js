@@ -771,7 +771,23 @@ class WTVShared {
         return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
     }
 
-
+    getTemplate(service_name, path, path_only = true) {
+        var self = this;
+        var outdata = null;
+        var found = false
+        this.minisrv_config.config.ServiceTemplates.forEach(function (template_vault_dir) {
+            if (found) return;
+            var search = self.getAbsolutePath(template_vault_dir + self.path.sep + service_name + self.path.sep + path);
+            if (self.fs.existsSync(search)) {
+                if (path_only) outdata = search;
+                else outdata = fs.readFileSync(search).toString('ascii');
+                if (!self.minisrv_config.config.debug_flags.quiet) console.log(" * Found " + search + " to handle template");
+                found = true;
+                return false;
+            }
+        });
+        return outdata;
+    }
 }
 
 class clientShowAlert {

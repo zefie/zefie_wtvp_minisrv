@@ -6,6 +6,10 @@
       "UserServiceVault",
       "ServiceVault"
     ],
+    "ServiceTemplates": [
+      "UserTemplates",
+      "ServiceDeps/templates"
+    ],
     "ServiceDeps": "ServiceDeps",
     "SessionStore": "SessionStore",
     "SharedROMCache": "SharedROMCache",
@@ -173,7 +177,10 @@
     },
     "wtv-guide": {
       "port": 1621,
-      "connections": 3
+      "connections": 3,
+      "modules": [
+        "WTVGuide"
+      ]
     },
     "wtv-mail": {
       "port": 1608,
