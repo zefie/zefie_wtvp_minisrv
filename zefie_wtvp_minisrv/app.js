@@ -1026,7 +1026,6 @@ async function sendToClient(socket, headers_obj, data) {
         if (!headers_obj['minisrv-no-mail-count']) {
             if (ssid_sessions[socket.ssid]) {
                 if (ssid_sessions[socket.ssid].isRegistered()) {
-                    console.log("logged in", ssid_sessions[socket.ssid].isUserLoggedIn())
                     if (!ssid_sessions[socket.ssid].isUserLoggedIn()) {
                         // not logged in probe all users
                         headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].getAccountTotalUnreadMessages();
