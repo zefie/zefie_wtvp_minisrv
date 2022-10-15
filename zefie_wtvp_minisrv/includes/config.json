@@ -48,6 +48,13 @@
       "max_length": 32,
       "form_size": 16
     },
+    "errorMessages": {
+      "400": "${service_name} ran into a technical problem. Please try again.",
+      "401": "Authorization Required.",
+      "403": "The publisher of that page has not authorized you to view it.",
+      "404": "The service could not find the requested page.",
+      "500": "${service_name} ran into a technical problem. Please try again."
+    },
     "lockdownWhitelist": [
       "wtv-1800:/preregister",
       "wtv-head-waiter:/login",
