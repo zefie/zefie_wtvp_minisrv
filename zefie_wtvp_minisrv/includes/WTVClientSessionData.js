@@ -40,22 +40,7 @@ class WTVClientSessionData {
         this.ssid = ssid;
         this.data_store = new Array();
         this.session_store = {};
-        this.lockdownWhitelist = [
-            "wtv-1800:/preregister",
-            "wtv-head-waiter:/login",
-            "wtv-head-waiter:/ValidateLogin",
-            "wtv-head-waiter:/login-stage-two",
-            "wtv-head-waiter:/relogin",
-			"wtv-head-waiter:/ROMCache/Spacer.gif",
-			"wtv-head-waiter:/ROMCache/NameStrip.gif",
-            "wtv-head-waiter:/images/PasswordBanner.gif",
-            "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
-			"wtv-head-waiter:/images/NameBanner.gif",
-            "wtv-head-waiter:/bad-disk",
-            "wtv-head-waiter:/images/signin_new_mail.gif",
-            "wtv-head-waiter:/images/signin_no_mail.gif",
-            "wtv-log:/log"
-        ];
+        this.lockdownWhitelist = minisrv_config.config.lockdownWhitelist;
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
         this.lockdownWhitelist.push(minisrv_config.config.service_logo);
         this.mailstore = new WTVMail(this.minisrv_config, this)
