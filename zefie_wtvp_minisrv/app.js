@@ -1026,7 +1026,12 @@ async function sendToClient(socket, headers_obj, data) {
         if (!headers_obj['minisrv-no-mail-count']) {
             if (ssid_sessions[socket.ssid]) {
                 if (ssid_sessions[socket.ssid].isRegistered()) {
-                    if (ssid_sessions[socket.ssid].mailstore) {
+                    console.log("logged in", ssid_sessions[socket.ssid].isUserLoggedIn())
+                    if (!ssid_sessions[socket.ssid].isUserLoggedIn()) {
+                        // not logged in probe all users
+                        headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].getAccountTotalUnreadMessages();
+                    } else if (ssid_sessions[socket.ssid].mailstore) {
+                        // logged in
                         headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0);
                     }
                 }
@@ -1410,8 +1415,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
                         if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id != null) {
-                            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0)
+                            if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0) {
                                 ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
+                                ssid_sessions[socket.ssid].setUserLoggedIn(true);
+                            }
                         }
                     } else {
                         if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"]) {
@@ -1421,8 +1428,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                 ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
                                 if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
                                 if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id >= 0) {
-                                    if (ssid_sessions[socket.ssid].user_id != ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id)
+                                    if (ssid_sessions[socket.ssid].user_id != ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id) {
                                         ssid_sessions[socket.ssid].switchUserID(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_store.user_id, true, false);
+                                        ssid_sessions[socket.ssid].setUserLoggedIn(true);
+                                    }
                                 }
                             }
                         }

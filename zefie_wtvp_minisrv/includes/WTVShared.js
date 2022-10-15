@@ -697,7 +697,7 @@ class WTVShared {
                 break;
             case 400:
             case 500:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { console.log(x); return minisrv_config.config[x.replace("${", '').replace('}', '')] });
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (details) data += "<br>Details:<br>" + details;
                 if (pc_mode) headers = "500 Internal Server Error\n";
                 else headers = code + " " + data + "\n";

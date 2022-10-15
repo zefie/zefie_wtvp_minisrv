@@ -9,13 +9,12 @@ if (request_headers.query.hangup) {
 Location: client:gototvhome
 wtv-visit: client:hangupphone`
 } else {
-
 	var user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
 
 	if (socket.ssid !== null && user_id !== null) session_data.switchUserID(user_id);
 
 	if (socket.ssid !== null && !session_data.get("wtvsec_login")) {
-		wtvsec_login = new WTVSec(minisrv_config);
+		wtvsec_login = session_data.createWTVSecSession();
 		wtvsec_login.IssueChallenge();
 		wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 		session_data.set("wtvsec_login", wtvsec_login);
@@ -52,7 +51,7 @@ wtv-visit: client:hangupphone`
 		if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 	}
 
-	if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login) {
+	if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin) {
 		if (request_headers.query.password == "") {
 			headers = `403 Please enter your password and try again
 minisrv-no-mail-count: true
@@ -73,9 +72,10 @@ minisrv-no-mail-count: true
 		if (session_data.baddisk === true) {
 			gourl = "wtv-head-waiter:/bad-disk?"
 		}
-		else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && request_headers.query.initial_login) {
+		else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && (request_headers.query.initial_login || request_headers.query.relogin)) {
 			gourl = "wtv-head-waiter:/choose-user?"
 		} else {
+			if (!session_data.getUserPasswordEnabled() && request_headers.query.user_login) session_data.setUserLoggedIn(true);
 			var limitedLogin = (!session_data.lockdown && (!session_data.get('password_valid') && session_data.getUserPasswordEnabled()));
 			var limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
 		}
@@ -89,7 +89,7 @@ Content-Type: text/html`;
 wtv-encrypted: true`;
 			if (wtvsec_login) session_data.data_store.wtvsec_login.update_ticket = true;
 		}
-		if (limitedLoginRegistered) gourl = "wtv-head-waiter:/password?";
+		if (limitedLoginRegistered && session_data.getUserPasswordEnabled()) gourl = "wtv-head-waiter:/password?";
 		headers += `
 wtv-visit: ${gourl}`;
 

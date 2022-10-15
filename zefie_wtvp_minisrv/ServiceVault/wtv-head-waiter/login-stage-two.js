@@ -47,7 +47,8 @@ else {
 		var gourl = "wtv-home:/splash?";
 	}
 	var limitedLogin = session_data.lockdown;
-	var limitedLoginRegistered = (limitedLogin || (session_data.isRegistered() && !session_data.isUserLoggedIn()));
+	var limitedLoginRegistered = (limitedLogin || (session_data.isRegistered() && !session_data.isUserLoggedIn()) && session_data.getUserPasswordEnabled());
+	if (!session_data.getUserPasswordEnabled()) session_data.setUserLoggedIn(true);
 	var offline_user_list = null;
 	if (session_data.isRegistered()) {
 		// check for SMTP Password

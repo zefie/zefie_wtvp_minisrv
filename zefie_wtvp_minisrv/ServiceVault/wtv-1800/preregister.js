@@ -40,7 +40,10 @@ if (socket.ssid) {
 	data = errpage[1];
 }
 
-if (request_headers.query.relogin && session_data.getSessionData("registered")) gourl += "relogin=true";
+if (request_headers.query.relogin && session_data.getSessionData("registered")) {
+	gourl += "relogin=true";
+	session_data.setUserLoggedIn(false);
+}
 if (request_headers.query.reconnect && session_data.getSessionData("registered")) gourl += "reconnect=true";
 
 if (session_data.data_store.wtvsec_login) {
