@@ -9,7 +9,7 @@ class WTVRegister {
     constructor(minisrv_config, session_store_dir = null) {
         this.minisrv_config = minisrv_config;
         this.service_owner = minisrv_config.config.service_owner || "a minisrv user";
-        if (session_store_dir) this.session_store_dir = session_store_dir
+        this.session_store_dir = session_store_dir || this.minisrv_config.config.SessionStore;
     }
 
     getServiceOperator(first_letter_lower = false) {
@@ -29,28 +29,42 @@ class WTVRegister {
 
 
     checkUsernameAvailable(username, directory = null) {
-        // returns the user's ssid, and user_id and userid in an array if true, false if not
-        var search_dir = this.minisrv_config.config.SessionStore;
-        var return_val = false;
         var self = this;
-        if (directory) search_dir = directory;
-        this.fs.readdirSync(search_dir).forEach(file => {
-            if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
-                if (search_dir.match(/minisrv\_internal\_nntp/)) return;
-                return_val = !self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
-            }
-            if (!file.match(/user.*\.json/ig)) return;
-            try {
-                var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
-                var temp_session_data = JSON.parse(temp_session_data_file);
-                console.log(temp_session_data.subscriber_username.toLowerCase());
-                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
-                    return_val = true;
+        var return_val = false;
+        // returns the user's ssid, and user_id and userid in an array if true, false if not
+
+        // check against reserved name list
+        if (this.minisrv_config.config.user_accounts.reserved_names) {
+            Object.keys(this.minisrv_config.config.user_accounts.reserved_names).forEach((k) => {
+                if (self.minisrv_config.config.user_accounts.reserved_names[k].toLowerCase() == username.toLowerCase()) return_val = true;
+            })
+        }
+
+        if (return_val) return !return_val;
+
+        // check against user accounts
+        directory = (directory) ? directory : this.session_store_dir + this.path.sep + "accounts";
+  
+        console.log(directory)
+        if (this.fs.existsSync(directory)) {
+            this.fs.readdirSync(directory).forEach(file => {
+                if (self.fs.lstatSync(directory + self.path.sep + file).isDirectory() && !return_val) {
+                    return_val = !self.checkUsernameAvailable(username, directory + self.path.sep + file);
                 }
-            } catch (e) {
-                console.error(" # Error parsing Session Data JSON", search_dir + self.path.sep + file, e);
-            }
-        });
+                if (!file.match(/user.*\.json/ig)) return;
+                try {
+                    var temp_session_data_file = self.fs.readFileSync(directory + self.path.sep + file, 'Utf8');
+                    var temp_session_data = JSON.parse(temp_session_data_file);
+                    if (temp_session_data.subscriber_username) {
+                        if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                            return_val = true;
+                        }
+                    }
+                } catch (e) {
+                    console.error(" # Error parsing Session Data JSON", search_dir + self.path.sep + file, e);
+                }
+            });
+        }
         return !return_val;
     }
 

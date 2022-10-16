@@ -26,7 +26,7 @@ function ShowMessengerPanel()
 <tr>
 <td abswidth=6>
 <td abswidth=92 absheight=76>
-<table absheight=76 cellspacing=0 cellpadding=0>
+<table href="wtv-home:/home" absheight=76 cellspacing=0 cellpadding=0>
 <tr>
 <td align=right>
 <img src="${minisrv_config.config.service_logo}" width=87 height=67>

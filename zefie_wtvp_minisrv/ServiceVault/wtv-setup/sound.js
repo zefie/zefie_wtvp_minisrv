@@ -76,31 +76,62 @@ Music
 if (canDoMuzac) {
     data += `<p>Turn on background music 
 to have songs play continually in 
-the background.
-<p>Remember to adjust the 
+the background.<p>Remember to adjust the 
 volume on your TV so you can 
-hear the music.`;
-} else {
-    data += `Your client reports it does
-not support background music.
-<p>However, you can still browse,
-and listen to the music in the foreground.`;
-}
-data += `
+hear the music.
 <TD WIDTH=20>
 <TD WIDTH=198 VALIGN=top ALIGN=left>
-<spacer type=block height=20 width=1>
-<form action="client:ConfirmPhoneSetup">
+<spacer type=block height=16 width=1>
+<form>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td valign=top>
+Background music<p>
 <input type=hidden name=autosubmit value=true autosubmit=onleave>
 <INPUT TYPE="checkbox" NAME="setup-play-bgm" VALUE="1"
 action="client:SetSetupValue" selected &wtv-muzac-on;${canDoMuzac ? '' : 'disabled'}>
-<td abswidth=4>
-<td valign=top>
-<font size=-1>Background<br>music</font>
-<tr><td absheight=10>
+<INPUT TYPE="hidden" NAME="current_volume" ID="current_volume" value="&vol;">
+
+<tr><td absheight=38>
+
+<tr>
+<td>
+<p>
+BGM Volume
+<p>
+<INPUT TYPE="radio" ID="vol_soft" NAME="setup-bgm-volume" VALUE="soft" action="client:SetSetupValue">&nbsp;Soft<br> 
+<INPUT TYPE="radio" ID="vol_medium" NAME="setup-bgm-volume" VALUE="medium" action="client:SetSetupValue">&nbsp;Medium<br> 
+<INPUT TYPE="radio" ID="vol_loud" NAME="setup-bgm-volume" VALUE="loud" action="client:SetSetupValue">&nbsp;Loud
+<script type="text/javascript">
+var volume=document.forms[0].current_volume.value
+var radio = null;
+if (volume == "soft") {
+	radio = document.forms[0]['setup-bgm-volume'][0];
+} else if (volume == "medium") {
+	radio = document.forms[0]['setup-bgm-volume'][1];
+} else if (volume == "loud") {
+	radio = document.forms[0]['setup-bgm-volume'][2];
+}
+
+if (radio) {
+	radio.checked = true;
+}
+</script>
+</td>
+`;
+} else {
+    data += `<p>Your client reports it does
+not support background music.
+<p>However, you can still browse,
+and listen to the music in the foreground.
+<TD WIDTH=20>
+<TD WIDTH=198 VALIGN=top ALIGN=left>
+<spacer type=block height=16 width=1>
+<form>
+<table cellspacing=0 cellpadding=0>
+`;
+}
+data += `
 <tr>
 <td valign=top>
 </table>

@@ -1,6 +1,6 @@
 {
   "name": "zefie_wtvp_minisrv",
-  "version": "0.9.35",
+  "version": "0.9.36",
   "description": "WebTV Service (WTVP) Emulation Server",
   "main": "app.js",
   "homepage": "https://github.com/zefie/zefie_wtvp_minisrv",
@@ -37,7 +37,7 @@
     "iconv-lite": "^0.6.3",
     "mime-types": "^2.1.35",
     "newsie": "^1.2.1",
-    "nntp-server-zefie": "git+https://git@github.com:zefie/nntp-server",
+    "nntp-server-zefie": "^3.1.0",
     "proxy-agent": "^5.0.0",
     "sanitize-html": "^2.7.2",
     "socks-proxy-agent": "^6.2.1",

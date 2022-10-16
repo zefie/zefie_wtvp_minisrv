@@ -83,7 +83,7 @@ setTimeout("clearAllLists();", 2*1000);
 <tr>
 <td width=5 height=26>
 <td width=93>
-<table width=93 cellspacing=0 cellpadding=0 href=wtv-guide:/help?topic=Messenger&subtopic=Index>
+<table width=93 cellspacing=0 cellpadding=0 href=wtv-guide:/help?topic=Index&subtopic=Glossary>
 <tr>
 <td>
 <table cellspacing=0 cellpadding=0>

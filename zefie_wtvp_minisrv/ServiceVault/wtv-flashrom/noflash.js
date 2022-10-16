@@ -1,6 +1,5 @@
 var minisrv_service_file = true;
 
-const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 request_is_async = true;
 
 // this build can be local or on zefie's server

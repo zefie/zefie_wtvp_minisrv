@@ -1,7 +1,7 @@
 class WTVFlashrom {
 
 	fs = require('fs');
-	https = require('https');
+	https = require('follow-redirects').https;
 	use_zefie_server = true;
 	bf0app_update = false;
 	service_vaults = new Array();
@@ -129,7 +129,7 @@ class WTVFlashrom {
 
 	async getFlashromMeta(request_path, callback) {
 		// read 512 bytes of rom, and send result of getFlashromInfo
-		// to callback (in data), without headers
+		// to callback (in data)
 		this.getFlashRom(request_path, callback, 512);
     }
 
@@ -164,13 +164,12 @@ class WTVFlashrom {
 				})
 
 				res.on('end', function () {
-					if (self.minisrv_config.config.debug_flags.debug) console.log(` * Zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
+					if (self.minisrv_config.config.debug_flags.debug) console.log(` * zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
 					if (res.statusCode == 200) {
 						var data = Buffer.from(data_hex, 'hex');
 					} else if (res.statusCode == 206) {
 						var data = self.getFlashromInfo(Buffer.from(data_hex, 'hex'), request_path);
 					} else if (res.statusCode == 404) {
-						console.log(request_path);
 						var errpage = self.wtvshared.doErrorPage(404, "The service could not find the requested ROM on zefie's server.")
 						headers = errpage[0];
 						var data = errpage[1];

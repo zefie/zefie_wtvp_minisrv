@@ -372,3 +372,7 @@ FodyWeavers.xsd
 
 # minisrv error log file
 errors.log
+
+# PageBuilder Vault
+PageBuilderVault/http_pb/*
+!PageBuilderVault/http_pb/clipart

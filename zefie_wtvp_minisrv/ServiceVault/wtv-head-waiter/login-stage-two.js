@@ -1,17 +1,19 @@
 var minisrv_service_file = true;
 var gourl = null;
 
+var bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
+
 if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
 var home_url = "wtv-home:/home?";
 
 if (gourl) {
-	headers = `200 OK
-wtv-open-isp-disabled: false
-`;
+	headers = "200 OK\n";
+	if (bootrom !== 0) headers += "wtv-open-isp-disabled: false\n";
+
 	if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
 		// fake logged in for reg
 		session_data.setUserLoggedIn(true);
-		headers += `wtv-encrypted: true
+		headers += `wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}
 ${getServiceString('wtv-register')}
 ${getServiceString('wtv-head-waiter')}
 ${getServiceString('wtv-star')}
@@ -91,13 +93,16 @@ wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCS
 wtv-country: US
 wtv-language-header: en-US,en
 wtv-noback-all: wtv-
-wtv-visit: client:closeallpanels
-wtv-expire-all: client:closeallpanels
 wtv-transition-override: off
 wtv-smartcard-inserted-message: Contacting service
 wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
 `;
+		if (bootrom !== 0) {
+			headers += `wtv-visit: client:closeallpanels
+wtv-expire-all: client:closeallpanels
+`;
+        }
 		if (!limitedLogin && !limitedLoginRegistered) {
 			session_data.assignMailStore();
 			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
@@ -175,11 +180,11 @@ wtv-inactive-timeout: 1440
 wtv-show-time-enabled: true
 wtv-allow-dsc: true
 wtv-tourist-enabled: true
-wtv-open-isp-disabled: false
 wtv-offline-mail-enable: false
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
 wtv-name-server: 8.8.8.8`;
+			if (bootrom !== 0) { headers += "\nwtv-open-isp-disabled: false" }
 		}
 	}
 	if (!request_headers.query.reconnect) headers += "\nwtv-visit: " + gourl;

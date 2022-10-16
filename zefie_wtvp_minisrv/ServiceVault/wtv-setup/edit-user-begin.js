@@ -19,7 +19,9 @@ if (session_data.user_id != 0 && session_data.user_id != request_headers.query.u
 if (user_id != null) {
     headers = `200 OK
 Connection: Keep-Alive
-Content-Type: text/html`
+Content-Type: text/html
+wtv-expire-all: wtv-setup:/edit-user
+wtv-noback-all: wtv-setup:/edit-user`
     var userSession = null;
     if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
     else {
@@ -83,7 +85,7 @@ ${(user_id == 0) ? 'Subscriber' : 'User'} information
 <td>
 <td absheight=244 valign=top align=left>
 <form
-action="wtv-setup:/serve-billing-overview"
+action="client:goback"
 >
 <P>
 <table cellspacing=0 cellpadding=0 border=0>

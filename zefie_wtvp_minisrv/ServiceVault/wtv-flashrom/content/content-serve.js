@@ -1,5 +1,6 @@
 var minisrv_service_file = true;
-request_is_async = true;
+
+var request_is_async = true;
 
 var bf0app_update = false;
 var request_path = request_headers.request_url.replace(service_name + ":/", "");
