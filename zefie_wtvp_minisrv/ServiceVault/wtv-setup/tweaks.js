@@ -85,7 +85,7 @@ by not waiting for the splash music to finish.
 <table>
 <tr>
 <td valign=top>
-<input type=checkbox name=fast_splash ${(wtvshared.parseBool(session_data.get("fast_splash"))) ? "checked=checked" : ''}>
+<input type=checkbox name=fast_splash ${(wtvshared.parseBool(session_data.getSessionData("fast_splash"))) ? "checked=checked" : ''}>
 
 <td valign=top>
 FastSplash&trade;

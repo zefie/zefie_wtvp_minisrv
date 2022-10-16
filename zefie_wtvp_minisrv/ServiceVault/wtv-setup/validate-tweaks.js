@@ -2,7 +2,7 @@ var minisrv_service_file = true;
 
 
 var fast_splash = wtvshared.parseBool(request_headers.query.fast_splash);
-session_data.set("fast_splash", fast_splash);
+session_data.setSessionData("fast_splash", fast_splash);
 session_data.saveSessionData();
 
 headers = `200 OK
