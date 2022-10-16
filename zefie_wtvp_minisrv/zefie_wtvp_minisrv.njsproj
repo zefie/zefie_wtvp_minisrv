@@ -189,6 +189,12 @@
     <Content Include="ServiceVault\wtv-admin\images\nuke.gif" />
     <Content Include="ServiceVault\wtv-admin\images\nuke_inverted.gif" />
     <Content Include="ServiceVault\wtv-admin\images\polyzoot.jpg" />
+    <Content Include="ServiceVault\wtv-admin\validate-operator-tweaks.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-admin\operatortweaks.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="ServiceVault\wtv-admin\polyzoot.js" />
     <Content Include="ServiceVault\wtv-admin\regenfavs.js" />
     <Content Include="ServiceVault\wtv-admin\reloadconfig.js" />
