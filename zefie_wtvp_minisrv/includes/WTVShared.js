@@ -45,12 +45,14 @@ class WTVShared {
             return new RegExp(src);
         } else if (src instanceof Date) {
             return new Date(src.getTime());
-        } else if (Array.isArray(src)) {
-            return src.map(this.cloneObj);
         } else if (typeof src === 'object' && src !== null) {
-            const clone = {};
-            Object.keys(src).forEach(k => {
-                clone[k] = this.cloneObj(src[k]);
+            var clone = null;
+            if (Array.isArray(src)) clone = [];
+            else clone = {};
+
+            var self = this;
+            Object.keys(src).forEach((k )=> {
+                clone[k] = self.cloneObj(src[k]);
             });
             return clone;
         }
@@ -524,7 +526,7 @@ class WTVShared {
     filterRequestLog(obj) {
         if (this.minisrv_config.config.filter_passwords_in_logs === true) {
             if (obj.query) {
-                var newobj = this.cloneObj(obj) || {};
+                var newobj = this.cloneObj(obj);
                 try {
                     Object.keys(obj.query).forEach(function (k) {
                         var key = k.toLowerCase();
