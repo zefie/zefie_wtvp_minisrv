@@ -32,7 +32,7 @@ if (auth === true) {
         if (res) {
             console.log(" * Configuration updated from wtv-admin, reloading")
             reloadConfig();
-            headers = "200 OK\r\nContent-Type: text/html";
+            headers = "200 OK\nwtv-expire-all: wtv-admin:/operatortweaks\nContent-Type: text/html";
         } else {
             err = wtvshared.doErrorPage(400, "Error writing userconfig");
             headers = err[0];

@@ -294,9 +294,16 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     ]
 
     if (!pc_services) {
+        updateFromVM.push([`ssid_sessions[${socket.ssid}]`, "session_data"]); // user-specific session data from unprivileged scripts
+    }
+
+    var privileged = false;
+    if (minisrv_config.services[service_name]) privileged = (minisrv_config.services[service_name].privileged) ? true : false;
+    else if (pc_services) privileged = (minisrv_config.services['pc_services'].privileged) ? true : false;
+
+    if (privileged) {
         updateFromVM.push(["ssid_sessions", "ssid_sessions"]);             // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
         updateFromVM.push(["socket_sessions", "socket_sessions"]);         // global socket_sessions object for privileged service scripts, such as wtv-1800, etc
-        updateFromVM.push([`ssid_sessions[${socket.ssid}]`, "session_data"]); // user-specific session data from unprivileged scripts
     }
 
     try {
@@ -457,11 +464,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // expose var service_dir for script path to the root of the wtv-service                    
                     socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
                     var script_data = fs.readFileSync(service_vault_file_path + ".js").toString();
-                    var priv = false;
-                    if (minisrv_config.services[service_name]) priv = (minisrv_config.services[service_name].privileged) ? true : false;
-                    else if (pc_services) priv = (minisrv_config.services['pc_services'].privileged) ? true : false;
 
-                    var vmResults = runScriptInVM(script_data, contextObj, priv, service_vault_file_path + ".js");
+                    var vmResults = runScriptInVM(script_data, contextObj, privileged, service_vault_file_path + ".js");
                     // Here we read back certain data from the ServiceVault Script Context Object
                     updateFromVM.forEach((item) => {
                         try {
@@ -501,11 +505,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                     request_headers.service_file_path = catchall_file;
                                     var script_data = fs.readFileSync(catchall_file).toString();
-                                    var priv = false;
-                                    if (minisrv_config.services[service_name]) priv = (minisrv_config.services[service_name].privileged) ? true : false;
-                                    else if (pc_services) priv = (minisrv_config.services['pc_services'].privileged) ? true : false;
 
-                                    runScriptInVM(script_data, contextObj, priv, catchall_file);
+                                    runScriptInVM(script_data, contextObj, privileged, catchall_file);
 
                                     // Here we read back certain data from the ServiceVault Script Context Object
                                     try {
