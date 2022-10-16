@@ -86,7 +86,7 @@ class WTVShared {
         if (typeof val === 'string')
             val = val.toLowerCase();
 
-        return (val === true || val === "true" || val === 1);
+        return (val === true || val == "on" || val === "true" || val === 1);
     }
 
 

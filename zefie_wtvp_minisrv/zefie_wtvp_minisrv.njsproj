@@ -150,6 +150,7 @@
     <Content Include="ServiceDeps\templates\wtv-guide\templates\glossary.js" />
     <Content Include="ServiceDeps\templates\wtv-guide\templates\glossary_index.js" />
     <Content Include="ServiceDeps\templates\wtv-guide\templates\glossary_word_index.js" />
+    <Content Include="ServiceDeps\templates\wtv-mail\welcomeMail.txt" />
     <Content Include="ServiceDeps\templates\wtv-news\post-unavailable.html" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\bf0app\bf0app_OISP.tok" />
     <Content Include="ServiceDeps\wtv-1800\tellyscripts\bf0app\bf0app_WTV_18006138199.detok.txt" />
@@ -977,7 +978,7 @@
     <Content Include="ServiceVault\wtv-setup\messenger-info.js" />
     <Content Include="ServiceVault\wtv-setup\messenger-mode.js" />
     <Content Include="ServiceVault\wtv-setup\messenger.js" />
-    <Content Include="ServiceVault\wtv-setup\phone-advanced.js" />
+    <Content Include="ServiceVault\wtv-setup\tweaks.js" />
     <Content Include="ServiceVault\wtv-setup\phone-basic.js" />
     <Content Include="ServiceVault\wtv-setup\phone-call-wait-thresh.js" />
     <Content Include="ServiceVault\wtv-setup\phone-call-waiting.js" />
@@ -1010,6 +1011,9 @@
     <Content Include="ServiceVault\wtv-setup\validate-change-password.js" />
     <Content Include="ServiceVault\wtv-setup\validate-mail-signature.js" />
     <Content Include="ServiceVault\wtv-setup\validate-screen-border.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-setup\validate-tweaks.js">
       <SubType>Code</SubType>
     </Content>
     <Content Include="ServiceVault\wtv-star\star.js" />
@@ -1182,6 +1186,7 @@
     <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\Users\AddUser\" />
     <Folder Include="ServiceDeps\templates\wtv-guide\prerendered\WhatIs\" />
     <Folder Include="ServiceDeps\templates\wtv-guide\templates\" />
+    <Folder Include="ServiceDeps\templates\wtv-mail\" />
     <Folder Include="ServiceDeps\templates\wtv-news\" />
     <Folder Include="ServiceDeps\viewergen\" />
     <Folder Include="ServiceDeps\wtv-1800\" />

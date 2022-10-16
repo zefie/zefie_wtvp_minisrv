@@ -3,7 +3,7 @@ Subject: Welcome to minisrv!
 
 Thank you for test driving minisrv! 
 
-minisrv aims to provide a simalar experience as the production WebTV Services.
+minisrv aims to provide a simular experience as the production WebTV Services.
 You can enjoy fun features as they are released, such as WebTV Mail, WebTV Chat, Usenet, customing your <a href="wtv-setup:/mail-signature">signature settings</a> which also support custom HTML abilities. 
 
 You can use Mail to send internal email to others by emailing <b>theirusername@${service_name}</b>, replacing "theirusername" with the user's actual username.

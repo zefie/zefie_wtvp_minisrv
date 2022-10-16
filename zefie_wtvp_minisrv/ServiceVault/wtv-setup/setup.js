@@ -128,7 +128,9 @@ data += `
 <spacer type=block width=1 height=5><BR>
 <img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
 <a href="wtv-setup:/phone">Dialing</a><BR>
-
+<spacer type=block width=1 height=5><BR>
+<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
+<a href="wtv-setup:/tweaks">Tweaks</a><BR>
 <TD WIDTH=20>
 <TD WIDTH=300 VALIGN=top ALIGN=left>
 <spacer type=block width=6 height=14><font size="2"><br>
@@ -157,7 +159,8 @@ Configure Messenger<BR>`;
 
 data += `<spacer type=block width=6 height=6><font size="2"><br>
 Connecting to WebTV<BR>
-
+<spacer type=block width=6 height=6><font size="2"><br>
+minisrv specific settings<BR>
 
 <tr>
 <td colspan=4 height=2>
