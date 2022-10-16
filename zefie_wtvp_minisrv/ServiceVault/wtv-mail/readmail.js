@@ -274,7 +274,7 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
                 if (typeof message.body === "object" && message.body) {
                     message.body = wtvshared.decodeBufferText(message.body);
                 }
-                message.body = message.body.replace(/\n/g, "<br><br>");
+                if (message.body) message.body = message.body.replace(/\n/g, "<br><br>");
                 data += `${(message.allow_html) ? message.body : wtvshared.htmlEntitize(message.body, true)}
 <br>
 <br>`;

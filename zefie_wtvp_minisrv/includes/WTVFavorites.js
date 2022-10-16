@@ -73,7 +73,15 @@ class WTVFavorites {
             var store_dir = this.favstore_dir + folder_dir;
         }
         return store_dir;
-    }
+	}
+
+
+	checkFolderName(foldername) {
+		var regex_str = "^([A-Za-z0-9\-\_]{1,}$";
+		var regex = new RegExp(regex_str);
+		return regex.test(foldername);
+	}
+
 	
 	createTemplateFolder(folder) {
 		// create emply folder

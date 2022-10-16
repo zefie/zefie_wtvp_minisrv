@@ -22,6 +22,7 @@ const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const vm = require('vm');
+const debug = require('debug')('minisrv_main');
 const express = require('express');
 var wtvnewsserver = null;
 
@@ -77,13 +78,50 @@ function verifyServicePort(service_name, socket) {
     return false;
 }
 
+function configureService(service_name, service_obj, initial = false) {
+    if (service_obj.disabled) return false;
+
+    service_obj.name = service_name;
+    if (!service_obj.host) {
+        service_obj.host = service_ip;
+    }
+    if (service_obj.port && !service_obj.nobind && initial) {
+        if (service_obj.pc_services) pc_ports.push(service_obj.port);
+        else ports.push(service_obj.port);
+    }
+
+    // minisrv_config service toString
+    service_obj.toString = function (overrides) {
+        var self = Object.assign({}, this);
+        if (overrides != null) {
+            if (typeof (overrides) == 'object') {
+                Object.keys(overrides).forEach(function (k) {
+                    if (k != "exceptions") self[k] = overrides[k];
+                });
+            }
+        }
+        if ((service_name == "wtv-star" && self.no_star_word != true) || service_name != "wtv-star") {
+            var outstr = "wtv-service: name=" + self.name + " host=" + self.host + " port=" + self.port;
+            if (self.flags) outstr += " flags=" + self.flags;
+            if (self.connections) outstr += " connections=" + self.connections;
+        }
+        if (service_name == "wtv-star") {
+            outstr += "\nwtv-service: name=wtv-* host=" + self.host + " port=" + self.port;
+            if (self.flags) outstr += " flags=" + self.flags;
+            if (self.connections) outstr += " connections=" + self.connections;
+        }
+        return outstr;
+    }
+    minisrv_config.services[service_name] = service_obj;
+    return true;
+}
+
 // Where we store our session information
 var ssid_sessions = new Array();
 var socket_sessions = new Array();
 
 var ports = [];
 var pc_ports = [];
-
 
 // add .reverse() feature to all JavaScript Strings in this application
 // works for service vault scripts too.
@@ -144,11 +182,25 @@ async function sendRawFile(socket, path) {
     });
 }
 
-var runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null) {
+var runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null, debug_name = null) {
     // Here we define the ServiceVault Script Context Object
     // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
+
+    // try to build a name for the script's debug() calls
+    if (!debug_name) {
+        // try to make the debug name
+        var debug_name = (filename) ? filename.split(path.sep) : null;
+        if (debug_name) {
+            if (wtvshared.isConfiguredService(debug_name[debug_name.length - 2]))
+                // service:/filename
+                debug_name = debug_name[debug_name.length - 2] + ":/" + debug_name[debug_name.length - 1];
+            else
+                // filename
+                debug_name = debug_name[debug_name.length - 1];
+        }
+    }
 
     // create global context object
     var contextObj = {
@@ -172,6 +224,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "path": path,
 
         // Our variables and functions
+        "debug": require('debug')((debug_name) ? debug_name : 'service_script'),
         "minisrv_config": minisrv_config,
         "socket": null,
         "headers": null,
@@ -254,12 +307,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     }
 
     // unload any loaded modules for this vm
-    if (modules_loaded.length > 0) {
-        Object.keys(modules_loaded).forEach(function (k) {
-            wtvshared.unloadModule(modules_loaded[k]);
-        })
-    }
-
+    modules_loaded = null;
     return contextObj; // updated context object with whatever global varibles the script set
 }
 
@@ -294,7 +342,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     ]
 
     if (!pc_services) {
-        updateFromVM.push([`ssid_sessions[${socket.ssid}]`, "session_data"]); // user-specific session data from unprivileged scripts
+        updateFromVM.push([`ssid_sessions['${socket.ssid}']`, "session_data"]); // user-specific session data from unprivileged scripts
     }
 
     var privileged = false;
@@ -471,7 +519,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         try {
                             if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
                         } catch (e) {
-
+                            console.error("vm readback error", e, item[0] + ' = vmResults[' + item[1] + ']');
                         }
                     })
 
@@ -506,14 +554,16 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     request_headers.service_file_path = catchall_file;
                                     var script_data = fs.readFileSync(catchall_file).toString();
 
-                                    runScriptInVM(script_data, contextObj, privileged, catchall_file);
+                                    var vmResults = runScriptInVM(script_data, contextObj, privileged, catchall_file);
 
-                                    // Here we read back certain data from the ServiceVault Script Context Object
-                                    try {
-                                        if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
-                                    } catch (e) {
-
-                                    }
+                                    updateFromVM.forEach((item) => {
+                                        // Here we read back certain data from the ServiceVault Script Context Object
+                                        try {
+                                            if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
+                                        } catch (e) {
+                                            console.error("vm readback error", e);
+                                        }
+                                    });
 
                                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
                                     break;
@@ -763,18 +813,33 @@ minisrv-no-mail-count: true`;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if ((shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) && !pc_services) {
             doHTTPProxy(socket, request_headers);
+        } else if (shortURL.indexOf('file://') >= 0) {
+            shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
+            service_name = "wtv-star";
+            var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
+            processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (pc_services) {
             // if a directory, request index
             if (shortURL.substring(shortURL.length - 1) == "/") shortURL += "index";
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else {
-            // error reading headers (no request_url provided)
-            var errpage = wtvshared.doErrorPage(400);
-            headers = errpage[0];
-            data = errpage[1]
-            socket_sessions[socket.id].close_me = true;
-            sendToClient(socket, headers, data);
+            debug('request_headers', request_headers);
+            if (request_headers.request.indexOf("HTTP/1.0") > 0) {
+                // webtv in HTTP/1.0 mode, try to kick it back to WTVP
+                var errpage = wtvshared.doErrorPage(500, null, null, false, true);
+                headers = errpage[0];
+                data = ''
+                socket_sessions[socket.id].close_me = true;
+                sendToClient(socket, headers, data);
+            } else {
+                // error reading headers (no request_url provided)
+                var errpage = wtvshared.doErrorPage(400, null, null, false, true);                
+                headers = errpage[0];
+                data = ''
+                socket_sessions[socket.id].close_me = true;
+                sendToClient(socket, headers, data);
+            }
         }
     }
 }
@@ -1803,7 +1868,18 @@ function getGitRevision() {
 var minisrv_config = null;
 
 function reloadConfig() {
+    var temp = { "version": minisrv_config.version }
+    if (minisrv_config.config.git_commit) temp.git_commit = minisrv_config.config.git_commit;
+
     minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
+    minisrv_config.version = temp.version
+    if (temp.git_commit) minisrv_config.config.git_commit = temp.git_commit;
+    if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+    if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
+    Object.keys(minisrv_config.services).forEach((k) => {
+        configureService(k, minisrv_config.services[k])
+    });
+   
     return minisrv_config;
 }
 
@@ -1845,73 +1921,41 @@ if (minisrv_config.config.SessionStore) {
 
 if (minisrv_config.config.ServiceDeps) {
     var ServiceDeps = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps);
-    console.log(" * Configured Service Dependancies at", ServiceDeps);
+    console.log(" * Configured Service Dependencies at", ServiceDeps);
 } else {
-    throw ("ERROR: No Service Dependancies Directory (SessionDeps) defined!");
+    throw ("ERROR: No Service Dependencies Directory (SessionDeps) defined!");
 }
 
 var service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
-    if (minisrv_config.services[k].disabled) return;
+    if (configureService(k, minisrv_config.services[k], true)) {
+        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
 
-    minisrv_config.services[k].name = k;
-    if (!minisrv_config.services[k].host) {
-        minisrv_config.services[k].host = service_ip;
-    }
-    if (minisrv_config.services[k].port && !minisrv_config.services[k].nobind) {
-        if (minisrv_config.services[k].pc_services) pc_ports.push(minisrv_config.services[k].port);
-        else ports.push(minisrv_config.services[k].port);
-    }
-
-    // minisrv_config service toString
-    minisrv_config.services[k].toString = function (overrides) {
-        var self = Object.assign({}, this);
-        if (overrides != null) {
-            if (typeof (overrides) == 'object') {
-                Object.keys(overrides).forEach(function (k) {
-                    if (k != "exceptions") self[k] = overrides[k];
-                });
-            }
-        }
-        if ((k == "wtv-star" && self.no_star_word != true) || k != "wtv-star") {
-            var outstr = "wtv-service: name=" + self.name + " host=" + self.host + " port=" + self.port;
-            if (self.flags) outstr += " flags=" + self.flags;
-            if (self.connections) outstr += " connections=" + self.connections;
-        }
-        if (k == "wtv-star") {
-            outstr += "\nwtv-service: name=wtv-* host=" + self.host + " port=" + self.port;
-            if (self.flags) outstr += " flags=" + self.flags;
-            if (self.connections) outstr += " connections=" + self.connections;
-        }
-        return outstr;
-    }
-
-    console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
-    
-    if (minisrv_config.services[k].local_nntp_port) {
-        if (!wtvnewsserver) {
-            const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
-            var local_nntp_using_auth = false;
-            if (minisrv_config.services[k].local_nntp_requires_auth) {
-                local_nntp_using_auth = true;
-                if (minisrv_config.services[k].local_auth) {
-                    // auth required, and info defined in config
-                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true, minisrv_config.services[k].local_auth.username, minisrv_config.services[k].local_auth.password);
-                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: As Configured");
+        if (minisrv_config.services[k].local_nntp_port) {
+            if (!wtvnewsserver) {
+                const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
+                var local_nntp_using_auth = false;
+                if (minisrv_config.services[k].local_nntp_requires_auth) {
+                    local_nntp_using_auth = true;
+                    if (minisrv_config.services[k].local_auth) {
+                        // auth required, and info defined in config
+                        wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true, minisrv_config.services[k].local_auth.username, minisrv_config.services[k].local_auth.password);
+                        console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: As Configured");
+                    } else {
+                        // auth required, but randomly generated
+                        wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true);
+                        console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth (randgen): User:", wtvnewsserver.username, "Pass:", wtvnewsserver.password);
+                    }
                 } else {
-                    // auth required, but randomly generated
-                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true);
-                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth (randgen): User:", wtvnewsserver.username, "Pass:", wtvnewsserver.password);
+                    // no auth required on local server
+                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port);
+                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: None");
                 }
-            } else {
-                // no auth required on local server
-                wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port);
-                console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: None");
-            }
-            if (minisrv_config.services[k].featuredGroups) {
-                Object.keys(minisrv_config.services[k].featuredGroups).forEach((j) => {
-                    wtvnewsserver.createGroup(minisrv_config.services[k].featuredGroups[j].group, minisrv_config.services[k].featuredGroups[j].description || null);
-                })
+                if (minisrv_config.services[k].featuredGroups) {
+                    Object.keys(minisrv_config.services[k].featuredGroups).forEach((j) => {
+                        wtvnewsserver.createGroup(minisrv_config.services[k].featuredGroups[j].group, minisrv_config.services[k].featuredGroups[j].description || null);
+                    })
+                }
             }
         }
     }

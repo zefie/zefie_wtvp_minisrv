@@ -18,7 +18,8 @@ var logos = {
 }
 
 var disksets = {
-    0: null
+    0: null,
+    98: "HackTV_min.zip"
 }
 
 var viewer_stock_md5s = {
@@ -26,7 +27,7 @@ var viewer_stock_md5s = {
     "WebTVIntel--1.1.exe": "ce7b6d1734b5e3d1cbd5f068609223d1",
     "WebTVIntel--2.5.exe": "4c5754bb8b69739b6f414c2d159051da", 
     "WebTVIntel--1.0-HE.exe": "391f303fd70034e69d3a50583de72c89",
-    "WebTVIntel--2.5-HE.exe": "f0207865693a45ba76b9057dcb8ea672"
+    "WebTVIntel--2.5-HE.exe": "64edab977ec19a663c5842176bec306a"
 }
 
 
@@ -334,6 +335,8 @@ if (request_headers.query.viewer &&
         client_ssid = generateSSID();
 
     var viewer_file = viewers[request_headers.query.viewer];
+    var needs_hacktv_mini = (viewer_file === "WebTVIntel--2.5-HE.exe") ? true : false
+    console.log('needs_hacktv_mini', needs_hacktv_mini)
     if (!viewer_file) {
         errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
         headers = errpage[0];
@@ -378,7 +381,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                 var zip = new AdmZip();
 
                 zip.addZipComment("Viewer SSID: " + client_ssid);
-                zip.addFile(viewer_file, patched_file);
+                zip.addFile(viewer_file.replace("--", "-" + client_ssid + "-"), patched_file);
                 if (!request_headers.query.viewer_only) {
                     var romset_zip = new AdmZip(viewergen_resource_dir + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip");
                     var zipEntries = romset_zip.getEntries();
@@ -396,8 +399,10 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                             zip.addFile(zipEntry.entryName, zipEntry.getData());
                         }
                     });
-                    if (request_headers.query.diskset) {
-                        var diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
+                    if (request_headers.query.diskset || needs_hacktv_mini) {
+                        var diskset_file = 0;
+                        if (needs_hacktv_mini) diskset_file = disksets[98];
+                        else diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
                         if (diskset_file) {
                             var diskset_zip = new AdmZip(viewergen_resource_dir + diskset_file);
                             var zipEntries = diskset_zip.getEntries();

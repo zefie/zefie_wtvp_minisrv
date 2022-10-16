@@ -188,6 +188,10 @@ class WTVClientSessionData {
         );
     }
 
+    getAccountStoreDirectory() {
+        return this.minisrv_config.config.SessionStore + this.path.sep + "accounts";
+    }
+
     /**
      * Returns the absolute path to the user's file store, or false if unregistered
      * @param subscriber {boolean} Returns the parent subscriber directory instead of the user's directory
@@ -195,7 +199,7 @@ class WTVClientSessionData {
      */
     getUserStoreDirectory(subscriber = false, user_id = null) {
         if (user_id == null) user_id = this.user_id;
-        var userstore = this.minisrv_config.config.SessionStore + this.path.sep + this.ssid + this.path.sep;
+        var userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
         if (!subscriber) userstore += "user" + user_id + this.path.sep;
         return userstore;
     }
@@ -539,7 +543,7 @@ class WTVClientSessionData {
     }
 
     unregisterBox() {
-        var user_store_base = this.wtvshared.makeSafePath(this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore), this.path.sep + this.ssid);
+        var user_store_base = this.wtvshared.makeSafePath(this.wtvshared.getAbsolutePath(this.getAccountStoreDirectory()), this.path.sep + this.ssid);
         try {
             if (this.fs.existsSync(user_store_base + ".json")) {
                 this.fs.unlinkSync(user_store_base + ".json");

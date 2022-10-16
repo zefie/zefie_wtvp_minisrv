@@ -302,7 +302,7 @@ ${message_font_close}
 <td abswidth=5>
 <td abswidth=225 maxlines=1>
 ${message_font_open}
-${(message.subject) ? message.subject : "(No Subject)"}
+${(message.subject) ? wtvshared.htmlEntitize(message.subject) : "(No Subject)"}
 ${message_font_close}
 <td abswidth=5>
 <td abswidth=47 maxlines=1>

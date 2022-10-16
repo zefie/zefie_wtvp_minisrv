@@ -14,13 +14,14 @@ class WTVShared {
     iconv = require('iconv-lite');
     parentDirectory = process.cwd()
     extend = require('util')._extend;
+    debug = require('debug')('WTVShared')
 
     minisrv_config = [];
     
     constructor(minisrv_config, quiet = false) {
         if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
-
+       
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
                 var splitString = this.split("");
@@ -38,6 +39,18 @@ class WTVShared {
                 return result;
             }
         }
+    }
+
+    atob(a) {
+        const CryptoJS = require('crypto-js');
+        const enc = CryptoJS.enc.Base64.parse(a);
+        return CryptoJS.enc.Utf8.stringify(enc)
+    }
+
+    btoa(b) {
+        const CryptoJS = require('crypto-js');
+        const enc = CryptoJS.enc.Utf8.parse(b); // encodedWord Array object
+        return CryptoJS.enc.Base64.stringify(enc);
     }
 
     cloneObj(src) {
@@ -59,6 +72,87 @@ class WTVShared {
         return src;
     }
 
+    isAdmin(wtvclient, service_name = "wtv-admin") {
+        var  WTVAdmin = require("./WTVAdmin.js");
+        var wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
+        var result = wtva.isAuthorized(true);
+        wtva, WTVAdmin = null;
+        return result;
+    }
+
+    parseJSON(json) {
+        if (!json) return null;
+        if (typeof json !== 'string') json = json.toString();
+
+        // from https://github.com/getify/JSON.minify/blob/javascript/minify.json.js
+        var tokenizer = /"|(\/\*)|(\*\/)|(\/\/)|\n|\r/g,
+            in_string = false,
+            in_multiline_comment = false,
+            in_singleline_comment = false,
+            tmp, tmp2, new_str = [], ns = 0, from = 0, lc, rc,
+            prevFrom
+            ;
+
+        tokenizer.lastIndex = 0;
+
+        while (tmp = tokenizer.exec(json)) {
+            lc = RegExp.leftContext;
+            rc = RegExp.rightContext;
+            if (!in_multiline_comment && !in_singleline_comment) {
+                tmp2 = lc.substring(from);
+                if (!in_string) {
+                    tmp2 = tmp2.replace(/(\n|\r|\s)+/g, "");
+                }
+                new_str[ns++] = tmp2;
+            }
+            prevFrom = from;
+            from = tokenizer.lastIndex;
+
+            // found a " character, and we're not currently in
+            // a comment? check for previous `\` escaping immediately
+            // leftward adjacent to this match
+            if (tmp[0] == "\"" && !in_multiline_comment && !in_singleline_comment) {
+                // perform look-behind escaping match, but
+                // limit left-context matching to only go back
+                // to the position of the last token match
+                //
+                // see: https://github.com/getify/JSON.minify/issues/64
+                tmp2 = lc.substring(prevFrom).match(/\\+$/);
+
+                // start of string with ", or unescaped " character found to end string?
+                if (!in_string || !tmp2 || (tmp2[0].length % 2) == 0) {
+                    in_string = !in_string;
+                }
+                from--; // include " character in next catch
+                rc = json.substring(from);
+            }
+            else if (tmp[0] == "/*" && !in_string && !in_multiline_comment && !in_singleline_comment) {
+                in_multiline_comment = true;
+            }
+            else if (tmp[0] == "*/" && !in_string && in_multiline_comment && !in_singleline_comment) {
+                in_multiline_comment = false;
+            }
+            else if (tmp[0] == "//" && !in_string && !in_multiline_comment && !in_singleline_comment) {
+                in_singleline_comment = true;
+            }
+            else if ((tmp[0] == "\n" || tmp[0] == "\r") && !in_string && !in_multiline_comment && in_singleline_comment) {
+                in_singleline_comment = false;
+            }
+            else if (!in_multiline_comment && !in_singleline_comment && !(/\n|\r|\s/.test(tmp[0]))) {
+                new_str[ns++] = tmp[0];
+            }
+        }
+        new_str[ns++] = rc;
+        return JSON.parse(new_str.join(""));
+    }
+
+    isConfiguredService(service) {
+        if (this.minisrv_config.services[service]) {
+            if (!this.minisrv_config.services[service].disabled) return true;
+        }
+        return false;
+    }
+
     getServiceString(service, overrides = {}) {
         // used externally by service scripts
         if (service === "all") {
@@ -74,10 +168,10 @@ class WTVShared {
             });
             return out;
         } else {
-            if (!minisrv_config.services[service]) {
+            if (!this.minisrv_config.services[service]) {
                 throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
             } else {
-                return minisrv_config.services[service].toString(overrides);
+                return this.minisrv_config.services[service].toString(overrides);
             }
         }
     }
@@ -119,8 +213,17 @@ class WTVShared {
             }
         });
 
+        var allowedProtocols = allowedSchemes;
+        // allow links to services flagged as "wideopen"
+        Object.keys(this.minisrv_config.services).forEach((k) => {
+            var flag = parseInt(this.minisrv_config.services[k].flags, 16);
+            if (flag === 4 || flag === 7) {
+                allowedProtocols.push(k);
+            }
+        });
+
         const clean = this.sanitizeHtml(string, {
-            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'style', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
+            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
             disallowedTagsMode: 'discard',
             allowedAttributes: {
                 a: ['href', 'name', 'target'],
@@ -132,11 +235,25 @@ class WTVShared {
             allowedSchemes: allowedSchemes,
             allowedSchemesByTag: {},
             allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
-            allowVulnerableTags: true,
+            exclusiveFilter: function (frame) {
+                var allowed = false;
+                Object.keys(frame.attribs).forEach((k) => {
+                    if (k == "href" || k == "background" || k == "src") {
+                        var value = frame.attribs[k];                        
+                        Object.keys(allowedProtocols).forEach((j) => {
+                            if (value.startsWith(allowedProtocols[j])) {
+                                allowed = true;
+                            }
+                        })                        
+                    }
+                });
+                console.log(frame, allowed);
+                return !allowed;
+            },
+            allowVulnerableTags: false,
             allowProtocolRelative: false
-        })
+        }, true)
         // todo: add missing user open tags (eg </i> if user did not close it) (might be done by sanitize-html?)
-        // todo: figure out bgcolor and text color voodoo
         return clean;
     }
 
@@ -229,12 +346,12 @@ class WTVShared {
     getUserConfig() {
         try {
             var user_config_filename = this.getAbsolutePath("user_config.json", this.parentDirectory);
+
             if (this.fs.lstatSync(user_config_filename)) {
                 try {
-                    var minisrv_user_config = JSON.parse(this.fs.readFileSync(user_config_filename));
+                    var minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
                 } catch (e) {
-                    console.error("ERROR: Could not read user_config.json", e);
-                    var throw_me = true;
+                    throw ("ERROR: Could not read user_config.json", e);
                 }
             } else {
                 var minisrv_user_config = {}
@@ -281,7 +398,7 @@ class WTVShared {
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
         if (notices || reload_notice) console.log(" *** Reading global configuration...");
         try {
-            var minisrv_config = JSON.parse(this.fs.readFileSync(this.getAbsolutePath("config.json", __dirname)));
+            var minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath("config.json", __dirname)));
         } catch (e) {
             throw ("ERROR: Could not read config.json", e);
         }
@@ -677,7 +794,7 @@ class WTVShared {
         });
     }
 
-    doErrorPage(code, data = null, details = null,  pc_mode = false) {
+    doErrorPage(code, data = null, details = null,  pc_mode = false, wtv_reset = false) {
         var headers = null;
         var minisrv_config = this.minisrv_config;
         switch (code) {
@@ -713,7 +830,12 @@ class WTVShared {
                 headers += "Content-Type: text/html\n";
                 break;
         }
-        console.error(" * doErrorPage Called:", code, data);
+        if (wtv_reset && !pc_mode) {
+            headers += "wtv-service: reset\n";
+            headers += this.getServiceString('wtv-1800') + "\n";
+            headers += "wtv-visit: wtv-1800:/preregister?scriptless-visit-reason=999\n";
+            console.error(" * doErrorPage Called (sent wtv-reset):", code, data);
+        } else console.error(" * doErrorPage Called:", code, data);
         return new Array(headers, data);
     }
 
@@ -765,6 +887,12 @@ class WTVShared {
         return ssid;
     }
 
+    makeSafeStringPath(path = "") {
+        path = path.replace(/[^\w]/g, "").replace(/\.\./g, "");
+        if (path.length == 0) path = null;
+        return path;
+    }
+
 
     unpackCompressedB64(data) {        
         var data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
@@ -803,7 +931,7 @@ class clientShowAlert {
     noback = null;
     image = null;
 
-    constructor(image = null, message = null, buttonlabel1 = null, buttonaction1 = null, buttonlabel2 = null, buttonaction2 = null, noback = null) {
+    constructor(image = null, message = null, buttonlabel1 = null, buttonaction1 = null, buttonlabel2 = null, buttonaction2 = null, noback = null, sound = null) {
         this.message = message;
         this.buttonlabel1 = buttonlabel1;
         this.buttonlabel2 = buttonlabel2;
@@ -811,6 +939,9 @@ class clientShowAlert {
         this.buttonaction2 = buttonaction2;
         this.message = message;
         this.noback = noback;
+        this.sound = sound;
+        if (this.sound === false) this.sound = "none";
+
         if (typeof image === 'object') {
             this.image = null;
             Object.keys(image).forEach(function (k) {
@@ -829,6 +960,7 @@ class clientShowAlert {
         if (this.buttonlabel2) url += "buttonlabel2=" + escape(this.buttonlabel2) + "&";
         if (this.buttonaction2) url += "buttonaction2=" + escape(this.buttonaction2) + "&";
         if (this.image) url += "image=" + escape(this.image) + "&";
+        if (this.sound) url += "sound=" + escape(this.sound) + "&";
         if (this.noback) url += "noback=true&";
         return url.substring(0, url.length - 1);
     }

@@ -86,7 +86,7 @@ minisrv-no-mail-count: true
 Content-Type: text/html`;
 		if (client_challenge_response) {
 			headers += `
-wtv-encrypted: true`;
+wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}`;
 			if (wtvsec_login) session_data.data_store.wtvsec_login.update_ticket = true;
 		}
 		if (limitedLoginRegistered && session_data.getUserPasswordEnabled()) gourl = "wtv-head-waiter:/password?";

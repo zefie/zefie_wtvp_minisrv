@@ -1,7 +1,8 @@
 var minisrv_service_file = true;
 
 headers = `200 OK
-Content-type: text/html`
+Content-type: text/html
+minisrv-no-mail-count: true`
 
 data = `<html>
 

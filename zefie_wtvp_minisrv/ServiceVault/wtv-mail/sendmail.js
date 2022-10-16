@@ -7,6 +7,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail?came-from=" + encodeURIComponent(request_headers.request_url);
 } else if (request_headers.query.clear == "true") {
+} else if (request_headers.query.clear == "true") {
     if (request_headers.Referer)
         gourl = request_headers.Referer.replace(/[\?\&]clear\=true/, '');
     else
@@ -62,8 +63,8 @@ Location: ${gourl}`;
             reply_message = session_data.mailstore.getMessageByID(request_headers.query.message_reply_id);
             if (reply_message) {
                 msg_subject = "Re: " + reply_message.subject;
-                to_addr = reply_message.to_addr;
-                to_name = reply_message.to_name;
+                to_addr = reply_message.from_addr;
+                to_name = reply_message.from_name;
             }
         }
     }
@@ -125,7 +126,7 @@ Content-Type: audio/wav`;
 
         var username = session_data.getSessionData("subscriber_username");
         var userdisplayname = wtvshared.htmlEntitize(session_data.getSessionData("subscriber_name"));
-        var address = username + "@" + minisrv_config.config.domain_name
+        var address = username + "@" + minisrv_config.config.service_name //minisrv_config.config.domain_name
         var notImplementedAlert = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
             'message': "This feature is not available.",

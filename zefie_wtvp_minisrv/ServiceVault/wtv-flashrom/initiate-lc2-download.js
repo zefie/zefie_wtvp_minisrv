@@ -10,6 +10,7 @@ var romtype = session_data.get("wtv-client-rom-type");
 		if (request_headers.query.numparts) url += "&numparts=" + request_headers.query.numparts;
 	}
 	headers = "300 OK\n";
+	headers += "minisrv-no-mail-count: true\n";
 	headers += "wtv-visit: " + url + "\n";
 	headers += "Location: " + url + "\n";
 	headers += "Content-type: text/html";

@@ -2,7 +2,8 @@ var minisrv_service_file = true;
 
 var gourl = "wtv-head-waiter:/login?";
 
-if (socket.ssid) {
+
+if (session_data) {
 	if (session_data.loadSessionData() == true) {
 		console.log(" * Loaded session data from disk for", wtvshared.filterSSID(socket.ssid))
 		session_data.setSessionData("registered", (session_data.getSessionData("registered") == true) ? true : false);
@@ -58,10 +59,12 @@ if (session_data.data_store.wtvsec_login) {
 	var file_path = null;
 	var bf0app_update = false;
 	var romtype = session_data.get("wtv-client-rom-type");
-	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin && !request_headers.query.guest_login);
+	var bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
+	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin && !request_headers.query.guest_login && !bootrom !== 0);
 	var wtv_script_id = parseInt(session_data.get("wtv-script-id"));
-	var bootrom = session_data.get("wtv-client-bootrom-version");
+	var wtv_script_mod = parseInt(session_data.get("wtv-script-mod"));
 	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscript = false;
+	if (wtv_script_id !== 0 && wtv_script_mod !== 0) send_tellyscript = false;
 	if (send_tellyscript) {
 		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
 			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)

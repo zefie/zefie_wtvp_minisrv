@@ -9,12 +9,14 @@ class WTVNews {
     username = null;
     password = null;
     posting_allowed = true;
+    debug = null;
 
     constructor(minisrv_config, service_name) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         const { WTVShared } = require("./WTVShared.js");
         this.wtvshared = new WTVShared(minisrv_config);
+        this.debug = require('debug')('WTVNews');
     }
 
     initializeUsenet(host, port = 119, tls_options = null, username = null, password = null) {
@@ -393,17 +395,20 @@ class WTVNews {
                     var section = element.split("\n");
                     attachments[i] = {};
                     section.forEach((line) => {
+                        this.debug('section_type', section_type, 'line', line);
                         var section_header_match = line.match(/^Content\-/i)
                         if (section_header_match) {
                             var section_match = line.match(/^Content\-Type\: (.+)\;/i)
                             if (section_match) {
+                                this.debug('section_match', section_match)
+                                section_type = section_match[1];
                                 if (section_match[1].match("text/plain")) {
-                                    section_type = section_match[1].match("text/plain")[1];
                                     message_type = section_type;
                                 } else {
                                     section_type = section_match[1];
                                     attachments[i].content_type = section_match[1]
                                 }
+                                this.debug('section_type', section_type)
                             }
                             section_match = line.match(/^Content\-Disposition\: (.+)\;/i)
                             if (section_match) {
@@ -476,6 +481,9 @@ class WTVNews {
                                         mainref = searchart.messageId;
                                         message_relations[mainref].push({ "messageId": messageId, "index": k });
                                         found = true;
+                                    } else {
+                                        // no relation, missing reference, add as root
+                                        message_id_roots.push({ "messageId": messageId, "index": k });
                                     }
                                 });
                             }
@@ -508,7 +516,7 @@ class WTVNews {
                     // sort relations by date
                     var article = messages[message_relations[message_id_roots[k].messageId][j].index];
                     var article_date = Date.parse(article.headers.DATE);
-                    relations.push({ "article": article, "relation": message_id_roots[k].messageId, "date": article_date })
+                    relations.push({ "article": article, "relation": message_id_roots[k].messageId || null, "date": article_date })
                 });
                 relations.sort((a, b) => { return (a.date - b.date) });
                 Object.keys(relations).forEach((j) => {

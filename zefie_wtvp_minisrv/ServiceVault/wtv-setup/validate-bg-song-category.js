@@ -1,5 +1,7 @@
 var minisrv_service_file = true;
 
+const wtvbgm = new WTVBGMusic(minisrv_config, session_data);
+
 if (request_headers.query && session_data) {
 
     if (request_headers.request_url.indexOf('?') >= 0) {
