@@ -1841,12 +1841,18 @@ function getGitRevision() {
 var minisrv_config = null;
 
 function reloadConfig() {
+    var temp = { "version": minisrv_config.version }
+    if (minisrv_config.config.git_commit) temp.git_commit = minisrv_config.config.git_commit;
+
     minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
+    minisrv_config.version = temp.version
+    if (temp.git_commit) minisrv_config.config.git_commit = temp.git_commit;
     if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
     if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
     Object.keys(minisrv_config.services).forEach((k) => {
         configureService(k, minisrv_config.services[k])
     });
+   
     return minisrv_config;
 }
 
