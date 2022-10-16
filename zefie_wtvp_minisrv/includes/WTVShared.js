@@ -678,26 +678,26 @@ class WTVShared {
         var minisrv_config = this.minisrv_config;
         switch (code) {
             case 401:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (pc_mode) headers = "401 Unauthorized\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
             case 403:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (pc_mode) headers = "403 Forbidden\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
             case 404:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (pc_mode) headers = "404 Not Found\n";
                 else headers = code + " " + data + "\n";
                 headers += "Content-Type: text/html\n";
                 break;
             case 400:
             case 500:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
+                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
                 if (details) data += "<br>Details:<br>" + details;
                 if (pc_mode) headers = "500 Internal Server Error\n";
                 else headers = code + " " + data + "\n";
@@ -771,7 +771,7 @@ class WTVShared {
         return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
     }
 
-    getTemplate(service_name, path, path_only = true) {
+    getTemplate(service_name, path, path_only = false) {
         var self = this;
         var outdata = null;
         var found = false
@@ -780,7 +780,7 @@ class WTVShared {
             var search = self.getAbsolutePath(template_vault_dir + self.path.sep + service_name + self.path.sep + path);
             if (self.fs.existsSync(search)) {
                 if (path_only) outdata = search;
-                else outdata = fs.readFileSync(search).toString('ascii');
+                else outdata = self.fs.readFileSync(search);
                 if (!self.minisrv_config.config.debug_flags.quiet) console.log(" * Found " + search + " to handle template");
                 found = true;
                 return false;

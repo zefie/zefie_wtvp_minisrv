@@ -156,7 +156,7 @@ class WTVMail {
         return this.uuid.v1();
     }
 
-    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false, attachments = [], url = null, url_title = null) {
+    createMessage(mailboxid, from_addr, to_addr, msgbody, subject = null, from_name = null, to_name = null, signature = null,  date = null, known_sender = false, attachments = [], url = null, url_title = null, allow_html = false) {
         if (this.createMailbox(mailboxid)) {
             if (!date) date = Math.floor(Date.now() / 1000);
 
@@ -177,7 +177,8 @@ class WTVMail {
                 "unread": true,
                 "attachments": attachments,
                 "url": url,
-                "url_title": url_title
+                "url_title": url_title,
+                "allow_html": allow_html
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
@@ -202,14 +203,53 @@ class WTVMail {
     }
 
     createWelcomeMessage() {
-        var from_addr = (this.minisrv_config.config.service_owner_account) ? this.minisrv_config.config.service_owner_account : this.minisrv_config.config.service_owner;
-        from_addr += "@" + this.minisrv_config.config.service_name;
-        var from_name = this.minisrv_config.config.service_owner
+        var welcomeTemplate = this.wtvshared.getTemplate("wtv-mail", "welcomeMail.txt").toString('ascii');
+        var end_of_headers = false;
+        var msg = "";
+        var self = this;
         var to_addr = this.wtvclient.getSessionData("subscriber_username") + "@" + this.minisrv_config.config.service_name;
         var to_name = this.wtvclient.getSessionData("subscriber_name");
-        var subj = "Welcome to " + this.minisrv_config.config.service_name;
-        var msg = "poop";
-        return this.createMessage(0, from_addr, to_addr, msg, subj, from_name, to_name, null, null, true);
+        var available_tags = {
+            ...this.minisrv_config.config,
+            "user_address": to_addr,
+            "user_name": to_name
+        }
+        var from_name, from_addr, subj = null;
+        var lines = welcomeTemplate.replace(/\r/g, '').split("\n");
+        lines.forEach((line) => {
+            if (line.indexOf(": ") > 1 && !end_of_headers) {
+                var header = [line.slice(0, line.indexOf(':')), line.slice(line.indexOf(':') + 2).trim()];
+                switch (header[0].toLowerCase()) {
+                    case "from":
+                        if (header[1].indexOf("<") >= 0) {
+                            var email = header[1].match(/(.+) \<(.+)\>/);
+                            if (email) {
+                                from_name = email[1];
+                                from_addr = email[2];
+                            } else {
+                                var email = header[1].match(/\<(.+)\>/);
+                                from_addr = email[1];
+                            }
+                        } else if (header[1].indexOf('@') >= 0) {
+                            from_addr = header[1];
+                        }
+                        break;
+
+                    case "subject":
+                        subj = header[1];
+                        break;
+                }
+            } else if (line == '') end_of_headers = true;
+            else {
+                msg += line.replace(/\$\{(\w{1,})\}/g, function (x) {
+                    var out = '';
+                    var tag = x.replace("${", '').replace('}', '');
+                    if (available_tags[tag]) out = available_tags[tag];
+                    return out
+                }) + "\n";
+            }
+        });
+        return this.createMessage(0, from_addr, to_addr, msg, subj, from_name, to_name, null, null, true, [], null, null, true);
     }
 
     getMessage(mailboxid, messageid) {
