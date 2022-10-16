@@ -77,6 +77,44 @@ function verifyServicePort(service_name, socket) {
     return false;
 }
 
+function configureService(service_name, service_obj, initial = false) {
+    if (service_obj.disabled) return false;
+
+    service_obj.name = service_name;
+    if (!service_obj.host) {
+        service_obj.host = service_ip;
+    }
+    if (service_obj.port && !service_obj.nobind && initial) {
+        if (service_obj.pc_services) pc_ports.push(service_obj.port);
+        else ports.push(service_obj.port);
+    }
+
+    // minisrv_config service toString
+    service_obj.toString = function (overrides) {
+        var self = Object.assign({}, this);
+        if (overrides != null) {
+            if (typeof (overrides) == 'object') {
+                Object.keys(overrides).forEach(function (k) {
+                    if (k != "exceptions") self[k] = overrides[k];
+                });
+            }
+        }
+        if ((service_name == "wtv-star" && self.no_star_word != true) || service_name != "wtv-star") {
+            var outstr = "wtv-service: name=" + self.name + " host=" + self.host + " port=" + self.port;
+            if (self.flags) outstr += " flags=" + self.flags;
+            if (self.connections) outstr += " connections=" + self.connections;
+        }
+        if (service_name == "wtv-star") {
+            outstr += "\nwtv-service: name=wtv-* host=" + self.host + " port=" + self.port;
+            if (self.flags) outstr += " flags=" + self.flags;
+            if (self.connections) outstr += " connections=" + self.connections;
+        }
+        return outstr;
+    }
+    minisrv_config.services[service_name] = service_obj;
+    return true;
+}
+
 // Where we store our session information
 var ssid_sessions = new Array();
 var socket_sessions = new Array();
@@ -1805,6 +1843,9 @@ var minisrv_config = null;
 function reloadConfig() {
     minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
     if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+    Object.keys(minisrv_config.services).forEach((k) => {
+        configureService(k, minisrv_config.services[k])
+    });
     return minisrv_config;
 }
 
@@ -1853,40 +1894,7 @@ if (minisrv_config.config.ServiceDeps) {
 
 var service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
-    if (minisrv_config.services[k].disabled) return;
-
-    minisrv_config.services[k].name = k;
-    if (!minisrv_config.services[k].host) {
-        minisrv_config.services[k].host = service_ip;
-    }
-    if (minisrv_config.services[k].port && !minisrv_config.services[k].nobind) {
-        if (minisrv_config.services[k].pc_services) pc_ports.push(minisrv_config.services[k].port);
-        else ports.push(minisrv_config.services[k].port);
-    }
-
-    // minisrv_config service toString
-    minisrv_config.services[k].toString = function (overrides) {
-        var self = Object.assign({}, this);
-        if (overrides != null) {
-            if (typeof (overrides) == 'object') {
-                Object.keys(overrides).forEach(function (k) {
-                    if (k != "exceptions") self[k] = overrides[k];
-                });
-            }
-        }
-        if ((k == "wtv-star" && self.no_star_word != true) || k != "wtv-star") {
-            var outstr = "wtv-service: name=" + self.name + " host=" + self.host + " port=" + self.port;
-            if (self.flags) outstr += " flags=" + self.flags;
-            if (self.connections) outstr += " connections=" + self.connections;
-        }
-        if (k == "wtv-star") {
-            outstr += "\nwtv-service: name=wtv-* host=" + self.host + " port=" + self.port;
-            if (self.flags) outstr += " flags=" + self.flags;
-            if (self.connections) outstr += " connections=" + self.connections;
-        }
-        return outstr;
-    }
-
+    configureService(k, minisrv_config.services[k], true);
     console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
     
     if (minisrv_config.services[k].local_nntp_port) {
