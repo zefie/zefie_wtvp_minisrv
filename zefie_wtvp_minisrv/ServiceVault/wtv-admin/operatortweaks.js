@@ -163,7 +163,7 @@ When disabled, accounts will not be able to use passwords, if they had a passwor
 The size of the field on the login password page
 </table>
 <TD WIDTH=15>
-<TD WIDTH=198 absheight=2000 VALIGN=top ALIGN=left colspan=2>
+<TD WIDTH=198 absheight=1620 VALIGN=top ALIGN=left colspan=2>
 <form action="wtv-admin:/validate-operator-tweaks">
 <input type=hidden name=autosubmit value=true autosubmit=onleave>
 <table cellspacing=0 cellpadding=5>
@@ -255,7 +255,8 @@ ${generateFormField('input', 'passwords.form_size', "size=2 onkeypress='return f
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
 <INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Done NAME="Done" USESTYLE WIDTH=103>
 </SHADOW></FONT></FORM>
-<TD>
+<TD><TD>
+<tr><td>
 </TABLE>
 </body>
 </html>
