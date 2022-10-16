@@ -16,8 +16,8 @@ class WTVNewsServer {
         const { WTVShared } = require("./WTVShared.js");
         this.wtvshared = new WTVShared(minisrv_config);
         this.featuredGroups = minisrv_config.services['wtv-news'].featuredGroups;
-        const nntp_server = require('nntp-server');
-        var nntp_statuses = require('nntp-server/lib/status');
+        const nntp_server = require('nntp-server-zefie');
+        var nntp_statuses = require('nntp-server-zefie/lib/status');
 
         this.username = username || null;
         this.password = password || null;
