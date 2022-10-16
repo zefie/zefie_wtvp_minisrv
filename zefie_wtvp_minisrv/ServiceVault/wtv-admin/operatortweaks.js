@@ -7,7 +7,6 @@ var auth = wtva.isAuthorized();
 function generateFormField(type, confvar, options = null) {
     if (confvar.indexOf('.') > 0) {
         var confvar_split = confvar.split('.');
-        console.log(confvar_split)
         // not operater error resistant, be mindful if you modify this page
         if (user_config.config[confvar_split[0]])
             var confvar_value = user_config.config[confvar_split[0]][confvar_split[1]] || minisrv_config.config[confvar_split[0]][confvar_split[1]]
