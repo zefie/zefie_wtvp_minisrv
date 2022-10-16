@@ -124,9 +124,9 @@ contact the server operator (eg. email, Discord, Twitter, etc...)
 <tr><td absheight=60 valign=top>
 <font size=-1><b>service_name</b><br>The name of the service (eg. WebTV)
 <tr><td absheight=90 valign=top>
-<font size=-1><b>service_logo</b><br>The logo for the service. Filename only. Must exist in the SharedROMCache service vault.
-<tr><td absheight=70 valign=top>
-<font size=-1><b>service_splash_logo</b><br>The splash page logo for the service. Absolute path. Can be file:// or wtv url.
+<font size=-1><b>service_logo</b><br>The logo for the service. Absolute URL, or file name in the Shared ROMCache.
+<tr><td absheight=90 valign=top>
+<font size=-1><b>service_splash_logo</b><br>The splash page logo for the service. Absolute URL, or file name in the Shared ROMCache.
 <tr><td absheight=60 valign=top>
 <font size=-1><b>show_detailed_splash</b><br>Show service information and client connection speed on the splash page.
 <tr><td absheight=60 valign=top>
@@ -162,7 +162,7 @@ When disabled, accounts will not be able to use passwords, if they had a passwor
 The size of the field on the login password page
 </table>
 <TD WIDTH=15>
-<TD WIDTH=198 absheight=1620 VALIGN=top ALIGN=left colspan=2>
+<TD WIDTH=198 absheight=1640 VALIGN=top ALIGN=left colspan=2>
 <form action="wtv-admin:/validate-operator-tweaks">
 <input type=hidden name=autosubmit value=true autosubmit=onleave>
 <table cellspacing=0 cellpadding=5>
@@ -181,13 +181,13 @@ ${generateFormField('input', 'service_owner_contact')}
 <td absheight=90 valign=top>
 ${generateFormField('input', 'service_owner_contact_method')}
 <tr>
-<td absheight=60 valign=top>
+<td absheight=55 valign=top>
 ${generateFormField('input', 'service_name')}
 <tr>
-<td absheight=90 valign=top>
+<td absheight=85 valign=top>
 ${generateFormField('input', 'service_logo')}
 <tr>
-<td absheight=70 valign=top>
+<td absheight=90 valign=top>
 ${generateFormField('input', 'service_splash_logo')}
 <tr>
 <td absheight=60 valign=top>
@@ -196,7 +196,7 @@ ${generateFormField('checkbox', 'show_detailed_splash')}
 <td absheight=60 valign=top>
 ${generateFormField('checkbox', 'hide_ssid_in_logs')}
 <tr>
-<td absheight=70 valign=top>
+<td absheight=80 valign=top>
 ${generateFormField('checkbox', 'filter_passwords_in_logs')}
 <tr>
 <td absheight=50 valign=top>
