@@ -10,7 +10,7 @@ else if (request_headers.query.reconnect) gourl += "reconnect=true";
 else gourl += "initial_login=true"
 
 if (request_headers.query.guest_login) {
-	if (request_headers.query.relogin || request_headers.query.reconnect) gourl += "&";
+	if (gourl.substr(-1) != "?") gourl += "&";
 	gourl += "guest_login=true";
 	if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 }

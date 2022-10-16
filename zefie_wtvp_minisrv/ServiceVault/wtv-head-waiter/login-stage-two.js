@@ -9,6 +9,8 @@ if (gourl) {
 wtv-open-isp-disabled: false
 `;
 	if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
+		// fake logged in for reg
+		session_data.setUserLoggedIn(true);
 		headers += `wtv-encrypted: true
 ${getServiceString('wtv-register')}
 ${getServiceString('wtv-head-waiter')}
