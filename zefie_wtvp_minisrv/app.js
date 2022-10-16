@@ -1843,6 +1843,7 @@ var minisrv_config = null;
 function reloadConfig() {
     minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
     if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+    if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
     Object.keys(minisrv_config.services).forEach((k) => {
         configureService(k, minisrv_config.services[k])
     });
