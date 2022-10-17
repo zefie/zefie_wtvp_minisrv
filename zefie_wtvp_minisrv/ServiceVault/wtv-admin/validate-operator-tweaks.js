@@ -18,9 +18,18 @@ if (auth === true) {
         Object.keys(request_headers.query).forEach((k) => {
             if (k === "autosubmit") return;
             var v = request_headers.query[k];
-            if (!isNaN(parseInt(v))) v = parseInt(v);
+
+            // enable_multi_query may send ["false", "on"] for checkboxes due to webtvism
+            if (isArray(v)) v = v[(v.length - 1)]; 
+
+            // convert numbers back to int before writing to config
+            if (!isNaN(parseInt(v))) v = parseInt(v); 
+
+            // convert string back to boolean before writing to config
             if (v === "on" || v === "true" || v === "false") v = wtvshared.parseBool(v);
+
             if (k.indexOf("-") > 0) {
+                // handle sub-config items
                 var s = k.split("-");
                 if (!user_config.config[s[0]]) user_config.config[s[0]] = {}
                 user_config.config[s[0]][s[1]] = v;
