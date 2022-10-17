@@ -9,7 +9,7 @@ class WTVRegister {
     constructor(minisrv_config, session_store_dir = null) {
         this.minisrv_config = minisrv_config;
         this.service_owner = minisrv_config.config.service_owner || "a minisrv user";
-        if (session_store_dir) this.session_store_dir = session_store_dir
+        this.session_store_dir = session_store_dir || this.minisrv_config.config.SessionStore;
     }
 
     getServiceOperator(first_letter_lower = false) {
@@ -30,13 +30,12 @@ class WTVRegister {
 
     checkUsernameAvailable(username, directory = null) {
         // returns the user's ssid, and user_id and userid in an array if true, false if not
-        var search_dir = this.minisrv_config.config.SessionStore;
+        var search_dir = this.session_store_dir + this.path.sep + "accounts";
         var return_val = false;
         var self = this;
         if (directory) search_dir = directory;
         this.fs.readdirSync(search_dir).forEach(file => {
             if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
-                if (search_dir.match(/minisrv\_internal\_nntp/)) return;
                 return_val = !self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
             }
             if (!file.match(/user.*\.json/ig)) return;

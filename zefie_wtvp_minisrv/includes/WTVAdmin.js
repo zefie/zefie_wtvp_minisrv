@@ -99,7 +99,7 @@ class WTVAdmin {
     }
 
     getAccountInfo(username, directory = null) {
-        var search_dir = this.minisrv_config.config.SessionStore;
+        var search_dir = this.minisrv_config.config.SessionStore + this.path.sep + "accounts";
         var account_data = null;
         var self = this;
         if (directory) search_dir = directory;
@@ -114,7 +114,7 @@ class WTVAdmin {
                 var temp_session_data = JSON.parse(temp_session_data_file);
 
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
-                    account_data = [temp_session_data, (search_dir + self.path.sep + file).replace(this.minisrv_config.config.SessionStore + this.path.sep, "").split(this.path.sep)[0]];
+                    account_data = [temp_session_data, (search_dir + self.path.sep + file).replace(this.minisrv_config.config.SessionStore + this.path.sep + "accounts", "").split(this.path.sep)[1]];
                 }
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", search_dir + self.path.sep + file, e);

@@ -38,9 +38,6 @@
     "enable_port_isolation": true,
     "allow_guests": true,
     "domain_name": "wtv.zefie.com",
-    "ssid_block_list": [
-      "minisrv_internal_nntp"
-    ],
     "user_accounts": {
       "max_users_per_account": 6,
       "min_username_length": 5,
