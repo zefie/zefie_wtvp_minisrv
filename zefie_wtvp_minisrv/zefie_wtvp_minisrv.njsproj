@@ -188,6 +188,7 @@
     <Content Include="ServiceVault\wtv-admin\ban.js" />
     <Content Include="ServiceVault\wtv-admin\deleteaccount.js" />
     <Content Include="ServiceVault\wtv-admin\deleteuser.js" />
+    <Content Include="ServiceVault\wtv-admin\findaccount.js" />
     <Content Include="ServiceVault\wtv-admin\images\nuke.gif" />
     <Content Include="ServiceVault\wtv-admin\images\nuke_inverted.gif" />
     <Content Include="ServiceVault\wtv-admin\images\polyzoot.jpg" />

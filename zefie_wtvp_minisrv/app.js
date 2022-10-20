@@ -332,7 +332,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     ]
 
     if (!pc_services) {
-        updateFromVM.push([`ssid_sessions[${socket.ssid}]`, "session_data"]); // user-specific session data from unprivileged scripts
+        updateFromVM.push([`ssid_sessions['${socket.ssid}']`, "session_data"]); // user-specific session data from unprivileged scripts
     }
 
     var privileged = false;
@@ -509,7 +509,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         try {
                             if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
                         } catch (e) {
-
+                            console.error("vm readback error", e, item[0] + ' = vmResults[' + item[1] + ']');
                         }
                     })
 
@@ -544,14 +544,16 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     request_headers.service_file_path = catchall_file;
                                     var script_data = fs.readFileSync(catchall_file).toString();
 
-                                    runScriptInVM(script_data, contextObj, privileged, catchall_file);
+                                    var vmResults = runScriptInVM(script_data, contextObj, privileged, catchall_file);
 
-                                    // Here we read back certain data from the ServiceVault Script Context Object
-                                    try {
-                                        if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
-                                    } catch (e) {
-
-                                    }
+                                    updateFromVM.forEach((item) => {
+                                        // Here we read back certain data from the ServiceVault Script Context Object
+                                        try {
+                                            if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
+                                        } catch (e) {
+                                            console.error("vm readback error", e);
+                                        }
+                                    });
 
                                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
                                     break;

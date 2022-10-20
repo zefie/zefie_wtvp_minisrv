@@ -1,6 +1,5 @@
 var minisrv_service_file = true;
 
-const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 var wtvflashrom;
 request_is_async = true;
 
