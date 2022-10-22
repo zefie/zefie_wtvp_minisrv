@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+session_data.data_store.wtvsec_login.PrepareTicket();
 
 headers = `300 Moved
 Connection: Close
