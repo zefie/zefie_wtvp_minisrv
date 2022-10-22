@@ -29,10 +29,22 @@ class WTVRegister {
 
 
     checkUsernameAvailable(username, directory = null) {
-        // returns the user's ssid, and user_id and userid in an array if true, false if not
-        var search_dir = this.session_store_dir + this.path.sep + "accounts";
-        var return_val = false;
         var self = this;
+        var return_val = false;
+        // returns the user's ssid, and user_id and userid in an array if true, false if not
+
+        // check against reserved name list
+        if (this.minisrv_config.config.user_accounts.reserved_names) {
+            Object.keys(this.minisrv_config.config.user_accounts.reserved_names).forEach((k) => {
+                if (self.minisrv_config.config.user_accounts.reserved_names[k].toLowerCase() == username.toLowerCase()) return_val = true;
+                console.log(self.minisrv_config.config.user_accounts.reserved_names[k].toLowerCase(), username.toLowerCase(), return_val)
+            })
+        }
+
+        if (return_val) return !return_val;
+
+        // check against user accounts
+        var search_dir = this.session_store_dir + this.path.sep + "accounts";
         if (directory) search_dir = directory;
         this.fs.readdirSync(search_dir).forEach(file => {
             if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
@@ -42,9 +54,10 @@ class WTVRegister {
             try {
                 var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
-                console.log(temp_session_data.subscriber_username.toLowerCase());
-                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
-                    return_val = true;
+                if (temp_session_data.subscriber_username) {
+                    if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                        return_val = true;
+                    }
                 }
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", search_dir + self.path.sep + file, e);
