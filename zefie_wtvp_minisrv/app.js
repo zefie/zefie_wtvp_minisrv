@@ -22,6 +22,7 @@ const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const vm = require('vm');
+const debug = require('debug')('minisrv_main');
 const express = require('express');
 var wtvnewsserver = null;
 
@@ -182,11 +183,25 @@ async function sendRawFile(socket, path) {
     });
 }
 
-var runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null) {
+var runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null, debug_name = null) {
     // Here we define the ServiceVault Script Context Object
     // The ServiceVault scripts will only be allowed to access the following fcnutions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
     // Example: an attempt to change "minisrv_config" from a ServiceVault script would be discarded
+
+    // try to build a name for the script's debug() calls
+    if (!debug_name) {
+        // try to make the debug name
+        var debug_name = (filename) ? filename.split(path.sep) : null;
+        if (debug_name) {
+            if (wtvshared.isConfiguredService(debug_name[debug_name.length - 2]))
+                // service:/filename
+                debug_name = debug_name[debug_name.length - 2] + ":/" + debug_name[debug_name.length - 1];
+            else
+                // filename
+                debug_name = debug_name[debug_name.length - 1];
+        }
+    }
 
     // create global context object
     var contextObj = {
@@ -210,6 +225,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "path": path,
 
         // Our variables and functions
+        "debug": require('debug')((debug_name) ? debug_name : 'service_script'),
         "minisrv_config": minisrv_config,
         "socket": null,
         "headers": null,

@@ -59,6 +59,13 @@ class WTVShared {
         return src;
     }
 
+    isConfiguredService(service) {
+        if (this.minisrv_config.services[service]) {
+            if (!this.minisrv_config.services[service].disabled) return true;
+        }
+        return false;
+    }
+
     getServiceString(service, overrides = {}) {
         // used externally by service scripts
         if (service === "all") {
