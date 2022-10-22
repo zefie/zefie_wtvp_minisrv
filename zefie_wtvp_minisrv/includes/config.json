@@ -41,7 +41,13 @@
     "user_accounts": {
       "max_users_per_account": 6,
       "min_username_length": 5,
-      "max_username_length": 18
+      "max_username_length": 18,
+      "reserved_names": [
+        "AccountDisabled",
+        "Demo",
+        "Flash",
+        "null"
+      ]
     },
     "passwords": {
       "enabled": true,
