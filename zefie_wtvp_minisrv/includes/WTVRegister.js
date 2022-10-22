@@ -37,7 +37,6 @@ class WTVRegister {
         if (this.minisrv_config.config.user_accounts.reserved_names) {
             Object.keys(this.minisrv_config.config.user_accounts.reserved_names).forEach((k) => {
                 if (self.minisrv_config.config.user_accounts.reserved_names[k].toLowerCase() == username.toLowerCase()) return_val = true;
-                console.log(self.minisrv_config.config.user_accounts.reserved_names[k].toLowerCase(), username.toLowerCase(), return_val)
             })
         }
 
