@@ -156,7 +156,8 @@
       "connections": 3,
       "privileged": true,
       "modules": [
-        "WTVBGMusic"
+        "WTVBGMusic",
+        "WTVRegister"
       ]
     },
     "wtv-music": {
