@@ -123,7 +123,6 @@ var socket_sessions = new Array();
 var ports = [];
 var pc_ports = [];
 
-
 // add .reverse() feature to all JavaScript Strings in this application
 // works for service vault scripts too.
 if (!String.prototype.reverse) {

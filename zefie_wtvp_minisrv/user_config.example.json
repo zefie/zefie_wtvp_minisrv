@@ -16,10 +16,14 @@
 			"/home/zefie/webtv/ServiceVault"
 		],
 		"ssid_block_list": [
+			// list of SSID's to block
 			"8100000000000000",
 			"8100000000000010"
 		],
 		"ssid_ip_allow_list": {
+			// list of SSIDs to allow. Can be in the block list above.
+			// The IP the SSID is connecting from should be listed under
+			// the allowed SSID as per this example. Subnets allowed.
 			"8100000000000000": [
 				"192.168.1.0/24",
 				"127.0.0.1"
@@ -57,11 +61,16 @@
 		"wtv-1800": {
 			"send_tellyscripts": true,
 			"send_tellyscript_ssid_whitelist": [
-				"8100000000000000"
+				// send only these SSIDs a tellyscript
+				"8100000000000000",
+				"8120000000000000"
 			]
 		},
 		"wtv-admin": {
+			// demonstrates an override
 			"authorized_ssids": {
+				// uses the same format as the SSID whitelist above
+				// SSID match, IP match, AND password are all required to access wtv-admin service.
 				"8100000000000000": [
 					"192.168.1.0/24",
 					"127.0.0.1"
@@ -70,33 +79,42 @@
 			"password": "my-secure-password"
 		},
 		"wtv-log": {
+			// demonstrates an override
 			"write_logs_to_disk": true
 		},
 		"wtv-some-custom-service": {
+			// demonstrates adding a new service
 			"port": 1609,
 			"connections": 1
 		},
 		"wtv-tricks": {
+			// this example shows how to point to an external server
+			// untested
 			"service_ip": "192.168.1.8",
 			"port": 1702,
 			"nobind": true
 		},
 		"wtv-music": {
-			"disabled": true
+			"disabled": true // disable default service wtv-music
 		},
 		"wtv-author": {
 			"enable_multi_query": true
 		},
 		"wtv-news": {
 			"disabled": false,
-			"upstream_address": "192.168.11.8",
-			"upstream_port": 1699,
+			"upstream_address": "192.168.11.8", // upstream usenet service
+			"upstream_port": 1699, // upstream usenet service port
 			"upstream_auth": {
+				// upstream usenet service auth (delete object and set to null (eg upstream_auth: null) to not use login
 				"username": "myusername",
 				"password": "mypassword"
 			},
-			"upstream_tls": true,
+			"upstream_tls": true, // upstream usenet is ssl (true/false)
 			"local_auth": {
+				// manually define a username/password for the local built-in NNTP
+				// otherwise it will be randomly generated. This is useful if you
+				// want to access the built-in NNTP externally, such as in 
+				// Mozilla Thunderbird
 				"username": "mylocaluser",
 				"password": "mylocalpass"
 			}
