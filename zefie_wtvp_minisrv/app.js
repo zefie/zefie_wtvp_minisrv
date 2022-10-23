@@ -818,6 +818,11 @@ minisrv-no-mail-count: true`;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if ((shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) && !pc_services) {
             doHTTPProxy(socket, request_headers);
+        } else if (shortURL.indexOf('file://') >= 0) {
+            shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
+            service_name = "wtv-star";
+            var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
+            processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (pc_services) {
             // if a directory, request index
             if (shortURL.substring(shortURL.length - 1) == "/") shortURL += "index";
