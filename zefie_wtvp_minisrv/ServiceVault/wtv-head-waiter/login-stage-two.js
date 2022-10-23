@@ -93,13 +93,16 @@ wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCS
 wtv-country: US
 wtv-language-header: en-US,en
 wtv-noback-all: wtv-
-wtv-visit: client:closeallpanels
-wtv-expire-all: client:closeallpanels
 wtv-transition-override: off
 wtv-smartcard-inserted-message: Contacting service
 wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
 `;
+		if (bootrom !== 0) {
+			headers += `wtv-visit: client:closeallpanels
+wtv-expire-all: client:closeallpanels
+`;
+        }
 		if (!limitedLogin && !limitedLoginRegistered) {
 			session_data.assignMailStore();
 			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
