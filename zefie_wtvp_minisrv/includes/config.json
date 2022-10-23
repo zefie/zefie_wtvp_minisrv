@@ -54,7 +54,9 @@
         // reserved account names, users (nor admins) can register these
         "AccountDisabled",
         "Demo",
-        "Flash",
+        "abuse",
+        "support",
+        "registration",
         "null"
       ]
     },
