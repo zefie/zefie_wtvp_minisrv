@@ -825,12 +825,22 @@ minisrv-no-mail-count: true`;
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else {
-            // error reading headers (no request_url provided)
-            var errpage = wtvshared.doErrorPage(400);
-            headers = errpage[0];
-            data = errpage[1]
-            socket_sessions[socket.id].close_me = true;
-            sendToClient(socket, headers, data);
+            debug('request_headers', request_headers);
+            if (request_headers.request.indexOf("HTTP/1.0") > 0) {
+                // webtv in HTTP/1.0 mode, try to kick it back to WTVP
+                var errpage = wtvshared.doErrorPage(500, null, null, false, true);
+                headers = errpage[0];
+                data = ''
+                socket_sessions[socket.id].close_me = true;
+                sendToClient(socket, headers, data);
+            } else {
+                // error reading headers (no request_url provided)
+                var errpage = wtvshared.doErrorPage(400, null, null, false, true);                
+                headers = errpage[0];
+                data = ''
+                socket_sessions[socket.id].close_me = true;
+                sendToClient(socket, headers, data);
+            }
         }
     }
 }

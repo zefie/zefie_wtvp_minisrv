@@ -81,10 +81,10 @@ class WTVShared {
             });
             return out;
         } else {
-            if (!minisrv_config.services[service]) {
+            if (!this.minisrv_config.services[service]) {
                 throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
             } else {
-                return minisrv_config.services[service].toString(overrides);
+                return this.minisrv_config.services[service].toString(overrides);
             }
         }
     }
@@ -684,7 +684,7 @@ class WTVShared {
         });
     }
 
-    doErrorPage(code, data = null, details = null,  pc_mode = false) {
+    doErrorPage(code, data = null, details = null,  pc_mode = false, wtv_reset = false) {
         var headers = null;
         var minisrv_config = this.minisrv_config;
         switch (code) {
@@ -720,7 +720,12 @@ class WTVShared {
                 headers += "Content-Type: text/html\n";
                 break;
         }
-        console.error(" * doErrorPage Called:", code, data);
+        if (wtv_reset && !pc_mode) {
+            headers += "wtv-service: reset\n";
+            headers += this.getServiceString('wtv-1800') + "\n";
+            headers += "wtv-visit: wtv-1800:/preregister?scriptless-visit-reason=999\n";
+            console.error(" * doErrorPage Called (sent wtv-reset):", code, data);
+        } else console.error(" * doErrorPage Called:", code, data);
         return new Array(headers, data);
     }
 
