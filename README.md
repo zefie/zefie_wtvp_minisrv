@@ -3,7 +3,7 @@
 The ***wtv minisrv***, or "***zefie_wtvp_minisrv***" project is a node.js project that provides a mini WebTV Server, aiming for full WTVP (WebTV Protocol) support.
 This open source server is in beta status. Use at your own risk.
 
-# Note: This is the `dev` branch. It offers more features and bug fixes than `master`. Until the release of v1.0 (and the removal of this message), it is suggested you download from this branch
+## Note: This is the `dev` branch. It offers more features and bug fixes than `master`. Until the release of v1.0 (and the removal of this message), it is suggested you download from this branch
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
