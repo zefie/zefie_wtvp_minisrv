@@ -67,4 +67,4 @@ This open source server is in beta status. Use at your own risk.
    - One-Time Support: 
       - [CashApp $altimit](https://cash.app/$altimit)
       - Chime: $zefie
-      - [Credit Card or PayPal (powered by StreamElements)](https://zef.pw/ttv_tip)
+      - [Credit Card or PayPal (powered by StreamElements)](https://zef.pw/ttv-tip)
