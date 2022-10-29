@@ -96,7 +96,7 @@ class WTVMail {
     }
 
     mailboxExists(mailboxid) {
-        if (mailboxid > this.mailboxes.length) return null;
+        if (mailboxid >= this.mailboxes.length) return null;
         var mailbox_dir = null;
         if (this.mailstoreExists()) {
             var mailbox_name = this.getMailboxById(mailboxid);
@@ -182,7 +182,7 @@ class WTVMail {
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
-                    console.log(" * ERROR: Message with this UUID (" + messageid + ") already exists (should never happen). Message lost.");
+                    console.error(" * ERROR: Message with this UUID (" + messageid + ") already exists (should never happen). Message lost.");
                     return false;
                 }
 
@@ -389,7 +389,7 @@ class WTVMail {
                 var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
-                    return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep, '').replace("user", '').split(self.path.sep);
+                    return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep + "accounts" + self.path.sep, '').replace("user", '').split(self.path.sep);
                     return_val.push(temp_session_data.subscriber_name);
                 }
             } catch (e) {
@@ -437,7 +437,7 @@ class WTVMail {
             // check if the destination user's Inbox exists yet
             if (!dest_user_mailstore.mailboxExists(0)) {
                 // mailbox does not yet exist, create it
-                var mailbox_exists = dest_user_mailstore.createMailbox(mailbox);
+                var mailbox_exists = dest_user_mailstore.createMailbox(0);
                 // Just created Inbox for the first time, so create the welcome message
                 if (mailbox_exists) dest_user_mailstore.createWelcomeMessage();
             }
