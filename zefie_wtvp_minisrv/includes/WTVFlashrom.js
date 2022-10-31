@@ -129,7 +129,7 @@ class WTVFlashrom {
 
 	async getFlashromMeta(request_path, callback) {
 		// read 512 bytes of rom, and send result of getFlashromInfo
-		// to callback (in data), without headers
+		// to callback (in data)
 		this.getFlashRom(request_path, callback, 512);
     }
 

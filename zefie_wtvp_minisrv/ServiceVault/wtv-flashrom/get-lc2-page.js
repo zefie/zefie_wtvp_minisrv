@@ -103,7 +103,7 @@ data += `
 <upgradeblock width=250 height=15
 nexturl="${flashrom_info.next_rompath}"
 errorurl="${service_name}:/lc2-download-failed?"
-blockurl="${flashrom_info.rompath}
+blockurl="${flashrom_info.rompath}"
 lastblock="${flashrom_info.is_last_part}"
 curblock="${(flashrom_info.part_number + 1)}"${(flashrom_info.part_count) ? `
 totalblocks="${flashrom_info.part_count}">` : `>`}
