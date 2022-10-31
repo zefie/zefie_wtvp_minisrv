@@ -20,14 +20,13 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 	if (typeof flashrom_info === 'string') {
 		// zefie_flashrom_server error
 		data = flashrom_info;
-		headers += "\nminisrv-no-mail-count: true";
-		headers += "\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
-		headers += "\nwtv-expire-all: wtv-flashrom:/content";
+		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
 		sendToClient(socket, headers, data);
 		return false;
 	}
 	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
 	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
+	console.log(flashrom_info);
 	if (parseInt(flashrom_info.part_number) >= 0 && flashrom_info.rompath && flashrom_info.next_rompath) {
 		if (!flashrom_info.message && flashrom_info.is_bootrom) {
 			flashrom_info.message = "BootRom Part " + (flashrom_info.part_number + 1) + " of " + flashrom_info.part_count;
@@ -151,9 +150,7 @@ ${flashrom_info.message}
 	} else {
 		var errpage = wtvshared.doErrorPage(400)
 		headers = errpage[0];
-		headers += "\nminisrv-no-mail-count: true";
-		headers += "\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
-		headers += "\nwtv-expire-all: wtv-flashrom:/content";
+		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
 		data = errpage[1];
     }
 	sendToClient(socket, headers, data);

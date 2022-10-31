@@ -1926,9 +1926,9 @@ if (minisrv_config.config.SessionStore) {
 
 if (minisrv_config.config.ServiceDeps) {
     var ServiceDeps = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps);
-    console.log(" * Configured Service Dependencies at", ServiceDeps);
+    console.log(" * Configured Service Dependancies at", ServiceDeps);
 } else {
-    throw ("ERROR: No Service Dependencies Directory (SessionDeps) defined!");
+    throw ("ERROR: No Service Dependancies Directory (SessionDeps) defined!");
 }
 
 var service_ip = minisrv_config.config.service_ip;
