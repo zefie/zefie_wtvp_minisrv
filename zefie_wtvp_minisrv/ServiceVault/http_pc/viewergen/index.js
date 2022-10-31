@@ -26,7 +26,7 @@ var viewer_stock_md5s = {
     "WebTVIntel--1.1.exe": "ce7b6d1734b5e3d1cbd5f068609223d1",
     "WebTVIntel--2.5.exe": "4c5754bb8b69739b6f414c2d159051da", 
     "WebTVIntel--1.0-HE.exe": "391f303fd70034e69d3a50583de72c89",
-    "WebTVIntel--2.5-HE.exe": "f0207865693a45ba76b9057dcb8ea672"
+    "WebTVIntel--2.5-HE.exe": "64edab977ec19a663c5842176bec306a"
 }
 
 
