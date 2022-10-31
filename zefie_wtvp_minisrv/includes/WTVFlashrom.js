@@ -164,7 +164,7 @@ class WTVFlashrom {
 				})
 
 				res.on('end', function () {
-					if (self.minisrv_config.config.debug_flags.debug) console.log(` * Zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
+					if (self.minisrv_config.config.debug_flags.debug) console.log(` * zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
 					if (res.statusCode == 200) {
 						var data = Buffer.from(data_hex, 'hex');
 					} else if (res.statusCode == 206) {

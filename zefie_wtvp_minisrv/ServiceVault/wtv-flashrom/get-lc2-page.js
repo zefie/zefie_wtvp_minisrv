@@ -20,7 +20,9 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 	if (typeof flashrom_info === 'string') {
 		// zefie_flashrom_server error
 		data = flashrom_info;
-		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
+		headers += "\nminisrv-no-mail-count: true";
+		headers += "\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
+		headers += "\nwtv-expire-all: wtv-flashrom:/content";
 		sendToClient(socket, headers, data);
 		return false;
 	}
@@ -149,7 +151,9 @@ ${flashrom_info.message}
 	} else {
 		var errpage = wtvshared.doErrorPage(400)
 		headers = errpage[0];
-		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
+		headers += "\nminisrv-no-mail-count: true";
+		headers += "\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
+		headers += "\nwtv-expire-all: wtv-flashrom:/content";
 		data = errpage[1];
     }
 	sendToClient(socket, headers, data);
