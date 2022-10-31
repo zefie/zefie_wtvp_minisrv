@@ -26,7 +26,6 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 	}
 	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
 	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
-	console.log(flashrom_info);
 	if (parseInt(flashrom_info.part_number) >= 0 && flashrom_info.rompath && flashrom_info.next_rompath) {
 		if (!flashrom_info.message && flashrom_info.is_bootrom) {
 			flashrom_info.message = "BootRom Part " + (flashrom_info.part_number + 1) + " of " + flashrom_info.part_count;
