@@ -252,7 +252,6 @@ ${page_start}-${page_end}
 <td height=6>
 </TABLE>`
                         if (NGCount > 0) {
-
                             Object.keys(messages).forEach(function (k) {
                                 var message = messages[k].article;
                                 var has_relation = (messages[k].relation !== null) ? true : false;
@@ -335,6 +334,7 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                 var message_body = message.text;
                 var attachments = null;
                 var signature_index = null;
+                wtvnews.debug(message);
                 if (message.attachments) attachments = message.attachments;
                 if (attachments) {
                     if (Object.keys(attachments).length > 0) {
@@ -345,7 +345,7 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                                 return false;
                             }
                         });
-                        attachments.splice(signature_index, 1);
+                        if (signature_index) attachments.splice(signature_index, 1);
                     }
                 }
                 if (signature) message_colors = session_data.mailstore.getSignatureColors(signature);
