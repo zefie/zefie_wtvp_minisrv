@@ -381,7 +381,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                 var zip = new AdmZip();
 
                 zip.addZipComment("Viewer SSID: " + client_ssid);
-                zip.addFile(viewer_file, patched_file);
+                zip.addFile(viewer_file.replace("--", "-" + client_ssid + "-"), patched_file);
                 if (!request_headers.query.viewer_only) {
                     var romset_zip = new AdmZip(viewergen_resource_dir + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip");
                     var zipEntries = romset_zip.getEntries();
