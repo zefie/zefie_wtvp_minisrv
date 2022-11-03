@@ -18,7 +18,8 @@ var logos = {
 }
 
 var disksets = {
-    0: null
+    0: null,
+    98: "HackTV_min.zip"
 }
 
 var viewer_stock_md5s = {
@@ -334,6 +335,8 @@ if (request_headers.query.viewer &&
         client_ssid = generateSSID();
 
     var viewer_file = viewers[request_headers.query.viewer];
+    var needs_hacktv_mini = (viewer_file === "WebTVIntel--2.5-HE.exe") ? true : false
+    console.log('needs_hacktv_mini', needs_hacktv_mini)
     if (!viewer_file) {
         errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
         headers = errpage[0];
@@ -396,8 +399,10 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                             zip.addFile(zipEntry.entryName, zipEntry.getData());
                         }
                     });
-                    if (request_headers.query.diskset) {
-                        var diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
+                    if (request_headers.query.diskset || needs_hacktv_mini) {
+                        var diskset_file = 0;
+                        if (needs_hacktv_mini) diskset_file = disksets[98];
+                        else diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
                         if (diskset_file) {
                             var diskset_zip = new AdmZip(viewergen_resource_dir + diskset_file);
                             var zipEntries = diskset_zip.getEntries();
