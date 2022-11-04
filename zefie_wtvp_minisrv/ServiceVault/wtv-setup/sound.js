@@ -90,7 +90,7 @@ data += `
 <TD WIDTH=20>
 <TD WIDTH=198 VALIGN=top ALIGN=left>
 <spacer type=block height=20 width=1>
-<form action="client:ConfirmPhoneSetup">
+<form>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td valign=top>
