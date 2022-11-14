@@ -43,16 +43,17 @@ class WTVRegister {
         if (return_val) return !return_val;
 
         // check against user accounts
-        var search_dir = this.session_store_dir + this.path.sep + "accounts";
-        if (directory) search_dir = directory;
+        directory = (directory) ? directory : this.session_store_dir + this.path.sep + "accounts";
+  
+        console.log(directory)
         if (this.fs.existsSync(directory)) {
-            this.fs.readdirSync(search_dir).forEach(file => {
-                if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && !return_val) {
-                    return_val = !self.checkUsernameAvailable(username, search_dir + self.path.sep + file);
+            this.fs.readdirSync(directory).forEach(file => {
+                if (self.fs.lstatSync(directory + self.path.sep + file).isDirectory() && !return_val) {
+                    return_val = !self.checkUsernameAvailable(username, directory + self.path.sep + file);
                 }
                 if (!file.match(/user.*\.json/ig)) return;
                 try {
-                    var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
+                    var temp_session_data_file = self.fs.readFileSync(directory + self.path.sep + file, 'Utf8');
                     var temp_session_data = JSON.parse(temp_session_data_file);
                     if (temp_session_data.subscriber_username) {
                         if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
