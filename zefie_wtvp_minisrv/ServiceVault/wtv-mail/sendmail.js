@@ -63,8 +63,8 @@ Location: ${gourl}`;
             reply_message = session_data.mailstore.getMessageByID(request_headers.query.message_reply_id);
             if (reply_message) {
                 msg_subject = "Re: " + reply_message.subject;
-                to_addr = reply_message.to_addr;
-                to_name = reply_message.to_name;
+                to_addr = reply_message.from_addr;
+                to_name = reply_message.from_name;
             }
         }
     }
