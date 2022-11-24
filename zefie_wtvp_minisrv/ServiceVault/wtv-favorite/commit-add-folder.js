@@ -14,17 +14,17 @@ if (foldername)
 	{
 		if (folder_array.length < minisrv_config.services[service_name].max_folders)
 		{
-			//if (session_data.favstore.checkFolderName(foldername) == true)
-			//{
+			if (session_data.favstore.checkFolderName(foldername) == true)
+			{
 				session_data.favstore.createFolder(foldername);
 				headers = `300 OK
 Connection: Keep-Alive
 Content-Type: text/html
 Location: wtv-favorite:/favorite
 wtv-expire-all: wtv-favorite:`
-			//} else {
-			//	headers = `400 That folder name is not valid. Choose a different name and try again.`
-			//}
+			} else {
+				headers = `400 That folder name is not valid. Choose a different name and try again.`
+			}
 		} else {
 			headers = `400 You can only have ${minisrv_config.services[service_name].max_folders} folders at one time. Delete some folders and try again.`
 		}
