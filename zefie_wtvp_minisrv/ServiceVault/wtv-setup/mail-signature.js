@@ -117,7 +117,7 @@ ${(request_headers.query.preview) ? "<tr><td><td colspan=3><b>Signature Preview:
 <tr>
 <TD>
 <td colspan=3 valign=top align=left bgcolor="${(request_headers.query.preview) ? message_colors.bgcolor : "0D0D0D"}">
-${(request_headers.query.preview) ? `<embed src="wtv-mail:/get-signature?sanitize=true&demotext=${encodeURIComponent(`<hr>This is a preview of your signature. The text below the line will not appear in your outgoing messages. It is provided to demonstrate what a message composed with this signature may look like. <a href="client:donothing">This is what a link looks like</a>.`)}" height=40></embed><br><br>` : ''}
+${(request_headers.query.preview) ? `<embed src="wtv-mail:/get-signature?sanitize=true&showdemotext=true" height=40></embed><br><br>` : ''}
 <tr>
 <td>
 <td colspan=3 height=2 valign=top align=left>

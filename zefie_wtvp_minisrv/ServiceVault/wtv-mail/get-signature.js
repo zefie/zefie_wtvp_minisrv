@@ -20,9 +20,14 @@ if (request_headers.query.sanitize) {
     if (data.indexOf("<html>") >= 0) {
         data = wtvshared.sanitizeSignature(data).replace("<html>", `<html><body bgcolor=${message_colors.bgcolor} text=${message_colors.text} link=${message_colors.link} vlink=${message_colors.vlink} vspace=0 hspace=0>`);
     } else {
-        data = `<body bgcolor=${message_colors.bgcolor} text=${message_colors.text} link=${message_colors.link} vlink=${message_colors.vlink} vspace=0 hspace=0>\n${data}`;
+        data = `<body bgcolor=${message_colors.bgcolor} text=${message_colors.text} link=${message_colors.link} vlink=${message_colors.vlink} vspace=0 hspace=0>\n${wtvshared.sanitizeSignature(data)}`;
     }
-    if (request_headers.query.demotext) data += "<br>" + request_headers.query.demotext;
+    if (request_headers.query.showdemotext) {
+        data += `<br>
+<hr>This is a preview of your signature. The text below the line will not appear in your outgoing messages. 
+It is provided to demonstrate what a message composed with this signature may look like.
+<a href="client:donothing">This is what a link looks like</a>`;
+    }
 }
 if (!errpage) {
     headers = `200 OK
