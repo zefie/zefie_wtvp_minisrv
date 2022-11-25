@@ -193,8 +193,17 @@ class WTVShared {
             }
         });
 
+        var allowedProtocols = allowedSchemes;
+        // allow links to services flagged as "wideopen"
+        Object.keys(this.minisrv_config.services).forEach((k) => {
+            var flag = parseInt(this.minisrv_config.services[k].flags, 16);
+            if (flag === 4 || flag === 7) {
+                allowedProtocols.push(k);
+            }
+        });
+
         const clean = this.sanitizeHtml(string, {
-            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'style', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
+            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
             disallowedTagsMode: 'discard',
             allowedAttributes: {
                 a: ['href', 'name', 'target'],
@@ -206,11 +215,25 @@ class WTVShared {
             allowedSchemes: allowedSchemes,
             allowedSchemesByTag: {},
             allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
-            allowVulnerableTags: true,
+            exclusiveFilter: function (frame) {
+                var allowed = false;
+                Object.keys(frame.attribs).forEach((k) => {
+                    if (k == "href" || k == "background" || k == "src") {
+                        var value = frame.attribs[k];                        
+                        Object.keys(allowedProtocols).forEach((j) => {
+                            if (value.startsWith(allowedProtocols[j])) {
+                                allowed = true;
+                            }
+                        })                        
+                    }
+                });
+                console.log(frame, allowed);
+                return !allowed;
+            },
+            allowVulnerableTags: false,
             allowProtocolRelative: false
-        })
+        }, true)
         // todo: add missing user open tags (eg </i> if user did not close it) (might be done by sanitize-html?)
-        // todo: figure out bgcolor and text color voodoo
         return clean;
     }
 

@@ -266,7 +266,7 @@ ${page_start}-${page_end}
 <tr>
 ${(has_relation) ? `<td abswidth=20 rowspan=2 valign=top><font size="+2">&#149;` : ''}
 <td abswidth=426 maxlines=1>
-<font color=1bb0f1>${(message.headers.SUBJECT) ? message.headers.SUBJECT : "(No Subject)"}
+<font color=1bb0f1>${(message.headers.SUBJECT) ? wtvshared.htmlEntitize(message.headers.SUBJECT) : "(No Subject)"}
 <tr>
 <td maxlines=1>
 <font size="-1" color=544f53><b>
