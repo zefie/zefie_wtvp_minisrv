@@ -41,6 +41,18 @@ class WTVShared {
         }
     }
 
+    atob(a) {
+        const CryptoJS = require('crypto-js');
+        const enc = CryptoJS.enc.Base64.parse(a);
+        return CryptoJS.enc.Utf8.stringify(enc)
+    }
+
+    btoa(b) {
+        const CryptoJS = require('crypto-js');
+        const enc = CryptoJS.enc.Utf8.parse(b); // encodedWord Array object
+        return CryptoJS.enc.Base64.stringify(enc);
+    }
+
     cloneObj(src) {
         if (src instanceof RegExp) {
             return new RegExp(src);
@@ -867,6 +879,12 @@ class WTVShared {
         return ssid;
     }
 
+    makeSafeStringPath(path = "") {
+        path = path.replace(/[^\w]/g, "").replace(/\.\./g, "");
+        if (path.length == 0) path = null;
+        return path;
+    }
+
 
     unpackCompressedB64(data) {        
         var data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
@@ -905,7 +923,7 @@ class clientShowAlert {
     noback = null;
     image = null;
 
-    constructor(image = null, message = null, buttonlabel1 = null, buttonaction1 = null, buttonlabel2 = null, buttonaction2 = null, noback = null) {
+    constructor(image = null, message = null, buttonlabel1 = null, buttonaction1 = null, buttonlabel2 = null, buttonaction2 = null, noback = null, sound = null) {
         this.message = message;
         this.buttonlabel1 = buttonlabel1;
         this.buttonlabel2 = buttonlabel2;
@@ -913,6 +931,9 @@ class clientShowAlert {
         this.buttonaction2 = buttonaction2;
         this.message = message;
         this.noback = noback;
+        this.sound = sound;
+        if (this.sound === false) this.sound = "none";
+
         if (typeof image === 'object') {
             this.image = null;
             Object.keys(image).forEach(function (k) {
@@ -931,6 +952,7 @@ class clientShowAlert {
         if (this.buttonlabel2) url += "buttonlabel2=" + escape(this.buttonlabel2) + "&";
         if (this.buttonaction2) url += "buttonaction2=" + escape(this.buttonaction2) + "&";
         if (this.image) url += "image=" + escape(this.image) + "&";
+        if (this.sound) url += "sound=" + escape(this.sound) + "&";
         if (this.noback) url += "noback=true&";
         return url.substring(0, url.length - 1);
     }
