@@ -912,6 +912,12 @@ class WTVShared {
         });
         return outdata;
     }
+
+    isAdmin(wtvclient, service_name = "wtv-admin") {
+        var WTVAdmin = require("./WTVAdmin.js");
+        var wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
+        return (wtva.isAuthorized() === true) ? true : false;
+    }
 }
 
 class clientShowAlert {
