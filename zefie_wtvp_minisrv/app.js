@@ -1006,7 +1006,7 @@ function stripHeaders(headers_obj, whitelist) {
     var whitelisted_headers = new Array();
     var out_headers = new Array();
     out_headers.Response = headers_obj.Response;
-    out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
+    if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
 
     // compare regardless of case
     Object.keys(whitelist).forEach(function (k) {
