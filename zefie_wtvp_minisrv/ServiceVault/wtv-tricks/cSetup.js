@@ -77,7 +77,7 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 	  function setOther() {
 			count = document.connect.preset.length;
 			document.connect.preset.selectedIndex = count - 1;
-			updateService(); 
+			setTimeout(updateService,10);
 	  }
 	  function updateService() {
 		srv = document.connect.preset[document.connect.preset.selectedIndex].value;
@@ -111,7 +111,7 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 					document.message.msg.value="Jarhead\'s public minisrv, offers the most production-like WebTV service, to simulate how it was like back then."
 					alert("Coming soon!")
 					document.connect.preset.selectedIndex = document.connect.preset.selectedIndex - 1;
-					updateService();
+					setTimeout(updateService,10);
 				case "other":
 					document.message.msg.value="Your custom service."
 
@@ -158,7 +158,7 @@ hspace="0" vspace="0" fontsize="large" noscroll>
                   Address:
                   <input size=16 ASCIIONLY name=machine bgcolor=#444444 text=#cbcbcb cursor=#cc9933 value="74.76.120.18" onkeypress="setOther()">
                   &nbsp;&nbsp;&nbsp;Port:
-                  <input size=5 ASCIIONLY NUMBERS name=port bgcolor=#444444 text=#cbcbcb cursor=#cc9933 value="1615">
+                  <input size=5 ASCIIONLY NUMBERS name=port bgcolor=#444444 text=#cbcbcb cursor=#cc9933 value="1615" onkeypress="setOther()">
          </table>
 
                 <spacer type=block height="8">
