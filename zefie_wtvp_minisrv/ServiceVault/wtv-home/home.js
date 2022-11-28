@@ -1,392 +1,302 @@
 var minisrv_service_file = true;
 
-
-if (request_headers.query.url) {
-	headers = `300 OK
-Location: ${request_headers.query.url}`;
-} else {
-	headers = `200 OK
+headers =`200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-home:/splash
-wtv-expire-all: wtv-flashrom:
 Content-type: text/html`
-	var cryptstatus = (wtv_encrypted ? "Encrypted" : "Not Encrypted")
 
-	var comp_type = wtvmime.shouldWeCompress(session_data, 'text/html');
-	var compstatus = "uncompressed";
-	switch (comp_type) {
-		case 1:
-			compstatus = "wtv-lzpf";
-			break;
-		case 2:
-			compstatus = "gzip (level 9)";
-			break;
-	}
-
-	var unread_mailcount = session_data.mailstore.countUnreadMessages(0)
-	var mailbox_gif_num = 0; // no messages
-	if (unread_mailcount > 0) {
-		if (unread_mailcount == 1) mailbox_gif_num = 1;
-		else mailbox_gif_num = 2;
-	}
-
-
-	data = `<HTML>
-	<HEAD>
-
-		<TITLE>Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}</TITLE>
-		<DISPLAY noscroll fontsize="medium">
-	</HEAD>
-
-	<body background="wtv-home:/images/BackgroundGradient_dark.gif" text="44cc55" link="36d5ff" vlink="36d5ff" hspace=0 vspace=0 >
-
-	<sidebar width=138>
-		<table cellspacing=0 cellpadding=0 bgcolor="202020" gradcolor=080808>
-			<!-- BEGIN LOGO SPAN -->
-			<tr>
-				<td width=138 absheight=112 valign=top align=center>
-					<img src="file://rom/Images/Spacer.gif" width=1 height=9><br>
-
-					<a HREF="client:showservices">
-						<img src="file://rom/Images/Spacer.gif" width=1 height=2>
-						<img src="${minisrv_config.config.service_logo}"" width=127 height=98>
-					</A>
-
-			<!-- BEGIN SEPARATOR -->
-			<tr>
-				<td absheight=5>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-						<tr>
-							<td abswidth=138 absheight=1 valign=top align=left>
-						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-					</table>
-			<!-- END LOGO SPAN -->
-
-			<!-- BEGIN SPAN -->
-			<tr>
-				<td absheight=25>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td height=2>
-						<tr>
-							<td abswidth=7>
-							<td abswidth=125>
-								<table cellspacing=0 cellpadding=0 href="client:relogin">
-									<tr>
-										<td>
-											<table cellspacing=0 cellpadding=0>
-												<tr>
-													<td>
-														<shadow><font size=3 color=e7ce4a>Login</font></shadow>
-											</table>
-								</table>
-							<td abswidth=6>
-					</table>
-
-			<!-- BEGIN SEPARATOR -->
-			<tr>
-				<td absheight=5>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-						<tr>
-							<td abswidth=138 absheight=1 valign=top align=left>
-						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-					</table>
-			<!-- END SPAN -->
-
-			<!-- BEGIN SPAN -->
-			<tr>
-				<td absheight=25>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td height=2>
-						<tr>
-							<td abswidth=7>
-							<td abswidth=125>
-
-
-								<table cellspacing=0 cellpadding=0 href="wtv-setup:/setup">
-									<tr>
-										<td>
-											<table cellspacing=0 cellpadding=0>
-												<tr>
-													<td>
-														<shadow><font size=3 color=e7ce4a>Setup</font></shadow>
-											</table>
-								</table>
-							<td abswidth=6>
-					</table>
-
-			<!-- BEGIN SEPARATOR -->
-			<tr>
-				<td absheight=5>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-						<tr>
-							<td abswidth=138 absheight=1 valign=top align=left>
-						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-					</table>
-			<!-- END SPAN -->
-
-
-			<!-- BEGIN SPAN -->
-			<tr>
-				<td absheight=25>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td height=2>
-						<tr>
-							<td abswidth=7>
-							<td abswidth=125>
-
-							<table cellspacing=0 cellpadding=0 href="wtv-news:/lobby">
-								<tr>
-									<td>
-										<table cellspacing=0 cellpadding=0>
-											<tr>
-												<td>
-													<shadow><font size=3 color=e7ce4a>Discuss</font></shadow>
-										</table>
-							</table>
-
-							<td abswidth=6>
-					</table>
-
-			<!-- BEGIN SEPARATOR -->
-
-
-			<!-- BEGIN SEPARATOR -->
-			<tr>
-				<td absheight=5>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-						<tr>
-							<td abswidth=138 absheight=1 valign=top align=left>
-						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-					</table>
-			<!-- END SPAN -->
-
-`;
-	data += `
-			<!-- BEGIN SPAN -->
-			<tr>
-				<td absheight=25>
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td height=2>
-						<tr>
-							<td abswidth=7>
-							<td abswidth=125>
-
-							<table cellspacing=0 cellpadding=0 href="wtv-guide:/help?topic=Index&subtopic=Glossary">
-								<tr>
-									<td>
-										<table cellspacing=0 cellpadding=0>
-											<tr>
-												<td>
-													<shadow><font size=3 color=e7ce4a>Help</font> <font size=-2 color=e7ce4a><sup>(WIP)</sup></font></shadow>
-										</table>
-							</table>
-
-							<td abswidth=6>
-					</table>
-
-			<!-- BEGIN SEPARATOR -->
-			<tr>
-				<td absheight=5>
-
-					<table cellspacing=0 cellpadding=0>
-						<tr>
-							<td abswidth=138 absheight=2 valign=middle align=center bgcolor="000000">
-								<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-						<tr>
-							<td abswidth=138 absheight=1 valign=top align=left>
-						<tr>
-							<td abswidth=138 absheight=2 valign=top align=left bgcolor="181818">
-							<img src="file://rom/Images/Spacer.gif" width=1 height=1>
-					</table>
-			<!-- END SPAN -->
-
-			<!-- ADJUST ME FOR HOME TEXT HEIGHT -->
-			<tr>
-				<td absheight=28>
-
-			<tr>
-				<td align=right>
-					<img src="wtv-home:/images/HomeBanner_dark.gif" width=48 height=126>
-
-			<tr>
-			<td absheight=5>
-
-		</table>
-	</sidebar>
-
-
-		<table cellspacing=0 cellpadding=0 width=100% height=383>
-			<tr>
-				<td rowspan=10 background="wtv-home:/images/BackgroundGradientEdge_dark.gif" width=6 height=100%>
-
-			<tr>
-				<td valign=top absheight=113>
-					<table cellspacing=0 cellpadding=0 width=100%>
-						<tr>
-							<!-- BEGIN ICON #1 -->
-							<td width=9%>
-							<td absheight=113 width=18%>
-								<LINK REL=next HREF="wtv-mail:/listmail">
-								<table cellspacing=0 cellpadding=0 border=0 href="wtv-mail:/listmail" selected nocolor width=100%>
-									<tr>
-										<td height=10>
-									<tr>
-										<td align=center>
-											<img src="file://ROMCache/OpenMailbox${mailbox_gif_num}.gif" border=0 width=61 height=52>
-									<tr>
-										<td height=4>
-									<tr>
-										<td valign=bottom>
-											<table cellspacing=0 cellpadding=0 width=100%>
-												<tr>
-													<td align=center>
-														<font size=3 color=#36d5ff>Mail</font>	
-											</table>
-								</table>
-							
-							<!-- BEGIN ICON #2 -->
-							<td width=6%>
-							<td absheight=113 width=22%>
-								<table cellspacing=0 cellpadding=0 border=0 href="wtv-favorite:/favorite" nocolor>
-									<tr>
-										<td height=12>
-									<tr>
-										<td align=center>
-											<img src="file://ROMCache/TreasureChest1.gif" border=0 width=92 height=52>
-									<tr>
-										<td height=2>
-									<tr>
-										<td valign=bottom>
-											<table cellspacing=0 cellpadding=0 width=100%>
-												<tr>
-													<td align=center>
-														<font size=3 color=#36d5ff>Favorites</font>
-											</table>
-								</table>
-							
-							<!-- BEGIN ICON #3 -->
-							<td width=5%>
-							<td absheight=113 width=19%>
-								<table cellspacing=0 cellpadding=0 border=0 href="wtv-flashrom:/willie" nocolor>
-									<tr>
-										<td height=5>
-									<tr>
-										<td align=center>
-											<img src="wtv-home:/images/rom.gif" border=0 width=68 height=59>
-									<tr>
-										<td height=2>
-									<tr>
-										<td valign=bottom>
-											<table cellspacing=0 cellpadding=0 width=100%>
-												<tr>
-													<td align=center>
-														<font size=3 color=#36d5ff>Flashroms</font>
-											</table>
-								</table>
-
-							<!-- BEGIN ICON #4 -->
-							<td absheight=113 width=3%>
-							<td absheight=113 width=20%>
-								<table cellspacing=0 cellpadding=0 border=0 href="http://duckduckgo.com/lite/" nocolor>
-									<tr>
-										<td height=12>
-									<tr>
-										<td align=center>
-											<img src="file://ROMCache/Binoculars0.gif" border=0 width=80 height=51>
-									<tr>
-										<td height=2>
-									<tr>
-										<td valign=bottom>
-											<table cellspacing=0 cellpadding=0 width=100%>
-												<tr>
-													<td align=center>
-														<font size=3 color=#36d5ff>Search</font>
-											</table>
-								</table>
-							<td width=9%>
-					</table>
-
-				<tr>
-					<td valign=middle align=center>						
-						<!-- BEGIN MAIN SUB-CONTENT AREA -->
-						<table cellspacing=0 cellpadding=0 width=480>						
-							<tr>
-								<td abswidth=100% absheight=18 align=center>
-<font size="2"><b>Welcome to ${minisrv_config.config.service_name}`;
-	if (session_data.getSessionData("registered")) data += ", " + session_data.getSessionData("subscriber_username") + "!";
-	data += `</font></b>
-<tr>
-<td width=100% align=center absheight=2 bgcolor="000000">
-<tr>
-<td abswidth=100% absheight=16 valign=middle align=center>
-<font size="small"><b>Status</b>: ${cryptstatus} (${compstatus})</font>
-<tr>
-<td width=100% align=center absheight=2 bgcolor="000000">
-<tr>
-<td abswidth=100% absheight=150 valign=top align=left>
- <br>
- <h4>&nbsp; Main Menu</h4>
-<ul>
-<font size="2"><li><a href="wtv-admin:/admin">wtv-admin</a> <sup>new!</sup></li>
-`;
-	if (session_data.hasCap("client-can-do-chat")) {
-		data += "<li><a href=\"wtv-chat:/home\">IRC Chat Test</a></li>\n"
-	}
-	if (session_data.hasCap("client-has-disk")) {
-		// only show disk stuff if client has disk
-		data += "<li><a href=\"client:diskhax\">DiskHax</a> ~ <a href=\"client:vfathax\">VFatHax</a></li>\n";
-		if (session_data.hasCap("client-can-do-macromedia-flash2")) {
-			// only show demo if client can do flash2
-			data += "<li>Old DealerDemo: <a href=\"wtv-disk:/sync?group=DealerDemo&diskmap=DealerDemo\">Download</a> ~ <a href=\"file://Disk/Demo/index.html\">Access</a></li>\n";
-		}
-	}
-	data += `</ul></font>`;
-	// for development
-	if (fs.existsSync(service_vaults[0] + "/" + service_name + "/home.zefie.html")) {
-		data += fs.readFileSync(service_vaults[0] + "/" + service_name + "/home.zefie.html", { 'encoding': 'utf8' });
-	}
-	data += `</table>
-<tr>
-<td width=100% absheight=28>
-<tr>
-<td width=100% align=center absheight=2 bgcolor="000000">
-<tr>
-<td width=100% align=center absheight=22>
-<font size="-4"><b>Connection Speed</b>: &rate;</font>
-<tr>
-<td width=100% align=center absheight=2 bgcolor="000000">
-<tr>
-<td width=100% align=right absheight=20>
-<font size="-4"><i>minisrv v${minisrv_config.version}${(minisrv_config.config.git_commit) ? ' git-' + minisrv_config.config.git_commit : ''}, hosted by ${minisrv_config.config.service_owner}</i></small></font> &nbsp; <br>
-<tr>
-<td width=100% align=center absheight=2 bgcolor="000000">
-
-</table>
-</table>
-</body>
-</html>`
+var cryptstatus = (wtv_encrypted ? "Encrypted" : "Not Encrypted")
+var comp_type = wtvmime.shouldWeCompress(socket.ssid,'text/html');
+var compstatus = "uncompressed";
+switch (comp_type) {
+	case 1:
+		compstatus = "wtv-lzpf";
+		break;
+	case 2:
+		compstatus = "gzip (level 9)";
+		break;
 }
+
+var wtv_system_sysconfig = session_data.get("wtv-system-sysconfig");
+var wtv_client_bootrom_version = session_data.get("wtv-client-bootrom-version");
+var wtv_system_chipversion_str = session_data.get("wtv-system-chipversion");
+
+var notImplementedAlert = new clientShowAlert({
+	'image': minisrv_config.config.service_logo,
+	'message': "This feature is not available.",
+	'buttonlabel1': "Okay",
+	'buttonaction1': "client:donothing",
+	'noback': true,
+}).getURL();
+
+var notAdminAlert = new clientShowAlert({
+	'image': minisrv_config.config.service_logo,
+	'message': "Sorry, you are not configured as an admin on this server.<br><br>If you are the server operator, please<br> see <strong>user_config.example.json</strong><br> for an example on how to configure yourself as an administrator.",
+	'buttonlabel1': "Ugh, fine.",
+	'buttonaction1': "client:donothing",
+	'noback': true,
+}).getURL();
+
+var ownMinisrv = new clientShowAlert({
+	'image': minisrv_config.config.service_logo,
+	'message': "To run your own minisrv, please visit the following link on your PC:<br><br><strong>https://zef.pw/minisrv</strong>",
+	'buttonlabel1': "Okay",
+	'buttonaction1': "client:donothing",
+	'noback': true,
+}).getURL();
+
+var supportZefieAlert = new clientShowAlert({
+	'image': minisrv_config.config.service_logo,
+	'message': "If you would like to support zefie or minisrv, please visit the following link on your PC:<br><br><font size=-1><strong>https://zef.pw/helpminisrv</strong></font>",
+	'buttonlabel1': "Okay",
+	'buttonaction1': "client:donothing",
+	'noback': true,
+}).getURL();
+
+data =`\0<html>
+<head>
+<display hspace=0 vspace=0 fontsize=small noscroll showwhencomplete>
+<title>
+Home for ${session_data.getSessionData("subscriber_username") || "minisrv"} 
+</title>
+</head>
+<body bgcolor="#3C2F47" link=#BBAEC8 text="ffffff" vlink=AA9DB7>
+<table border=0 cellspacing=0 cellpadding=0 width="100%" height="60" >
+<tr>
+<td>
+<td align="left"><img src="images/proto3/HomeTopLeftEdge.gif"></td>
+<td valign="top">
+<table border=0 cellspacing=0 cellpadding=0>
+<tr>
+<td colspan=4 valign="top"><img src="images/proto3/HomeTopEdge.gif">
+</tr>
+<tr><td height=5 colspan=4>
+</tr>
+<tr><td></TD>
+</tr>
+<tr><td height=3 colspan=4>
+</tr>
+<tr>
+
+<td align="left">
+<font color=#EEEEEE>&nbsp;<b>WebTV URL, FILE, and CLIENT Access:</b></font>
+<table border=0 cellspacing=0 cellpadding=0>
+<tr>
+<td width="380">
+<form name="urlaccess"> 
+&nbsp;<input type="text" name="visitsite" value="wtv-" border="1" bgcolor="#BBAEC8" text="#423852" cursor="#423852" align="center" width="314" executeurl autoactivate>
+<input type="submit" value="Go" width=20>
+</form>
+</td>
+</tr>
+</table>
+
+<td>
+<td width=5>
+
+</tr>
+</table>
+</td>
+</tr>
+</table>
+<table background="images/proto3/HomeTaskBar.gif" bgcolor="#9486A1" border=0 width="" height="25">
+<tr>
+<td abswidth=1><spacer type=block height=3 width=1>
+<td abswidth=50 bgcolor="#3C2F47" href="wtv-mail:/listmail" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Mail</b></font>
+<td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
+<td abswidth=86 bgcolor="#3C2F47" href="wtv-favorite:/favorite" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Favorites</b></font>
+<td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
+<td abswidth=70 bgcolor="#3C2F47" href="wtv-setup:/sound" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Music</b></font>
+<td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
+<td abswidth=74 bgcolor="#3C2F47" href="http://frogfind.com" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Search</b></font>	
+<td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
+<td abswidth=60 bgcolor="#3C2F47" href="wtv-flashrom:/willie" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>ROMs</b></font>	
+<td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
+<td abswidth=86 bgcolor="#3C2F47" href="wtv-setup:/setup" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Settings</b></font>
+<td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
+<td abswidth=50 bgcolor="#3C2F47" href="wtv-guide:/help?topic=Index&subtopic=Glossary" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Help</b></font>
+</table>
+
+<table border=0 bgcolor="#3C2F47">
+<tr>
+<td valign="top">	
+<table border=0>
+<tr>
+<td colspan=3>
+<table bgcolor="#BBAEC8" border=0 cellspacing=0 cellpadding=0>
+<tr>
+<td background="images/proto3/HomeColumn3Header.gif" abswidth="6">
+<td abswidth=125 colspan=2 background="images/proto3/HomeColumn3Header.gif" valign="middle" absheight="26"><font size=2 color="#EEEEEE"><b>&#187; Community &#171;</b></font>
+<tr>
+<td colspan=3 height=7>
+
+<tr>
+<td abswidth="6">
+<td href="wtv-chat:/home" height="18" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Chat</font>
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+<td href="wtv-news:/lobby" height="18" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Discuss</font>
+<td abswidth="15">
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+<td href="wtv-setup:/messenger" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Messenger</font>
+<td abswidth="15">
+<tr>
+<td absheight="5">
+</table>
+<tr>
+<td valign="top" colspan=3>
+<table bgcolor="#BBAEC8" border=0 cellspacing=0 cellpadding=0>
+<tr>
+<td background="images/proto3/HomeColumn3Header.gif" abswidth="6">
+<td abswidth=125 colspan=2 background="images/proto3/HomeColumn3Header.gif" valign="middle" absheight="26" valign="top"><font size=2 color="#EEEEEE"><b>&#187; Account &#171;</b></font>
+<tr>
+<td colspan=3 height=7>
+<tr>
+<td abswidth="6">
+<td href="client:relogin" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Relogin</font>
+<td abswidth="6">
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+<td href="wtv-setup:/serve-billing-overview" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Configure</font>
+<td abswidth="6">
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+<td href="wtv-setup:/edit-password" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Password</font>
+<td abswidth="6">
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+<td href="wtv-setup:/accounts" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Add User</font>
+<td abswidth="6">
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+`;
+if (session_data.getSessionData("registered")) data += `<td href="wtv-tricks:/unregister" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Unregister</font>`;
+else data += `<td href="wtv-tricks:/register" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Register</font>`
+data += `
+<td abswidth="6">
+<tr>
+<td absheight="3">
+
+</table>
+</table>
+<td valign="top">
+<table border=0 width=100%>
+
+
+<tr>
+<td align="left" colspan=4>
+<table border=0 cellspacing=0 cellpadding=0 width="100%">
+<tr>
+<td background="images/proto3/HomeColumn3Header.gif" abswidth="6">
+<td  colspan=2 background="images/proto3/HomeColumn3Header.gif" valign="middle" absheight="24"><font color="#EEEEEE"><spacer type=block height=3 width=100%><b> &#128; Welcome to zefie's minisrv ${minisrv_version_string.split(" ")[3]}</b></font>
+<tr>
+<td absheight="6">
+<tr>
+<td valign="top" colspan=3 absheight=63>
+This server is operated by ${minisrv_config.config.service_owner}.
+</table>
+
+<tr>
+<td align="left" colspan=4>
+<table border=0 cellspacing=0 cellpadding=0 width="100%">
+<tr>
+<td height=6>	<tr>
+<td background="images/proto3/HomeColumn3Header.gif" abswidth="6">
+<td colspan=2 background="images/proto3/HomeColumn3Header.gif" valign="middle" absheight="24"><font color="#EEEEEE"><spacer type=block height=3 width=100%><b> &#128; minisrv Latest Updates</b></font>
+<tr>
+<td absheight="6">
+<tr>
+<td valign="top" colspan=4 absheight=80 >
+&#149;&nbsp; Added a <a href="wtv-tricks:/charmap">WebTV Character Map</a><br>
+&#149;&nbsp; Redesigned homepage based on MattMan69's HackTV<br>
+&#149;&nbsp; Added a new minisrv logo<br>
+</table>
+</table>
+
+<td valign="top">
+
+
+<table border=0 width=160>
+<tr>
+<td valign="top" colspan=3>
+
+
+<table bgcolor="#BBAEC8" border=0 cellspacing=0 cellpadding=0>
+<tr>
+
+<td background="images/proto3/HomeColumn3Header.gif" abswidth="6">
+
+<td abswidth=125 colspan=2 background="images/proto3/HomeColumn3Header.gif" valign="middle" absheight="24" valign="top"><font size=2 color="#EEEEEE"><b>&#187; Tools &#171;</b></font>
+<tr>
+<td colspan=3 height=6>
+<tr>
+<td abswidth="6">
+<td href="wtv-tricks:/tricks" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">WTV Tricks</font>
+<td abswidth="6">
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+<td href="${(wtvshared.isAdmin(session_data)) ? "wtv-admin:/admin" : notAdminAlert}" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">WTV Admin</font>
+<td abswidth="6">
+<tr>
+<td absheight="3">
+<tr>
+<td abswidth="6">
+<td href="wtv-tricks:/blastbacklist?return_to=wtv-home:/home" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Clear Cache</font>
+<td abswidth="6">
+<tr>
+<td absheight="3">
+</table>
+<tr>
+<td valign="top" colspan=3>
+<table bgcolor="#BBAEC8" border=0 cellspacing=0 cellpadding=0>
+<tr>
+<td background="images/proto3/HomeColumn3Header.gif" abswidth="6">
+
+<td abswidth=125 colspan=2 background="images/proto3/HomeColumn3Header.gif" valign="middle" absheight="24" valign="top"><font size=2 color="#EEEEEE"><b>&#187; More Stuff &#171;</b></font>
+<tr>
+<td colspan=3 height=7>
+
+<tr>
+<td abswidth="6">
+<td href="wtv-tricks:/cSetup" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Switch<br>&nbsp;&nbsp; server</font>
+<td abswidth="6">
+<tr>
+<td absheight="5">
+<tr>
+<td abswidth="6">
+<td href="${ownMinisrv}" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Run your<br>&nbsp;&nbsp; own server</font>
+<td abswidth="6">
+<tr>
+<td absheight="5">
+<tr>
+<td abswidth="6">
+<td href="http://archive.midnightchannel.net/zefie/media/" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Midnight<br>&nbsp;&nbsp; Archives</font>
+<td abswidth="15">
+<tr>
+<td absheight="4">
+<tr>
+<td abswidth="6">
+<td href="${supportZefieAlert}" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Help zefie</font>
+<td abswidth="15">
+<tr>
+<td absheight="3">
+</table>
+</table>
+</table>
+`
+data += "</body>\n</html>";

@@ -1028,6 +1028,10 @@
     <Content Include="ServiceVault\wtv-star\star.js" />
     <Content Include="ServiceVault\wtv-tricks\access.js" />
     <Content Include="ServiceVault\wtv-tricks\blastbacklist.js" />
+    <Content Include="ServiceVault\wtv-tricks\charmap.js">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="ServiceVault\wtv-tricks\cSetup.js" />
     <Content Include="ServiceVault\wtv-tricks\go-offline.js" />
     <Content Include="ServiceVault\wtv-tricks\info.js">
       <SubType>Code</SubType>

@@ -307,12 +307,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     }
 
     // unload any loaded modules for this vm
-    if (modules_loaded.length > 0) {
-        Object.keys(modules_loaded).forEach(function (k) {
-            wtvshared.unloadModule(modules_loaded[k]);
-        })
-    }
-
+    modules_loaded = null;
     return contextObj; // updated context object with whatever global varibles the script set
 }
 
@@ -1964,6 +1959,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
             }
         }
     }
+
 })
 if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
 else console.log(" * Full SSIDs will be shown in console logs");

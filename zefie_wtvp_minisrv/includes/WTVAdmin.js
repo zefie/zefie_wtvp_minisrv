@@ -72,7 +72,7 @@ class WTVAdmin {
         }
     }   
 
-    isAuthorized() {
+    isAuthorized(justchecking = false) {
         var allowed_ssid = false;
         var allowed_ip = false;
         if (this.minisrv_config.services[this.service_name].authorized_ssids) {
@@ -95,7 +95,11 @@ class WTVAdmin {
                 }
             });
         }
-        return (allowed_ssid && allowed_ip) ? true : this.rejectConnection(!allowed_ssid);
+        if (justchecking) {
+            return (allowed_ssid && allowed_ip) ? true : false;
+        } else {
+            return (allowed_ssid && allowed_ip) ? true : this.rejectConnection(!allowed_ssid);
+        }
     }
 
     getAccountInfo(username, directory = null) {

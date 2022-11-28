@@ -72,6 +72,14 @@ class WTVShared {
         return src;
     }
 
+    isAdmin(wtvclient, service_name = "wtv-admin") {
+        var  WTVAdmin = require("./WTVAdmin.js");
+        var wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
+        var result = wtva.isAuthorized(true);
+        wtva, WTVAdmin = null;
+        return result;
+    }
+
     parseJSON(json) {
         if (!json) return null;
         if (typeof json !== 'string') json = json.toString();
@@ -911,12 +919,6 @@ class WTVShared {
             }
         });
         return outdata;
-    }
-
-    isAdmin(wtvclient, service_name = "wtv-admin") {
-        var WTVAdmin = require("./WTVAdmin.js");
-        var wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
-        return (wtva.isAuthorized() === true) ? true : false;
     }
 }
 
