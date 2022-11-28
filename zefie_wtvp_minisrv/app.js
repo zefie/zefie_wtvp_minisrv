@@ -879,7 +879,8 @@ async function doHTTPProxy(socket, request_headers) {
             method: request_data.method,
             followAllRedirects: true,
             headers: {
-                "User-Agent": request_headers["User-Agent"] || "WebTV"
+                "User-Agent": request_headers["User-Agent"] || "WebTV",
+                "Connection": "Keep-Alive"
             }
         }
 
@@ -1005,7 +1006,7 @@ function stripHeaders(headers_obj, whitelist) {
     var whitelisted_headers = new Array();
     var out_headers = new Array();
     out_headers.Response = headers_obj.Response;
-    out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
+    if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
 
     // compare regardless of case
     Object.keys(whitelist).forEach(function (k) {
