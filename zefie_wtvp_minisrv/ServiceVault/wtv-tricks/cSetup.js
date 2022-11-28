@@ -1,15 +1,49 @@
 var minisrv_service_file = true;
 
-headers = `200 OK
-Content-Type: text/html`
-
-data = `<html>
+if (request_headers.query.machine && request_headers.query.port) {
+	headers = `200 OK
+Content-Type: text/html
+Connection: close
+wtv-connection-close: true
+wtv-service: reset
+wtv-service: name=wtv-1800 host=${request_headers.query.machine} port=${request_headers.query.port} flags=0x00000004 connections=1
+wtv-boot-url: wtv-1800:/preregister
+`
+	data = `<html>
 <head>
 <title>Connect Setup v2.2-minisrv</title>
-<DISPLAY noscroll allowoffline notvaudio switchtowebmode noreconnectalert>
+<DISPLAY noscroll allowoffline notvaudio nooptions switchtowebmode noreconnectalert>
 </head>
 <body bgcolor="#3C2F47" text="#cbcbcb" link="#aaaaaa"
-hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
+hspace="0" vspace="0" fontsize="large" noscroll hideoptions onload="load()">
+<h2>Connecting...</h2>
+Please wait while we connect you to ${request_headers.query.machine}:${request_headers.query.port} ...
+<script>
+function activ() {
+	location.href = "client:activ";
+}
+
+function load() {
+	location.href = "client:hangup";
+	setTimeout(activ, 1000);	
+}
+</script>
+</body>
+</html>
+`;
+
+} else {
+
+	headers = `200 OK
+Content-Type: text/html`
+
+	data = `<html>
+<head>
+<title>Connect Setup v2.2-minisrv</title>
+<DISPLAY noscroll notvaudio switchtowebmode>
+</head>
+<body bgcolor="#3C2F47" text="#cbcbcb" link="#aaaaaa"
+hspace="0" vspace="0" fontsize="large" noscroll>
 
 <table cellspacing="0" cellpadding="0" cellborder="0">
   <tr>
@@ -31,18 +65,13 @@ hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
 
 	  <script>
 
-	  function doConnect2() {
-			document.connect.submit();
-			location.href = "client:activ";
-	  }
-	  
+  
 	  function doConnect() {
-		if (document.connect.machine.value == "${minisrv_config.services['wtv-1800'].host}" && document.connect.port.value == "${minisrv_config.services['wtv-1800'].port}") {
-				alert("You are already here!");
-		} else {
-				location.href = "client:hangup";
-				setTimeout(doConnect2, 500);
-		}
+	//	if (document.connect.machine.value == "${minisrv_config.services['wtv-1800'].host}" && document.connect.port.value == "${minisrv_config.services['wtv-1800'].port}") {
+//				alert("You are already here!");
+	//	} else {
+			document.connect.submit();
+//		}
 	  }
 
 
@@ -70,7 +99,7 @@ hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
 					document.message.msg.value='Default WebTV Production IP/Port. Can be used to check your routing setup.'
 					break;
 				case "wni-int":
-					document.connect.machine.value="10.0.128.1"
+					document.connect.machine.value="192.168.11.8"
 					document.connect.port.value="1615"
 					document.message.msg.value='Default WebTV Internal IP/Port. Can be used to check your routing setup.'
 					break;
@@ -83,7 +112,7 @@ hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
 		}
 	  }
 	  </script>
-      <form name="connect" action="client:ConfirmConnectSetup">
+      <form name="connect" action="wtv-tricks:/cSetup">
          <table width=100% cellspacing=1 cellpadding=0>
 		    <tr>
 				<td colspan=3>
@@ -172,3 +201,4 @@ hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
 
 </body>
 </html>`;
+}
