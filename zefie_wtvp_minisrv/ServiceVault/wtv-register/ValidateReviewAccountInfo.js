@@ -50,7 +50,8 @@ if (!request_headers.query.registering ||
             headers = errpage[0];
             data = errpage[1];
         } else {
-
+            // reload session data
+            session_data.loadSessionData();
             headers = `200 OK
 Content-Type: text/html`;
 
