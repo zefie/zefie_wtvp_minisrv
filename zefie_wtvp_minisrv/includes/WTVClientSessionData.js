@@ -91,7 +91,7 @@ class WTVClientSessionData {
     }
 
     switchUserID(user_id, update_mail = true, update_ticket = true, update_favorite = true) {
-        this.user_id = user_id;
+        this.user_id = parseInt(user_id);
         if (user_id != null) {
             this.loadSessionData();
             if (this.isRegistered() && update_mail) this.assignMailStore();
