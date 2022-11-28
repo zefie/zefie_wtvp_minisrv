@@ -6,14 +6,14 @@ Content-Type: text/html`
 data = `<html>
 <head>
 <title>Connect Setup v2.2-minisrv</title>
-<DISPLAY noscroll allowoffline notvaudio switchtowebmode>
+<DISPLAY noscroll allowoffline notvaudio switchtowebmode noreconnectalert>
 </head>
 <body bgcolor="#3C2F47" text="#cbcbcb" link="#aaaaaa"
 hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
 
 <table cellspacing="0" cellpadding="0" cellborder="0">
   <tr>
-    <td background="cSetup/cSetupShadowLogo.jpg" width="104" height="80" valign="top" align="left"><spacer type="block" WIDTH="11" HEIGHT="11"><br>
+    <td width="104" height="80" valign="top" align="left"><spacer type="block" WIDTH="11" HEIGHT="11"><br>
 <spacer type="block" WIDTH="10" HEIGHT="1">    <a href="wtv-home:/home"><img src="${minisrv_config.config.service_logo}" width="87"
     height="67"></a>       
       </td>
@@ -30,15 +30,21 @@ hspace="0" vspace="0" fontsize="large" noscroll hideoptions>
 
 
 	  <script>
+
+	  function doConnect2() {
+			document.connect.submit();
+			location.href = "client:activ";
+	  }
 	  
 	  function doConnect() {
 		if (document.connect.machine.value == "${minisrv_config.services['wtv-1800'].host}" && document.connect.port.value == "${minisrv_config.services['wtv-1800'].port}") {
 				alert("You are already here!");
 		} else {
-				document.connect.submit();
-				location.href = "client:activ";
+				location.href = "client:hangup";
+				setTimeout(doConnect2, 500);
 		}
 	  }
+
 
 	  function updateService() {
 		srv = document.connect.preset[document.connect.preset.selectedIndex].value;
