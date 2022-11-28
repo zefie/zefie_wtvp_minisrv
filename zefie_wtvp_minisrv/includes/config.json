@@ -26,9 +26,9 @@
     "service_owner_account": "minisrvuser", // Set this to your account name on your minisrv
     "service_owner_contact": "someone", // Set this to your contact (eg email address, twitter handle, etc)
     "service_owner_contact_method": "something", // Set this to the contact method (eg email, twitter, etc)
-    "service_name": "WebTV", // What you want your service to be called
-    "service_logo": "WebTVLogoJewel.gif", // The logo shown on most service pages and error alerts. Can be absolute path or the name of a file in the SharedROMCache.
-    "service_splash_logo": "file://ROM/images/SplashLogo1.gif", // The logo shown on the splash screen. Can be absolute path or the name of a file in the SharedROMCache.
+    "service_name": "minisrv", // What you want your service to be called
+    "service_logo": "minisrv.gif", // The logo shown on most service pages and error alerts. Can be absolute path or the name of a file in the SharedROMCache.
+    "service_splash_logo": "splash_minisrv.gif", // The logo shown on the splash screen. Can be absolute path or the name of a file in the SharedROMCache.
     "hide_ssid_in_logs": true, // Filter SSIDs with asterisks to prevent accidently leaking user SSIDs when debugging.
     "filter_passwords_in_logs": true, // Filter passwords (form fields containing "pass") to prevent accidently leaking user passwords when debugging.
     "post_percentages": [ 0, 25, 50, 100 ], // When recieving POST data from the client, we display the progress of the transfer in the console log if the verbosity is high enough. Here you can show more or less updates.
