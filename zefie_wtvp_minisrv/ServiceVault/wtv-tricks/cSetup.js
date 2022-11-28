@@ -67,11 +67,11 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 
   
 	  function doConnect() {
-	//	if (document.connect.machine.value == "${minisrv_config.services['wtv-1800'].host}" && document.connect.port.value == "${minisrv_config.services['wtv-1800'].port}") {
-//				alert("You are already here!");
-	//	} else {
+		if (document.connect.machine.value == "${minisrv_config.services['wtv-1800'].host}" && document.connect.port.value == "${minisrv_config.services['wtv-1800'].port}") {
+				alert("You are already here!");
+		} else {
 			document.connect.submit();
-//		}
+		}
 	  }
 
 
