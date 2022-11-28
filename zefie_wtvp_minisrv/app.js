@@ -1926,44 +1926,44 @@ if (minisrv_config.config.SessionStore) {
 
 if (minisrv_config.config.ServiceDeps) {
     var ServiceDeps = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps);
-    console.log(" * Configured Service Dependancies at", ServiceDeps);
+    console.log(" * Configured Service Dependencies at", ServiceDeps);
 } else {
     throw ("ERROR: No Service Dependancies Directory (SessionDeps) defined!");
 }
 
 var service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
-    configureService(k, minisrv_config.services[k], true);
-    console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
-    
-    if (minisrv_config.services[k].local_nntp_port) {
-        if (!wtvnewsserver) {
-            const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
-            var local_nntp_using_auth = false;
-            if (minisrv_config.services[k].local_nntp_requires_auth) {
-                local_nntp_using_auth = true;
-                if (minisrv_config.services[k].local_auth) {
-                    // auth required, and info defined in config
-                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true, minisrv_config.services[k].local_auth.username, minisrv_config.services[k].local_auth.password);
-                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: As Configured");
+    if (configureService(k, minisrv_config.services[k], true)) {
+        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
+
+        if (minisrv_config.services[k].local_nntp_port) {
+            if (!wtvnewsserver) {
+                const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
+                var local_nntp_using_auth = false;
+                if (minisrv_config.services[k].local_nntp_requires_auth) {
+                    local_nntp_using_auth = true;
+                    if (minisrv_config.services[k].local_auth) {
+                        // auth required, and info defined in config
+                        wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true, minisrv_config.services[k].local_auth.username, minisrv_config.services[k].local_auth.password);
+                        console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: As Configured");
+                    } else {
+                        // auth required, but randomly generated
+                        wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true);
+                        console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth (randgen): User:", wtvnewsserver.username, "Pass:", wtvnewsserver.password);
+                    }
                 } else {
-                    // auth required, but randomly generated
-                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port, true);
-                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth (randgen): User:", wtvnewsserver.username, "Pass:", wtvnewsserver.password);
+                    // no auth required on local server
+                    wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port);
+                    console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: None");
                 }
-            } else {
-                // no auth required on local server
-                wtvnewsserver = new WTVNewsServer(minisrv_config, minisrv_config.services[k].local_nntp_port);
-                console.log(" * Configured Service: Local NNTP", "on 127.0.0.1:" + minisrv_config.services[k].local_nntp_port, "(TLS) - Auth required:", local_nntp_using_auth, "- Auth: None");
-            }
-            if (minisrv_config.services[k].featuredGroups) {
-                Object.keys(minisrv_config.services[k].featuredGroups).forEach((j) => {
-                    wtvnewsserver.createGroup(minisrv_config.services[k].featuredGroups[j].group, minisrv_config.services[k].featuredGroups[j].description || null);
-                })
+                if (minisrv_config.services[k].featuredGroups) {
+                    Object.keys(minisrv_config.services[k].featuredGroups).forEach((j) => {
+                        wtvnewsserver.createGroup(minisrv_config.services[k].featuredGroups[j].group, minisrv_config.services[k].featuredGroups[j].description || null);
+                    })
+                }
             }
         }
     }
-
 })
 if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
 else console.log(" * Full SSIDs will be shown in console logs");
