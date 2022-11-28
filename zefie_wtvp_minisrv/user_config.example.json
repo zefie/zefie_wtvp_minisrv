@@ -118,7 +118,19 @@
 				"username": "mylocaluser",
 				"password": "mylocalpass"
 			}
+		},
+		// the following uses zefie's public proxy with webone for web surfing and image scaling
+		"services": {
+			"http": {
+				"host": "51.222.164.146",
+				"nobind": true
+			},
+			"https": {
+				"host": "51.222.164.146",
+				"nobind": true
+			}
 		}
+		// end zefie's public proxy
 	},
 	"favorites": {
 		"folder_templates": {
