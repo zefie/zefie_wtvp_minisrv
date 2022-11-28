@@ -44,8 +44,7 @@ class WTVRegister {
 
         // check against user accounts
         directory = (directory) ? directory : this.session_store_dir + this.path.sep + "accounts";
-  
-        console.log(directory)
+
         if (this.fs.existsSync(directory)) {
             this.fs.readdirSync(directory).forEach(file => {
                 if (self.fs.lstatSync(directory + self.path.sep + file).isDirectory() && !return_val) {

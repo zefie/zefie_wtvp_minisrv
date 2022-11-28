@@ -67,11 +67,11 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 
   
 	  function doConnect() {
-	//	if (document.connect.machine.value == "${minisrv_config.services['wtv-1800'].host}" && document.connect.port.value == "${minisrv_config.services['wtv-1800'].port}") {
-//				alert("You are already here!");
-	//	} else {
+		if (document.connect.machine.value == "${minisrv_config.services['wtv-1800'].host}" && document.connect.port.value == "${minisrv_config.services['wtv-1800'].port}") {
+				alert("You are already here!");
+		} else {
 			document.connect.submit();
-//		}
+		}
 	  }
 
 	  function setOther() {
@@ -103,7 +103,7 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 					document.message.msg.value='Default WebTV Production IP/Port. Can be used to check your routing setup.'
 					break;
 				case "wni-int":
-					document.connect.machine.value="192.168.11.8"
+					document.connect.machine.value="10.0.128.1"
 					document.connect.port.value="1615"
 					document.message.msg.value='Default WebTV Internal IP/Port. Can be used to check your routing setup.'
 					break;
