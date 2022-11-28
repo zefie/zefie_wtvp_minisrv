@@ -11,7 +11,7 @@ if (!session_data.getSessionData("registered")) {
 } else if (session_data.user_id !== 0) {
     headers += "\nwtv-noback-all: wtv-";
     headers += "\nwtv-expire-all: wtv-";
-    var redirect = [5, "wtv-tricks:/tricks"];
+    var redirect = [5, "client:relogin?"];
     var message = "Error: You must be the primary user to unregister this box.";
 } else if (request_headers.query.confirm_unregister) {
     if (session_data.unregisterBox()) {
