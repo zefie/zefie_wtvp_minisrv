@@ -532,7 +532,10 @@ function getSSIDCRC(ssid) {
 
 		if(isNaN(crc)) crc = 0;
     }
-    return crc.toString(16);
+
+    var out = crc.toString(16);
+    if (out.length == 1) return "0" + out;
+    else return out;
 }
 
 function generateSSID() {
