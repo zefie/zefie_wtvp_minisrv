@@ -505,12 +505,13 @@ class WTVClientSessionData {
         
         try {
             // only save if file has changed
-            var json_save_data = JSON.stringify(this.session_store);
-            var json_load_data = (!skip_merge) ? this.loadSessionData(true) : {};
+            var sessionToStore = this.session_store;
+            var json_save_data = JSON.stringify(sessionToStore);
+            var json_load_data = (skip_merge) ? {} : this.loadSessionData(true);
 
             var storeDir = this.getUserStoreDirectory();
             if (!this.fs.existsSync(storeDir)) this.mkdirRecursive(storeDir);
-            var sessionToStore = this.session_store;
+
             if (sessionToStore.password_valid) delete sessionToStore.password_valid; // do not save validity state of password login, resets when session expires
             if (json_save_data != json_load_data) this.fs.writeFileSync(storeDir + "user" + this.user_id + ".json", JSON.stringify(sessionToStore), "Utf8");
             return true;
