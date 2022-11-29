@@ -30,6 +30,7 @@ var viewer_stock_md5s = {
     "WebTVIntel--2.5-HE.exe": "64edab977ec19a663c5842176bec306a"
 }
 
+/*
 var modpacks = {
     0: {
         "name": "Background Sound",
@@ -38,6 +39,30 @@ var modpacks = {
         "default": true
     }
 }
+*/
+
+var modpacks = {};
+
+
+var feature_bits = {
+    2: {
+        0: {
+            "offset": 2063881,
+            "name": "Background Sound",
+            "description": "Enables the Viewer to continue playing sound when it is not the currently active window.",
+            "value": Buffer.from("\x80", 'ascii')
+        }
+    },
+    4: {
+        0: {
+            "offset": 2063881,
+            "name": "Background Sound",
+            "description": "Enables the Viewer to continue playing sound when it is not the currently active window.",
+            "value": Buffer.from("\x80", 'ascii')
+        }
+    }
+}
+
 
 
 var patch_defaults = {
@@ -250,13 +275,19 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
     return customized_patch_data;
 }
 
+function applyPatch(data, patch_data, offset) {
+    var data_length = patch_data.byteLength || patch_data.length;
+    var data = data.fill(patch_data, offset, data_length + offset);
+    return data;
+}
+
 function patchBinary(patchDataObject) {
+    var patched_file = patchDataObject.data;
     Object.keys(patchDataObject.patch_data).forEach(function (idx) {
         idx = parseInt(idx);
-        data_length = patchDataObject.patch_data[idx].byteLength || patchDataObject.patch_data[idx].length
-        patchDataObject.data.fill(patchDataObject.patch_data[idx], idx, data_length + idx);
+        patched_file = applyPatch(patched_file, patchDataObject.patch_data[idx], idx);
     })
-    return patchDataObject.data;
+    return patched_file;
 }
 
 function generateSSID() {
@@ -382,6 +413,19 @@ if (request_headers.query.viewer &&
                 data = errpage[1];
             } else {
                 var patched_file = patchBinary(patchDataObject);
+                var enabled_feature_bits = [];
+                Object.keys(request_headers.query).forEach((k) => {
+                    if (k.substring(0, 12) === "feature_bit_") {
+                        enabled_feature_bits.push(parseInt(k.substring(12)));
+                    }
+                });
+                Object.keys(enabled_feature_bits).forEach((k) => {
+                    var bit = feature_bits[request_headers.query.viewer][enabled_feature_bits[k]];
+                    if (bit) {
+                        patched_file = applyPatch(patched_file, bit.value, bit.offset);
+                    }
+                });
+
                 headers = `200 OK
 Content-Type: application/octet-stream
 Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")}"`
@@ -464,8 +508,9 @@ td {
 </style>
 </head>
 <script>
-document.onload = function() {
+window.onload = function() {
     generateSSID();
+    updateFeatureBits();
 }
 
 function generateSSID() {
@@ -489,6 +534,28 @@ function validateForm() {
         }
     }
 }
+
+function updateFeatureBits() {
+    var feature_bit_html = document.getElementById('feature_bits');
+    var viewer_select = document.getElementById('viewer');
+    var selected_viewer = parseInt(viewer_select[viewer_select.selectedIndex].value);
+`;
+    var bits = 0;
+    Object.keys(feature_bits).forEach((k) => {
+        data += `\t${(bits === 0) ? "if" : "else if"} (selected_viewer == parseInt(${k})) {\n`;
+        data += `\t\tfeature_bit_html.innerHTML = "";\n`
+        Object.keys(feature_bits[k]).forEach((j) => {
+            data += `\t\tfeature_bit_html.innerHTML += "<input type=\\"checkbox\\" name=\\"feature_bit_${j}\\"${(feature_bits[k][j].default) ? "checked=checked" : ""}>${feature_bits[k][j].name}<br> &nbsp; &nbsp; &nbsp;<em>${feature_bits[k][j].description}</em><br>"\n`;
+        });
+        data += "\t}\n";
+        bits++;
+    });
+
+    data += `    else {
+        feature_bit_html.innerHTML = "None available";
+    }
+}
+
 
 function validateSSID(ssid) {
     if (ssid.length != 16) {
@@ -523,7 +590,7 @@ Welcome to the zefie minisrv v${minisrv_config.version} PC Services<Br>
 <tr>
 <td><strong>Viewer Version:</strong></td>
 <td>
-<select name="viewer">
+<select name="viewer" id="viewer" onchange="updateFeatureBits()">
 <option value="0">WebTV Viewer v1.0 Build 146 (w/ B210 ROMs)</option>
 <option value="1">WebTV Viewer v1.1 Build 220</option>
 <option value="2">WebTV Viewer v2.5 Build 117</option>
@@ -571,15 +638,23 @@ to determine what your "box" can do, and as such, may offer<br>
 features that do not work in the Viewer, especially older ones</em>
 </tr>
 <tr>
+<td><strong>Feature Packs</strong></td>
+<td><div id="feature_bits">None available</div></td>
+</tr>`;
+    if (modpacks.length > 0) {
+        data += `<tr>
 <td><strong>Mod Packs</strong></td>
 <td>`;
 
-    Object.keys(modpacks).forEach((k) => {
-        data += `<input type="checkbox" name="modpack_${k}"${(modpacks[k].default) ? " checked=checked" : ""}>${modpacks[k].name}<br> &nbsp; &nbsp; &nbsp;<em>${modpacks[k].description}</em><br>`
-    })
+        Object.keys(modpacks).forEach((k) => {
+            data += `<input type="checkbox" name="modpack_${k}"${(modpacks[k].default) ? " checked=checked" : ""}>${modpacks[k].name}<br> &nbsp; &nbsp; &nbsp;<em>${modpacks[k].description}</em><br>`
+        })
 
-data += `</td>
-</tr>
+        data += `</td>
+</tr>`;
+    }
+
+data += `
 <tr>
 <td><strong>Other Flags</strong>:</td>
 <td>
