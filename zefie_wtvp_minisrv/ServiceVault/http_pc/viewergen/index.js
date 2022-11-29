@@ -101,6 +101,7 @@ function getPatchDataType(type, invert = false) {
         patch_data += "wtv-disk-first-error: %s\r\n";
         patch_data += "wtv-disk-size: %s\r\n";
         patch_data += "wtv-client-address: %s\r\n";
+        patch_data += "wtv-viewer: %s\r\n";
     }
     return patch_data;
 }
@@ -392,6 +393,7 @@ if (request_headers.query.viewer &&
         } else {
             var build = request_headers.query.build;
             var client_data_obj = null
+            
             if (build) {
                 if (parseInt(build) > 0) {
                     client_data_obj = buildProfile(parseInt(build));
@@ -401,6 +403,9 @@ if (request_headers.query.viewer &&
             if (!client_data_obj)
                 client_data_obj = buildProfile(7181);
 
+            var viewer_tag = viewer_file.split('.');
+            viewer_tag.pop();
+            client_data_obj['wtv-viewer'] = viewer_tag.join('.');
             client_data_obj["wtv-client-serial-number"] = client_ssid;
             var patchDataObject = {
                 data: viewer_data,
