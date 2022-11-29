@@ -514,7 +514,6 @@ td {
 </head>
 <script>
 window.onload = function() {
-    generateSSID();
     updateFeatureBits();
 }
 
