@@ -1027,6 +1027,7 @@
     </Content>
     <Content Include="ServiceVault\wtv-star\star.js" />
     <Content Include="ServiceVault\wtv-tricks\access.js" />
+    <Content Include="ServiceVault\wtv-tricks\home.js" />
     <Content Include="ServiceVault\wtv-tricks\blastbacklist.js" />
     <Content Include="ServiceVault\wtv-tricks\charmap.js">
       <SubType>Code</SubType>
