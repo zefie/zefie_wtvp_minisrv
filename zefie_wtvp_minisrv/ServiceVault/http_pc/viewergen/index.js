@@ -30,6 +30,15 @@ var viewer_stock_md5s = {
     "WebTVIntel--2.5-HE.exe": "64edab977ec19a663c5842176bec306a"
 }
 
+var modpacks = {
+    0: {
+        "name": "Background Sound",
+        "description": "Enables the Viewer to continue playing sound when it is not the currently active window.",
+        "file": "BackgroundSound.zip",
+        "default": true
+    }
+}
+
 
 var patch_defaults = {
     "start_url": "client:GoToConn",
@@ -336,7 +345,6 @@ if (request_headers.query.viewer &&
 
     var viewer_file = viewers[request_headers.query.viewer];
     var needs_hacktv_mini = (viewer_file === "WebTVIntel--2.5-HE.exe") ? true : false
-    console.log('needs_hacktv_mini', needs_hacktv_mini)
     if (!viewer_file) {
         errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
         headers = errpage[0];
@@ -346,7 +354,7 @@ if (request_headers.query.viewer &&
         var viewer_data = zlib.gunzipSync(viewer_gz_data);
         var viewer_md5 = crypto.createHash('md5').update(viewer_data).digest("hex");
         if (viewer_md5 != viewer_stock_md5s[viewer_file]) {
-            console.log(viewer_file, "md5sum error. expected:", viewer_stock_md5s[viewer_file], ", got:", viewer_md5)
+            console.error(viewer_file, "md5sum error. expected:", viewer_stock_md5s[viewer_file], ", got:", viewer_md5)
             errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
             headers = errpage[0];
             data = errpage[1];
@@ -410,6 +418,26 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                                 zip.addFile("Disk/" + zipEntry.entryName, zipEntry.getData());
                             });
                         }
+                    }
+
+                    var embed_modpacks = [];
+                    Object.keys(request_headers.query).forEach((k) => {
+                        if (k.substring(0, 8) === "modpack_") {
+                            embed_modpacks.push(parseInt(k.substring(8)));
+                        }
+                    });
+
+                    if (embed_modpacks.length > 0) {
+                        Object.keys(embed_modpacks).forEach((k) => {
+                            var modpack_file = viewergen_resource_dir + modpacks[k].file;
+                            if (fs.existsSync(modpack_file)) {
+                                var modpack_zip = new AdmZip(modpack_file);
+                                var zipEntries = modpack_zip.getEntries();
+                                zipEntries.forEach(function (zipEntry) {
+                                    zip.addFile(zipEntry.entryName, zipEntry.getData());
+                                });
+                            }
+                        });
                     }
                 }
                 data = zip.toBuffer();
@@ -505,8 +533,8 @@ Welcome to the zefie minisrv v${minisrv_config.version} PC Services<Br>
 </tr>
 <tr>
 <td><strong>SSID:</strong></td>
-<td><input name="client_ssid" id="client_ssid" maxlength=16" value="91">
-<input type="button" onclick="generateSSID()" id="generate_ssid" value="Randomize SSID" /><br>
+<td><input name="client_ssid" id="client_ssid" maxlength=16" value="91" disabled=disabled>
+<input type="button" onclick="generateSSID()" id="generate_ssid" value="Randomize SSID" disabled=disabled/><br>
 <em>Viewer clients should use SSIDs starting with <strong>91</strong>,<br>
 unless you are intentionally trying to spoof a box.</em>
 </td>
@@ -542,11 +570,20 @@ although certain advanced server operators may use these flags<br>
 to determine what your "box" can do, and as such, may offer<br>
 features that do not work in the Viewer, especially older ones</em>
 </tr>
+<tr>
+<td><strong>Mod Packs</strong></td>
+<td>`;
 
+    Object.keys(modpacks).forEach((k) => {
+        data += `<input type="checkbox" name="modpack_${k}"${(modpacks[k].default) ? " checked=checked" : ""}>${modpacks[k].name}<br> &nbsp; &nbsp; &nbsp;<em>${modpacks[k].description}</em><br>`
+    })
+
+data += `</td>
+</tr>
 <tr>
 <td><strong>Other Flags</strong>:</td>
 <td>
-<input type="checkbox" name="random_ssid" id="random_ssid" onchange="toggleRandomizer(this)"> Let the server choose the SSID (Ignores SSID above)<br>
+<input type="checkbox" name="random_ssid" id="random_ssid" onchange="toggleRandomizer(this)" checked=checked> Let the server choose the SSID (Ignores SSID above)<br>
 <input type="checkbox" name="viewer_only" onchange="toggleLogoOption(this)"> Only include Viewer EXE, not ROM files or Logos (Advanced Users Only)
 </td>
 </tr>
