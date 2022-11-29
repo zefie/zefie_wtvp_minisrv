@@ -41,6 +41,25 @@ class WTVShared {
         }
     }
 
+    getSSIDCRC(ssid) {
+        let crc = 0;
+        var ssid = ssid.substr(0, 14);
+
+        for (let i = 0; i < ssid.length; i += 2) {
+            let inbyte = parseInt(ssid.substring(i, i + 2), 16);
+            for (let ii = 8; ii > 0; ii--) {
+                let mix = (crc ^ inbyte) & 0x01;
+                crc >>= 1;
+                if (mix != 0) crc ^= 0x8C;
+                inbyte >>= 1;
+            }
+
+            if (isNaN(crc)) crc = 0;
+        }
+
+        return crc.toString(16);
+    }
+
     atob(a) {
         const CryptoJS = require('crypto-js');
         const enc = CryptoJS.enc.Base64.parse(a);
@@ -363,6 +382,64 @@ class WTVShared {
             }
         }
     }
+
+    parseSSID(ssid) {
+        var ssid_obj = {};
+        switch (ssid.substring(0, 2)) {
+            case "01":
+                ssid_obj.boxType = "Internal";
+                break;
+            case "81":
+                ssid_obj.boxType = "Retail";
+                break;
+            case "91":
+                // not a definitive way to detect a viewer
+                ssid_obj.boxType = "Viewer";
+                break;
+        }
+        ssid_obj.unique_id = ssid.substring(2, 8);
+        switch (ssid.substring(10, 14).toUpperCase()) {
+            case "B002":                
+                ssid_obj.region = "US/Canada";
+                break;
+            case "B102":
+                ssid_obj.region = "Japan";
+                break;
+        }
+
+        switch (ssid.substring(8, 10).toUpperCase()) {
+            case "00":
+                if (ssid_obj.region == "Japan") ssid_obj.manufacturer = "Panasonic";
+                else ssid_obj.manufacturer = "Sony";
+                break;
+            case "10":
+            case "50":
+                ssid_obj.manufacturer = "Philips";
+                break;
+            case "40":
+                ssid_obj.manufacturer = "Mitsubishi";
+                break;
+            case "70":
+                ssid_obj.manufacturer = "Samsung";
+                break;
+            case "80":
+                ssid_obj.manufacturer = "EchoStar";
+                break;
+            case "90":
+                ssid_obj.manufacturer = "RCA";
+                break;
+            case "AE":
+                ssid_obj.manufacturer = "zefie & MattMan69";
+                break;
+        }
+        ssid_obj.crc = ssid.substring(14)
+        return ssid_obj;
+    }
+
+    getManufacturer(ssid) {
+        return parseSSID(ssid).manufacturer || null;
+    }
+
 
     moveObjectElement(currentKey, afterKey, obj, caseInsensitive = false) {
         var result = {};

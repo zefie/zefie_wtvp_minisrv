@@ -291,14 +291,15 @@ function patchBinary(patchDataObject) {
     return patched_file;
 }
 
+
 function generateSSID() {
-    var ssid_template = "91xxxY0xx0b002xx";
+    var ssid_template = "91xxxxxxaeb002";
     var ssid = ssid_template;
     while (ssid.indexOf("x") != -1) {
+        // random hex char from 0-F
         ssid = ssid.replace("x", Math.floor(Math.random() * 16).toString(16))
-    }
-    ssid = ssid.replace("Y", Math.floor(Math.random() * 7));
-    return ssid;
+    }    
+    return ssid + wtvshared.getSSIDCRC(ssid);
 }
 
 function buildProfile(build) {
@@ -517,15 +518,31 @@ window.onload = function() {
     updateFeatureBits();
 }
 
+function getSSIDCRC(ssid) {
+    let crc = 0;
+    var ssid = ssid.substr(0, 14);
+    for (let i = 0; i < ssid.length; i += 2) {
+        let inbyte = parseInt(ssid.substring(i, i+2), 16);
+		for (let ii = 8; ii > 0; ii--) {
+		    let mix = (crc ^ inbyte) & 0x01;
+			crc >>= 1;
+			if (mix != 0) crc ^= 0x8C;
+			inbyte >>= 1;
+		}
+
+		if(isNaN(crc)) crc = 0;
+    }
+    return crc.toString(16);
+}
+
 function generateSSID() {
-    var ssidForm = document.getElementById('client_ssid');
-    var ssid_template = "91xxxY0xx0b002xx";
+    var ssid_template = "91xxxxxxaeb002";
     var ssid = ssid_template;
     while (ssid.indexOf("x") != -1) {
-        ssid = ssid.replace("x",Math.floor(Math.random() * 16).toString(16))
-    }
-    ssid = ssid.replace("Y", Math.floor(Math.random() * 7));
-    ssidForm.value = ssid;
+        // random hex char from 0-F
+        ssid = ssid.replace("x", Math.floor(Math.random() * 16).toString(16))
+    }    
+    document.getElementById('client_ssid').value = ssid + getSSIDCRC(ssid);
 }
 
 function validateForm() {
