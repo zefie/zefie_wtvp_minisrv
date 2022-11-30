@@ -614,34 +614,43 @@ From:
 <td>
 `;
                 var allow_html = false;
+                var body_data = '';
+                var attachment_data = '';
+                var signature_data = '';
+
                 if (message_body) {
                     if (message_body.indexOf("<html>") >= 0) {
                         allow_html = true;
                     }
+                    body_data += (allow_html) ? wtvshared.sanitizeSignature(message_body) : wtvshared.htmlEntitize(message_body, true)
+                    body_data += `<br><br>`;
                 }
-                data += (allow_html) ? wtvshared.sanitizeSignature(message_body) : wtvshared.htmlEntitize(message_body, true)
-                data += `
-<br>
-<br>`;
-                if (signature) data += wtvshared.sanitizeSignature(signature);
-                data += "<p>";
+
+                if (signature) signature_data += wtvshared.sanitizeSignature(signature);
+
 
                 if (attachments) {
+                    if (attachments[0]) {
+                        if (attachments[0].filename == "message.html") {
+                            body_data += wtvshared.sanitizeSignature(attachments[0].data);
+                            delete attachments[0];
+                        }
+                    }
                     var supported_images = /image\/(jpe?g|png|gif|x-wtv-bitmap)/;
                     var supported_audio = /audio\/(mp[eg|2|3]|midi?|wav|x-wav|mod|x-mod)/;
                     attachments.forEach((v, k) => {
                         if (v.content_type) {
                             if (v.content_type.match(supported_images))
-                                data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Video%20Snapshot"><br><br>`;
+                                attachment_data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Video%20Snapshot"><br><br>`;
                             else if (v.content_type.match(supported_audio))
-                                data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? encodeURIComponent(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
+                                attachment_data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? encodeURIComponent(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
     <td align=left valign=middle><img src="wtv-news:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;${(v.filename) ? (v.filename) : "Audio file"} (${v.content_type.split('/')[1]} attachment)</font>
     <td align=right valign=middle>
     </table><br><br>`;
                             else if (v.content_type.match("text/html"))
-                                data += wtvshared.sanitizeSignature(v.data);
+                                attachment_data += wtvshared.sanitizeSignature(v.data);
                             else
-                                data += `<table width=386><td><td align=left valign=middle><font color="#565656"><i>A file ${(v.filename) ? `(${v.filename}) ` : ''}that WebTV cannot use, with type ${v.content_type} is attached to this message.</i></font>`
+                                attachment_data += `<table width=386><td><td align=left valign=middle><font color="#565656"><i>A file ${(v.filename) ? `(${v.filename}) ` : ''}that WebTV cannot use, with type ${v.content_type} is attached to this message.</i></font>`
                         }
                     });
                 }
@@ -650,6 +659,9 @@ From:
                     data += `Included Page: <a href="${(message.url)}">${wtvshared.htmlEntitize(message.url_title).replace(/&apos;/gi, "'")}`;
                 }
                 */
+                data += body_data;
+                data += signature_data + "<p>";
+                data += attachment_data;
                 data += "</table></body></html>";
                 sendToClient(socket, headers, data);
 
