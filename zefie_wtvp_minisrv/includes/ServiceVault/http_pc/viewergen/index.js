@@ -1,5 +1,4 @@
 var minisrv_service_file = true;
-var viewer = 2 // debug override
 
 var viewers = {
     0: "WebTVIntel--1.0.exe",
