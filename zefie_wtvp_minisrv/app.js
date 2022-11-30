@@ -343,7 +343,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 
     var privileged = false;
     if (minisrv_config.services[service_name]) privileged = (minisrv_config.services[service_name].privileged) ? true : false;
-    else if (pc_services) privileged = (minisrv_config.services['pc_services'].privileged) ? true : false;
+    else if (pc_services) privileged = (minisrv_config.services[getServiceByVaultDir(service_name)].privileged) ? true : false;
 
     if (privileged) {
         updateFromVM.push(["ssid_sessions", "ssid_sessions"]);             // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
