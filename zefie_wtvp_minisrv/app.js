@@ -1946,13 +1946,6 @@ if (minisrv_config.config.ServiceVaults) {
     throw ("ERROR: No Service Vaults defined!");
 }
 
-if (minisrv_config.config.SessionStore) {
-    var SessionStore = wtvshared.returnAbsolutePath(minisrv_config.config.SessionStore);
-    console.log(" * Configured Session Storage at", SessionStore);
-} else {
-    throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
-}
-
 var service_deps = new Array();
 if (minisrv_config.config.ServiceDeps) {
     Object.keys(minisrv_config.config.ServiceDeps).forEach(function (k) {
@@ -1963,6 +1956,14 @@ if (minisrv_config.config.ServiceDeps) {
 } else {
     throw ("ERROR: No Service Dependancies Directory (SessionDeps) defined!");
 }
+
+if (minisrv_config.config.SessionStore) {
+    var SessionStore = wtvshared.returnAbsolutePath(minisrv_config.config.SessionStore);
+    console.log(" * Configured Session Storage at", SessionStore);
+} else {
+    throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
+}
+
 
 var service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
