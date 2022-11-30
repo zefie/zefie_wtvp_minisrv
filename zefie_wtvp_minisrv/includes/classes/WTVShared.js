@@ -253,14 +253,15 @@ class WTVShared {
         self.debug("sanitizeSignature", "allowed protocols:", allowedProtocols);
 
         const clean = this.sanitizeHtml(string, {
-            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
+            allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'em', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'listing', 'marquee', 'nobr', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'shadow', 'span', 'strike', 'strong', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
             disallowedTagsMode: 'discard',
             allowedAttributes: {
                 a: ['href', 'name', 'target'],
-                img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+                audioscope: ['align', 'bgcolor', 'border', 'gain', 'height', 'leftcolor', 'leftoffset', 'maxlevel', 'rightcolor', 'rightoffset', 'width' ],
                 bgsound: ['src', 'loop'],
+                img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
                 font: ['size', 'name', 'color'],
-                marquee: ['speed'],
+                marquee: ['aign', 'behavior', 'direction', 'height', 'hspace', 'loop', 'scrollamount', 'scrolldelay', 'transparency', 'vspace', 'width'],
             },
             allowedSchemes: allowedSchemes,
             allowedSchemesByTag: {},
