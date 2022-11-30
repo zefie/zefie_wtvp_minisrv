@@ -1,8 +1,6 @@
 var minisrv_service_file = true;
 var viewer = 2 // debug override
 
-var viewergen_resource_dir = ServiceDeps + "/viewergen/";
-
 var viewers = {
     0: "WebTVIntel--1.0.exe",
     1: "WebTVIntel--1.1.exe",
@@ -110,10 +108,10 @@ function getPatchDataType(type, invert = false) {
 function getResData(file) {
     var res_data = null;
     if (file.substr(-2, 2).toLowerCase() == "gz") {
-        var res_gz_data = fs.readFileSync(viewergen_resource_dir + file);
+        var res_gz_data = wtvshared.getServiceDep("/viewergen/" + file);
         res_data = zlib.gunzipSync(res_gz_data);
     } else {
-        res_data = fs.readFileSync(viewergen_resource_dir + file);
+        res_data = wtvshared.getServiceDep("/viewergen/" + file);
     }
     return res_data;
 }
@@ -362,7 +360,7 @@ function buildProfile(build) {
 }
 
 var enable_full_hacktv = false;
-if (fs.existsSync(viewergen_resource_dir + "HackTV.zip")) {
+if (wtvshared.getServiceDep("/viewergen/" + "HackTV.zip", true)) {
     enable_full_hacktv = true;
     disksets['99'] = "HackTV.zip";
 }
@@ -383,7 +381,7 @@ if (request_headers.query.viewer &&
         headers = errpage[0];
         data = errpage[1];
     } else {
-        var viewer_gz_data = fs.readFileSync(viewergen_resource_dir + viewer_file + ".gz");
+        var viewer_gz_data = wtvshared.getServiceDep("/viewergen/" + viewer_file + ".gz");
         var viewer_data = zlib.gunzipSync(viewer_gz_data);
         var viewer_md5 = crypto.createHash('md5').update(viewer_data).digest("hex");
         if (viewer_md5 != viewer_stock_md5s[viewer_file]) {
@@ -441,13 +439,13 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                 zip.addZipComment("Viewer SSID: " + client_ssid);
                 zip.addFile(viewer_file.replace("--", "-" + client_ssid + "-"), patched_file);
                 if (!request_headers.query.viewer_only) {
-                    var romset_zip = new AdmZip(viewergen_resource_dir + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip");
+                    var romset_zip = new AdmZip(wtvshard.getServiceDep("/viewergen/" + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip", true));
                     var zipEntries = romset_zip.getEntries();
                     zipEntries.forEach(function (zipEntry) {
                         if (zipEntry.entryName == "Setup.bmp" && request_headers.query.logo) {
                             var logo_file = logos[parseInt(request_headers.query.logo) || 0];
                             if (logo_file) {
-                                var logo_gz_data = fs.readFileSync(viewergen_resource_dir + logo_file + ".gz");
+                                var logo_gz_data = wtvshard.getServiceDep("/viewergen/" + logo_file + ".gz");
                                 var logo_data = zlib.gunzipSync(logo_gz_data);
                                 zip.addFile(zipEntry.entryName, logo_data);
                             } else {
@@ -462,7 +460,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                         if (needs_hacktv_mini) diskset_file = disksets[98];
                         else diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
                         if (diskset_file) {
-                            var diskset_zip = new AdmZip(viewergen_resource_dir + diskset_file);
+                            var diskset_zip = new AdmZip(wtvshard.getServiceDep("/viewergen/" + diskset_file, true));
                             var zipEntries = diskset_zip.getEntries();
                             zipEntries.forEach(function (zipEntry) {
                                 zip.addFile("Disk/" + zipEntry.entryName, zipEntry.getData());
@@ -479,7 +477,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
 
                     if (embed_modpacks.length > 0) {
                         Object.keys(embed_modpacks).forEach((k) => {
-                            var modpack_file = viewergen_resource_dir + modpacks[k].file;
+                            var modpack_file = wtvshard.getServiceDep("/viewergen/" + modpacks[k].file, true);
                             if (fs.existsSync(modpack_file)) {
                                 var modpack_zip = new AdmZip(modpack_file);
                                 var zipEntries = modpack_zip.getEntries();

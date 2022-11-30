@@ -1,12 +1,12 @@
 'use strict';
-var classPath = __dirname + "/includes/";
+const path = require('path');
+var classPath = __dirname + path.sep + "includes" + path.sep + "classes" + path.sep;
 const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
 classPath = wtvshared.getAbsolutePath(classPath, __dirname);
 
 const fs = require('fs');
 const tls = require('tls');
-const path = require('path');
 const zlib = require('zlib');
 const http = require('follow-redirects').http
 const https = require('follow-redirects').https
@@ -233,8 +233,8 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "minisrv_version_string": z_title,
         "getServiceString": getServiceString,
         "sendToClient": sendToClient,
-        "ServiceDeps": ServiceDeps,
         "service_vaults": service_vaults,
+        "service_deps": service_deps,
         "cwd": __dirname, // current working directory
 
         // Our prototype overrides
@@ -358,10 +358,9 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     if (shared_romcache.indexOf(minisrv_config.config.SharedROMCache) != -1) {
                         var service_path_presplit = shared_romcache.split(path.sep);
                         service_path_presplit.splice(service_path_presplit.findIndex((element) => element === 'ROMCache'), 1);
-                        var service_path_romcache = service_path_presplit.join(path.sep);
+                        var service_path_romcache = service_vault_dir + path.sep + service_path_presplit.join(path.sep);
                         var service_vault_file_path_romcache = wtvshared.returnAbsolutePath(wtvshared.makeSafePath(service_path_romcache));
                         if (fs.existsSync(service_vault_file_path_romcache)) {
-
                             service_path = service_path.replace(wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache), 'ROMCache');
                             service_vault_file_path = service_vault_file_path_romcache;
                             usingSharedROMCache = true;
@@ -1916,9 +1915,13 @@ if (minisrv_config.config.SessionStore) {
     throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
 }
 
+var service_deps = new Array();
 if (minisrv_config.config.ServiceDeps) {
-    var ServiceDeps = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps);
-    console.log(" * Configured Service Dependencies at", ServiceDeps);
+    Object.keys(minisrv_config.config.ServiceDeps).forEach(function (k) {
+        var service_dep = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps[k]);
+        service_deps.push(service_dep);
+        console.log(" * Configured Service Dependencies at", service_dep, "with priority", (parseInt(k) + 1));
+    })
 } else {
     throw ("ERROR: No Service Dependancies Directory (SessionDeps) defined!");
 }

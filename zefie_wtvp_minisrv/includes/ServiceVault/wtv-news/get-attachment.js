@@ -12,11 +12,10 @@ if ((!attachment_id && attachment_id != 0) || !group || !article) {
     const wtvnews = new WTVNews(minisrv_config, service_name);
     var service_config = minisrv_config.services[service_name];
     if (service_config.local_nntp_port && wtvnewsserver) {
-        var tls_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news');
         var tls_options = {
-            ca: this.fs.readFileSync(tls_path + '/localserver_ca.pem'),
-            key: this.fs.readFileSync(tls_path + '/localserver_key.pem'),
-            cert: this.fs.readFileSync(tls_path + '/localserver_cert.pem'),
+            ca: this.wtvshared.getServiceDep('wtv-news/localserver_ca.pem'),
+            key: this.wtvshared.getServiceDep('wtv-news/localserver_key.pem'),
+            cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
             checkServerIdentity: () => { return null; }
         }
         if (wtvnewsserver.username)

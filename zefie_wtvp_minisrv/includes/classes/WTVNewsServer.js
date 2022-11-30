@@ -139,11 +139,10 @@ class WTVNewsServer {
 
             }
 
-            var tls_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news');
             var tls_options = {
-                ca: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_ca.pem'),
-                key: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_key.pem'),
-                cert: this.fs.readFileSync(tls_path + this.path.sep + 'localserver_cert.pem'),
+                ca: this.wtvshared.getServiceDep('wtv-news/localserver_ca.pem'),
+                key: this.wtvshared.getServiceDep('wtv-news/localserver_key.pem'),
+                cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
             }
             this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true });
             this.local_server.listen('nntps://localhost:' + local_server_port);

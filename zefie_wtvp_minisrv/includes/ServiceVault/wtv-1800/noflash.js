@@ -29,7 +29,7 @@ wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: GMT
 wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + ` GMT`;
 
-	var file_path = ServiceDeps + "/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok";
+	var file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok", true);
 
 	if (file_path) {
 		request_is_async = true;

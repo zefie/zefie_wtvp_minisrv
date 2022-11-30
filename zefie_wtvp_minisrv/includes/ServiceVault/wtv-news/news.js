@@ -3,11 +3,10 @@ var minisrv_service_file = true;
 const wtvnews = new WTVNews(minisrv_config, service_name);
 var service_config = minisrv_config.services[service_name];
 if (service_config.local_nntp_port && wtvnewsserver) {
-    var tls_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news');
     var tls_options = {
-        ca: this.fs.readFileSync(tls_path + '/localserver_ca.pem'),
-        key: this.fs.readFileSync(tls_path + '/localserver_key.pem'),
-        cert: this.fs.readFileSync(tls_path + '/localserver_cert.pem'),
+        ca: this.wtvshared.getServiceDep('wtv-news/localserver_ca.pem'),
+        key: this.wtvshared.getServiceDep('wtv-news/localserver_key.pem'),
+        cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
         checkServerIdentity: () => { return null; }
     }
     if (wtvnewsserver.username)
@@ -640,7 +639,7 @@ ${wtvshared.htmlEntitize(message_body, true)}
 
             }).catch((e) => {
                 // no such article
-                var post_unavailable_file = this.wtvshared.getAbsolutePath(this.minisrv_config.config.ServiceDeps + '/wtv-news/post-unavailable.html');
+                var post_unavailable_file = this.wtvshared.getServiceDep('wtv-news/post-unavailable.html');
                 console.log(e);
                 if (fs.existsSync(post_unavailable_file)) {
                     headers = "200 OK\nContent-type: text/html";

@@ -9,18 +9,17 @@
     "service_ip": "127.0.0.1", // IP sent to the box (public IP for public service, LAN IP for local testing)
     "bind_ip": "0.0.0.0", // IP on your machine to bind to (0.0.0.0 = All Interfaces/IPs)
     "ServiceVaults": [
-      /* Service Vaults: See ServiceVault.md for more info */
+      // Service Vaults: See ServiceVault.md for more info
       "UserServiceVault",
-      "ServiceVault"
+      "includes/ServiceVault"
     ],
-    "ServiceTemplates": [
-      /* Service Templates: Works like ServiceVaults. See ServiceVault.md for more info */
-      "UserTemplates",
-      "ServiceDeps/templates"
+    "ServiceDeps": [
+      // Service Deps: orks like ServiceVaults. See ServiceVault.md for more info
+      "UserServiceDeps",
+      "includes/ServiceDeps"
     ],
-    "ServiceDeps": "ServiceDeps", // Where the Service Dependancies are. Best left unchanged.
     "SessionStore": "SessionStore", // Where we store account (session) data. Best left unchanged.
-    "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Best left unchanged.
+    "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Found under service vault. Best left unchanged.
     "enable_shared_romcache": true, // Disabling this will cause a lot of problems without manual intervention. Best left unchanged.
     "service_owner": "a minisrv user", // Set this to your name or screenname
     "service_owner_account": "minisrvuser", // Set this to your account name on your minisrv

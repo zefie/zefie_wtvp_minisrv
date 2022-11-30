@@ -103,7 +103,7 @@ class WTVNews {
         return new Promise((resolve, reject) => {
             if (!search) {
                 this.client.list().then((data) => {
-                    console.log('listGroups data', data)
+                    this.debug('listGroups data', data)
                     resolve(this.processGroupList(data));
                 }).catch((e) => {
                     console.error(" * WTVNews Error:", "Command: listGroups (all)", e);
@@ -277,11 +277,11 @@ class WTVNews {
                                     messageid = data;
                                     resolve(data);
                                 }).catch((e) => {
-                                    console.log('Error getting articleID',article, e)
+                                    console.error('Error getting articleID',article, e)
                                     reject(e)
                                 });
                             }).catch((e) => {
-                                console.log('Error selecting group', e)
+                                console.error('Error selecting group', e)
                                 reject(e)
                             });
                         }));

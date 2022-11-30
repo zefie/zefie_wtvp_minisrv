@@ -347,13 +347,13 @@ class WTVShared {
     }
 
     returnAbsolutePath(check_path) {
-        if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 1) != ":") {
+        if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 2) != ":") {
             // non-absolute path, so use current directory as base
             check_path = this.parentDirectory + this.path.sep + check_path;
         } else {
             // already absolute path
         }
-        return check_path;
+        return this.fixPathSlashes(check_path);
     }
 
     isMiniBrowser(ssid_session) {
@@ -477,7 +477,7 @@ class WTVShared {
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
         if (notices || reload_notice) console.log(" *** Reading global configuration...");
         try {
-            var minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath("config.json", __dirname)));
+            var minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath(".." + this.path.sep + "config.json", __dirname)));
         } catch (e) {
             throw ("ERROR: Could not read config.json", e);
         }
@@ -947,8 +947,8 @@ class WTVShared {
      */
     fixPathSlashes(path) {
         // fix slashes
-        if (this.path.sep == '/' && path.indexOf("\\") != -1) path = path.replace(/\\/g, this.path.sep);
-        else if (this.path.sep == "\\" && path.indexOf("/") != -1) path = path.replace(/\//g, this.path.sep);
+        if (this.path.sep === "/" && path.indexOf("\\") != -1) path = path.replace(/\\/g, this.path.sep);
+        else if (this.path.sep === "\\" && path.indexOf("/") != -1) path = path.replace(/\//g, this.path.sep);
         
         // remove double slashes
         while (path.indexOf(this.path.sep + this.path.sep) != -1) path = path.replace(this.path.sep + this.path.sep, this.path.sep);
@@ -982,22 +982,27 @@ class WTVShared {
         return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
     }
 
-    getTemplate(service_name, path, path_only = false) {
+    getServiceDep(file, path_only = false, template = false) {
         var self = this;
         var outdata = null;
         var found = false
-        this.minisrv_config.config.ServiceTemplates.forEach(function (template_vault_dir) {
+        this.minisrv_config.config.ServiceDeps.forEach(function (dep_vault_dir) {
             if (found) return;
-            var search = self.getAbsolutePath(template_vault_dir + self.path.sep + service_name + self.path.sep + path);
+            if (template) dep_vault_dir += this.path.sep + "templates";
+
+            var search = self.getAbsolutePath(dep_vault_dir + self.path.sep + file);
             if (self.fs.existsSync(search)) {
                 if (path_only) outdata = search;
                 else outdata = self.fs.readFileSync(search);
-                if (!self.minisrv_config.config.debug_flags.quiet) console.log(" * Found " + search + " to handle template");
                 found = true;
                 return false;
             }
         });
         return outdata;
+    }
+
+    getTemplate(service_name, path, path_only = false) {
+        return this.getServiceDep(service_name + this.path.sep + path, path_only, true);
     }
 }
 
