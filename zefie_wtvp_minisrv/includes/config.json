@@ -273,8 +273,14 @@
       "drop_connection_on_wrong_port": false, // If true, resets connection if the PC browser connects to a port that is not PC Services enabled
       "show_verbose_errors": false, // extra debugging
       "privileged": true,
-      "allow_https": false, // for future use with LetsEncrypt
-      "force_https": false // for future use with LetsEncrypt
+      "use_https": false,
+      "force_https": false,
+      "https_cert": {
+        /* self-signed, can be replaced with another cert */
+        // "domain": "mycooldomain.com",
+        "cert": "%ServiceDeps%/https/selfsigned_cert.pem",
+        "key": "%ServiceDeps%/https/selfsigned_key.pem"
+      }
     }
   },
   "favorites": {

@@ -62,6 +62,14 @@ class WTVShared {
         else return out;
     }
 
+    parseConfigVars(s) {
+        if (s.indexOf("%ServiceDeps%") >= 0) {
+            return this.getServiceDep(s.replace("%ServiceDeps%", ""), true);
+        } else {
+            return s;
+        }
+    }
+
     atob(a) {
         const CryptoJS = require('crypto-js');
         const enc = CryptoJS.enc.Base64.parse(a);

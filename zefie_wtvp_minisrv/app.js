@@ -10,6 +10,7 @@ const tls = require('tls');
 const zlib = require('zlib');
 const http = require('follow-redirects').http
 const https = require('follow-redirects').https
+const httpx = require(classPath + "/HTTPX.js");
 const net = require('net');
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
@@ -40,7 +41,7 @@ function shutdown(signal = 'SIGTERM') {
     };
 }
 
-function findServiceByPort(port) {
+function getServiceByPort(port) {
     var service_name = null;
     Object.keys(minisrv_config.services).forEach(function(k) {
         if (service_name) return;
@@ -52,20 +53,37 @@ function findServiceByPort(port) {
     return service_name;
 }
 
-
 function getPortByService(service) {
     if (minisrv_config.services[service]) return minisrv_config.services[service].port;
     else return null;
 }
 
+function getSocketServer(socket) {
+    var server = null;
+
+    if (socket._server) {
+        if (socket._server._connectionKey) server = socket._server;
+    } else if (socket._parent) {
+        if (socket._parent._server) {
+            if (socket._parent._server._connectionKey) server = socket._parent._server;
+        }
+    }
+    return server;
+}
+
 function getSocketDestinationPort(socket) {
-    return parseInt(socket._server._connectionKey.split(':')[2]);
+    return getServerDestinationPort(getSocketServer(socket));
+}
+
+function getServerDestinationPort(server) {
+    return parseInt(server._connectionKey.split(':')[2]);
 }
 
 function verifyServicePort(service_name, socket) {
     if (!minisrv_config.config.enable_port_isolation) return service_name;
-    if (socket._server._connectionKey) {
-        var socketPort = getSocketDestinationPort(socket);
+    var server = getSocketServer(socket);
+    if (server) {
+        var socketPort = getServerDestinationPort(server);
         if (minisrv_config.services[service_name]) {
             if (minisrv_config.services[service_name].port == socketPort) {
                 if (minisrv_config.services[service_name].servicevault_dir)
@@ -611,6 +629,7 @@ async function processURL(socket, request_headers, pc_services = false) {
         if (pc_services) {
             original_service_name = request_headers.service_name; // store PC Services service name
             service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
+
             delete request_headers.service_name;
         }
         if (request_headers.request_url.indexOf('?') >= 0) {
@@ -1068,7 +1087,7 @@ function headerStringToObj(headers, response = false) {
     return headers_obj;
 }
 
-async function sendToClient(socket, headers_obj, data) {
+async function sendToClient(socket, headers_obj, data = null) {
     var headers = "";
     var content_length = 0;
     if (typeof (data) === 'undefined' || data === null) data = '';
@@ -1929,7 +1948,8 @@ if (minisrv_config.config.ServiceDeps) {
 var service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
     if (configureService(k, minisrv_config.services[k], true)) {
-        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host, "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
+        var using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
+        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
 
         if (minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
@@ -2022,25 +2042,55 @@ if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 pc_bind_ports.every(function (v) {
     try {
         var server = express();
-        server.listen(v, minisrv_config.config.bind_ip);
+        var service_name = getServiceByPort(v);
+        var service_handler = http;
+        var server_opts = {};
+        var using_tls = (minisrv_config.services[service_name].https_cert && minisrv_config.services[service_name].use_https) ? true : false;
+
+        if (using_tls) {
+            service_handler = httpx;
+            server_opts =
+            {
+                key: fs.readFileSync(wtvshared.parseConfigVars(minisrv_config.services[service_name].https_cert.key)),
+                cert: fs.readFileSync(wtvshared.parseConfigVars(minisrv_config.services[service_name].https_cert.cert)),
+            };
+        }
+        //service_handler.createServer(server_opts, server).listen(v, minisrv_config.config.bind_ip);
+
+        if (using_tls && !minisrv_config.services[service_name].force_https) {
+            service_handler = httpx; // HTTP and HTTPS on the same port
+        }
+
+        service_handler.createServer(server_opts, server).listen(v, minisrv_config.config.bind_ip);
         initstring_pc += v + ", ";
+
         server.get('*', (req, res) => {
-            var request_headers = {};
+            var ssl = (req.socket.ssl) ? true : false;
+            var service_name = getServiceByPort(v);
+            req.socket.minisrv_pc_mode = true;
+            req.socket.res = res;
+            req.socket.service_name = service_name;
             req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
-            socket_sessions[req.socket.id] = [];
-            var service_name = findServiceByPort(v);
+            socket_sessions[req.socket.id] = []; 
+
+            var request_headers = {};           
             request_headers['request'] = "GET " + req.originalUrl + " HTTP/1.1";
             request_headers.request_url = req.originalUrl;
             Object.keys(req.headers).forEach(function (k) {
                 request_headers[k] = req.headers[k];
             });
             request_headers.query = req.query;
-            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming PC Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
             request_headers.service_name = service_name;
-            req.socket.minisrv_pc_mode = true;
-            req.socket.res = res;
-            req.socket.service_name = service_name;
-            processURL(req.socket, request_headers, true)
+
+            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
+            if (!ssl && minisrv_config.services[service_name].force_https && minisrv_config.services[service_name].https_cert) {
+                var headers = `302 Moved
+Location: https://${(minisrv_config.services[service_name].https_cert.domain) ? minisrv_config.services[service_name].https_cert.domain : minisrv_config.services[service_name].host}:${minisrv_config.services[service_name].port}/
+Content-type: text/html`;
+                sendToClient(req.socket, headers);
+            } else {
+                processURL(req.socket, request_headers, true)
+            }
         })
         return true;
     } catch (e) {

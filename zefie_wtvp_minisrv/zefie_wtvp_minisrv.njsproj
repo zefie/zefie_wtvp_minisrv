@@ -31,6 +31,9 @@
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="app.js" />
+    <Content Include="includes\classes\HTTPX.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="includes\classes\WTVAdmin.js" />
     <Content Include="includes\classes\WTVBGMusic.js" />
     <Content Include="includes\classes\WTVClientCapabilities.js" />
