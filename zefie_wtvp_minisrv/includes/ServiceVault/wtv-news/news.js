@@ -347,6 +347,14 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                         if (signature_index) attachments.splice(signature_index, 1);
                     }
                 }
+
+                if (message_body.indexOf("<body")) {
+                    var default_colors = session_data.mailstore.defaultColors;
+                    var message_colors = session_data.mailstore.getSignatureColors(message_body);
+                    if ((message_colors == default_colors) && signature) message_colors = null;
+                }
+                if (!message_colors && signature) message_colors = session_data.mailstore.getSignatureColors(signature);
+
                 if (signature) message_colors = session_data.mailstore.getSignatureColors(signature);
 
                 data = `<head>
@@ -580,7 +588,6 @@ ${wtvshared.htmlEntitize(response.article.headers.NEWSGROUPS)}
 <td valign=top>
 Date: <td>
 ${strftime("%a, %b %e, %Y, %I:%M%P", new Date(Date.parse(response.article.headers.DATE)))}
-<font size=-1> </font>
 <tr>
 <td valign=top>
 From:
@@ -594,19 +601,26 @@ From:
                 data += `<tr>
 <td nowrap valign=top>
 <td>
+<tr>
+<td valign=top>Subject:
+<td>${(response.article.headers.SUBJECT) ? wtvshared.htmlEntitize(response.article.headers.SUBJECT) : '(No subject)'}
 </table>
+<br><br>
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=10 rowspan=99>
-<td><br><br><br><font color=E7CE4A>
-${(response.article.headers.SUBJECT) ? wtvshared.htmlEntitize(response.article.headers.SUBJECT) : '(No subject)'}<br><br>
-</font>
-<td abswidth=20 rowspan=99>
+
 <tr>
 <td>
-`                
+`;
+                var allow_html = false;
+                if (message_body) {
+                    if (message_body.indexOf("<html>") >= 0) {
+                        allow_html = true;
+                    }
+                }
+                data += (allow_html) ? wtvshared.sanitizeSignature(message_body) : wtvshared.htmlEntitize(message_body, true)
                 data += `
-${wtvshared.htmlEntitize(message_body, true)}
 <br>
 <br>`;
                 if (signature) data += wtvshared.sanitizeSignature(signature);

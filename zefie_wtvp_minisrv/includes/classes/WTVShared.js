@@ -250,6 +250,7 @@ class WTVShared {
                 allowedProtocols.push(k);
             }
         });
+        console.log(allowedProtocols);
 
         const clean = this.sanitizeHtml(string, {
             allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
@@ -265,13 +266,15 @@ class WTVShared {
             allowedSchemesByTag: {},
             allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
             exclusiveFilter: function (frame) {
-                var allowed = false;
+                var allowed = true;
                 Object.keys(frame.attribs).forEach((k) => {
                     if (k == "href" || k == "background" || k == "src") {
+                        var allowed = false;
                         var value = frame.attribs[k];                        
                         Object.keys(allowedProtocols).forEach((j) => {
                             if (value.startsWith(allowedProtocols[j])) {
                                 allowed = true;
+                                return false;
                             }
                         })                        
                     }

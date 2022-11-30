@@ -39,7 +39,16 @@ Location: wtv-mail:/listmail`;
 
                 headers = `200 OK
 Content-type: text/html`;
-                var message_colors = session_data.mailstore.getSignatureColors(message.signature);
+
+
+                var message_colors = null;
+
+                if (message.body.indexOf("<body")) {
+                    var default_colors = session_data.mailstore.defaultColors;
+                    var message_colors = session_data.mailstore.getSignatureColors(message.body);
+                    if (message_colors == default_colors) message_colors = null;
+                }
+                if (!message_colors) message_colors = session_data.mailstore.getSignatureColors(message.signature);
 
                 if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                 data = `<wtvnoscript>
@@ -275,7 +284,10 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
                     message.body = wtvshared.decodeBufferText(message.body);
                 }
                 if (message.body) message.body = message.body.replace(/\n/g, "<br><br>");
-                data += `${(message.allow_html) ? message.body : wtvshared.htmlEntitize(message.body, true)}
+                if (message.body.indexOf("<html>") >= 0) {
+                    message.allow_html = true;
+                }
+                data += `${(message.allow_html) ? wtvshared.sanitizeSignature(message.body) : wtvshared.htmlEntitize(message.body, true)}
 <br>
 <br>`;
                 if (message.signature) {
@@ -283,6 +295,7 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
                 }
                 data += `<p>
 `;
+                console.log(message.body);
                 console.log(message.allow_html)
                 if (Array.isArray(message.attachments)) {
                     message.attachments.forEach((v, k) => {
