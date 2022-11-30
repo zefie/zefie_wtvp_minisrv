@@ -996,7 +996,7 @@ class WTVShared {
         var found = false
         this.minisrv_config.config.ServiceDeps.forEach(function (dep_vault_dir) {
             if (found) return;
-            if (template) dep_vault_dir += this.path.sep + "templates";
+            if (template) dep_vault_dir += self.path.sep + "templates";
 
             var search = self.getAbsolutePath(dep_vault_dir + self.path.sep + file);
             if (self.fs.existsSync(search)) {
