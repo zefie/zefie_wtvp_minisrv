@@ -96,6 +96,24 @@ function verifyServicePort(service_name, socket) {
     return false;
 }
 
+function getServiceByVaultDir(vault_dir) {
+    var res = false;
+    Object.keys(minisrv_config.services).forEach((k) => {
+        if (minisrv_config.services[k].servicevault_dir) {
+            if (minisrv_config.services[k].servicevault_dir == vault_dir) {
+                res = k;
+                return false;
+            }
+        } else {
+            if (k == vault_dir) {
+                res = k;
+                return false;
+            }
+        }
+    });
+    return res;
+}
+
 function configureService(service_name, service_obj, initial = false) {
     if (service_obj.disabled) return false;
 
