@@ -64,7 +64,10 @@ Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}
 <table border=0 cellspacing=0 cellpadding=0 width="100%" height="60" >
 <tr>
 <td>
-<td align="left"><img src="images/proto3/HomeTopLeftEdge.gif"></td>
+<td align="left" background="images/proto3/HomeTopLeftEdge.gif" absheight=82 abswidth=160>
+<spacer type=block height=3 width=100><br>
+&nbsp;&nbsp;<img src="${minisrv_config.config.service_logo}" width=100 height=75>
+</td>
 <td valign="top">
 <table border=0 cellspacing=0 cellpadding=0>
 <tr>
@@ -83,7 +86,7 @@ Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}
 <table border=0 cellspacing=0 cellpadding=0>
 <tr>
 <td width="380">
-<form name="urlaccess"> 
+<form name="urlaccess">
 &nbsp;<input type="text" name="visitsite" value="wtv-" border="1" bgcolor="#BBAEC8" text="#423852" cursor="#423852" align="center" width="314" executeurl autoactivate>
 <input type="submit" value="Go" width=20>
 </form>
@@ -108,9 +111,9 @@ Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}
 <td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
 <td abswidth=70 bgcolor="#3C2F47" href="wtv-setup:/sound" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Music</b></font>
 <td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
-<td abswidth=74 bgcolor="#3C2F47" href="http://frogfind.com" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Search</b></font>	
+<td abswidth=74 bgcolor="#3C2F47" href="http://frogfind.com" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Search</b></font>
 <td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
-<td abswidth=60 bgcolor="#3C2F47" href="wtv-flashrom:/willie" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>ROMs</b></font>	
+<td abswidth=60 bgcolor="#3C2F47" href="wtv-flashrom:/willie" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>ROMs</b></font>
 <td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
 <td abswidth=86 bgcolor="#3C2F47" href="wtv-setup:/setup" align="center"><spacer type=block height=3 width=100%><font color="#EEEEEE"><b>Settings</b></font>
 <td abswidth=2><img src="images/proto3/HomeTaskBarDividers.gif">
@@ -119,7 +122,7 @@ Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}
 
 <table border=0 bgcolor="#3C2F47">
 <tr>
-<td valign="top">	
+<td valign="top">
 <table border=0>
 <tr>
 <td colspan=3>
