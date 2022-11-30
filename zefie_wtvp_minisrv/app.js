@@ -798,8 +798,9 @@ minisrv-no-mail-count: true`;
         }
 
         if (pc_services) {
-            if (original_service_name == service_name) console.log(" * PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
-            else console.log(" * PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
+            var ssl = (socket.ssl) ? true : false;
+            if (original_service_name == service_name) console.log(" * " + ((ssl) ? "SSL" : "") + "PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
+            else console.log(" * " + ((ssl) ? "SSL" : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
         }
         // Check URL for :/, but not :// (to differentiate wtv urls)
         if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') == -1) {
