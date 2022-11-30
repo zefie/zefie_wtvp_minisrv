@@ -2105,7 +2105,7 @@ pc_bind_ports.every(function (v) {
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
             if (!ssl && minisrv_config.services[service_name].force_https && minisrv_config.services[service_name].https_cert) {
                 var headers = `302 Moved
-Location: https://${(minisrv_config.services[service_name].https_cert.domain) ? minisrv_config.services[service_name].https_cert.domain : minisrv_config.services[service_name].host}:${minisrv_config.services[service_name].port}/
+Location: https://${(minisrv_config.services[service_name].https_cert.domain) ? minisrv_config.services[service_name].https_cert.domain : minisrv_config.services[service_name].host}:${minisrv_config.services[service_name].port}${req.originalUrl}
 Content-type: text/html`;
                 sendToClient(req.socket, headers);
             } else {
