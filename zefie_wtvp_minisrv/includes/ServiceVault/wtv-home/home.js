@@ -205,7 +205,7 @@ data += `
 <tr>
 <td absheight="6">
 <tr>
-<td valign="top" colspan=3 absheight=63>
+<td valign="top" colspan=3 absheight=64>
 This server is operated by ${minisrv_config.config.service_owner}.<br>
 `;
 if (minisrv_config.config.service_description) {
