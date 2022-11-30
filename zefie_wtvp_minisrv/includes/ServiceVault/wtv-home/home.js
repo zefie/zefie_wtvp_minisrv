@@ -206,7 +206,17 @@ data += `
 <td absheight="6">
 <tr>
 <td valign="top" colspan=3 absheight=63>
-This server is operated by ${minisrv_config.config.service_owner}.
+This server is operated by ${minisrv_config.config.service_owner}.<br>
+`;
+if (minisrv_config.config.service_description) {
+	if (typeof minisrv_config.config.service_description === "string") {
+		if (minisrv_config.config.service_description.length > 0) {
+			data += minisrv_config.config.service_description;
+        }
+    }
+}
+
+data += `
 </table>
 
 <tr>

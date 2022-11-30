@@ -22,6 +22,7 @@
     "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Found under service vault. Best left unchanged.
     "enable_shared_romcache": true, // Disabling this will cause a lot of problems without manual intervention. Best left unchanged.
     "service_owner": "a minisrv user", // Set this to your name or screenname
+    "service_description": null, // Set to a string to have your description added to the default homepage. May be used in other places in the future. HTML is allowed here.
     "service_owner_account": "minisrvuser", // Set this to your account name on your minisrv
     "service_owner_contact": "someone", // Set this to your contact (eg email address, twitter handle, etc)
     "service_owner_contact_method": "something", // Set this to the contact method (eg email, twitter, etc)
