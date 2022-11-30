@@ -659,7 +659,7 @@ to determine what your "box" can do, and as such, may offer<br>
 features that do not work in the Viewer, especially older ones</em>
 </tr>
 <tr>
-<td><strong>Feature Packs</strong></td>
+<td><strong>Feature Bits</strong></td>
 <td><div id="feature_bits">None available</div></td>
 </tr>`;
     if (modpacks.length > 0) {
