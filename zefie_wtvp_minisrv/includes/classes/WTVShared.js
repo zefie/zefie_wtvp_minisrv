@@ -247,10 +247,10 @@ class WTVShared {
         Object.keys(this.minisrv_config.services).forEach((k) => {
             var flag = parseInt(this.minisrv_config.services[k].flags, 16);
             if (flag === 4 || flag === 7) {
-                allowedProtocols.push(k);
+                if (!allowedProtocols.includes(k)) allowedProtocols.push(k);
             }
         });
-        console.log(allowedProtocols);
+        self.debug("sanitizeSignature", "allowed protocols:", allowedProtocols);
 
         const clean = this.sanitizeHtml(string, {
             allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'link', 'listing', 'em', 'marquee', 'nobr', 'note', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'span', 'strike', 'strong', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],
@@ -269,7 +269,7 @@ class WTVShared {
                 var allowed = true;
                 Object.keys(frame.attribs).forEach((k) => {
                     if (k == "href" || k == "background" || k == "src") {
-                        var allowed = false;
+                        allowed = false;
                         var value = frame.attribs[k];                        
                         Object.keys(allowedProtocols).forEach((j) => {
                             if (value.startsWith(allowedProtocols[j])) {
@@ -279,7 +279,7 @@ class WTVShared {
                         })                        
                     }
                 });
-                console.log(frame, allowed);
+                self.debug("sanitizeSignature", "filter result:", frame, "allowed:", allowed);
                 return !allowed;
             },
             allowVulnerableTags: false,

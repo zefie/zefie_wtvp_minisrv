@@ -163,7 +163,7 @@
       // wtv-1800
       "port": 1615,
       "connections": 1,
-      "flags": "0x00000004",
+      "flags": "0x00000001",
       "send_tellyscripts": true // Best left untouched
     },
     "wtv-flashrom": {
@@ -190,7 +190,8 @@
     "wtv-music": {
       // wtv-music
       "port": 1656,
-      "connections": 3
+      "connections": 3,
+      "flags": "0x00000004"
     },
     "wtv-cookie": {
       // wtv-cookie (used for http(s) cookies)
