@@ -638,6 +638,8 @@ From:
     <td align=left valign=middle><img src="wtv-news:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;${(v.filename) ? (v.filename) : "Audio file"} (${v.content_type.split('/')[1]} attachment)</font>
     <td align=right valign=middle>
     </table><br><br>`;
+                            else if (v.content_type.match("text/html"))
+                                data += wtvshared.sanitizeSignature(v.data);
                             else
                                 data += `<table width=386><td><td align=left valign=middle><font color="#565656"><i>A file ${(v.filename) ? `(${v.filename}) ` : ''}that WebTV cannot use, with type ${v.content_type} is attached to this message.</i></font>`
                         }

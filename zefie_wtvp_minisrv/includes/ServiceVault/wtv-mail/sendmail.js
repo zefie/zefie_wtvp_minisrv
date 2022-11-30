@@ -144,29 +144,29 @@ Content-Type: audio/wav`;
 
                 if (message_snapshot_data) {
                     var attachment = {
-                        'Content-Type': 'image/jpeg',
+                        'mime': 'image/jpeg',
                         'filename': 'snapshot.jpg'
                     }
                     if (typeof message_snapshot_data == "object") {
-                        attachment.data = new Buffer.from(message_snapshot_data).toString('base64');
+                        attachment.content = new Buffer.from(message_snapshot_data).toString('base64');
                         attachment.is_base64 = true;
                     } else
-                        attachment.data = message_snapshot_data;
+                        attachment.content = message_snapshot_data;
 
                     attachments.push(attachment);
                 }
 
                 if (message_voicemail_data) {
                     var attachment = {
-                        'Content-Type': 'audio/wav',
+                        'mime': 'audio/wav',
                         'filename': 'voicemail.wav'
                     }
 
                     if (typeof message_voicemail_data == "object") {
-                        attachment.data = new Buffer.from(message_voicemail_data).toString('base64');
+                        attachment.content = new Buffer.from(message_voicemail_data).toString('base64');
                         attachment.is_base64 = true;
                     } else
-                        attachment.data = message_voicemail_data;
+                        attachment.content = message_voicemail_data;
 
                     attachments.push(attachment);
                 }
@@ -199,8 +199,8 @@ Content-Type: audio/wav`;
                         var signature_tuple = null;
                         if (signature.indexOf('<html>') >= 0) {
                             attachments.push({
-                                "Content-Type": 'text/html',
-                                "data": signature,
+                                "mime": 'text/html',
+                                "content": signature,
                                 "use_base64": false,
                                 "filename": "wtv_signature.html"
                             });
@@ -210,18 +210,28 @@ Content-Type: audio/wav`;
                         }
                     }
 
-                    if (attachments.length > 0) {
+                    if (attachments.length > 0 || msg_body.indexOf('<html>') >= 0) {
                         // usenet attachments
-                        var tuples = [{
-                            "mime": 'text/plain',
-                            "content": msg_body || '',
-                            "use_base64": false
-                        }];
+                        var tuples = [];
+                        if (msg_body.indexOf('<html>') >= 0) {
+                            tuples.push({
+                                "mime": 'text/html',
+                                "content": msg_body,
+                                "use_base64": false,
+                                "filename": "message.html"
+                            });
+                        } else {
+                            tuples = [{
+                                "mime": 'text/plain',
+                                "content": msg_body || '',
+                                "use_base64": false
+                            }];
+                        }
                         if (signature_tuple) tuples.push(signature_tuple);
                         attachments.forEach((attachment) => {
                             var tuple = {};
-                            tuple.mime = attachment['Content-Type'];
-                            tuple.content = attachment.data;
+                            tuple.mime = attachment.mime;
+                            tuple.content = attachment.content;
                             tuple.use_base64 = (typeof attachment.use_base64 === 'boolean') ? attachment.use_base64 : true;
                             tuple.is_base64 = (typeof attachment.is_base64 === 'boolean') ? attachment.is_base64 : false;
                             tuple.filename = attachment.filename || null;
