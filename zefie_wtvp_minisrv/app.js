@@ -311,10 +311,6 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     return contextObj; // updated context object with whatever global varibles the script set
 }
 
-function sendToPCClient(headers, data) {
-
-}
-
 async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name, shared_romcache = null, pc_services = false) {
     var headers, data = null;
     var request_is_async = false;
