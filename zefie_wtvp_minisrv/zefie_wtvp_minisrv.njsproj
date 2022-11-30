@@ -258,7 +258,6 @@
     <Content Include="includes\ServiceVault\SharedROMCache\UsingWebTVBanner.gif" />
     <Content Include="includes\ServiceVault\SharedROMCache\UtilityBullet.gif" />
     <Content Include="includes\ServiceVault\SharedROMCache\WebTVLogoJewel.gif" />
-    <Content Include="includes\ServiceVault\SharedROMCache\ZefieTV.gif" />
     <Content Include="includes\ServiceVault\wtv-1800\noflash.js" />
     <Content Include="includes\ServiceVault\wtv-1800\offer-open-isp-suggest.js" />
     <Content Include="includes\ServiceVault\wtv-1800\preregister.js" />
