@@ -2,6 +2,7 @@
  * Shared functions across all classes and apps
  */
 const CryptoJS = require('crypto-js');
+const WTVShenanigans = require('./WTVShenanigans.js');
 
 class WTVShared {
 
@@ -15,12 +16,14 @@ class WTVShared {
     parentDirectory = process.cwd()
     extend = require('util')._extend;
     debug = require('debug')('WTVShared')
+    shenanigans = null;
 
     minisrv_config = [];
     
     constructor(minisrv_config, quiet = false) {
         if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
+        this.shenanigans = new WTVShenanigans(this.minisrv_config);
        
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
@@ -194,6 +197,11 @@ class WTVShared {
     }
 
     htmlEntitize(string, process_newline = false) {
+        if (this.shenanigans.checkShenanigan(this.shenanigans.shenanigans.DISABLE_HTML_ENTITIZER)) {
+            // shenanigans level matches, don't encode
+            return string;
+        }
+
         string = this.html_entities.encode(string).replace(/&apos;/g, "'");
 
         if (process_newline) string = string.replace(/\n/gi, "<br>").replace(/\r/gi, "");
@@ -221,6 +229,11 @@ class WTVShared {
             }
         });
         self.debug("sanitizeSignature", "allowed protocols:", allowedProtocols);
+
+        if (this.shenanigans.checkShenanigan(this.shenanigans.shenanigans.DISABLE_HTML_SANITIZER)) {
+            // shenanigans level matches, don't filter
+            return string;
+        }
 
         const clean = this.sanitizeHtml(string, {
             allowedTags: ['a', 'audioscope', 'b', 'bgsound', 'big', 'blackface', 'blockquote', 'bq', 'br', 'caption', 'center', 'cite', 'c', 'dd', 'dfn', 'div', 'dl', 'dt', 'em', 'fn', 'font', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'html', 'i', 'img', 'label', 'li', 'listing', 'marquee', 'nobr', 'ol', 'p', 'plaintext', 'pre', 's', 'samp', 'small', 'shadow', 'span', 'strike', 'strong', 'sub', 'sup', 'tbody', 'table', 'td', 'th', 'tr', 'tt', 'u', 'ul'],

@@ -2009,6 +2009,10 @@ if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
     minisrv_config.config.user_accounts.max_users_per_account = 99;
 }
 
+// shenanigans
+if (minisrv_config.config.shenanigans) console.log(" * WARNING: Shenanigans level", minisrv_config.config.shenanigans, "enabled");
+else console.log(" * Shenanigans disabled");
+
 process.on('uncaughtException', function (err) {
     console.error((err && err.stack) ? err.stack : err);
 });

@@ -95,7 +95,12 @@
       "wtv-head-waiter:/images/signin_new_mail.gif",
       "wtv-head-waiter:/images/signin_no_mail.gif",
       "wtv-log:/log"
-    ]
+    ],
+    /* shenanigans: this allows you to intentionally enable old minisrv bugs, as well as official WebTV Networks exploits 
+       Each level of shenanigans includes the previous level (eg 5 will also disable filters like 4)
+       See WTVShenanigans.js for more info.
+    */
+    "shenanigans": false
   },
   "services": {
     // service definitions
@@ -300,10 +305,10 @@
       "force_https": false,
       "https_cert": {
         /* self-signed, can be replaced with another cert */
-        // "domain": "mycooldomain.com",
-        "cert": "%ServiceDeps%/https/selfsigned_cert.pem",
-        "key": "%ServiceDeps%/https/selfsigned_key.pem"
-      }
+    // "domain": "mycooldomain.com",
+    "cert": "%ServiceDeps%/https/selfsigned_cert.pem",
+    "key": "%ServiceDeps%/https/selfsigned_key.pem"
+  }
     }
   },
   "favorites": {

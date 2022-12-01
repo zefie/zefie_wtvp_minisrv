@@ -50,6 +50,9 @@
     <Content Include="includes\classes\WTVRegister.js" />
     <Content Include="includes\classes\WTVSec.js" />
     <Content Include="includes\classes\WTVShared.js" />
+    <Content Include="includes\classes\WTVShenanigans.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="includes\ServiceDeps\https\selfsigned_cert.pem" />
     <Content Include="includes\ServiceDeps\https\selfsigned_key.pem" />
     <Content Include="includes\ServiceDeps\templates\wtv-guide\glossary.json" />
