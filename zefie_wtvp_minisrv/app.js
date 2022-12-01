@@ -163,10 +163,7 @@ var pc_ports = [];
 // works for service vault scripts too.
 if (!String.prototype.reverse) {
     String.prototype.reverse = function () {
-        var splitString = this.split("");
-        var reverseArray = splitString.reverse();
-        var joinArray = reverseArray.join("");
-        return joinArray;
+        return this.split("").reverse().reverseArray.join("");
     }
 }
 
