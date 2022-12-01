@@ -52,8 +52,31 @@ Please Call
 <font size=+1>
 Your Internet terminal needs to be repaired
 or replaced before you can connect to WebTV.
-<!-- Disabled until we can reliably grab the user's box manufacturer
-<p>Call Philips customer service at<br>1-888-813-7069 -->
+<br><br>
+`;
+switch (wtvshared.getManufacturer(session_data.ssid, true)) {
+    case "10":
+    case "50":
+        data += `Call Philips customer service at 1-888-813-7069.`;
+        break;
+    case "40":
+        data += `Call Mitsubishi customer service at 1-800-332-2119`;
+        break;
+    case "70":
+        data += `Call Samsung customer service at 1-800-726-7864.`;
+        break;
+    case "90":
+        data += `Call RCA/Thomson customer service at 1-800-722-9599.`;
+        break;
+    case "AE":
+        data += `Contact zefie or MattMan on Discord (zefie#0573 or MattMan#2790)`
+        break;
+    default:
+        data += `Contact the manufacturer's customer service department.`
+        break;
+}
+
+data += `
 <tr><td colspan=2> 
 <td colspan=99 abswidth=436 absheight=2 bgcolor=2B2B2B> <img src="wtv-flashrom:/${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td absheight=1> 
 <tr><td colspan=2> 

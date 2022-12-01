@@ -428,8 +428,9 @@ class WTVShared {
         return ssid_obj;
     }
 
-    getManufacturer(ssid) {
-        return parseSSID(ssid).manufacturer || null;
+    getManufacturer(ssid, bit = false) {
+        if (bit) return ssid.substring(8, 10).toUpperCase();
+        else return this.parseSSID(ssid).manufacturer || null;
     }
 
 
