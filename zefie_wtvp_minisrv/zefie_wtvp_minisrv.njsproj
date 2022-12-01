@@ -196,6 +196,9 @@
     <Content Include="includes\ServiceVault\http_pc\favicon.ico" />
     <Content Include="includes\ServiceVault\http_pc\index.js" />
     <Content Include="includes\ServiceVault\http_pc\viewergen\index.js" />
+    <Content Include="includes\ServiceVault\news\catchall.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="includes\ServiceVault\SharedROMCache\AccountBanner.gif" />
     <Content Include="includes\ServiceVault\SharedROMCache\AroundTownIcon2.gif" />
     <Content Include="includes\ServiceVault\SharedROMCache\AT_BannerGradient.gif" />
@@ -2337,6 +2340,7 @@
     <Folder Include="includes\ServiceVault\" />
     <Folder Include="includes\ServiceVault\http_pc\" />
     <Folder Include="includes\ServiceVault\http_pc\viewergen\" />
+    <Folder Include="includes\ServiceVault\news\" />
     <Folder Include="includes\ServiceVault\SharedROMCache\" />
     <Folder Include="includes\ServiceVault\SharedROMCache\help\" />
     <Folder Include="includes\ServiceVault\SharedROMCache\help\common\" />

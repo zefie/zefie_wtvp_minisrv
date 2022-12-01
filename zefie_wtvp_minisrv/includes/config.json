@@ -144,6 +144,12 @@
       ],
       "groupMetaRefreshInterval": 86400 // not yet used
     },
+    "news": {
+      // for news:group.name urls
+      "port": 1605,
+      "nobind": true,
+      "flags": "0x00000004"
+    },
     "wtv-register": {
       // wtv-register
       "port": 1607,

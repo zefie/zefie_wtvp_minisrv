@@ -194,7 +194,7 @@ function getServiceString(service, overrides = {}) {
     // used externally by service scripts
     if (service === "all") {
         var out = "";
-        Object.keys(minisrv_config.services).forEach(function (k) {
+        Object.keys(minisrv_config.services).sort().forEach(function (k) {
             if (!isConfiguredService(k)) return true;
             if (minisrv_config.services[k].pc_services) return true;
 
