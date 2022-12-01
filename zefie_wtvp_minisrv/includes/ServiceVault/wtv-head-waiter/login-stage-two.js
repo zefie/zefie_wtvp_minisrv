@@ -105,6 +105,7 @@ wtv-expire-all: client:closeallpanels
         }
 		if (!limitedLogin && !limitedLoginRegistered) {
 			session_data.assignMailStore();
+			headers += "wtv-service: reset\n";
 			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
 			if (offline_user_list) headers += "wtv-offline-user-list: " + offline_user_list + "\n";
 			headers += `wtv-messenger-authorized: ${messenger_authorized}
