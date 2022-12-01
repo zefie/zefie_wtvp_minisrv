@@ -27,13 +27,14 @@ class WTVClientSessionData {
     baddisk = false;
     clientAddress = null;
     user_id = 0;
-    cryptoKey = "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\EP";
+    cryptoKey = null;
 
     constructor(minisrv_config, ssid) {
         if (!minisrv_config) throw ("minisrv_config required");
         var WTVShared = require("./WTVShared.js")['WTVShared'];
         var WTVMime = require("./WTVMime.js");
         this.minisrv_config = minisrv_config;
+        this.cryptoKey = this.minisrv_config.config.keys.userdata;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
         this.lockdown = false;

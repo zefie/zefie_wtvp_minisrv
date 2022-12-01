@@ -45,7 +45,7 @@ class WTVSec {
      */
     constructor(minisrv_config, wtv_incarnation = 1) {
         this.minisrv_config = minisrv_config;
-        this.initial_shared_key = CryptoJS.enc.Base64.parse(this.initial_shared_key_b64);
+        this.initial_shared_key = CryptoJS.enc.Base64.parse(this.minisrv_config.config.keys.initial_shared_key);
 
         if (this.initial_shared_key.sigBytes === 8) {
             this.incarnation = wtv_incarnation;

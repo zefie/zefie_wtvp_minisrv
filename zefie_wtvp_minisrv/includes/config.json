@@ -45,7 +45,7 @@
     "unauthorized_url": "wtv-1800:/unauthorized?", // Where to send unauthorized users
     "enable_port_isolation": true, // Only respond to services on their correct ports
     "allow_guests": true, // Allow users to experience the server without registering
-    "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet
+    "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet,
     "user_accounts": { // user account settings
       "max_users_per_account": 6, // Max total users (including primary) per account
       "min_username_length": 5, // minimum username length
@@ -60,6 +60,10 @@
         "null"
       ]
     },
+    "keys": {
+      "initial_shared_key": "CC5rWmRUE0o=", // Used for the initial RC4 rolling key. Changing this is untested and unsupported.
+      "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords in configs. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
+    },
     "passwords": {
       // password configuration
       "enabled": true, // allow users to password protect their account
@@ -68,7 +72,7 @@
       "form_size": 16 // width of the form on the password prompt screen
     },
     "errorMessages": {
-      // define custom error messages here
+      // custom error messages
       "400": "${service_name} ran into a technical problem. Please try again.",
       "401": "Authorization Required.",
       "403": "The publisher of that page has not authorized you to view it.",
