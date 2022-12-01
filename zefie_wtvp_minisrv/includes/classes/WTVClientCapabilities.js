@@ -10,6 +10,7 @@ class WTVClientCapabilities {
 
     capabilities = null;
     capabilities_table = null;
+    debug = require('debug')('WTVClientCapabilities')   
 
 
     constructor(wtv_capability_flags = null) {
@@ -105,15 +106,9 @@ class WTVClientCapabilities {
                 return binary;
             }
 
-            // Add .reverse() to strings for ease of processing
-            if (!String.prototype.reverse) {
-                String.prototype.reverse = function () {
-                    return this.split("").reverse().reverseArray.join("");
-                }
-            }
-
             // convert wtv_capability_flags to binary string, reverse the string, and split into array containing each character;
-            var bitfield = hex2bin(wtv_capability_flags).reverse().split("");
+            var bitfield = hex2bin(wtv_capability_flags).split("").reverse();
+            this.debug("bitfield:", bitfield)
 
             var add = function (flag_name, flag) {
                 capabilities[flag_name] = flag;

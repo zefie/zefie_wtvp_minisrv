@@ -4,7 +4,6 @@ const WTVMail = require("./WTVMail.js")
 const WTVSec = require("./WTVSec.js");
 const WTVFavorites = require("./WTVFavorites.js");
 
-
 class WTVClientSessionData {
 
     fs = require('fs');
@@ -28,6 +27,7 @@ class WTVClientSessionData {
     clientAddress = null;
     user_id = 0;
     cryptoKey = null;
+    debug = require('debug')('WTVClientSessionData')
 
     constructor(minisrv_config, ssid) {
         if (!minisrv_config) throw ("minisrv_config required");
