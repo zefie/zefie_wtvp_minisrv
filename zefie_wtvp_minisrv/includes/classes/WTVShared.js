@@ -240,8 +240,16 @@ class WTVShared {
                 var allowed = true;
                 Object.keys(frame.attribs).forEach((k) => {
                     if (k == "href" || k == "background" || k == "src") {
-                        allowed = false;
-                        var value = frame.attribs[k];                        
+                        allowed = false;    
+                        var value = frame.attribs[k];
+
+                        if (frame.tag !== "a") {
+                            // check everything except normal links
+                            if (value.startsWith("wtvchat") || value.startsWith("irc")) {
+                                // don't allow irc embeds
+                                return false;
+                            }
+                        }                  
                         Object.keys(allowedProtocols).forEach((j) => {
                             if (value.startsWith(allowedProtocols[j])) {
                                 allowed = true;
