@@ -183,37 +183,8 @@ if (!Object.prototype.getCaseInsensitiveKey) {
     }
 }
 
-function isConfiguredService(service) {
-    if (minisrv_config.services[service]) {
-        if (!minisrv_config.services[service].disabled) return true;
-    }
-    return false;
-}
-
 function getServiceString(service, overrides = {}) {
-    // used externally by service scripts
-    if (service === "all") {
-        var out = "";
-        Object.keys(minisrv_config.services).sort().forEach(function (k) {
-            if (!isConfiguredService(k)) return true;
-            if (minisrv_config.services[k].pc_services) return true;
-
-            if (overrides.exceptions) {
-                Object.keys(overrides.exceptions).forEach(function (j) {
-                    if (k != overrides.exceptions[j]) out += minisrv_config.services[k].toString(overrides) + "\n";
-                });
-            } else {
-                out += minisrv_config.services[k].toString(overrides) + "\n";
-            }
-        });
-        return out;
-    } else {
-        if (!minisrv_config.services[service]) {
-            throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
-        } else {
-            return minisrv_config.services[service].toString(overrides);
-        }
-    }
+    return wtvshared.getServiceString(service, overrides);
 }
 
 
@@ -239,7 +210,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         // try to make the debug name
         var debug_name = (filename) ? filename.split(path.sep) : null;
         if (debug_name) {
-            if (isConfiguredService(debug_name[debug_name.length - 2]))
+            if (wtvshared.isConfiguredService(debug_name[debug_name.length - 2]))
                 // service:/filename
                 debug_name = debug_name[debug_name.length - 2] + ":/" + debug_name[debug_name.length - 1];
             else
@@ -812,8 +783,8 @@ minisrv-no-mail-count: true`;
             if (original_service_name == service_name) console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
             else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
         }
-        // Check URL for :/, but not :// (to differentiate wtv urls)
-        if (shortURL.indexOf(':/') >= 0 && shortURL.indexOf('://') == -1) {
+
+        if (shortURL.indexOf(':/') >= 0) {
             var ssid = socket.ssid;
             if (ssid == null) {
                 // prevent possible injection attacks via malformed SSID and filesystem SessionStore

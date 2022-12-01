@@ -196,6 +196,9 @@
     <Content Include="includes\ServiceVault\http_pc\favicon.ico" />
     <Content Include="includes\ServiceVault\http_pc\index.js" />
     <Content Include="includes\ServiceVault\http_pc\viewergen\index.js" />
+    <Content Include="includes\ServiceVault\wtvchat\catchall.js">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="includes\ServiceVault\news\catchall.js">
       <SubType>Code</SubType>
     </Content>
@@ -2340,6 +2343,7 @@
     <Folder Include="includes\ServiceVault\" />
     <Folder Include="includes\ServiceVault\http_pc\" />
     <Folder Include="includes\ServiceVault\http_pc\viewergen\" />
+    <Folder Include="includes\ServiceVault\wtvchat\" />
     <Folder Include="includes\ServiceVault\news\" />
     <Folder Include="includes\ServiceVault\SharedROMCache\" />
     <Folder Include="includes\ServiceVault\SharedROMCache\help\" />

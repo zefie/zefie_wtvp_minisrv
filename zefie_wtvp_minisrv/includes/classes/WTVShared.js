@@ -855,6 +855,40 @@ class WTVShared {
         });
     }
 
+    isConfiguredService(service) {
+        if (this.minisrv_config.services[service]) {
+            if (!this.minisrv_config.services[service].disabled) return true;
+        }
+        return false;
+    }
+
+    getServiceString(service, overrides = {}) {
+        // used externally by service scripts
+        if (service === "all") {
+            var self = this;
+            var out = "";
+            Object.keys(this.minisrv_config.services).sort().forEach(function (k) {
+                if (!self.isConfiguredService(k)) return true;
+                if (self.minisrv_config.services[k].pc_services) return true;
+
+                if (overrides.exceptions) {
+                    Object.keys(overrides.exceptions).forEach(function (j) {
+                        if (k != overrides.exceptions[j]) out += self.minisrv_config.services[k].toString(overrides) + "\n";
+                    });
+                } else {
+                    out += self.minisrv_config.services[k].toString(overrides) + "\n";
+                }
+            });
+            return out;
+        } else {
+            if (!this.minisrv_config.services[service]) {
+                throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
+            } else {
+                return this.minisrv_config.services[service].toString(overrides);
+            }
+        }
+    }
+
     doErrorPage(code, data = null, details = null,  pc_mode = false, wtv_reset = false) {
         var headers = null;
         var minisrv_config = this.minisrv_config;

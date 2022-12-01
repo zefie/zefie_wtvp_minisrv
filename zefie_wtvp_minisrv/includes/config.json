@@ -209,6 +209,17 @@
       "port": 1630,
       "connections": 3
     },
+    "wtvchat": {
+      "port": 1630,
+      "nobind": true,
+      "flags": "0x00000004"
+    },
+    "irc": {
+      "port": 1630,
+      "nobind": true,
+      "flags": "0x00000004",
+      "servicevault_dir": "wtvchat"
+    },
     "wtv-disk": {
       // wtv-disk (used for DiskMaps)
       "port": 1635,
