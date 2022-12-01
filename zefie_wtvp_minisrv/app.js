@@ -183,11 +183,21 @@ if (!Object.prototype.getCaseInsensitiveKey) {
     }
 }
 
+function isConfiguredService(service) {
+    if (minisrv_config.services[service]) {
+        if (!minisrv_config.services[service].disabled) return true;
+    }
+    return false;
+}
+
 function getServiceString(service, overrides = {}) {
     // used externally by service scripts
     if (service === "all") {
         var out = "";
         Object.keys(minisrv_config.services).forEach(function (k) {
+            if (!isConfiguredService(k)) return true;
+            if (minisrv_config.services[k].pc_services) return true;
+
             if (overrides.exceptions) {
                 Object.keys(overrides.exceptions).forEach(function (j) {
                     if (k != overrides.exceptions[j]) out += minisrv_config.services[k].toString(overrides) + "\n";
@@ -229,7 +239,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         // try to make the debug name
         var debug_name = (filename) ? filename.split(path.sep) : null;
         if (debug_name) {
-            if (wtvshared.isConfiguredService(debug_name[debug_name.length - 2]))
+            if (isConfiguredService(debug_name[debug_name.length - 2]))
                 // service:/filename
                 debug_name = debug_name[debug_name.length - 2] + ":/" + debug_name[debug_name.length - 1];
             else
@@ -613,7 +623,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         headers = errpage[0];
         data = errpage[1];
         if (pc_services) {
-            if (minisrv_config.services.pc_services.show_verbose_errors)
+            if (minisrv_config.services[getServiceByVaultDir(service_name)].show_verbose_errors)
                 data += "<br><br>The interpreter said:<br><pre>" + e.stack + "</pre>";
         }
         console.error(" * Scripting error:", e);
