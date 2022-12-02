@@ -72,7 +72,7 @@ Optional password
 <td>
 <td absheight=244 valign=top align=left>
 <form action="wtv-setup:/validate-add-user">
-<INPUT TYPE="hidden" NAME="display_name" VALUE="${request_headers.query.display_name}">
+<INPUT TYPE="hidden" NAME="display_name" VALUE="${(request_headers.query.display_name) ? request_headers.query.display_name : request_headers.query.user_name}">
 <INPUT TYPE="hidden" NAME="user_name" VALUE="${request_headers.query.user_name}">
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
