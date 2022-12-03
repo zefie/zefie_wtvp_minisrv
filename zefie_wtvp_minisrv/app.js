@@ -618,13 +618,13 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 }
 
 async function processURL(socket, request_headers, pc_services = false) {
-    var shortURL, headers, data, original_service_name = "";
+    var shortURL, headers, data, service_name, original_service_name = "";
     var enable_multi_query = false;
-    var service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
     request_headers.query = {};
     if (request_headers.request_url) {
         if (pc_services) {
             original_service_name = request_headers.service_name; // store PC Services service name
+            service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
             delete request_headers.service_name;
         }
         if (request_headers.request_url.indexOf('?') >= 0) {
@@ -779,8 +779,12 @@ minisrv-no-mail-count: true`;
             if (original_service_name == service_name) console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
             else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
         }
-
-        if ((shortURL.indexOf(':/') >= 0) && (shortURL.indexOf('://') == -1 || (shortURL.indexOf('://') && minisrv_config.services[service_name].allow_double_slash))) {
+        var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
+        var allow_double_slash = false;
+        if (minisrv_config.services[service_name]) {
+            if (minisrv_config.services[service_name].allow_double_slash) allow_double_slash = true;
+        }
+        if ((shortURL.indexOf(':/') >= 0) && (shortURL.indexOf('://') == -1 || (shortURL.indexOf('://') && allow_double_slash))) {
             var ssid = socket.ssid;
             if (ssid == null) {
                 // prevent possible injection attacks via malformed SSID and filesystem SessionStore
@@ -795,8 +799,7 @@ minisrv-no-mail-count: true`;
                 } else {
                     console.log(" * " + reqverb + " for " + request_headers.request_url, 'on', socket.id);
                 }
-
-                var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
+                
                 if (!service_name) {
                     // detect if client is trying to load wtv-star due to client-perceived error
                     if (getSocketDestinationPort(socket) == getPortByService("wtv-star")) {
