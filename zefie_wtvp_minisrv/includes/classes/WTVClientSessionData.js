@@ -34,7 +34,7 @@ class WTVClientSessionData {
         var WTVShared = require("./WTVShared.js")['WTVShared'];
         var WTVMime = require("./WTVMime.js");
         this.minisrv_config = minisrv_config;
-        this.cryptoKey = this.minisrv_config.config.keys.userdata;
+        this.cryptoKey = this.minisrv_config.config.keys.user_data_key;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
         this.lockdown = false;
