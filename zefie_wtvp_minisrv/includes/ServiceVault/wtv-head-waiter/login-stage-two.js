@@ -1,7 +1,6 @@
 var minisrv_service_file = true;
 var gourl = null;
 
-
 var bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
 
 if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
@@ -57,13 +56,9 @@ else {
 	var offline_user_list = null;
 	if (session_data.isRegistered()) {
 		// check for SMTP Password
-		/*
-		 * if (session_data.getSessionData("subscriber_smtp_password") === null) {
-		 *  // this function causes an exception in the crypto-js module
-		 *  // D:\Scratch\git\zefie\zefie_wtvp_minisrv\zefie_wtvp_minisrv\node_modules\crypto-js\aes.js:103
-            //        var keyWords = key.words;
+		if (session_data.getSessionData("subscriber_smtp_password") === null) {
 			session_data.setUserSMTPPassword(wtvshared.generatePassword(16));
-        } */
+        }
 		if (session_data.user_id == 0) {
 			var accounts = session_data.listPrimaryAccountUsers();
 			var num_accounts = session_data.getNumberOfUserAccounts();
