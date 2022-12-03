@@ -618,14 +618,13 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 }
 
 async function processURL(socket, request_headers, pc_services = false) {
-    var shortURL, headers, data, service_name, original_service_name = "";
+    var shortURL, headers, data, original_service_name = "";
     var enable_multi_query = false;
+    var service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
     request_headers.query = {};
     if (request_headers.request_url) {
         if (pc_services) {
             original_service_name = request_headers.service_name; // store PC Services service name
-            service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
-
             delete request_headers.service_name;
         }
         if (request_headers.request_url.indexOf('?') >= 0) {
