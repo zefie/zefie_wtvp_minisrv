@@ -46,6 +46,7 @@ if (messenger_email && messenger_password) {
 					});
 				});
 				request2.on('error', (error) => {
+					data = "200: OK";
 					console.error(' *** Error (Stage 1)', error);
 				});
 
@@ -53,7 +54,10 @@ if (messenger_email && messenger_password) {
 		});
 
 		request.on('error', (error) => {
+			data = "200: OK";
 			console.error(' *** Error (Stage 1)', error);
 		});
 	}
+} else {
+	data = "200: OK";
 }

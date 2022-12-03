@@ -219,15 +219,19 @@
       "connections": 3
     },
     "wtvchat": {
-      "port": 1630,
-      "nobind": true,
-      "flags": "0x00000004"
-    },
-    "irc": {
+      // wtvchat://server:port/channel passthrough (wni official)
       "port": 1630,
       "nobind": true,
       "flags": "0x00000004",
-      "servicevault_dir": "wtvchat"
+      "allow_double_slash": true // allows service:// .. don't enable on http or https
+    },
+    "irc": {
+      // irc://server:port/channel passthrough (something wni should have had...)
+      "port": 1630,
+      "nobind": true,
+      "flags": "0x00000004",
+      "servicevault_dir": "wtvchat", // share service_vault with wtvchat
+      "allow_double_slash": true // allows service:// .. don't enable on http or https
     },
     "wtv-disk": {
       // wtv-disk (used for DiskMaps)
@@ -305,10 +309,10 @@
       "force_https": false,
       "https_cert": {
         /* self-signed, can be replaced with another cert */
-    // "domain": "mycooldomain.com",
-    "cert": "%ServiceDeps%/https/selfsigned_cert.pem",
-    "key": "%ServiceDeps%/https/selfsigned_key.pem"
-  }
+        // "domain": "mycooldomain.com",
+        "cert": "%ServiceDeps%/https/selfsigned_cert.pem",
+        "key": "%ServiceDeps%/https/selfsigned_key.pem"
+      }
     }
   },
   "favorites": {

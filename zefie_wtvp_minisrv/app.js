@@ -781,7 +781,7 @@ minisrv-no-mail-count: true`;
             else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
         }
 
-        if ((shortURL.indexOf(':/') >= 0) && (shortURL.indexOf('://') == -1 || (shortURL.indexOf('://') && (shortURL.startsWith("irc") || shortURL.startsWith("wtvchat"))))) {
+        if ((shortURL.indexOf(':/') >= 0) && (shortURL.indexOf('://') == -1 || (shortURL.indexOf('://') && minisrv_config.services[service_name].allow_double_slash) {
             var ssid = socket.ssid;
             if (ssid == null) {
                 // prevent possible injection attacks via malformed SSID and filesystem SessionStore
