@@ -1,3 +1,5 @@
+// From https://stackoverflow.com/a/42019773
+
 'use strict';
 let net = require('net');
 let http = require('http');
