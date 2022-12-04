@@ -16,6 +16,7 @@ class WTVShared {
     parentDirectory = process.cwd()
     extend = require('util')._extend;
     debug = require('debug')('WTVShared')
+    process = require('process');
     shenanigans = null;
 
     minisrv_config = [];
@@ -446,17 +447,20 @@ class WTVShared {
             if (this.fs.lstatSync(user_config_filename)) {
                 try {
                     var minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
-                } catch (e) {
-                    throw ("ERROR: Could not read user_config.json", e);
-                    shutdown('SIGTERM');
+                } catch (f) {
+                    console.error("ERROR: Could not read user_config.json", "\n\nReason:\n\n", f);
+                    this.process.exit(1);
                 }
             } else {
                 var minisrv_user_config = {}
             }
             return minisrv_user_config;
         } catch (e) {
-            if (minisrv_config.config.debug_flags) {
-                if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+            if (!this.fs.existsSync(user_config_filename)) {
+                console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
+            } else {
+                console.error("ERROR: Could not read user_config.json", e);
+                this.process.exit(1);
             }
         }
     }
@@ -602,7 +606,7 @@ class WTVShared {
                     minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
                 } catch (e) {
                     console.error("ERROR: Could not read user_config.json", e);
-                    shutdown('SIGTERM');
+                    this.process.exit(1);
                 }
             } catch (e) {
                 if (minisrv_config.config.debug_flags) {
