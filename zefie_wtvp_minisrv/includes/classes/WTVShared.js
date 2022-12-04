@@ -448,6 +448,7 @@ class WTVShared {
                     var minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
                 } catch (e) {
                     throw ("ERROR: Could not read user_config.json", e);
+                    shutdown('SIGTERM');
                 }
             } else {
                 var minisrv_user_config = {}
@@ -596,11 +597,12 @@ class WTVShared {
             try {
                 if (notices || reload_notice) console.log(" *** Reading user configuration...");
                 var minisrv_user_config = this.getUserConfig()
-                if (!minisrv_user_config) throw "ERROR: Could not read user_config.json";
+                if (!minisrv_user_config) throw "WARN: Could not read user_config.json";
                 try {
                     minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
                 } catch (e) {
                     console.error("ERROR: Could not read user_config.json", e);
+                    shutdown('SIGTERM');
                 }
             } catch (e) {
                 if (minisrv_config.config.debug_flags) {
