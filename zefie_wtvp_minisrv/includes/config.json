@@ -179,6 +179,7 @@
       "port": 1615,
       "connections": 1,
       "flags": "0x00000001",
+      "privileged": true,
       "send_tellyscripts": true // Best left untouched
     },
     "wtv-flashrom": {

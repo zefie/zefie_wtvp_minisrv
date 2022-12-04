@@ -51,7 +51,7 @@ wtv-visit: client:hangupphone`
 		if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 	}
 
-	if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin) {
+	if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
 		if (request_headers.query.password == "") {
 			headers = `403 Please enter your password and try again
 minisrv-no-mail-count: true
@@ -72,7 +72,7 @@ minisrv-no-mail-count: true
 		if (session_data.baddisk === true) {
 			gourl = "wtv-head-waiter:/bad-disk?"
 		}
-		else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && (request_headers.query.initial_login || request_headers.query.relogin)) {
+		else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && (!session_data.isUserLoggedIn() || request_headers.query.initial_login || request_headers.query.relogin) ) {
 			gourl = "wtv-head-waiter:/choose-user?"
 		} else {
 			if (!session_data.getUserPasswordEnabled() && request_headers.query.user_login) session_data.setUserLoggedIn(true);

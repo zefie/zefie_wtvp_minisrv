@@ -478,7 +478,7 @@ class WTVClientSessionData {
     }
 
     isUserLoggedIn() {
-        var password_valid = this.get("password_valid");
+        var password_valid = this.get("password_valid") || false;
         return (password_valid);
     }
 
