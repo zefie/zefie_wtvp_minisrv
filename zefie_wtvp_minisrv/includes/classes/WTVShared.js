@@ -44,6 +44,11 @@ class WTVShared {
         }
     }
 
+    /**
+     * Calculates the CRC of an SSID, WNI Style
+     * @param {string} ssid
+     * @returns {string} CRC8 result as hex string
+     */
     getSSIDCRC(ssid) {
         let crc = 0;
         var ssid = ssid.substr(0, 14);
@@ -73,18 +78,33 @@ class WTVShared {
         }
     }
 
+    /**
+     * CryptoJS implmentation of Base64 Decoder
+     * @param {string} a Base64 String
+     * @return {string} Decoded string
+     */
     atob(a) {
         const CryptoJS = require('crypto-js');
         const enc = CryptoJS.enc.Base64.parse(a);
         return CryptoJS.enc.Utf8.stringify(enc)
     }
 
+    /**
+     * CryptoJS implmentation of Base64 Encoder
+     * @param {string} b String to encode
+     * @returns {string} Base64 encoded string
+     */
     btoa(b) {
         const CryptoJS = require('crypto-js');
         const enc = CryptoJS.enc.Utf8.parse(b); // encodedWord Array object
         return CryptoJS.enc.Base64.stringify(enc);
     }
 
+    /**
+     * Clone an object without any reference to the original (why is this so hard in JS)
+     * @param {object} src Soruce object
+     * @returns {object} Clone object that can be updated without modifing the original
+     */
     cloneObj(src) {
         if (src instanceof RegExp) {
             return new RegExp(src);
@@ -104,6 +124,11 @@ class WTVShared {
         return src;
     }
 
+    /**
+     * Checks if the user has been whitelisted for wtv-admin
+     * @param {object} wtvclient the clientSessionData object for the user
+     * @param {string} service_name (optional) Service to check
+     */
     isAdmin(wtvclient, service_name = "wtv-admin") {
         var  WTVAdmin = require("./WTVAdmin.js");
         var wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
@@ -178,6 +203,11 @@ class WTVShared {
         return JSON.parse(new_str.join(""));
     }
 
+    /**
+     * Attempts to convert val into a boolean
+     * @param {string,int,boolean} val 
+     * @returns {boolean}
+     */
     parseBool(val) {
         if (typeof val === 'string')
             val = val.toLowerCase();
@@ -196,6 +226,12 @@ class WTVShared {
             return query
     }
 
+    /**
+     * Encodes a string, replacing < and > with &lt; and &gt;
+     * @param {string} string The string to entitize
+     * @param {boolean} process_newline If true, replaces ASCII newline with <br>
+     * @returns {string} Entitized string
+     */
     htmlEntitize(string, process_newline = false) {
         if (this.shenanigans.checkShenanigan(this.shenanigans.shenanigans.DISABLE_HTML_ENTITIZER)) {
             // shenanigans level matches, don't encode
@@ -208,6 +244,11 @@ class WTVShared {
         return string;
     }
 
+    /**
+     * Attempts to sanitize HTML code to remove possible exploits when embedded in a WebTV Service
+     * @param {string} string The string to sanitize
+     * @returns {string} Sanitized string
+     */
     sanitizeSignature(string) {
         var allowedSchemes = ['http', 'https', 'ftp', 'mailto'];
         var self = this;
@@ -281,7 +322,11 @@ class WTVShared {
         return clean;
     }
 
-
+    /**
+     * Attempts to determine if the string is ASCII
+     * @param {string} str
+     * @returns {boolean} true if ASCII only, otherwise false
+     */
     isASCII(str) {
         if (typeof str !== 'string') return false;
         for (var i = 0, strLen = str.length; i < strLen; ++i) {
@@ -290,10 +335,21 @@ class WTVShared {
         return true;
     }
 
+    /**
+     * Attempts to determine if the string contains HTML
+     * @param {string} str
+     * @returns {boolean} true if HTML detected, otherwise false
+     */
     isHTML(str) {
         return /<\/?[a-z][\s\S]*>/i.test()
     }
 
+    /**
+     * Attempts to determine if the string is Base64 or not
+     * @param {string} str String to check
+     * @param {object} opts
+     * @return {boolean} true if Base64, otherwise false
+     */
     isBase64(str, opts) {
         // from https://github.com/miguelmota/is-base64/blob/master/is-base64.js
         if (str instanceof Boolean || typeof str === 'boolean') {
@@ -349,6 +405,11 @@ class WTVShared {
         return out;
     }
 
+    /**
+     * Attempts to convert a relative path into an absolute path
+     * @param {string} check_path The path to convert
+     * @return {string} The absolute path
+     */
     returnAbsolutePath(check_path) {
         if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 2) != ":") {
             // non-absolute path, so use current directory as base
@@ -359,12 +420,23 @@ class WTVShared {
         return this.fixPathSlashes(check_path);
     }
 
+    /**
+     * Detects if the client is in MiniBrowser mode
+     * @param {object} ssid_session
+     * @returns {boolean} true if yes, false it no
+     */
     isMiniBrowser(ssid_session) {
         return (ssid_session.get("wtv-need-upgrade") || ssid_session.get("wtv-used-8675309")) ? true : false;
     }
 
-    isOldBuild(ssid_session) {
-        return (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < 3500) ? true : false;
+    /**
+     * Checks if the build is older than the supplied value
+     * @param {object} ssid_session
+     * @param {int} minBuild Minimum build number to check againse
+     * @returns {boolean} true if the client build is less than minBuild, otherwise false
+     */
+    isOldBuild(ssid_session, minBuild = 3500) {
+        return (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < minBuild) ? true : false;
     }
 
     getUserConfig() {
@@ -388,6 +460,12 @@ class WTVShared {
         }
     }
 
+
+    /**
+     * Parses an SSID and attempts to decode its bits
+     * @param {string} ssid
+     * @returns {object} ssid info object
+     */
     parseSSID(ssid) {
         var ssid_obj = {};
         switch (ssid.substring(0, 2)) {
@@ -441,12 +519,25 @@ class WTVShared {
         return ssid_obj;
     }
 
+    /**
+     * Alias for parseSSID, but just the manufacture info
+     * @param {string} ssid
+     * @param {boolean} bit If true, just return the manufacture portion of the SSID
+     * @return {string}
+     */
     getManufacturer(ssid, bit = false) {
         if (bit) return ssid.substring(8, 10).toUpperCase();
         else return this.parseSSID(ssid).manufacturer || null;
     }
 
-
+    /**
+     * Moves an object to the desired location in the object (reorder)
+     * @param {string} currentKey Name of the object Key to move
+     * @param {string} afterKey  Name of the object key to place currentKey after
+     * @param {object} obj The object to work on
+     * @param {boolean} caseInsensitive
+     * @returns {object} The modified object
+     */
     moveObjectElement(currentKey, afterKey, obj, caseInsensitive = false) {
         var result = {};
         if (caseInsensitive) {
@@ -592,6 +683,13 @@ class WTVShared {
         return false;
     }
 
+
+    /**
+     * Generates a random string
+     * @param {int} len desired generated string length
+     * @param {string} extra_chars String of extra characters outside A-Z a-z 0-9 to include
+     * @returns {string} Random string
+     */
     generateString(len, extra_chars = null) {
         var result = '';
         var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -604,10 +702,20 @@ class WTVShared {
         return result;
     }
 
+    /**
+     * Any alias of generateString with optional special characters enabled as well
+     * @param {string} len desired generated string length
+     * @param {any} simple If false, generates a password with special chars
+     * @returns {string} Random string
+     */
     generatePassword(len, simple = false) {
         return this.generateString(len, (simple) ? null : '!@#$%&()[]-_+=?.');
     }
 
+    /**
+     * Returns the configuration object 
+     * @returns {object} minisrv config
+     */
     getMiniSrvConfig() {
         return this.minisrv_config;
     }
@@ -659,6 +767,10 @@ class WTVShared {
         return new Date((new Date).getTime() + offset).toUTCString();
     }
 
+    /**
+     * Converts a binary buffer to a urlencoded string
+     * @param {ArrayBuffer} buf byte data array
+     */
     urlEncodeBytes = (buf) => {
         let encoded = ''
         for (let i = 0; i < buf.length; i++) {
@@ -675,6 +787,10 @@ class WTVShared {
         return encoded
     }
 
+    /**
+     * Decodes a urlencoded string into a binary buffer
+     * @param {string} encoded urlencoded string
+     */
     urlDecodeBytes = (encoded) => {
         let decoded = Buffer.from('')
         for (let i = 0; i < encoded.length; i++) {
@@ -785,6 +901,9 @@ class WTVShared {
         return obj;
     }
 
+    // DON'T USE THIS
+    // Saved for reference until I come up with a better way
+    // If used, this will exceed the stack limit over time
     unloadModule(moduleName) {
         // for handling template classes
         var solvedName = require.resolve(moduleName),
@@ -877,6 +996,12 @@ class WTVShared {
         });
     }
 
+
+    /**
+     * Checks if service is enabled or disabled in the config
+     * @param {string} service Service Name
+     * @returns {boolean} true if enabled, false if disabled
+     */
     isConfiguredService(service) {
         if (this.minisrv_config.services[service]) {
             if (!this.minisrv_config.services[service].disabled) return true;
@@ -884,6 +1009,12 @@ class WTVShared {
         return false;
     }
 
+    /**
+     * Create a wtv-service string for WebTV Headers
+     * @param {string} service A single service name, or the string "all"
+     * @param {object} overrides An object of overrides, used to exclude certain services when service is "all"
+     * @returns {string} wtv-service string formatted for WebTV Headers
+     */
     getServiceString(service, overrides = {}) {
         // used externally by service scripts
         if (service === "all") {
@@ -911,6 +1042,14 @@ class WTVShared {
         }
     }
 
+    /**
+     * Creates an error message and sends it to the client
+     * @param {number} code HTTP Error Code
+     * @param {string} data Optinal Custom Error Message
+     * @param {string} details Optional extra error information
+     * @param {boolean} pc_mode If true, sends response formatted for PCs instead of WebTV
+     * @param {boolean} wtv_reset if true, tells the WebTV box to reset the service list and reconnect
+     */
     doErrorPage(code, data = null, details = null,  pc_mode = false, wtv_reset = false) {
         var headers = null;
         var minisrv_config = this.minisrv_config;
@@ -974,6 +1113,10 @@ class WTVShared {
         return (force_forward_slash) ? output.replace(this.path.sep, '/') : output;
     }
 
+    /**
+     * Returns a string with certain characters stripped out
+     * @param {string} username String to filter
+     */
     makeSafeUsername(username) {
         return username.replace(/^([A-Za-z0-9\-\_]{5,16})$/, '');
     }
@@ -993,6 +1136,7 @@ class WTVShared {
 
         return path;
     }
+
     /**
      * Makes sure an SSID is clean, and doesn't contain any exploitable characters
      * @param {string} ssid
@@ -1020,6 +1164,12 @@ class WTVShared {
         return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
     }
 
+    /**
+     * Gets a Service Dependency from the first available Vault.
+     * @param {string} file The Path to the file
+     * @param {boolean} path_only If true, return the path, not the file contents
+     * @param {boolean} template If true, looks under templates subdir.
+     */
     getServiceDep(file, path_only = false, template = false) {
         var self = this;
         var outdata = null;
@@ -1039,6 +1189,12 @@ class WTVShared {
         return outdata;
     }
 
+    /**
+     * A convenience alias for getServiceDep
+     * @param {string} service_name Service Name
+     * @param {string} path Path to the template under the service directory
+     * @param {boolean} path_only  If true, return the path, not the file contents
+     */
     getTemplate(service_name, path, path_only = false) {
         return this.getServiceDep(service_name + this.path.sep + path, path_only, true);
     }
