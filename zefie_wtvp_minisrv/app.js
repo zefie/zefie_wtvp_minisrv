@@ -85,7 +85,7 @@ function verifyServicePort(service_name, socket) {
     if (server) {
         var socketPort = getServerDestinationPort(server);
         if (minisrv_config.services[service_name]) {
-            if (minisrv_config.services[service_name].port == socketPort) {
+            if (minisrv_config.services[service_name].port === socketPort) {
                 if (minisrv_config.services[service_name].servicevault_dir)
                     return minisrv_config.services[service_name].servicevault_dir;
                 else
@@ -97,20 +97,22 @@ function verifyServicePort(service_name, socket) {
 }
 
 function getServiceByVaultDir(vault_dir) {
-    var res = false;
+    var res = vault_dir;
     Object.keys(minisrv_config.services).forEach((k) => {
-        if (minisrv_config.services[k].servicevault_dir) {
-            if (minisrv_config.services[k].servicevault_dir == vault_dir) {
+        if (res != vault_dir) return;
+        if (minisrv_config.services[k].servicevault_dir) {   
+            if (minisrv_config.services[k].servicevault_dir === vault_dir) {
                 res = k;
                 return false;
             }
         } else {
-            if (k == vault_dir) {
+            if (k === vault_dir) {
                 res = k;
                 return false;
             }
         }
     });
+    console.log(res);
     return res;
 }
 
@@ -356,8 +358,14 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     }
 
     var privileged = false;
-    if (minisrv_config.services[service_name]) privileged = (minisrv_config.services[service_name].privileged) ? true : false;
-    else if (pc_services) privileged = (minisrv_config.services[getServiceByVaultDir(service_name)].privileged) ? true : false;
+    if (minisrv_config.services[service_name]) {
+        privileged = (minisrv_config.services[service_name].privileged) ? true : false;
+    } else if (pc_services) {
+        var real_service_name = getServiceByVaultDir(service_name);
+        if (real_service_name) {
+            privileged = (minisrv_config.services[real_service_name].privileged) ? true : false;
+        }
+    }
 
     if (privileged) {
         updateFromVM.push(["ssid_sessions", "ssid_sessions"]);             // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
@@ -591,7 +599,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         headers = errpage[0];
         data = errpage[1];
         if (pc_services) {
-            if (minisrv_config.services[getServiceByVaultDir(service_name)].show_verbose_errors)
+            if (minisrv_config.services[real_service_name].show_verbose_errors)
                 data += "<br><br>The interpreter said:<br><pre>" + e.stack + "</pre>";
         }
         console.error(" * Scripting error:", e);
@@ -778,8 +786,9 @@ minisrv-no-mail-count: true`;
             var ssl = (socket.ssl) ? true : false;
             if (original_service_name == service_name) console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
             else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
+        } else {
+            var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
         }
-        var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
         var allow_double_slash = false;
         if (minisrv_config.services[service_name]) {
             if (minisrv_config.services[service_name].allow_double_slash) allow_double_slash = true;
