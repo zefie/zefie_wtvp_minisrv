@@ -74,14 +74,6 @@ class WTVFavorites {
         }
         return store_dir;
 	}
-
-
-	checkFolderName(foldername) {
-		var regex_str = "^([A-Za-z0-9\-\_]{1,}$";
-		var regex = new RegExp(regex_str);
-		return regex.test(foldername);
-	}
-
 	
 	createTemplateFolder(folder) {
 		// create emply folder
@@ -231,9 +223,7 @@ class WTVFavorites {
 	}
 	
 	checkFolderName(folder) {
-        var check1 = /^([A-Za-z0-9\-\_])$/.test(folder);
-        var check2 = /^[A-Za-z]/.test(folder);
-        return (check1 && check2);
+		return /^([a-z0-9\-\_\ ]{3,})$/i.test(folder);
     }
 	
 	deleteFavorite(favoriteid, folder) {
