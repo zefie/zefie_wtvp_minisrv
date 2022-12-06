@@ -112,7 +112,6 @@ function getServiceByVaultDir(vault_dir) {
             }
         }
     });
-    console.log(res);
     return res;
 }
 
