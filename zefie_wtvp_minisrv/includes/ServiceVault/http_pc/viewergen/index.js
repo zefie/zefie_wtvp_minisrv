@@ -438,13 +438,13 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                 zip.addZipComment("Viewer SSID: " + client_ssid);
                 zip.addFile(viewer_file.replace("--", "-" + client_ssid + "-"), patched_file);
                 if (!request_headers.query.viewer_only) {
-                    var romset_zip = new AdmZip(wtvshard.getServiceDep("/viewergen/" + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip", true));
+                    var romset_zip = new AdmZip(wtvshared.getServiceDep("/viewergen/" + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip", true));
                     var zipEntries = romset_zip.getEntries();
                     zipEntries.forEach(function (zipEntry) {
                         if (zipEntry.entryName == "Setup.bmp" && request_headers.query.logo) {
                             var logo_file = logos[parseInt(request_headers.query.logo) || 0];
                             if (logo_file) {
-                                var logo_gz_data = wtvshard.getServiceDep("/viewergen/" + logo_file + ".gz");
+                                var logo_gz_data = wtvshared.getServiceDep("/viewergen/" + logo_file + ".gz");
                                 var logo_data = zlib.gunzipSync(logo_gz_data);
                                 zip.addFile(zipEntry.entryName, logo_data);
                             } else {
@@ -459,7 +459,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                         if (needs_hacktv_mini) diskset_file = disksets[98];
                         else diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
                         if (diskset_file) {
-                            var diskset_zip = new AdmZip(wtvshard.getServiceDep("/viewergen/" + diskset_file, true));
+                            var diskset_zip = new AdmZip(wtvshared.getServiceDep("/viewergen/" + diskset_file, true));
                             var zipEntries = diskset_zip.getEntries();
                             zipEntries.forEach(function (zipEntry) {
                                 zip.addFile("Disk/" + zipEntry.entryName, zipEntry.getData());
@@ -476,7 +476,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
 
                     if (embed_modpacks.length > 0) {
                         Object.keys(embed_modpacks).forEach((k) => {
-                            var modpack_file = wtvshard.getServiceDep("/viewergen/" + modpacks[k].file, true);
+                            var modpack_file = wtvshared.getServiceDep("/viewergen/" + modpacks[k].file, true);
                             if (fs.existsSync(modpack_file)) {
                                 var modpack_zip = new AdmZip(modpack_file);
                                 var zipEntries = modpack_zip.getEntries();
@@ -640,7 +640,7 @@ unless you are intentionally trying to spoof a box.</em>
 <td><select name="diskset" id="diskset">
 <option selected value="0">WebTV Viewer Default</option>`;
     if (enable_full_hacktv)
-        data += `<option value="99">MattMan69's HackTV(Full Content)</option>`;
+        data += `<option value="99">MattMan69's HackTV (Full Content)</option>`;
     data += `
 </select>
 </td>
