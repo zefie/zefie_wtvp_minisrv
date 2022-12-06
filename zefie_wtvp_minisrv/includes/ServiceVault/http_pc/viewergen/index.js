@@ -456,7 +456,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                     });
                     if (request_headers.query.diskset || needs_hacktv_mini) {
                         var diskset_file = 0;
-                        if (needs_hacktv_mini) diskset_file = disksets[98];
+                        if (needs_hacktv_mini && request_headers.query.diskset === 0) diskset_file = disksets[98];
                         else diskset_file = disksets[parseInt(request_headers.query.diskset) || 0];
                         if (diskset_file) {
                             var diskset_zip = new AdmZip(wtvshared.getServiceDep("/viewergen/" + diskset_file, true));
