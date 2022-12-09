@@ -40,7 +40,7 @@ This open source server is in beta status. Use at your own risk.
 - ~~Implement HTTP proxy (needs to be able to defluff most of the web, think retro WAP converter)~~ ***Done [v0.7.1](https://github.com/zefie/zefie_wtvp_minisrv/releases/tag/v0.7.1)***
 
 ### How To Use:
-- Install [node.js](https://nodejs.org/en/download/). If on Windows, be sure to say `Yes` when asked about `Chocolatey`.
+- Install [node.js](https://nodejs.org/en/download/) v16 or newer. If on Windows, be sure to say `Yes` when asked about `Chocolatey`.
 - Install git (if on Windows, install from [Git for Windows](https://gitforwindows.org/)
 - Download a snapshot (either of master, or of any commit/branch/relase/tag etc)
 - Extract zip somewhere and enter that directory with a command prompt
