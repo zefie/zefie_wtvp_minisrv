@@ -361,13 +361,13 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/zefie_wtvp_minisrv/ServiceVault/wtv-home/6969.html
 /zefie_wtvp_minisrv/user_config.json
-/zefie_wtvp_minisrv/ServiceVault/wtv-home/home.zefie.html
-/zefie_wtvp_minisrv/UserServiceVault/*-*/
-/zefie_wtvp_minisrv/UserTemplates/*-*/
+/zefie_wtvp_minisrv/UserServiceVault/*
+/zefie_wtvp_minisrv/UserServiceDeps/*
 /zefie_wtvp_minisrv/ServiceLogPost/*.log
-/zefie_wtvp_minisrv/SessionStore/*.json
-/zefie_wtvp_minisrv/SessionStore/*/
+/zefie_wtvp_minisrv/SessionStore/*
 /zefie_wtvp_minisrv/ServiceVault/http_pc/viewergen/viewers/HackTV.zip
 /zefie_wtvp_minisrv/postest.js
+/zefie_wtvp_minisrv/PageBuilderVault/http_pb/*
+!/zefie_wtvp_minisrv/PageBuilderVault/http_pb/clipart
+!*.gitkeep
