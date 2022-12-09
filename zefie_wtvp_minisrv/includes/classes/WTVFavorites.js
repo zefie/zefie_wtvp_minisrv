@@ -213,7 +213,7 @@ class WTVFavorites {
 		var dir = this.getFolderDir(folder);
 		if (dir) {
 			try {
-				this.fs.rmdirSync(dir, { recursive: true });
+				this.fs.rm(dir, { recursive: true });
 				return true;
 			} catch (e) {
 				return false;
