@@ -370,4 +370,4 @@ FodyWeavers.xsd
 /zefie_wtvp_minisrv/postest.js
 /zefie_wtvp_minisrv/PageBuilderVault/http_pb/*
 !/zefie_wtvp_minisrv/PageBuilderVault/http_pb/clipart
-!*/.gitkeep
+!*.gitkeep
