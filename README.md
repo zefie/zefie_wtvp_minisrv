@@ -66,3 +66,4 @@ This open source server is in beta status. Use at your own risk.
       - [CashApp $altimit](https://cash.app/$altimit)
       - Chime: $zefie
       - [Credit Card or PayPal (powered by StreamElements)](https://zef.pw/ttv-tip)
+      - [Sign up for a service via a referal link](https://zefie.tv/#ad)

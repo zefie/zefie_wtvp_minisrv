@@ -9,20 +9,20 @@
     "service_ip": "127.0.0.1", // IP sent to the box (public IP for public service, LAN IP for local testing)
     "bind_ip": "0.0.0.0", // IP on your machine to bind to (0.0.0.0 = All Interfaces/IPs)
     "ServiceVaults": [
-      /* Service Vaults: See ServiceVault.md for more info */
+      // Service Vaults: See ServiceVault.md for more info
       "UserServiceVault",
-      "ServiceVault"
+      "includes/ServiceVault"
     ],
-    "ServiceTemplates": [
-      /* Service Templates: Works like ServiceVaults. See ServiceVault.md for more info */
-      "UserTemplates",
-      "ServiceDeps/templates"
+    "ServiceDeps": [
+      // Service Deps: orks like ServiceVaults. See ServiceVault.md for more info
+      "UserServiceDeps",
+      "includes/ServiceDeps"
     ],
-    "ServiceDeps": "ServiceDeps", // Where the Service Dependancies are. Best left unchanged.
     "SessionStore": "SessionStore", // Where we store account (session) data. Best left unchanged.
-    "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Best left unchanged.
+    "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Found under service vault. Best left unchanged.
     "enable_shared_romcache": true, // Disabling this will cause a lot of problems without manual intervention. Best left unchanged.
     "service_owner": "a minisrv user", // Set this to your name or screenname
+    "service_description": null, // Set to a string to have your description added to the default homepage. May be used in other places in the future. HTML is allowed here.
     "service_owner_account": "minisrvuser", // Set this to your account name on your minisrv
     "service_owner_contact": "someone", // Set this to your contact (eg email address, twitter handle, etc)
     "service_owner_contact_method": "something", // Set this to the contact method (eg email, twitter, etc)
@@ -45,7 +45,7 @@
     "unauthorized_url": "wtv-1800:/unauthorized?", // Where to send unauthorized users
     "enable_port_isolation": true, // Only respond to services on their correct ports
     "allow_guests": true, // Allow users to experience the server without registering
-    "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet
+    "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet,
     "user_accounts": { // user account settings
       "max_users_per_account": 6, // Max total users (including primary) per account
       "min_username_length": 5, // minimum username length
@@ -60,6 +60,10 @@
         "null"
       ]
     },
+    "keys": {
+      "initial_shared_key": "CC5rWmRUE0o=", // Used for the initial RC4 rolling key. Changing this is untested and unsupported.
+      "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords in configs. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
+    },
     "passwords": {
       // password configuration
       "enabled": true, // allow users to password protect their account
@@ -68,7 +72,7 @@
       "form_size": 16 // width of the form on the password prompt screen
     },
     "errorMessages": {
-      // define custom error messages here
+      // custom error messages
       "400": "${service_name} ran into a technical problem. Please try again.",
       "401": "Authorization Required.",
       "403": "The publisher of that page has not authorized you to view it.",
@@ -91,7 +95,12 @@
       "wtv-head-waiter:/images/signin_new_mail.gif",
       "wtv-head-waiter:/images/signin_no_mail.gif",
       "wtv-log:/log"
-    ]
+    ],
+    /* shenanigans: this allows you to intentionally enable old minisrv bugs, as well as official WebTV Networks exploits 
+       Each level of shenanigans includes the previous level (eg 5 will also disable filters like 4)
+       See WTVShenanigans.js for more info.
+    */
+    "shenanigans": false
   },
   "services": {
     // service definitions
@@ -144,6 +153,12 @@
       ],
       "groupMetaRefreshInterval": 86400 // not yet used
     },
+    "news": {
+      // for news:group.name urls
+      "port": 1605,
+      "nobind": true,
+      "flags": "0x00000004"
+    },
     "wtv-register": {
       // wtv-register
       "port": 1607,
@@ -163,7 +178,8 @@
       // wtv-1800
       "port": 1615,
       "connections": 1,
-      "flags": "0x00000004",
+      "flags": "0x00000001",
+      "privileged": true,
       "send_tellyscripts": true // Best left untouched
     },
     "wtv-flashrom": {
@@ -190,7 +206,8 @@
     "wtv-music": {
       // wtv-music
       "port": 1656,
-      "connections": 3
+      "connections": 3,
+      "flags": "0x00000004"
     },
     "wtv-cookie": {
       // wtv-cookie (used for http(s) cookies)
@@ -201,6 +218,21 @@
       // wtv-chat (used for IRC)
       "port": 1630,
       "connections": 3
+    },
+    "wtvchat": {
+      // wtvchat://server:port/channel passthrough (wni official)
+      "port": 1630,
+      "nobind": true,
+      "flags": "0x00000004",
+      "allow_double_slash": true // allows service:// .. don't enable on http or https
+    },
+    "irc": {
+      // irc://server:port/channel passthrough (something wni should have had...)
+      "port": 1630,
+      "nobind": true,
+      "flags": "0x00000004",
+      "servicevault_dir": "wtvchat", // share service_vault with wtvchat
+      "allow_double_slash": true // allows service:// .. don't enable on http or https
     },
     "wtv-disk": {
       // wtv-disk (used for DiskMaps)
@@ -274,8 +306,14 @@
       "drop_connection_on_wrong_port": false, // If true, resets connection if the PC browser connects to a port that is not PC Services enabled
       "show_verbose_errors": false, // extra debugging
       "privileged": true,
-      "allow_https": false, // for future use with LetsEncrypt
-      "force_https": false // for future use with LetsEncrypt
+      "use_https": false,
+      "force_https": false,
+      "https_cert": {
+        /* self-signed, can be replaced with another cert */
+        // "domain": "mycooldomain.com",
+        "cert": "%ServiceDeps%/https/selfsigned_cert.pem",
+        "key": "%ServiceDeps%/https/selfsigned_key.pem"
+      }
     }
   },
   "favorites": {
