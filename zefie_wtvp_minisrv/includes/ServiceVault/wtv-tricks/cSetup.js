@@ -83,12 +83,12 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 		srv = document.connect.preset[document.connect.preset.selectedIndex].value;
 		switch (srv) {
 				case "mattman69":
-					document.connect.machine.value="74.76.120.18"
+					document.connect.machine.value="71.244.121.234"
                     document.connect.port.value="1615"
                     document.message.msg.value="This is MattMan69's Public HackTV minisrv, all are welcome to connect and enjoy the wonders of WebTV. Offers a custom experience."
 					break;
 				case "zefie":
-					document.connect.machine.value="51.222.164.146"
+					document.connect.machine.value="24.105.201.236"
 					document.connect.port.value="1615"
                     document.message.msg.value="This is zefie's public minisrv, for those who want the vanilla minisrv experience."
 					break;

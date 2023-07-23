@@ -277,6 +277,16 @@
       "privileged": true,
       "password": "viRak-7" // change to something more unique
     },
+    "wtv-author": {
+      "port": 1643,
+      "connections": 3,
+      "enable_multi_query": true,
+      "publish_mode": "service", // "service" or "directory"
+      "publish_dest": "pb_services", // service name, or directory path
+      "modules": [
+        "WTVAuthor"
+      ]
+    },
     "http": {
       // http upstream
       "port": 1650,
