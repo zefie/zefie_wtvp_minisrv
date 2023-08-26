@@ -1,5 +1,6 @@
 const CryptoJS = require('crypto-js');
 const endianness = require('endianness');
+var RC4 = require('rc4-crypto');
 var crypto = require('crypto');
 
 /**
@@ -296,7 +297,7 @@ class WTVSec {
 
     /**
      * Starts an encryption session
-     * @param {Number} rc4session Session Type (0 = enc k1, 1 = dec k1, 3 = enc k2, 4 = dec k2, default: all)
+     * @param {Number} rc4session Session Type (0 = enc k1, 1 = dec k1, 2 = enc k2, 3 = dec k2, default: all)
      * 
      */
     SecureOn(rc4session = null) {
@@ -310,22 +311,22 @@ class WTVSec {
         var key2 = this.wordArrayToBuffer(this.hRC4_Key2);
         switch (rc4session) {
             case 0:
-                this.RC4Session[0] = crypto.createCipheriv('rc4', key1,'');
+                this.RC4Session[0] = new RC4.RC4(key1);
                 break;
             case 1:
-                this.RC4Session[1] = crypto.createDecipheriv('rc4', key1,'');
+                this.RC4Session[1] = new RC4.RC4(key1);
                 break;
             case 2:
-                this.RC4Session[2] = crypto.createCipheriv('rc4', key2,'');
+                this.RC4Session[2] = new RC4.RC4(key2);
                 break;
             case 3:
-                this.RC4Session[3] = crypto.createDecipheriv('rc4', key2,'');
+                this.RC4Session[3] = new RC4.RC4(key2);
                 break;
             default:
-                this.RC4Session[0] = crypto.createCipheriv('rc4', key1, '');
-                this.RC4Session[1] = crypto.createDecipheriv('rc4', key1, '');
-                this.RC4Session[2] = crypto.createCipheriv('rc4', key2, '');
-                this.RC4Session[3] = crypto.createDecipheriv('rc4', key2, '');
+                this.RC4Session[0] = new RC4.RC4(key1);
+                this.RC4Session[1] = new RC4.RC4(key1);
+                this.RC4Session[2] = new RC4.RC4(key2);
+                this.RC4Session[3] = new RC4.RC4(key2);
                 break;
         }
     }
@@ -355,10 +356,10 @@ class WTVSec {
         }
         if (data.words) {
             data = this.wordArrayToBuffer(data);
-        } else if (data.constructor === ArrayBuffer) {
+        } else if (data.constructor === ArrayBuffer || typeof data == 'string') {
             data = new Buffer.from(data);
         }
-        return this.RC4Session[session_id].update(data);
+        return this.RC4Session[session_id].updateFromBuffer(data);
     }
 
     /**
@@ -386,10 +387,10 @@ class WTVSec {
         }
         if (data.words) {
             data = this.wordArrayToBuffer(data);
-        } else if (data.constructor === ArrayBuffer) {
+        } else if (data.constructor === ArrayBuffer || typeof data == 'string') {
             data = new Buffer.from(data);
         }
-        return this.RC4Session[session_id].update(data);
+        return this.RC4Session[session_id].updateFromBuffer(data);
     }
 }
 
