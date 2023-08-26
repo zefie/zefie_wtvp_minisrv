@@ -295,8 +295,6 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
                 }
                 data += `<p>
 `;
-                console.log(message.body);
-                console.log(message.allow_html)
                 if (Array.isArray(message.attachments)) {
                     message.attachments.forEach((v, k) => {
                         if (v) {
