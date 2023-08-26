@@ -857,7 +857,7 @@ html += `">next page</a>
 		}
 		for (let i = 0; i < this.stylemedia.length; i++) {
 			this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + this.stylemedia[i].substr(0, this.stylemedia[i].lastIndexOf("/")), { recursive: true })
-			this.fs.copyFile('ServiceVault/wtv-author' + this.stylemedia[i], destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + this.stylemedia[i], (err) => {
+			this.fs.copyFile('includes/ServiceVault/wtv-author' + this.stylemedia[i], destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + this.stylemedia[i], (err) => {
 				if (err) throw err;
 			});
 		}

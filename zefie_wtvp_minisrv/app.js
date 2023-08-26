@@ -331,7 +331,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     var request_is_async = false;
     var service_vault_found = false;
     var service_path = unescape(service_vault_file_path);
-     var usingSharedROMCache = false;
+	var vaults_to_scan = service_vaults;
+    var usingSharedROMCache = false;
     var contextObj = {
         "privileged": false,
         "socket": socket,
@@ -352,19 +353,17 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         ["request_is_async", "request_is_async"]   // we need to know if the script is async or not
     ]
 
-    if (!pc_services) {
+    if (pc_services) {
+        var pc_service_name = getServiceByVaultDir(service_name)
+        if (minisrv_config.services[pc_service_name].service_vaults) {
+            vaults_to_scan = minisrv_config.services[pc_service_name].service_vaults;
+        }
+    } else {
         updateFromVM.push([`ssid_sessions['${socket.ssid}']`, "session_data"]); // user-specific session data from unprivileged scripts
     }
-
     var privileged = false;
-    if (minisrv_config.services[service_name]) {
-        privileged = (minisrv_config.services[service_name].privileged) ? true : false;
-    } else if (pc_services) {
-        var real_service_name = getServiceByVaultDir(service_name);
-        if (real_service_name) {
-            privileged = (minisrv_config.services[real_service_name].privileged) ? true : false;
-        }
-    }
+    if (minisrv_config.services[service_name]) privileged = (minisrv_config.services[service_name].privileged) ? true : false;
+    else if (pc_services) privileged = (minisrv_config.services['pc_services'].privileged) ? true : false;
 
     if (privileged) {
         updateFromVM.push(["ssid_sessions", "ssid_sessions"]);             // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
@@ -372,7 +371,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     }
 
     try {
-        service_vaults.forEach(function (service_vault_dir) {
+        vaults_to_scan.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
             if (!usingSharedROMCache) {
                 if (minisrv_config.config.SharedROMCache && shared_romcache) {
@@ -443,7 +442,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         }
 
                         if (!ssid_sessions[socket.ssid].data_store.WTVFlashrom) {
-                            ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, bf0app_update);
+                            ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(minisrv_config, search_service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, bf0app_update);
                         }
 
                         ssid_sessions[socket.ssid].data_store.WTVFlashrom.getFlashRom(request_path, function (data, headers) {
@@ -2011,11 +2010,11 @@ if (minisrv_config.config.error_log_file) {
 
 // sanity
 if (minisrv_config.config.user_accounts.max_users_per_account < 1) {
-    console.log(" * WARNING: user_accounts.max_users_per_account should be at least 1, we have set it to 1.");
+    console.log(" * WARNING: user_accounts.max_users_per_account should be >= 1, we have set it to 1.");
     minisrv_config.config.user_accounts.max_users_per_account = 1;
 }
 if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
-    console.log(" * WARNING: user_accounts.max_users_per_account should be less than 99, we have set it to 99.");
+    console.log(" * WARNING: user_accounts.max_users_per_account should be <= 99, we have set it to 99.");
     minisrv_config.config.user_accounts.max_users_per_account = 99;
 }
 
