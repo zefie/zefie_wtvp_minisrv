@@ -283,7 +283,9 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
             // wtv-guide is a special case due to needing this function
             contextObj.wtvguide = new contextObj["WTVGuide"](minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
             break;
-
+        case "wtv-admin":
+            // wtv-admin needs util.isArray in validation of certain actions.
+            contextObj = { ...contextObj, "util": require("util") }
         case "wtv-1800":
         case "wtv-flashrom":
             // these are special cases because the primary app already loaded this
