@@ -210,6 +210,8 @@ Content-Type: audio/wav`;
                         }
                     }
 
+                    if (!msg_body) msg_body = "";
+
                     if (attachments.length > 0 || msg_body.indexOf('<html>') >= 0) {
                         // usenet attachments
                         var tuples = [];
