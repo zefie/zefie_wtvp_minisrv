@@ -145,7 +145,7 @@ class WTVNewsServer {
                 cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
             }
             this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true });
-            this.local_server.listen('nntps://localhost:' + local_server_port);
+            this.local_server.listen('nntps://127.0.0.1:' + local_server_port);
         }
     }
 
