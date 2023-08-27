@@ -105,7 +105,7 @@ class WTVAuthor {
 			if (pages.length == 0) {
 				pagenum = 0
 				var pagefile = pagenum + this.pageFileExt;
-			} else {;
+			} else {
 				var pagefile = (pagenum + 1) + this.pageFileExt;
 			}
             var pagefileout = this.pagestore_dir + pagefile;
