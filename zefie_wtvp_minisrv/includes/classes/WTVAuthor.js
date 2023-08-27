@@ -723,7 +723,8 @@ html += `">next page</a>
 	
 	listPages() {
 		// i don't remember why, but i'm pretty sure this function sucks
-		var pagestore = this.pagestoreExists()
+		var pagestore = this.pagestoreExists();
+		if (!pagestore) this.createPagestore();
 		var userstore_dir = this.wtvclient.getUserStoreDirectory();
 
         // PageStore
@@ -943,11 +944,11 @@ vspace=0
 		// i hate fs operations
 		var pagestore = this.pagestoreExists()
 		var userstore_dir = this.wtvclient.getUserStoreDirectory();
-				this.debug("deletePage","userstore_dir",userstore_dir)
+		this.debug("deletePage","userstore_dir",userstore_dir)
 
-                // PageStore
-                var store_dir = "PageStore" + this.path.sep;
-                this.pagestore_dir = userstore_dir + store_dir;
+        // PageStore
+        var store_dir = "PageStore" + this.path.sep;
+        this.pagestore_dir = userstore_dir + store_dir;
         var pagestorepath = this.pagestore_dir;
 		var page_file = this.fs.readdirSync(pagestorepath)
 		var page_file_out = page_file[pagenum]
