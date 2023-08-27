@@ -42,52 +42,62 @@ Content-Type: text/html`
 
 data = `<HTML>
 <HEAD>
-<DISPLAY fontsize=medium>
-<TITLE>Page Settings</TITLE>
+  <DISPLAY fontsize=medium>
+    <TITLE>Page Settings</TITLE>
 </HEAD>
 <sidebar width=122 height=420 align=left>
-<table cellspacing=0 cellpadding=0 height=385>
-<TR>
-<td width=3>
-<td abswidth=2 bgColor=#8A99B0 rowspan=99>
-<td absHEIGHT=4>&nbsp;
-<td abswidth=2 bgColor=#8A99B0 rowspan=99>
-<td width=4 rowspan=99>
-<td backGround="wtv-author:/ROMCache/grad_tile.gif" width=16 rowspan=99>
-</TR>
-<tr>
-<td>
-<td align=right height=69 width=93 href="wtv-home:/home">
-<img src="${minisrv_config.config.service_logo}" width=87 height=67>
-<tr><td absheight=5>&nbsp;
-<TR>
-<td colspan=5 absheight=2 valign=middle align=center bgcolor=#8A99B0>&nbsp;
-<tr>
-<td>
-<td abswidth=93 absheight=26 >
-<table href="wtv-author:/documents"
-cellspacing=0 cellpadding=0>
-<tr>
-<td abswidth=5>
-<td abswidth=90 valign=middle align=left><table cellspacing=0 cellpadding=0><tr><td maxlines=1><font sizerange=medium color="C2CCD7">Index</font></table>
-</table>
-<TR>
-<td colspan=5 absheight=2 valign=middle align=center bgcolor=#8A99B0>&nbsp;
-<tr>
-<td>
-<td abswidth=93 absheight=26 >
-<table href="wtv-guide:/help?topic=Publish&subtopic=Index&appName=Page%20Builder"
-cellspacing=0 cellpadding=0>
-<tr>
-<td abswidth=5>
-<td abswidth=90 valign=middle align=left><table cellspacing=0 cellpadding=0><tr><td maxlines=1><font sizerange=medium color="C2CCD7">Help</font></table>
-</table>
-<TR>
-<td colspan=5 absheight=2 valign=middle align=center bgcolor=#8A99B0>&nbsp;
-<tr>
-<td>
-<td valign=bottom align=right > <img src="wtv-author:/ROMCache/pagebuilder.gif" height=124 width=78>&nbsp;
-</table>
+  <table cellspacing=0 cellpadding=0 height=385>
+    <TR>
+      <td width=3>
+      <td abswidth=2 bgColor=#8A99B0 rowspan=99>
+      <td absHEIGHT=4>&nbsp;
+      <td abswidth=2 bgColor=#8A99B0 rowspan=99>
+      <td width=4 rowspan=99>
+      <td backGround="wtv-author:/ROMCache/grad_tile.gif" width=16 rowspan=99>
+    </TR>
+    <tr>
+      <td>
+      <td align=right height=69 width=93 href="wtv-home:/home">
+        <img src="${minisrv_config.config.service_logo}" width=87 height=67>
+    <tr>
+      <td absheight=5>&nbsp;
+    <TR>
+      <td colspan=5 absheight=2 valign=middle align=center bgcolor=#8A99B0>&nbsp;
+    <tr>
+      <td>
+      <td abswidth=93 absheight=26>
+        <table href="wtv-author:/documents" cellspacing=0 cellpadding=0>
+          <tr>
+            <td abswidth=5>
+            <td abswidth=90 valign=middle align=left>
+              <table cellspacing=0 cellpadding=0>
+                <tr>
+                  <td maxlines=1>
+                    <font sizerange=medium color="C2CCD7">Index</font>
+              </table>
+        </table>
+    <TR>
+      <td colspan=5 absheight=2 valign=middle align=center bgcolor=#8A99B0>&nbsp;
+    <tr>
+      <td>
+      <td abswidth=93 absheight=26>
+        <table href="wtv-guide:/help?topic=Glossary&subtopic=P&page=pagebuilder" cellspacing=0 cellpadding=0>
+          <tr>
+            <td abswidth=5>
+            <td abswidth=90 valign=middle align=left>
+              <table cellspacing=0 cellpadding=0>
+                <tr>
+                  <td maxlines=1>
+                    <font sizerange=medium color="C2CCD7">Help</font>
+              </table>
+        </table>
+    <TR>
+      <td colspan=5 absheight=2 valign=middle align=center bgcolor=#8A99B0>&nbsp;
+    <tr>
+      <td>
+      <td valign=bottom align=right>
+        <img src="wtv-author:/ROMCache/pagebuilder.gif" height=124 width=78>&nbsp;
+  </table>
 </sidebar>
 <body
 bgcolor=#1e4261

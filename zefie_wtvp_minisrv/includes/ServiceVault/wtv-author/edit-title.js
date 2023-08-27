@@ -34,7 +34,7 @@ if (request_headers.query.publishing == "true") {
 <tr>
 <td>
 <td abswidth=93 absheight=26 >
-<table href="wtv-guide:/help?topic=Publish&subtopic=Index"
+<table href="wtv-guide:/help?topic=Glossary&subtopic=P&page=pagebuilder"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>
