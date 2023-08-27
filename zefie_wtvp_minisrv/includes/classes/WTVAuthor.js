@@ -471,7 +471,7 @@ this.fs.writeFile(destDir + this.wtvclient.session_store.subscriber_username + '
 			
 			case "clipart":
 				this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo).substr(0, atob(thisblock.photo).lastIndexOf("/")), { recursive: true })
-				this.fs.copyFile('ServiceVault/wtv-author/' + atob(thisblock.photo), destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo), (err) => {
+				this.fs.copyFile('includes/ServiceVault/wtv-author/' + atob(thisblock.photo), destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo), (err) => {
 				if (err) throw err;
 				});
 				block = `<p><TABLE nocolor width=100%>`
