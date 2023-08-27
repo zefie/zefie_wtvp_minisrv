@@ -44,5 +44,8 @@
     "socks-proxy-agent": "^8.0.1",
     "strftime": "^0.10.2",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.48.0"
   }
 }

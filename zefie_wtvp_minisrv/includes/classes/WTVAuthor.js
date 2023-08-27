@@ -88,22 +88,25 @@ class WTVAuthor {
 			if (pages.length == 0) {
 				pagenum = 0;
 			} else {
-			var pagelen = pages.length - 1;
-			this.debug("createPage","pages",pages)
-			var pagenums = [];
-			for(let i = 0; i < pagelen; i++) {
-				var toarr = pages[i].substr(0, pages[i].indexOf('.')); 
-				pagenums.push(parseInt(toarr));
-			}
-			pagenums = pagenums.sort()
-			var pagenum = pagenums[pagelen];
-			this.debug("createPage", "pagenum",pagenum)
+				var pagelen = pages.length;
+				if (pagelen < 0) pagelen = 0;
+				this.debug("createPage","pages",pages)
+				var pagenums = [];
+				for(let i = 0; i < pagelen; i++) {
+					var toarr = pages[i].substr(0, pages[i].indexOf('.')); 
+					pagenums.push(parseInt(toarr));
+				}
+				pagenums = pagenums.sort()
+				this.debug("createPage", "pagenums", pagenums)
+				var pagenum = parseInt(pagenums[pagelen - 1]);
+				this.debug("createPage", "pagenum", pagenum)
+				this.debug("createPage", "pagelen", pagelen)
 			}
 			if (pages.length == 0) {
 				pagenum = 0
 				var pagefile = pagenum + this.pageFileExt;
-			} else {
-				var pagefile = pagenum + 1 + this.pageFileExt;
+			} else {;
+				var pagefile = (pagenum + 1) + this.pageFileExt;
 			}
             var pagefileout = this.pagestore_dir + pagefile;
 			// JSON data structure
@@ -970,12 +973,7 @@ vspace=0
         return true;
 	}
 	
-	editTextBlock(pagenum, title, caption, size, style, position, oldposition) {
-		Array.prototype.move = function(from,to){
-		this.splice(to,0,this.splice(from,1)[0]);
-		return this;
-		};
-		
+	editTextBlock(pagenum, title, caption, size, style, position, oldposition) {		
 		var pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
@@ -993,7 +991,7 @@ vspace=0
 		pagedata.blocks[oldposition].style = style
 		
 		if (oldposition != position)
-			pagedata.blocks.move(oldposition,position);
+			moveArrayKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -1018,11 +1016,7 @@ vspace=0
 	}
 	
 	editPhotoBlock(pagenum, oldposition, position, photo, type, title, caption) {
-		Array.prototype.move = function(from,to){
-		this.splice(to,0,this.splice(from,1)[0]);
-		return this;
-		};
-		
+	
 		var pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
@@ -1044,7 +1038,7 @@ vspace=0
 			blocks[oldposition].caption = caption
 		
 		if (oldposition != position) {
-			blocks.move(oldposition,position);
+			moveArrayKey(blocks, oldposition,position);
 		}
 
         this.editPage(pagedata, pagenum);
@@ -1070,10 +1064,6 @@ vspace=0
 	}
 	
 	editHeaderBlock(pagenum, text, size, dividerBefore, dividerAfter, position, oldposition) {
-		Array.prototype.move = function(from,to){
-		this.splice(to,0,this.splice(from,1)[0]);
-		return this;
-		};
 		
 		var pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
@@ -1092,7 +1082,7 @@ vspace=0
 		pagedata.blocks[oldposition].dividerAfter = dividerAfter
 		
 		if (oldposition != position)
-			pagedata.blocks.move(oldposition,position);
+			moveArrayKey(pagedata.blocks, oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -1115,11 +1105,7 @@ vspace=0
 	}
 	
 	editListBlock(pagenum, title, items, position, oldposition) {
-		Array.prototype.move = function(from,to){
-		this.splice(to,0,this.splice(from,1)[0]);
-		return this;
-		};
-		
+	
 		var pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
@@ -1133,7 +1119,7 @@ vspace=0
 		pagedata.blocks[oldposition].items = items
 		
 		if (oldposition != position)
-			pagedata.blocks.move(oldposition,position);
+			moveArrayKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -1173,10 +1159,6 @@ vspace=0
 	}
 	
 	editLinkBlock(pagenum, title, listItems, linkItems, position, oldposition) {
-		Array.prototype.move = function(from,to){
-		this.splice(to,0,this.splice(from,1)[0]);
-		return this;
-		};
 		
 		var pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
@@ -1202,7 +1184,7 @@ vspace=0
 		pagedata.blocks[oldposition].items = items
 		
 		if (oldposition != position)
-			pagedata.blocks.move(oldposition,position);
+			moveArrayKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -1224,16 +1206,11 @@ vspace=0
 	}
 	
 	editBreakBlock(pagenum, position, oldposition) {
-		Array.prototype.move = function(from,to){
-		this.splice(to,0,this.splice(from,1)[0]);
-		return this;
-		};
-		
 		var pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
 		if (oldposition != position)
-			pagedata.blocks.move(oldposition,position);
+			moveArrayKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
 		this.generateBreakList(pagenum);

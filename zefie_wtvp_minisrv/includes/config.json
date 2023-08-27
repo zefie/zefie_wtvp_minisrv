@@ -281,6 +281,7 @@
       "port": 1643,
       "connections": 3,
       "enable_multi_query": true,
+	  "max_pages": 4,
       "publish_mode": "service", // "service" or "directory"
       "publish_dest": "pb_services", // service name, or directory path
       "modules": [

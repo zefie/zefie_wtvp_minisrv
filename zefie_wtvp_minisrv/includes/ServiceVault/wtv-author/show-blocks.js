@@ -83,7 +83,7 @@ cellspacing=0 cellpadding=0>
 <tr>
 <td>
 <td abswidth=93 absheight=26 >
-<table href="wtv-guide:/help?topic=Publish&subtopic=Index&appName=Page%20Builder"
+<table href="wtv-guide:/help?topic=Glossary&subtopic=P&page=pagebuilder"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>

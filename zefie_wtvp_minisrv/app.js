@@ -168,6 +168,22 @@ if (!String.prototype.reverse) {
     }
 }
 
+// for some reason making this a prototype override breaks newsie
+
+/*
+if (!Array.prototype.movekey) {
+    Array.prototype.movekey = function (from, to) {
+        this.splice(to, 0, this.splice(from, 1)[0]);
+        return this;
+    };
+}
+*/
+
+function moveArrayKey(array, from, to) {
+    array.splice(to, 0, array.splice(from, 1)[0]);
+    return array;
+};
+
 // add .getCaseInsensitiveKey() to all JavaScript Objects in this application {
 // works for service vault scripts too.
 
@@ -250,6 +266,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "sendToClient": sendToClient,
         "service_vaults": service_vaults,
         "service_deps": service_deps,
+        "moveArrayKey": moveArrayKey,
         "cwd": __dirname, // current working directory
 
         // Our prototype overrides
