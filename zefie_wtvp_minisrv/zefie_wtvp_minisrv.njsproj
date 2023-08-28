@@ -35,6 +35,7 @@
       <SubType>Code</SubType>
     </Content>
     <Content Include="includes\classes\WTVAdmin.js" />
+    <Content Include="includes\classes\WTVAuthor.js" />
     <Content Include="includes\classes\WTVBGMusic.js" />
     <Content Include="includes\classes\WTVClientCapabilities.js" />
     <Content Include="includes\classes\WTVClientSessionData.js" />
@@ -416,6 +417,15 @@
     <Content Include="includes\ServiceVault\wtv-author\show-blocks.js" />
     <Content Include="includes\ServiceVault\wtv-author\styles.js" />
     <Content Include="includes\ServiceVault\wtv-author\templates.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\content\content-serve.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\current-noflash.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\get-by-path.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\get-lc2-page.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\initiate-lc2-download.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\lc2-download-complete.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\lc2-download-failed.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\noflash.js" />
+    <Content Include="includes\ServiceVault\wtv-flashrom\willie.js" />
     <Content Include="includes\ServiceVault\wtvchat\catchall.js">
       <SubType>Code</SubType>
     </Content>
@@ -2573,6 +2583,8 @@
     <Folder Include="includes\ServiceVault\wtv-author\samples_en-US\HollisBaseballLeague\" />
     <Folder Include="includes\ServiceVault\wtv-author\samples_en-US\media\" />
     <Folder Include="includes\ServiceVault\wtv-author\samples_en-US\WilsonFamilySummer\" />
+    <Folder Include="includes\ServiceVault\wtv-flashrom\" />
+    <Folder Include="includes\ServiceVault\wtv-flashrom\content\" />
     <Folder Include="includes\ServiceVault\wtvchat\" />
     <Folder Include="includes\ServiceVault\news\" />
     <Folder Include="includes\ServiceVault\SharedROMCache\" />

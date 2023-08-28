@@ -2,13 +2,14 @@ var minisrv_service_file = true;
 
 headers = `200 OK
 Content-type: text/html
+wtv-expire-all: wtv-flashrom:
 minisrv-no-mail-count: true`
 
 data = `<html>
 
 <head>
 <title>
-Updating
+Updating complete
 </title>
 <display switchtowebmode nostatus nooptions skipback clearback>
 

@@ -6,14 +6,24 @@ if (!request_headers.query.path) {
 	var errpage = wtvshared.doErrorPage(400);
 	headers = errpage[0];
 	data = errpage[1];
-} else {	
-	var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, (minisrv_config.services[service_name].debug ? false : true));
-	var request_path = request_headers.query.path;
+} else {
+	if (request_headers.Referer == service_name + ":/lc2-download-complete?") {
+		headers = `200 OK
+Content-type: text/html
+minisrv-no-mail-count: true
+wtv-visit: ${service_name}:/lc2-download-complete?
+Location: ${service_name}:/lc2-download-complete?`
+		data = '';
+		sendToClient(socket, headers, data);
+	} else {
+		var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, (minisrv_config.services[service_name].debug ? false : true));
+		var request_path = request_headers.query.path;
 
-	// read flashrom header info into array using WTVFlashrom class	
-	wtvflashrom.getFlashromMeta(request_path, function (data, headers) {
-		processLC2DownloadPage(data, headers, (request_headers.query.numparts ? request_headers.query.numparts : null));
-	});
+		// read flashrom header info into array using WTVFlashrom class	
+		wtvflashrom.getFlashromMeta(request_path, function (data, headers) {
+			processLC2DownloadPage(data, headers, (request_headers.query.numparts ? request_headers.query.numparts : null));
+		});
+	}
 }
 
 async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
@@ -26,11 +36,11 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 	}
 	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
 	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
-	console.log(flashrom_info);
 	if (parseInt(flashrom_info.part_number) >= 0 && flashrom_info.rompath && flashrom_info.next_rompath) {
 		if (!flashrom_info.message && flashrom_info.is_bootrom) {
 			flashrom_info.message = "BootRom Part " + (flashrom_info.part_number + 1) + " of " + flashrom_info.part_count;
-        }
+		}
+
 		if (!flashrom_info.is_last_part) {
 			flashrom_info.next_rompath = request_headers.request_url.replace(escape(request_headers.query.path), escape(flashrom_info.next_rompath.replace(service_name+":/","")));
 		}
