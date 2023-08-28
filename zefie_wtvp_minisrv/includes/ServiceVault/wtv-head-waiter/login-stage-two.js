@@ -162,19 +162,19 @@ wtv-inactive-timeout: 1440
 		*/
 
 		if (!limitedLogin && !limitedLoginRegistered) {
-			headers += "\nwtv-relogin-url: wtv-head-waiter:/relogin?relogin=true";
-			if (request_headers.query.guest_login) headers += "&guest_login=true";
+			headers += "wtv-relogin-url: wtv-head-waiter:/relogin?relogin=true\n";
+			if (request_headers.query.guest_login) headers += "&guest_login=true\n";
 
-			headers += "\nwtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true";
-			if (request_headers.query.guest_login) headers += "&guest_login=true";
+			headers += "wtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true\n";
+			if (request_headers.query.guest_login) headers += "&guest_login=true\n";
 
-			headers += "\nwtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
-			if (request_headers.query.guest_login) headers += "&guest_login=true";			
-			headers += "\nwtv-home-url: " + home_url;
+			headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true\n";
+			if (request_headers.query.guest_login) headers += "&guest_login=true\n ";			
+			headers += "wtv-home-url: " + home_url + "\n";
 		}
 
 		if (session_data.get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin && !limitedLoginRegistered)
-			headers += "\nwtv-settings-url: wtv-setup:/get\n";
+			headers += "wtv-settings-url: wtv-setup:/get\n";
 
 		if (!limitedLogin && !limitedLoginRegistered) {
 			headers += `wtv-force-lightweight-targets: webtv.net:/
