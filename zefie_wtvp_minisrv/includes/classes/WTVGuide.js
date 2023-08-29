@@ -38,10 +38,12 @@ class WTVGuide {
 							var definition = glossary[subtopic.toUpperCase()][page.toLowerCase()].definition;
 							// replace <word>the word</word> with a nice convienent link
 							var search = "<word";
-							while (definition.indexOf(search) >= 0) {
-								var link_word_for_link, link_word_start_letter, link_word_override = null;
+							while (start = definition.indexOf(search), start >= 0) {
+								var link_word_for_link = null;
+								var link_word_start_letter = null;
+								var link_word_override = null;
 								var original_start, end = 0;
-								var start = definition.indexOf(search) + search.length;
+								var start = start + search.length;
 								original_start = start;
 								// handle <word="whatever">
 								if (definition.substr(start, 1) != ">") {
@@ -64,8 +66,8 @@ class WTVGuide {
 								if (!link_word_start_letter) link_word_start_letter = link_word.substr(0, 1).toUpperCase();
 								if (!link_word_override) link_word_override = link_word;
 
-								var link = `wtv-guide:/help?topic=Glossary&subtopic=${link_word_start_letter}&page=${link_word_for_link}&word=${encodeURIComponent(link_word_override)}`
-								var new_definition = definition.substring(0, original_start - search.length) + `<a href="${link}">${link_word}</a>` + definition.substring(end + 7);
+								var link_url = `wtv-guide:/help?topic=Glossary&subtopic=${link_word_start_letter}&page=${link_word_for_link}&word=${encodeURIComponent(link_word_override)}`
+								var new_definition = definition.substring(0, original_start - search.length) + `<a href="${link_url}">${link_word}</a>` + definition.substring(end + 7);
 								definition = new_definition;
 							}
 							// replaces <boxname> with the friendly name of the type of unit the user has
