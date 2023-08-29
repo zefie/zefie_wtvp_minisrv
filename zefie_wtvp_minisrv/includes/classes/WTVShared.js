@@ -253,24 +253,14 @@ class WTVShared {
     sanitizeSignature(string) {
         var allowedSchemes = ['http', 'https', 'ftp', 'mailto'];
         var self = this;
-        Object.keys(this.minisrv_config.services).forEach(function (k) {
-            var flags = self.minisrv_config.services[k].flags;
-            if (flags) {
-                if (flags == "0x00000004" || flags == "0x00000007") {
-                    allowedSchemes.push(self.minisrv_config.services[k].name);
-                }
-            }
-        });
-
-        var allowedProtocols = allowedSchemes;
-        // allow links to services flagged as "wideopen"
+         // allow links to services flagged as "wideopen"
         Object.keys(this.minisrv_config.services).forEach((k) => {
             var flag = parseInt(this.minisrv_config.services[k].flags, 16);
             if (flag === 4 || flag === 7) {
-                if (!allowedProtocols.includes(k)) allowedProtocols.push(k);
+                if (!allowedSchemes.includes(k)) allowedSchemes.push(k);
             }
         });
-        self.debug("sanitizeSignature", "allowed protocols:", allowedProtocols);
+        self.debug("sanitizeSignature", "allowed protocols:", allowedSchemes);
 
         if (this.shenanigans.checkShenanigan(this.shenanigans.shenanigans.DISABLE_HTML_SANITIZER)) {
             // shenanigans level matches, don't filter
@@ -305,8 +295,8 @@ class WTVShared {
                                 return false;
                             }
                         }                  
-                        Object.keys(allowedProtocols).forEach((j) => {
-                            if (value.startsWith(allowedProtocols[j])) {
+                        Object.keys(allowedSchemes).forEach((j) => {
+                            if (value.startsWith(allowedSchemes[j])) {
                                 allowed = true;
                                 return false;
                             }
@@ -1124,7 +1114,7 @@ class WTVShared {
      * @param {string} username String to filter
      */
     makeSafeUsername(username) {
-        return username.replace(/^([A-Za-z0-9\-\_]{5,16})$/, '');
+        return username.replace(/^([A-Za-z0-9\-\_])$/g, '');
     }
 
     /**

@@ -46,9 +46,8 @@ Content-type: text/html`;
                 if (message.body.indexOf("<body")) {
                     var default_colors = session_data.mailstore.defaultColors;
                     var message_colors = session_data.mailstore.getSignatureColors(message.body);
-                    if (message_colors == default_colors) message_colors = null;
                 }
-                if (!message_colors) message_colors = session_data.mailstore.getSignatureColors(message.signature);
+                if (message.signature) message_colors = session_data.mailstore.getSignatureColors(message.signature);
 
                 if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                 data = `<wtvnoscript>
