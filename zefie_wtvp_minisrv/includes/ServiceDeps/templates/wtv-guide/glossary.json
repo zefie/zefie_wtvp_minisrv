@@ -461,7 +461,7 @@
 		},
 		"minisrv": {
 			"word": "minisrv",
-			"definition": "An open-source product written in nodejs designed to replicate the propritary comminucations between a WebTV client and the server. <b>minisrv</b> is the server software that provides the user experience. This page was sent to you via <b>minisrv</b>!"
+			"definition": "An open-source product written in nodejs designed to replicate the proprietary communications between a WebTV client and the server. <b>minisrv</b> is the server software that provides the user experience. This page was sent to you via <b>minisrv</b>!"
 		},
 		"modem": {
 			"word": "modem",
