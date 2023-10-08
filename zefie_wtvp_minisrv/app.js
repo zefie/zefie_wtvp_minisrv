@@ -861,7 +861,6 @@ minisrv-no-mail-count: true`;
             // if a directory, request index
             if (shortURL.indexOf("/ROMCache/") == 0 && minisrv_config.config.enable_shared_romcache) {
                 shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split('/')[1] + '/' + shortURL.split('/')[2]);
-                console.log(shared_romcache);
             }
             if (shortURL.substring(shortURL.length - 1) == "/") shortURL += "index";
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
