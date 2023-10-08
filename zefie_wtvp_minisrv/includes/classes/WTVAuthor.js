@@ -561,7 +561,7 @@ block += `
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${minisrv_config.config.service_name}</a>
+<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -605,7 +605,7 @@ html += `">previous page</a>
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${minisrv_config.config.service_name}</a>
+<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -641,7 +641,7 @@ html += `">previous page</a>
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${minisrv_config.config.service_name}</a>
+<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -673,7 +673,7 @@ html += `">next page</a>
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${minisrv_config.config.service_name}</a>
+<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -890,7 +890,7 @@ gIsWebTV = true;
 <TITLE>${this.wtvclient.session_store.subscriber_name}</TITLE>
 </HEAD>
 <body
-background="../clipart/styleMedia/ExternalBackground.gif"
+background="/ROMCache/ExternalBackground.gif"
 bgcolor=#1e4261
 text=AEBFD1 link=B8BDC7
 vlink=B8BDC7
@@ -1244,7 +1244,7 @@ vspace=0
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${minisrv_config.config.service_name}</a>
+<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
