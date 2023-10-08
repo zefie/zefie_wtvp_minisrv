@@ -1,5 +1,14 @@
 var minisrv_service_file = true;
 
+
+var notAdminAlert = new clientShowAlert({
+	'image': minisrv_config.config.service_logo,
+	'message': "Sorry, you are not configured as an admin on this server.<br><br>If you are the server operator, please<br> see <strong>user_config.example.json</strong><br> for an example on how to configure yourself as an administrator.",
+	'buttonlabel1': "Ugh, fine.",
+	'buttonaction1': "client:donothing",
+	'noback': true,
+}).getURL();
+
 headers = `200 OK
 Content-Type: text/html`
 
@@ -48,7 +57,7 @@ data += `
 <tr>
 <td colspan=3 height=6>
 <tr>
-<td><!-- TODO -->
+<td><a href="${(wtvshared.isAdmin(session_data)) ? "wtv-admin:/admin" : notAdminAlert}">${minisrv_config.config.service_name} Admin</a>
 <td width = 25>
 <td><!-- TODO -->
 <tr>

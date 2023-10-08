@@ -29,14 +29,6 @@ var notImplementedAlert = new clientShowAlert({
 	'noback': true,
 }).getURL();
 
-var notAdminAlert = new clientShowAlert({
-	'image': minisrv_config.config.service_logo,
-	'message': "Sorry, you are not configured as an admin on this server.<br><br>If you are the server operator, please<br> see <strong>user_config.example.json</strong><br> for an example on how to configure yourself as an administrator.",
-	'buttonlabel1': "Ugh, fine.",
-	'buttonaction1': "client:donothing",
-	'noback': true,
-}).getURL();
-
 var ownMinisrv = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
 	'message': "To run your own minisrv, please visit the following link on your PC:<br><br><strong>https://zef.pw/minisrv</strong>",
@@ -263,7 +255,7 @@ data += `
 <td absheight="3">
 <tr>
 <td abswidth="6">
-<td href="${(wtvshared.isAdmin(session_data)) ? "wtv-admin:/admin" : notAdminAlert}" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">WTV Admin</font>
+<td href="wtv-author:/documents" height="21" valign="middle" bgcolor="#BBAEC8"><font color="#454C73">&#128;&nbsp;</font><font color="#000000">Pagebuilder</font>
 <td abswidth="6">
 <tr>
 <td absheight="3">
