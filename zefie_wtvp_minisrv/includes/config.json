@@ -313,7 +313,7 @@
       "pc_services": true, // defines service as a PC service
       "hide_minisrv_version": true, // hide or show the minisrv version (eg like Apache version, can be hidden to hide known exploits for older version)
       "servicevault_dir": "http_pb", // The service vault dir for the PC Services for PageBuilder
-      "service_vaults": ["PageBuilderVault"], // override service vaults for this service
+      "service_vaults": ["PageBuilderVault"], // additional service vaults for this service
       "drop_connection_on_wrong_port": true, // If true, resets connection if the PC browser connects to a port that is not PC Services enabled
       "show_verbose_errors": false, // extra debugging
       "allow_https": false, // for future use with LetsEncrypt

@@ -375,7 +375,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     if (pc_services) {
         var pc_service_name = getServiceByVaultDir(service_name)
         if (minisrv_config.services[pc_service_name].service_vaults) {
-            vaults_to_scan = minisrv_config.services[pc_service_name].service_vaults;
+            vaults_to_scan = vaults_to_scan.concat(minisrv_config.services[pc_service_name].service_vaults);
         }
     } else {
         updateFromVM.push([`ssid_sessions['${socket.ssid}']`, "session_data"]); // user-specific session data from unprivileged scripts
@@ -844,9 +844,9 @@ minisrv-no-mail-count: true`;
             }
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
             var shared_romcache = null;
-            if (shortURL.indexOf(":/ROMCache/") != -1 && minisrv_config.config.enable_shared_romcache) {
+            if ((shortURL.indexOf(":/ROMCache/") != -1 || shortURL.indexOf("://ROMCache/") != -1) && minisrv_config.config.enable_shared_romcache) {
                 shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split(':/')[1]);
-            }
+            } 
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers)))));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
@@ -859,6 +859,10 @@ minisrv-no-mail-count: true`;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (pc_services) {
             // if a directory, request index
+            if (shortURL.indexOf("/ROMCache/") == 0 && minisrv_config.config.enable_shared_romcache) {
+                shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split('/')[1] + '/' + shortURL.split('/')[2]);
+                console.log(shared_romcache);
+            }
             if (shortURL.substring(shortURL.length - 1) == "/") shortURL += "index";
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
@@ -1914,7 +1918,10 @@ function reloadConfig() {
     minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
     minisrv_config.version = temp.version
     if (temp.git_commit) minisrv_config.config.git_commit = temp.git_commit;
-    if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+    if (minisrv_config.config.service_logo.indexOf(':') == -1) {
+        minisrv_config.config.service_logo_pc = "/ROMCache/" + minisrv_config.config.service_logo;
+        minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+    }
     if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
     Object.keys(minisrv_config.services).forEach((k) => {
         configureService(k, minisrv_config.services[k])
@@ -2014,7 +2021,10 @@ else console.log(" * Full SSIDs will be shown in console logs");
 if (minisrv_config.config.filter_passwords_in_logs) console.log(" * Will attempt to filter passwords in browser queries")
 else console.log(" * Passwords in browser queries will not be filtered")
 
-if (minisrv_config.config.service_logo.indexOf(':') == -1) minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+if (minisrv_config.config.service_logo.indexOf(':') == -1) {
+    minisrv_config.config.service_logo_pc = "/ROMCache/" + minisrv_config.config.service_logo;
+    minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+}
 if (minisrv_config.config.service_splash_logo.indexOf(':') == -1) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
 
 minisrv_config.version = require('./package.json').version;
