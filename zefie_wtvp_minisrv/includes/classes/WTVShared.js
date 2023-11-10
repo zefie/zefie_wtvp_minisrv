@@ -80,25 +80,25 @@ class WTVShared {
     }
 
     /**
-     * CryptoJS implmentation of Base64 Decoder
-     * @param {string} a Base64 String
-     * @return {string} Decoded string
-     */
-    atob(a) {
-        const CryptoJS = require('crypto-js');
-        const enc = CryptoJS.enc.Base64.parse(a);
-        return CryptoJS.enc.Utf8.stringify(enc)
-    }
-
-    /**
      * CryptoJS implmentation of Base64 Encoder
      * @param {string} b String to encode
      * @returns {string} Base64 encoded string
      */
+    atob(a) {
+        const CryptoJS = require('crypto-js');
+        const enc = CryptoJS.enc.Utf8.parse(a); // encodedWord Array object
+        return CryptoJS.enc.Base64.stringify(enc);
+    }
+
+    /**
+     * CryptoJS implmentation of Base64 Decoder
+     * @param {string} a Base64 String
+     * @return {string} Decoded string
+     */
     btoa(b) {
         const CryptoJS = require('crypto-js');
-        const enc = CryptoJS.enc.Utf8.parse(b); // encodedWord Array object
-        return CryptoJS.enc.Base64.stringify(enc);
+        const enc = CryptoJS.enc.Base64.parse(b);
+        return CryptoJS.enc.Utf8.stringify(enc)
     }
 
     /**
