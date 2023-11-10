@@ -41,10 +41,11 @@ AutoCaps selected>
 <img src="ROMCache/spacer.gif" width="3"><select usestyle id="subscriber_contact_method" name="subscriber_contact_method">
 <option value="">Type</option>
 <option>E-Mail</option>
+<option>X</option>
 <option>Discord</option>
-<option>Twitter</option>
 <option>Telegram</option>
 <option>Instagram</option>
+<option>Other</option>
 </select>
 `;
     var form_data = `<shadow>
