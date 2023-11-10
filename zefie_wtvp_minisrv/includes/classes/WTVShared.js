@@ -8,6 +8,7 @@ class WTVShared {
 
     path = require('path');
     fs = require('fs');
+    readline = require('readline');
     v8 = require('v8');
     zlib = require('zlib');
     html_entities = require('html-entities'); // used externally by service scripts
@@ -139,70 +140,42 @@ class WTVShared {
     }
 
     parseJSON(json) {
-        if (!json) return null;
-        if (typeof json !== 'string') json = json.toString();
+        if (typeof json !== 'string') json = json ? json.toString() : '';
+        let result = '';
+        let i = 0;
+        let isString = false;
+        let isEscape = false;
+        let isBlockComment = false;
+        let isLineComment = false;
 
-        // from https://github.com/getify/JSON.minify/blob/javascript/minify.json.js
-        var tokenizer = /"|(\/\*)|(\*\/)|(\/\/)|\n|\r/g,
-            in_string = false,
-            in_multiline_comment = false,
-            in_singleline_comment = false,
-            tmp, tmp2, new_str = [], ns = 0, from = 0, lc, rc,
-            prevFrom
-            ;
+        while (i < json.length) {
+            const char = json[i];
+            const nextChar = json[i + 1];
 
-        tokenizer.lastIndex = 0;
-
-        while (tmp = tokenizer.exec(json)) {
-            lc = RegExp.leftContext;
-            rc = RegExp.rightContext;
-            if (!in_multiline_comment && !in_singleline_comment) {
-                tmp2 = lc.substring(from);
-                if (!in_string) {
-                    tmp2 = tmp2.replace(/(\n|\r|\s)+/g, "");
+            if (!isString && !isEscape && char === '/' && nextChar === '*') {
+                isBlockComment = true;
+                i++;
+            } else if (isBlockComment && char === '*' && nextChar === '/') {
+                isBlockComment = false;
+                i++;
+            } else if (!isString && !isEscape && char === '/' && nextChar === '/') {
+                isLineComment = true;
+                i++;
+            } else if (isLineComment && (char === '\n' || char === '\r')) {
+                isLineComment = false;
+            } else if (!isBlockComment && !isLineComment) {
+                if (char === '"' && !isEscape) {
+                    isString = !isString;
                 }
-                new_str[ns++] = tmp2;
+                isEscape = char === '\\' && !isEscape;
+                result += char;
             }
-            prevFrom = from;
-            from = tokenizer.lastIndex;
-
-            // found a " character, and we're not currently in
-            // a comment? check for previous `\` escaping immediately
-            // leftward adjacent to this match
-            if (tmp[0] == "\"" && !in_multiline_comment && !in_singleline_comment) {
-                // perform look-behind escaping match, but
-                // limit left-context matching to only go back
-                // to the position of the last token match
-                //
-                // see: https://github.com/getify/JSON.minify/issues/64
-                tmp2 = lc.substring(prevFrom).match(/\\+$/);
-
-                // start of string with ", or unescaped " character found to end string?
-                if (!in_string || !tmp2 || (tmp2[0].length % 2) == 0) {
-                    in_string = !in_string;
-                }
-                from--; // include " character in next catch
-                rc = json.substring(from);
-            }
-            else if (tmp[0] == "/*" && !in_string && !in_multiline_comment && !in_singleline_comment) {
-                in_multiline_comment = true;
-            }
-            else if (tmp[0] == "*/" && !in_string && in_multiline_comment && !in_singleline_comment) {
-                in_multiline_comment = false;
-            }
-            else if (tmp[0] == "//" && !in_string && !in_multiline_comment && !in_singleline_comment) {
-                in_singleline_comment = true;
-            }
-            else if ((tmp[0] == "\n" || tmp[0] == "\r") && !in_string && !in_multiline_comment && in_singleline_comment) {
-                in_singleline_comment = false;
-            }
-            else if (!in_multiline_comment && !in_singleline_comment && !(/\n|\r|\s/.test(tmp[0]))) {
-                new_str[ns++] = tmp[0];
-            }
+            i++;
         }
-        new_str[ns++] = rc;
-        return JSON.parse(new_str.join(""));
+
+        return JSON.parse(result);
     }
+
 
     /**
      * Attempts to convert val into a boolean
@@ -210,12 +183,8 @@ class WTVShared {
      * @returns {boolean}
      */
     parseBool(val) {
-        if (typeof val === 'string')
-            val = val.toLowerCase();
-
-        return (val === true || val == "on" || val === "true" || val === 1);
+        return !!(val && /^(true|1|on|yes)$/i.test(val.toString().trim()));
     }
-
 
     getQueryString(query) {
         // for easy retrofitting old code to work with the webtvism of allowing multiple of the same query name
@@ -234,16 +203,31 @@ class WTVShared {
      * @returns {string} Entitized string
      */
     htmlEntitize(string, process_newline = false) {
-        if (this.shenanigans.checkShenanigan(this.shenanigans.shenanigans.DISABLE_HTML_ENTITIZER)) {
-            // shenanigans level matches, don't encode
+        // Assuming checkShenanigan returns a boolean
+        if (this.shenanigans && this.shenanigans.checkShenanigan(this.shenanigans.shenanigans.DISABLE_HTML_ENTITIZER)) {
             return string;
         }
 
-        string = this.html_entities.encode(string).replace(/&apos;/g, "'");
+        // Directly replace &, <, >, ", and ' characters
+        let entitized = string.replace(/[&<>"]/g, function (match) {
+            switch (match) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&apos;';
+                // &apos; is not needed to be replaced since it is valid in HTML5 and XHTML
+                default: return match;
+            }
+        });
 
-        if (process_newline) string = string.replace(/\n/gi, "<br>").replace(/\r/gi, "");
-        return string;
+        if (process_newline) {
+            entitized = entitized.replace(/\n/g, "<br>").replace(/\r/g, "");
+        }
+
+        return entitized;
     }
+
 
     /**
      * Attempts to sanitize HTML code to remove possible exploits when embedded in a WebTV Service
@@ -319,12 +303,9 @@ class WTVShared {
      * @returns {boolean} true if ASCII only, otherwise false
      */
     isASCII(str) {
-        if (typeof str !== 'string') return false;
-        for (var i = 0, strLen = str.length; i < strLen; ++i) {
-            if (str.charCodeAt(i) > 127) return false;
-        }
-        return true;
+        return typeof str === 'string' && /^[\x00-\x7F]*$/.test(str);
     }
+
 
     /**
      * Attempts to determine if the string contains HTML
@@ -332,8 +313,10 @@ class WTVShared {
      * @returns {boolean} true if HTML detected, otherwise false
      */
     isHTML(str) {
-        return /<\/?[a-z][\s\S]*>/i.test()
+        const pattern = /<([A-Za-z][A-Za-z0-9]*)\b[^>]*>(.*?)<\/\1>/;
+        return typeof str === 'string' && pattern.test(str);
     }
+
 
     /**
      * Attempts to determine if the string is Base64 or not
@@ -341,54 +324,32 @@ class WTVShared {
      * @param {object} opts
      * @return {boolean} true if Base64, otherwise false
      */
-    isBase64(str, opts) {
-        // from https://github.com/miguelmota/is-base64/blob/master/is-base64.js
-        if (str instanceof Boolean || typeof str === 'boolean') {
-            return false
+    isBase64(str, opts = {}) {
+        if (typeof str !== 'string' || (opts.allowEmpty === false && str === '')) {
+            return false;
         }
 
-        if (!(opts instanceof Object)) {
-            opts = {}
-        }
+        // Create a regex string based on the provided options
+        const regexBase = '[A-Za-z0-9+\\/]';
+        const regexPadding = opts.paddingRequired === false ? '=?' : '=';
+        const regexMime = opts.mimeRequired ? 'data:\\w+\\/[-+.\\w]+;base64,' : '';
 
-        if (opts.allowEmpty === false && str === '') {
-            return false
-        }
+        // Construct the final regex with the appropriate groups
+        const regex = `^${regexMime}(?:${regexBase}{4})*${opts.allowMime ? '?' : ''}(?:${regexBase}{2}${regexPadding}{2}|${regexBase}{3}${regexPadding})?$`;
 
-        var regex = '(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}==|[A-Za-z0-9+\/]{3}=)?'
-        var mimeRegex = '(data:\\w+\\/[a-zA-Z\\+\\-\\.]+;base64,)'
-
-        if (opts.mimeRequired === true) {
-            regex = mimeRegex + regex
-        } else if (opts.allowMime === true) {
-            regex = mimeRegex + '?' + regex
-        }
-
-        if (opts.paddingRequired === false) {
-            regex = '(?:[A-Za-z0-9+\\/]{4})*(?:[A-Za-z0-9+\\/]{2}(==)?|[A-Za-z0-9+\\/]{3}=?)?'
-        }
-
-        return (new RegExp('^' + regex + '$', 'gi')).test(str)
+        return new RegExp(regex, 'gi').test(str);
     }
+
 
     utf8Decode(utf8String) {
-        if (typeof utf8String != 'string') throw new TypeError('parameter ‘utf8String’ is not a string');
-        // note: decode 3-byte chars first as decoded 2-byte strings could appear to be 3-byte char!
-        const unicodeString = utf8String.replace(
-            /[\u00e0-\u00ef][\u0080-\u00bf][\u0080-\u00bf]/g,  // 3-byte chars
-            function (c) {  // (note parentheses for precedence)
-                var cc = ((c.charCodeAt(0) & 0x0f) << 12) | ((c.charCodeAt(1) & 0x3f) << 6) | (c.charCodeAt(2) & 0x3f);
-                return String.fromCharCode(cc);
-            }
-        ).replace(
-            /[\u00c0-\u00df][\u0080-\u00bf]/g,                 // 2-byte chars
-            function (c) {  // (note parentheses for precedence)
-                var cc = (c.charCodeAt(0) & 0x1f) << 6 | c.charCodeAt(1) & 0x3f;
-                return String.fromCharCode(cc);
-            }
-        );
-        return unicodeString;
+        if (typeof utf8String !== 'string') {
+            throw new TypeError('parameter ‘utf8String’ is not a string');
+        }
+        const textDecoder = new TextDecoder('utf-8');
+        const bytes = new Uint8Array(utf8String.split('').map(c => c.charCodeAt(0)));
+        return textDecoder.decode(bytes);
     }
+
 
     decodeBufferText(buf) {
         var out = "";
@@ -402,14 +363,15 @@ class WTVShared {
      * @return {string} The absolute path
      */
     returnAbsolutePath(check_path) {
-        if (check_path.substring(0, 1) != this.path.sep && check_path.substring(1, 2) != ":") {
-            // non-absolute path, so use current directory as base
+        // Assuming this.path.sep is a slash (/ or \) and this.parentDirectory is set correctly
+        if (!/^(?:[a-zA-Z]:)?[\\/]/.test(check_path)) {
+            // It's a relative path
             check_path = this.parentDirectory + this.path.sep + check_path;
-        } else {
-            // already absolute path
         }
+        // Use the fixPathSlashes method to normalize the slashes
         return this.fixPathSlashes(check_path);
     }
+
 
     /**
      * Detects if the client is in MiniBrowser mode
@@ -462,57 +424,44 @@ class WTVShared {
      * @returns {object} ssid info object
      */
     parseSSID(ssid) {
-        var ssid_obj = {};
-        switch (ssid.substring(0, 2)) {
-            case "01":
-                ssid_obj.boxType = "Internal";
-                break;
-            case "81":
-                ssid_obj.boxType = "Retail";
-                break;
-            case "91":
-                // not a definitive way to detect a viewer
-                ssid_obj.boxType = "Viewer";
-                break;
-        }
-        ssid_obj.unique_id = ssid.substring(2, 8);
-        switch (ssid.substring(10, 14).toUpperCase()) {
-            case "B002":                
-                ssid_obj.region = "US/Canada";
-                break;
-            case "B102":
-                ssid_obj.region = "Japan";
-                break;
+        const boxTypeMapping = {
+            "01": "Internal",
+            "81": "Retail",
+            "91": "Viewer"
+        };
+
+        const regionMapping = {
+            "B002": "US/Canada",
+            "B102": "Japan"
+        };
+
+        const manufacturerMapping = {
+            "00": "Sony", // Default to Sony if the region is not Japan
+            "10": "Philips",
+            "50": "Philips",
+            "40": "Mitsubishi",
+            "70": "Samsung",
+            "80": "EchoStar",
+            "90": "RCA",
+            "AE": "zefie & MattMan69"
+        };
+
+        const ssid_obj = {
+            boxType: boxTypeMapping[ssid.substring(0, 2)],
+            unique_id: ssid.substring(2, 8),
+            region: regionMapping[ssid.substring(10, 14).toUpperCase()],
+            manufacturer: manufacturerMapping[ssid.substring(8, 10).toUpperCase()],
+            crc: ssid.substring(14)
+        };
+
+        // Special case for manufacturer based on region
+        if (ssid_obj.region === "Japan" && ssid.substring(8, 10).toUpperCase() === "00") {
+            ssid_obj.manufacturer = "Panasonic";
         }
 
-        switch (ssid.substring(8, 10).toUpperCase()) {
-            case "00":
-                if (ssid_obj.region == "Japan") ssid_obj.manufacturer = "Panasonic";
-                else ssid_obj.manufacturer = "Sony";
-                break;
-            case "10":
-            case "50":
-                ssid_obj.manufacturer = "Philips";
-                break;
-            case "40":
-                ssid_obj.manufacturer = "Mitsubishi";
-                break;
-            case "70":
-                ssid_obj.manufacturer = "Samsung";
-                break;
-            case "80":
-                ssid_obj.manufacturer = "EchoStar";
-                break;
-            case "90":
-                ssid_obj.manufacturer = "RCA";
-                break;
-            case "AE":
-                ssid_obj.manufacturer = "zefie & MattMan69";
-                break;
-        }
-        ssid_obj.crc = ssid.substring(14)
         return ssid_obj;
     }
+
 
     /**
      * Alias for parseSSID, but just the manufacture info
@@ -534,122 +483,113 @@ class WTVShared {
      * @returns {object} The modified object
      */
     moveObjectElement(currentKey, afterKey, obj, caseInsensitive = false) {
-        var result = {};
+        let keys = Object.keys(obj);
+        let values = Object.values(obj);
+
         if (caseInsensitive) {
-            Object.keys(obj).forEach((k) => {
-                if (k.toLowerCase() == currentKey.toLowerCase()) {
-                    currentKey = k;
-                    return false;
-                }
-            })
-        }       
-        var val = obj[currentKey];
-        delete obj[currentKey];
-        var next = -1;
-        var i = 0;
-        if (typeof afterKey == 'undefined' || afterKey == null) afterKey = '';
-        Object.keys(obj).forEach(function (k) {
-            var v = obj[k];
-            if ((afterKey == '' && i == 0) || next == 1) {
-                result[currentKey] = val;
-                next = 0;
-            }
-            if (k == afterKey || (caseInsensitive && k.toLowerCase() == afterKey.toLowerCase())) { next = 1; }
-            result[k] = v;
-            ++i;
-        });
-        if (next == 1) {
-            result[currentKey] = val;
+            const lowerCurrentKey = currentKey.toLowerCase();
+            const foundKey = keys.find(k => k.toLowerCase() === lowerCurrentKey);
+            currentKey = foundKey || currentKey;
         }
-        if (next !== -1) return result; else return obj;
+
+        const afterKeyIndex = typeof afterKey === 'string' ?
+            keys.findIndex(k => caseInsensitive ? k.toLowerCase() === afterKey.toLowerCase() : k === afterKey)
+            : -1;
+
+        if (afterKeyIndex === -1) {
+            // If afterKey is not found or not defined, don't move the element
+            return obj;
+        }
+
+        const currentIndex = keys.indexOf(currentKey);
+        if (currentIndex === -1) {
+            // If currentKey is not found, don't move the element
+            return obj;
+        }
+
+        // Remove the current element from keys and values
+        const [currentKeyValue] = values.splice(currentIndex, 1);
+        keys.splice(currentIndex, 1);
+
+        // Insert the current element after the afterKey position
+        keys.splice(afterKeyIndex + 1, 0, currentKey);
+        values.splice(afterKeyIndex + 1, 0, currentKeyValue);
+
+        // Reconstruct the object with the new order
+        const result = {};
+        keys.forEach((key, index) => {
+            result[key] = values[index];
+        });
+
+        return result;
     }
 
+
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
-        if (notices || reload_notice) console.log(" *** Reading global configuration...");
+        const log = (msg) => {
+            if (notices || reload_notice) console.log(msg);
+        };
+        const logError = (msg, e) => {
+            console.error(msg, e);
+            if (this.minisrv_config && this.minisrv_config.config.debug_flags && this.minisrv_config.config.debug_flags.debug) {
+                console.error(" * Notice: Using default configuration.");
+            }
+        };
+
+        log(" *** Reading global configuration...");
         try {
             var minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath(".." + this.path.sep + "config.json", __dirname)));
         } catch (e) {
-            throw ("ERROR: Could not read config.json", e);
-        }
-
-        var integrateConfig = function(main, user) {
-            Object.keys(user).forEach(function (k) {
-                if (typeof (user[k]) == 'object' && user[k] != null) {
-                    // new entry
-                    if (!main[k]) main[k] = new Array();
-                    // go down the rabbit hole
-                    main[k] = integrateConfig(main[k], user[k]);
-                } else {
-                    // update main config
-                    main[k] = user[k];
-                }
-            });
-            return main;
+            throw new Error("ERROR: Could not read config.json", e);
         }
 
         if (user_config) {
+            log(" *** Reading user configuration...");
             try {
-                if (notices || reload_notice) console.log(" *** Reading user configuration...");
-                var minisrv_user_config = this.getUserConfig()
-                if (!minisrv_user_config) throw "WARN: Could not read user_config.json";
-                try {
-                    minisrv_config = integrateConfig(minisrv_config, minisrv_user_config)
-                } catch (e) {
-                    console.error("ERROR: Could not read user_config.json", e);
-                    this.process.exit(1);
-                }
+                let minisrv_user_config = this.getUserConfig();
+                if (!minisrv_user_config) throw new Error("WARN: Could not read user_config.json");
+                minisrv_config = this.integrateConfig(minisrv_config, minisrv_user_config);
             } catch (e) {
-                if (minisrv_config.config.debug_flags) {
-                    if (minisrv_config.config.debug_flags.debug) console.error(" * Notice: Could not find user configuration (user_config.json). Using default configuration.");
-                }
+                logError("ERROR: Could not integrate user_config.json", e);
+                this.process.exit(1);
             }
         }
 
-        // defaults
-        minisrv_config.config.debug_flags = [];
-        minisrv_config.config.debug_flags.debug = false;
-        minisrv_config.config.debug_flags.quiet = true; // will squash minisrv_config.config.debug_flags.debug even if its true
-        minisrv_config.config.debug_flags.show_headers = false;
+        // Set debug flags based on verbosity
+        const debugFlags = {
+            debug: false,
+            quiet: true, // will squash debug even if its true
+            show_headers: false
+        };
 
-        if (minisrv_config.config.verbosity) {
-            switch (minisrv_config.config.verbosity) {
-                case 0:
-                    minisrv_config.config.debug_flags.debug = false;
-                    minisrv_config.config.debug_flags.quiet = true;
-                    minisrv_config.config.debug_flags.show_headers = false;
-                    if (notices) console.log(" * Console Verbosity level 0 (quietest)")
-                    break;
-                case 1:
-                    minisrv_config.config.debug_flags.debug = false;
-                    minisrv_config.config.debug_flags.quiet = true;
-                    minisrv_config.config.debug_flags.show_headers = true;
-                    if (notices) console.log(" * Console Verbosity level 1 (headers shown)")
-                    break;
-                case 2:
-                    minisrv_config.config.debug_flags.debug = true;
-                    minisrv_config.config.debug_flags.quiet = true;
-                    minisrv_config.config.debug_flags.show_headers = false;
-                    if (notices) console.log(" * Console Verbosity level 2 (verbose without headers)")
-                    break;
-                case 3:
-                    minisrv_config.config.debug_flags.debug = true;
-                    minisrv_config.config.debug_flags.quiet = true;
-                    minisrv_config.config.debug_flags.show_headers = true;
-                    if (notices) console.log(" * Console Verbosity level 3 (verbose with headers)")
-                    break;
-                default:
-                    minisrv_config.config.debug_flags.debug = true;
-                    minisrv_config.config.debug_flags.quiet = false;
-                    minisrv_config.config.debug_flags.show_headers = true;
-                    if (notices) console.log(" * Console Verbosity level 4 (debug verbosity)")
-                    break;
-            }
+        if (minisrv_config.config.verbosity >= 0 && minisrv_config.config.verbosity <= 3) {
+            debugFlags.quiet = minisrv_config.config.verbosity < 2;
+            debugFlags.show_headers = minisrv_config.config.verbosity % 2 === 1;
+            debugFlags.debug = minisrv_config.config.verbosity === 2 || minisrv_config.config.verbosity === 3;
+            log(` * Console Verbosity level ${minisrv_config.config.verbosity}`);
+        } else {
+            Object.assign(debugFlags, { debug: true, quiet: false, show_headers: true });
+            log(" * Console Verbosity level 4 (debug verbosity)");
         }
 
-        if (notices || reload_notice) console.log(" *** Configuration successfully read.");
+        minisrv_config.config.debug_flags = debugFlags;
+
+        log(" *** Configuration successfully read.");
         this.minisrv_config = minisrv_config;
         return this.minisrv_config;
+}
+
+    integrateConfig(main, user) {
+        for (const key in user) {
+            if (typeof user[key] === 'object' && user[key] !== null && !Array.isArray(user[key])) {
+                main[key] = this.integrateConfig(main[key] || {}, user[key]);
+            } else {
+                main[key] = user[key];
+            }
+        }
+        return main;
     }
+
 
     writeToUserConfig(config) {
         if (config) {
@@ -686,17 +626,33 @@ class WTVShared {
      * @param {string} extra_chars String of extra characters outside A-Z a-z 0-9 to include
      * @returns {string} Random string
      */
-    generateString(len, extra_chars = null) {
-        var result = '';
-        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        if (extra_chars) characters += extra_chars;
-        var charactersLength = characters.length;
-        for (var i = 0; i < len; i++) {
-            result += characters.charAt(Math.floor(Math.random() *
-                charactersLength));
+    generateString(len, extra_chars = '') {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' + extra_chars;
+        const charactersLength = characters.length;
+        let result = '';
+        let randomByte;
+        let value;
+
+        // If in Node.js environment, use crypto for better performance and randomness
+        if (typeof require === 'function' && typeof process === 'object') {
+            const { randomBytes } = require('crypto');
+            for (let i = 0; i < len; i++) {
+                randomByte = randomBytes(1);
+                result += characters.charAt(randomByte[0] % charactersLength);
+            }
+        } else {
+            // Cache the Math functions outside of the loop
+            const randomFunc = Math.random;
+            const floorFunc = Math.floor;
+            for (let i = 0; i < len; i++) {
+                value = floorFunc(randomFunc() * charactersLength);
+                result += characters.charAt(value);
+            }
         }
+
         return result;
     }
+
 
     /**
      * Any alias of generateString with optional special characters enabled as well
@@ -718,23 +674,19 @@ class WTVShared {
 
     lineWrap(string, len = 72, join = "\n") {
         if (string.length <= len) return string;
-        var split;
 
-        if (string.match(" ")) {
-            // split if text with space, respecting words
-            split = string.match(new RegExp('([\\s\\S]){1,' + len + '}?!\\S', "g"));
+        // Create the regex outside of the loop to avoid recompilation
+        const wordWrapRegex = new RegExp(`(.{1,${len}})(\\s|$)|(.{${len}})`, 'g');
+        const matches = [];
+        let match;
+
+        while ((match = wordWrapRegex.exec(string)) !== null) {
+            // Add the matched group that is not undefined
+            matches.push(match[1] || match[3]);
         }
-        if (!split) {
-            // fallback if above failed, or if its just a really long word (eg base64)
-            split = string.match(new RegExp('.{1,' + len + '}', "g"));
-        } else Object.keys(split).forEach((k) => {
-            if (split[k].substr(0, 1) == ' ') split[k] = split[k].trim(' ');
-        });
 
-        if (split) return split.join(join);
-        else return null;            
+        return matches.join(join).trim();
     }
-
 
     /**
      * Returns the Last-Modified date in Unix Timestamp format
@@ -767,40 +719,68 @@ class WTVShared {
      * Converts a binary buffer to a urlencoded string
      * @param {ArrayBuffer} buf byte data array
      */
-    urlEncodeBytes = (buf) => {
-        let encoded = ''
+    urlEncodeBytes(buf) {
+        if (!(buf instanceof Uint8Array)) {
+            buf = new Uint8Array(buf);
+        }
+
+        const urlSafeChars = /[A-Za-z0-9_.~-]/;
+        let encoded = '';
+        let hex;
+
         for (let i = 0; i < buf.length; i++) {
-            const charBuf = Buffer.from('00', 'hex')
-            charBuf.writeUInt8(buf[i])
-            const char = charBuf.toString()
-            // if the character is safe, then just print it, otherwise encode
-            if (isUrlSafe(char)) {
-                encoded += char
+            const byte = buf[i];
+            // Check if the byte maps to a URL-safe character
+            if (urlSafeChars.test(String.fromCharCode(byte))) {
+                encoded += String.fromCharCode(byte);
             } else {
-                encoded += `%${charBuf.toString('hex').toUpperCase()}`
+                // Convert byte to a two-character hexadecimal code
+                hex = byte.toString(16);
+                encoded += `%${hex.length === 1 ? '0' + hex : hex}`;
             }
         }
-        return encoded
+
+        return encoded.toUpperCase();
     }
+
 
     /**
      * Decodes a urlencoded string into a binary buffer
      * @param {string} encoded urlencoded string
      */
-    urlDecodeBytes = (encoded) => {
-        let decoded = Buffer.from('')
+    urlDecodeBytes(encoded) {
+        // Calculate the length of the decoded buffer
+        let bufferLength = encoded.length;
         for (let i = 0; i < encoded.length; i++) {
             if (encoded[i] === '%') {
-                const charBuf = Buffer.from(`${encoded[i + 1]}${encoded[i + 2]}`, 'hex')
-                decoded = Buffer.concat([decoded, charBuf])
-                i += 2
-            } else {
-                const charBuf = Buffer.from(encoded[i])
-                decoded = Buffer.concat([decoded, charBuf])
+                bufferLength -= 2; // Each encoded sequence is three characters but represents one byte
+                i += 2; // Skip the next two characters
             }
-            
         }
-        return decoded
+
+        // Allocate a buffer of the correct size
+        let decoded = Buffer.alloc(bufferLength);
+        let bufferIndex = 0;
+
+        for (let i = 0; i < encoded.length; i++) {
+            if (encoded[i] === '%') {
+                decoded[bufferIndex++] = parseInt(encoded.substr(i + 1, 2), 16);
+                i += 2; // Skip the next two characters
+            } else {
+                decoded[bufferIndex++] = encoded.charCodeAt(i);
+            }
+        }
+
+        return decoded;
+    }
+
+    censorSSID(ssid) {
+        if (ssid.slice(0, 8) === "MSTVSIMU") {
+            return ssid.slice(0, 10) + ('*').repeat(10) + ssid.slice(20);
+        } else if (ssid.slice(0, 5) === "1SEGA") {
+            return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
+        }
+        return ssid.slice(0, 6) + ('*').repeat(9);
     }
 
     /**
@@ -808,108 +788,84 @@ class WTVShared {
     * @param {string|Array} obj SSID String or Headers Object
     */
     filterSSID(obj) {
-        if (this.minisrv_config.config.hide_ssid_in_logs === true) {
-            if (typeof (obj) == "string") {
-                if (obj.substr(0, 8) == "MSTVSIMU") {
-                    return obj.substr(0, 10) + ('*').repeat(10) + obj.substr(20);
-                } else if (obj.substr(0, 5) == "1SEGA") {
-                    return obj.substr(0, 6) + ('*').repeat(6) + obj.substr(13);
-                } else {
-                    return obj.substr(0, 6) + ('*').repeat(9);
+        var new_obj = false;
+        if (this.minisrv_config && this.minisrv_config.config.hide_ssid_in_logs) {
+            if (typeof obj === "string") {
+                return this.censorSSID(obj);
+            } else if (typeof obj === "object" && obj !== null) {
+                if ("wtv-client-serial-number" in obj) {
+                    new_obj = this.cloneObj(obj)
+                    new_obj["wtv-client-serial-number"] = this.censorSSID(new_obj["wtv-client-serial-number"]);
                 }
-            } else {
-                var newobj = this.cloneObj(obj);
-                if (obj.post_data) newobj.post_data = obj.post_data;
-                if (newobj["wtv-client-serial-number"]) {
-                    var ssid = newobj["wtv-client-serial-number"];
-                    if (ssid.substr(0, 8) == "MSTVSIMU") {
-                        newobj["wtv-client-serial-number"] = ssid.substr(0, 10) + ('*').repeat(10) + ssid.substr(20);
-                    } else if (ssid.substr(0, 5) == "1SEGA") {
-                        newobj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(6) + ssid.substr(13);
-                    } else {
-                        newobj["wtv-client-serial-number"] = ssid.substr(0, 6) + ('*').repeat(9);
-                    }
-                }
-                return newobj;
-            }
-        } else {
-            return obj;
-        }
-    }
-
-    filterRequestLog(obj) {
-        if (this.minisrv_config.config.filter_passwords_in_logs === true) {
-            if (obj.query) {
-                var newobj = this.cloneObj(obj);
-                try {
-                    Object.keys(obj.query).forEach(function (k) {
-                        var key = k.toLowerCase();
-                        switch (true) {
-                            case /passw(or)?d/.test(key):
-                            case /^pass$/.test(key):
-                                newobj.query[key] = ('*').repeat(newobj.query[key].length);
-                                break;
-                        }
-                    });
-                    return newobj;
-                } catch (e) {
-                    if (!this.minisrv_config.config.debug_flags.quiet) console.error(' *** error filtering logs', e);
-                    return obj;
-                }
+                // Assuming cloneObj is necessary for other reasons
+                return this.cloneObj((new_obj != false) ? new_obj : obj);
             }
         }
         return obj;
     }
+
+
+    filterRequestLog(obj) {
+        if (this.minisrv_config.config.filter_passwords_in_logs && obj.query) {
+            const passwordRegex = /(^pass$|passw(or)?d)/i;
+            let newobj = this.cloneObj(obj); // Clone the object once at the beginning
+
+            Object.keys(newobj.query).forEach((k) => {
+                if (passwordRegex.test(k)) {
+                    newobj.query[k] = '*'.repeat(newobj.query[k].length);
+                }
+            });
+
+            return newobj;
+        }
+
+        return obj;
+    }
+
+
 
     decodePostData(obj) {
         if (obj.post_data) {
-            if (this.minisrv_config.config.filter_passwords_in_logs === true) {
-                // complex, to filter
-                var post_obj = {};
-                post_obj.query = [];
-                try {
-                    var post_text = obj.post_data.toString(CryptoJS.enc.Utf8);
-                    if (post_text.length > 0) {
-                        post_text = post_text.split("&");
-                        for (let i = 0; i < post_text.length; i++) {
-                            var qraw_split = post_text[i].split("=");
-                            if (qraw_split.length == 2) {
-                                var k = qraw_split[0];
-                                post_obj.query[k] = unescape(post_text[i].split("=")[1].replace(/\+/g, "%20"));
-                            }
+            const filterPasswords = this.minisrv_config.config.filter_passwords_in_logs === true;
+            try {
+                // Assuming CryptoJS.enc.Utf8 exists and has a stringify method
+                let post_text = CryptoJS.enc.Utf8.stringify(obj.post_data);
+                let params = new URLSearchParams(post_text);
+
+                if (filterPasswords) {
+                    for (let [key, value] of params) {
+                        const lowerKey = key.toLowerCase();
+                        if (/passw(or)?d|^pass$/.test(lowerKey)) {
+                            params.set(key, '*'.repeat(value.length));
                         }
                     }
-                var post_obj = this.filterRequestLog(post_obj);
-                post_text = "";
-                Object.keys(post_obj.query).forEach(function (k) {
-                    post_text += k + "=" + post_obj.query[k] + "&";
-                });
-                post_text = post_text.substring(0, post_text.length - 1);
-                obj.post_data = post_text.hexEncode();
-                } catch (e) {
-                    obj.post_data = obj.post_data.toString(CryptoJS.enc.Hex);
                 }
-            } else {
-                // simple, no filter
-                obj.post_data = obj.post_data.toString();
+
+                // Assuming hexEncode method exists on the string prototype
+                obj.post_data = filterPasswords ? params.toString().hexEncode() : params.toString();
+            } catch (e) {
+                // Fallback in case of an error
+                if (!this.minisrv_config.config.debug_flags.quiet) {
+                    console.error(' *** error decoding post data', e);
+                }
+                // Assuming CryptoJS.enc.Hex exists and has a stringify method
+                obj.post_data = CryptoJS.enc.Hex.stringify(obj.post_data);
             }
         }
         return obj;
     }
+
 
     // DON'T USE THIS
     // Saved for reference until I come up with a better way
     // If used, this will exceed the stack limit over time
     unloadModule(moduleName) {
-        // for handling template classes
-        var solvedName = require.resolve(moduleName),
-            nodeModule = require.cache[solvedName];
-        if (nodeModule) {
-            for (var i = 0; i < nodeModule.children.length; i++) {
-                var child = nodeModule.children[i];
-                this.unloadModule(child.filename);
-            }
-            delete require.cache[solvedName];
+        // Search for the module in the require cache
+        let resolvedPath = require.resolve(moduleName);
+
+        // Remove the module from the cache
+        if (require.cache[resolvedPath]) {
+            delete require.cache[resolvedPath];
         }
     }
 
@@ -918,18 +874,29 @@ class WTVShared {
     * @param {string} path 
     * @param {string} directory Root directory
     */
-    getAbsolutePath(path, directory = null) {
-        if (directory) {
-            if (path.indexOf(directory) == -1) {
-                directory = this.getAbsolutePath(directory);
-                try {
-                    if (this.fs.lstatSync(directory).isDirectory()) directory = directory + this.path.sep;
-                } catch (e) { }
-                path = directory + path;
+    getAbsolutePath(path, directory = '') {
+        const pathModule = require('path');
+        try {
+            // If the directory is a valid directory, prepend it to the path
+            if (directory && !path.startsWith(directory)) {
+                const fs = require('fs');
+                if (fs.lstatSync(directory).isDirectory()) {
+                    // Ensure directory has trailing separator
+                    if (!directory.endsWith(pathModule.sep)) {
+                        directory += pathModule.sep;
+                    }
+                    path = directory + path;
+                }
             }
+        } catch (e) {
+            // If there's an error accessing the directory, log it or handle as needed
+            console.error('Error resolving directory:', e);
         }
-        return this.fixPathSlashes(this.path.resolve(path));
+        // The path.resolve method will take care of normalizing slashes
+        return pathModule.resolve(path);
     }
+
+
 
     /**
      * Returns a percentage
@@ -961,36 +928,35 @@ class WTVShared {
         return path.reverse().split(".")[0].reverse();
     }
 
-    getLineFromFile(filename, line_no, callback) {
-        var stream = this.fs.createReadStream(filename, {
-            flags: 'r',
-            encoding: 'utf-8',
-            fd: null,
-            bufferSize: 64 * 1024
+    getLineFromFile(filename, lineNo, callback) {
+        let lineCount = 0;
+        const lineReader = this.readline.createInterface({
+            input: this.fs.createReadStream(filename, {
+                flags: 'r',
+                encoding: 'utf-8'
+            }),
+            crlfDelay: Infinity
         });
 
-
-        var fileData = '';
-        stream.on('data', function (data) {
-            fileData += data;
-
-            // The next lines should be improved
-            var lines = fileData.split("\n");
-
-            if (lines.length >= +line_no) {
-                stream.destroy();
-                callback(null, lines[+line_no]);
+        lineReader.on('line', (line) => {
+            lineCount++;
+            if (lineCount === lineNo) {
+                lineReader.close();
+                callback(null, line);
             }
         });
 
-        stream.on('error', function () {
-            callback('Error', null);
+        lineReader.on('close', () => {
+            if (lineCount < lineNo) {
+                callback(new Error('File end reached without finding line'), null);
+            }
         });
 
-        stream.on('end', function () {
-            callback('File end reached without finding line', null);
+        lineReader.on('error', (err) => {
+            callback(err, null);
         });
     }
+
 
 
     /**
@@ -1046,50 +1012,30 @@ class WTVShared {
      * @param {boolean} pc_mode If true, sends response formatted for PCs instead of WebTV
      * @param {boolean} wtv_reset if true, tells the WebTV box to reset the service list and reconnect
      */
-    doErrorPage(code, data = null, details = null,  pc_mode = false, wtv_reset = false) {
-        var headers = null;
-        var minisrv_config = this.minisrv_config;
-        switch (code) {
-            case 401:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
-                if (pc_mode) headers = "401 Unauthorized\n";
-                else headers = code + " " + data + "\n";
-                headers += "Content-Type: text/html\n";
-                break;
-            case 403:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
-                if (pc_mode) headers = "403 Forbidden\n";
-                else headers = code + " " + data + "\n";
-                headers += "Content-Type: text/html\n";
-                break;
-            case 404:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
-                if (pc_mode) headers = "404 Not Found\n";
-                else headers = code + " " + data + "\n";
-                headers += "Content-Type: text/html\n";
-                break;
-            case 400:
-            case 500:
-                if (data === null) data = minisrv_config.config.errorMessages[code].replace(/\$\{(\w{1,})\}/g, function (x) { return minisrv_config.config[x.replace("${", '').replace('}', '')] });
-                if (details) data += "<br>Details:<br>" + details;
-                if (pc_mode) headers = "500 Internal Server Error\n";
-                else headers = code + " " + data + "\n";
-                headers += "Content-Type: text/html\n";
-                break;
-            default:
-                if (data === null && this.minisrv_config.config.errorMessages[code]) data = minisrv_config.config.errorMessages[code].replace(/\$\{(.+)\}/g, function (x) { return minisrv_config.config[x.replace("${",'').replace('}','')] });
-                headers = code + " " + data + "\n";
-                headers += "Content-Type: text/html\n";
-                break;
+     doErrorPage(code, data = null, details = null, pc_mode = false, wtv_reset = false) {
+        const minisrv_config = this.minisrv_config;
+        const errorMessage = minisrv_config.config.errorMessages[code] || "";
+        const message = data || errorMessage.replace(/\$\{(\w+)\}/g, (match, p1) => minisrv_config.config[p1] || '');
+
+        if (details && [400, 500].includes(code)) {
+            data += "<br>Details:<br>" + details;
         }
+
+        let headers = pc_mode ? `${code} ${minisrv_config.httpStatusCodes[code]}\n` : `${code} ${message}\n`;
+        headers += "Content-Type: text/html\n";
+
         if (wtv_reset && !pc_mode) {
             headers += "wtv-service: reset\n";
             headers += this.getServiceString('wtv-1800') + "\n";
             headers += "wtv-visit: wtv-1800:/preregister?scriptless-visit-reason=999\n";
-            console.error(" * doErrorPage Called (sent wtv-reset):", code, data);
-        } else console.error(" * doErrorPage Called:", code, data);
-        return new Array(headers, data);
+            console.error(" * doErrorPage Called (sent wtv-reset):", code, message);
+        } else {
+            console.error(" * doErrorPage Called:", code, message);
+        }
+
+        return [headers, message];
     }
+
 
     /**
      * Strips bad things from paths
@@ -1123,15 +1069,15 @@ class WTVShared {
      * @returns {string} corrected path
      */
     fixPathSlashes(path) {
-        // fix slashes
-        if (this.path.sep === "/" && path.indexOf("\\") != -1) path = path.replace(/\\/g, this.path.sep);
-        else if (this.path.sep === "\\" && path.indexOf("/") != -1) path = path.replace(/\//g, this.path.sep);
-        
-        // remove double slashes
-        while (path.indexOf(this.path.sep + this.path.sep) != -1) path = path.replace(this.path.sep + this.path.sep, this.path.sep);
+        const pathModule = require('path');
 
-        return path;
+        // Normalize the slashes to the current environment's default.
+        const normalizedPath = path.replace(/[\\/]+/g, pathModule.sep);
+
+        // The path.normalize will also resolve any '..' and '.' segments.
+        return pathModule.normalize(normalizedPath);
     }
+
 
     /**
      * Makes sure an SSID is clean, and doesn't contain any exploitable characters
