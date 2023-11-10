@@ -349,7 +349,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     var headers, data = null;
     var request_is_async = false;
     var service_vault_found = false;
-    var service_path = unescape(service_vault_file_path);
+    var service_path = decodeURIComponent(service_vault_file_path);
 	var vaults_to_scan = service_vaults;
     var usingSharedROMCache = false;
     var contextObj = {
@@ -670,9 +670,9 @@ async function processURL(socket, request_headers, pc_services = false) {
                                     var keyarray = [request_headers.query[k]];
                                     request_headers.query[k] = keyarray;
                                 }
-                                request_headers.query[k].push(unescape(qraw[i].split("=")[1].replace(/\+/g, "%20")));
+                                request_headers.query[k].push(decodeURIComponent(qraw[i].split("=")[1].replace(/\+/g, "%20")));
                             } else {
-                                request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                request_headers.query[k] = decodeURIComponent(qraw[i].split("=")[1].replace(/\+/g, "%20"));
                             }
                         } else if (qraw[i].length == 1) {
                             request_headers.query[qraw[i]] = null;
@@ -680,10 +680,10 @@ async function processURL(socket, request_headers, pc_services = false) {
                     }
                 }
             } else {
-                shortURL = unescape(request_headers.request_url);
+                shortURL = decodeURIComponent(request_headers.request_url);
             }
         } else {
-            shortURL = unescape(request_headers.request_url);
+            shortURL = decodeURIComponent(request_headers.request_url);
         }
 
         if (request_headers['wtv-request-type']) socket_sessions[socket.id].wtv_request_type = request_headers['wtv-request-type'];
@@ -701,7 +701,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                                     var qraw_split = qraw[i].split("=");
                                     if (qraw_split.length == 2) {
                                         var k = qraw_split[0];
-                                        var data = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                        var data = decodeURIComponent(qraw[i].split("=")[1].replace(/\+/g, "%20"));
                                         if (request_headers.query[k]) {
                                             if (typeof request_headers.query[k] === 'string') {
                                                 var keyarray = [request_headers.query[k]];
@@ -720,7 +720,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                             var qraw_split = post_data_string.split("=");
                             if (qraw_split.length == 2) {
                                 var k = qraw_split[0];
-                                var data = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                                var data = decodeURIComponent(qraw_split[1].replace(/\+/g, "%20"));
                                 if (request_headers.query[k]) {
                                     if (typeof request_headers.query[k] === 'string') {
                                         var keyarray = [request_headers.query[k]];

@@ -81,7 +81,7 @@ if (request_headers['wtv-request-type'] == 'download') {
                     case "GET":
                         var get_url = service_name + ":/" + update_list[k].location + "?";
                         if (update_list[k].compress === false) get_url += "dont_compress=true&";
-                        if (update_list[k].type) get_url += "content_type=" + escape(update_list[k].type) + "&";
+                        if (update_list[k].type) get_url += "content_type=" + encodeURIComponent(update_list[k].type) + "&";
                         get_url = get_url.slice();
                         wtvdl.get(update_list[k].file.replace(diskmap_group_data.base, ""), update_list[k].file, get_url, diskmap_group_name, update_list[k].checksum, update_list[k].uncompressed_size || null, update_list[k].original_filename)
                         break;

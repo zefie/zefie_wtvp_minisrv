@@ -1174,13 +1174,13 @@ class clientShowAlert {
 
     getURL() {
         var url = "client:ShowAlert?";
-        if (this.message) url += "message=" + escape(this.message) + "&";
-        if (this.buttonlabel1) url += "buttonlabel1=" + escape(this.buttonlabel1) + "&";
-        if (this.buttonaction1) url += "buttonaction1=" + escape(this.buttonaction1) + "&";
-        if (this.buttonlabel2) url += "buttonlabel2=" + escape(this.buttonlabel2) + "&";
-        if (this.buttonaction2) url += "buttonaction2=" + escape(this.buttonaction2) + "&";
-        if (this.image) url += "image=" + escape(this.image) + "&";
-        if (this.sound) url += "sound=" + escape(this.sound) + "&";
+        if (this.message) url += "message=" + encodeURIComponent(this.message) + "&";
+        if (this.buttonlabel1) url += "buttonlabel1=" + encodeURIComponent(this.buttonlabel1) + "&";
+        if (this.buttonaction1) url += "buttonaction1=" + encodeURIComponent(this.buttonaction1) + "&";
+        if (this.buttonlabel2) url += "buttonlabel2=" + encodeURIComponent(this.buttonlabel2) + "&";
+        if (this.buttonaction2) url += "buttonaction2=" + encodeURIComponent(this.buttonaction2) + "&";
+        if (this.image) url += "image=" + encodeURIComponent(this.image) + "&";
+        if (this.sound) url += "sound=" + encodeURIComponent(this.sound) + "&";
         if (this.noback) url += "noback=true&";
         return url.substring(0, url.length - 1);
     }
