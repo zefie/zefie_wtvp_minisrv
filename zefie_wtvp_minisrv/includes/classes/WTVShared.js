@@ -53,24 +53,22 @@ class WTVShared {
      */
     getSSIDCRC(ssid) {
         let crc = 0;
-        var ssid = ssid.substr(0, 14);
 
-        for (let i = 0; i < ssid.length; i += 2) {
+        for (let i = 0; i < 14; i += 2) {
             let inbyte = parseInt(ssid.substring(i, i + 2), 16);
-            for (let ii = 8; ii > 0; ii--) {
-                let mix = (crc ^ inbyte) & 0x01;
+            if (isNaN(inbyte)) return '00';
+
+            for (let ii = 0; ii < 8; ii++) {
+                let mix = (crc ^ inbyte) & 1;
                 crc >>= 1;
-                if (mix != 0) crc ^= 0x8C;
+                if (mix) crc ^= 0x8C;
                 inbyte >>= 1;
             }
-
-            if (isNaN(crc)) crc = 0;
         }
 
-        var out = crc.toString(16);
-        if (out.length == 1) return "0" + out;
-        else return out;
+        return crc.toString(16).padStart(2, '0');
     }
+
 
     parseConfigVars(s) {
         if (s.indexOf("%ServiceDeps%") >= 0) {
@@ -112,19 +110,18 @@ class WTVShared {
             return new RegExp(src);
         } else if (src instanceof Date) {
             return new Date(src.getTime());
+        } else if (Array.isArray(src)) {
+            return src.map(item => this.cloneObj(item));
         } else if (typeof src === 'object' && src !== null) {
-            var clone = null;
-            if (Array.isArray(src)) clone = [];
-            else clone = {};
-
-            var self = this;
-            Object.keys(src).forEach((k )=> {
-                clone[k] = self.cloneObj(src[k]);
+            const clone = {};
+            Object.keys(src).forEach(k => {
+                clone[k] = this.cloneObj(src[k]);
             });
             return clone;
         }
         return src;
     }
+
 
     /**
      * Checks if the user has been whitelisted for wtv-admin
