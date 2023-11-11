@@ -180,7 +180,9 @@ if (session_data.data_store.wtvsec_login) {
 	if (!bf0app_update && session_data.get("wtv-open-access")) headers += "wtv-open-isp-disabled: false\n";
 	headers += "wtv-client-time-zone: GMT -0000\n";
 	headers += "wtv-client-time-dst-rule: GMT\n"
-	headers += "wtv-client-date: " + strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + " GMT";
+	const now = new Date();
+	const utcTime = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+	headers += "wtv-client-date: " + strftime("%a, %d %b %Y %H:%M:%S GMT", utcTime);
 
 	if (file_path) {
 		request_is_async = true;
