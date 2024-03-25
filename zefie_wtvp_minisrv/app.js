@@ -461,7 +461,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         }
 
                         if (!ssid_sessions[socket.ssid].data_store.WTVFlashrom) {
-                            ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(minisrv_config, search_service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, bf0app_update);
+                            ssid_sessions[socket.ssid].data_store.WTVFlashrom = new WTVFlashrom(minisrv_config, vaults_to_scan, service_name, minisrv_config.services[service_name].use_zefie_server, bf0app_update);
                         }
 
                         ssid_sessions[socket.ssid].data_store.WTVFlashrom.getFlashRom(request_path, function (data, headers) {
