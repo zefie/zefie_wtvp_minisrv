@@ -1,5 +1,4 @@
-<html><head><title>The Options panel</title><displaynoscroll><script language='Javascript'>    function noBackHelp(gvnStr) {
-        str = ("wtv-guide:/nobackSubtopic?topic=Tips&subtopic=Options&endUrl=" + encodeURIComponent(gvnStr) )
+<html><head><title>The Options panel</title><displaynoscroll><script language='Javascript'>function noBackHelp(gvnStr) {	str = ( "wtv-guide:/nobackSubtopic?topic=Tips&subtopic=Options&endUrl=" + escape(gvnStr) )
 location.href = str;
 }
 function goToHelpUrl(gvnTop,gvnSub,gvnPag) {	str = getHelpUrl(gvnTop,gvnSub,gvnPag);
