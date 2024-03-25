@@ -528,8 +528,10 @@ class WTVShared {
         };
         const logError = (msg, e) => {
             console.error(msg, e);
-            if (this.minisrv_config && this.minisrv_config.config.debug_flags && this.minisrv_config.config.debug_flags.debug) {
-                console.error(" * Notice: Using default configuration.");
+            if (this.minisrv_config.config) {
+				if (this.minisrv_config.config.debug_flags && this.minisrv_config.config.debug_flags.debug) {
+					console.error(" * Notice: Using default configuration.");
+				}
             }
         };
 
@@ -544,7 +546,6 @@ class WTVShared {
             log(" *** Reading user configuration...");
             try {
                 let minisrv_user_config = this.getUserConfig();
-                if (!minisrv_user_config) throw new Error("WARN: Could not read user_config.json");
                 minisrv_config = this.integrateConfig(minisrv_config, minisrv_user_config);
             } catch (e) {
                 logError("ERROR: Could not integrate user_config.json", e);
