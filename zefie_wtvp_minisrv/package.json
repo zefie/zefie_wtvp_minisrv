@@ -27,25 +27,25 @@
   },
   "dependencies": {
     "@mafintosh/vm2": "^3.9.2",
-    "adm-zip": "^0.5.10",
+    "adm-zip": "^0.5.12",
     "crypto-js": "^4.2.0",
     "easy-crc": "0.0.2",
     "endianness": "^8.0.2",
-    "express": "^4.18.2",
-    "follow-redirects": "^1.15.4",
-    "html-entities": "^2.4.0",
+    "express": "^4.19.2",
+    "follow-redirects": "^1.15.6",
+    "html-entities": "^2.5.2",
     "iconv-lite": "^0.6.3",
     "mime-types": "^2.1.35",
     "newsie": "^1.2.1",
     "nntp-server-zefie": "^3.1.0",
-    "proxy-agent": "^6.3.1",
+    "proxy-agent": "^6.4.0",
     "rc4-crypto": "^1.5.0",
-    "sanitize-html": "^2.12.1",
+    "sanitize-html": "^2.13.0",
     "socks-proxy-agent": "^8.0.2",
     "strftime": "^0.10.2",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "eslint": "^8.53.0"
+    "eslint": "^8.57.0"
   }
 }
