@@ -8,7 +8,7 @@ data = `<html>
 <DISPLAY SWITCHTOWEBMODE>
 <head>
 <title>${minisrv_config.config.service_name} Unavailable</title>
-<display noscdroll nooptdions nologo hspace=0 vspace=0>
+<display noscroll nooptions nologo hspace=0 vspace=0>
 </head>
 <body background="wtv-star:/ROMCache/MessageGradient.gif" bgcolor="000000" text="F5C74A" fontsize="large">
 <table cellspacing=0 cellpadding=0>
