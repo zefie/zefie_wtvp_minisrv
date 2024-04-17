@@ -87,34 +87,33 @@ hspace="0" vspace="0" fontsize="large" noscroll>
                     document.connect.port.value="1615"
                     document.message.msg.value="This is MattMan69's Public HackTV minisrv, all are welcome to connect and enjoy the wonders of WebTV. Offers a custom experience."
 					break;
+				case "mm69bak":
+					document.connect.machine.value="71.244.121.234"
+                    document.connect.port.value="1415"
+                    document.message.msg.value="This is the public HackTV minisrv backup, only available when the main HackTV server is down."
+					break;
+				case "mm69pri":
+					document.connect.machine.value="71.244.121.234"
+                    document.connect.port.value="1515"
+                    document.message.msg.value="This is MattMan's normally private WebTV server. It's the real deal, not minisrv! May be up from time to time."
+					break;
 				case "zefie":
-					document.connect.machine.value="24.105.201.236"
+					document.connect.machine.value="24.148.114.32"
 					document.connect.port.value="1615"
                     document.message.msg.value="This is zefie's public minisrv, for those who want the vanilla minisrv experience."
 					break;
 				case "local":
 					document.connect.machine.value="127.0.0.1"
 					document.connect.port.value="1615"
-					document.message.msg.value='Connect to your server via localhost. This option is for users running their own server, and connecting with the Viewer.'
-					break;
-				case "wni-prod":
-					document.connect.machine.value="10.0.0.1"
-					document.connect.port.value="1615"
-					document.message.msg.value='Default WebTV Production IP/Port. Can be used to check your routing setup.'
-					break;
-				case "wni-int":
-					document.connect.machine.value="10.0.128.1"
-					document.connect.port.value="1615"
-					document.message.msg.value='Default WebTV Internal IP/Port. Can be used to check your routing setup.'
+					document.message.msg.value="Connect to your server via localhost. Localhost refers to the computer that you are on that is running your server."
 					break;
 				case "jarhead":
-					document.message.msg.value="Jarhead\'s public minisrv, offers the most production-like WebTV service, to simulate how it was like back then."
-					alert("Coming soon!")
-					document.connect.preset.selectedIndex = document.connect.preset.selectedIndex - 1;
-					setTimeout(updateService,10);
+					document.connect.machine.value="23.247.14.250"
+					document.connect.port.value="1615"
+					document.message.msg.value="This is Jarhead's public minisrv, for those who want a more original WebTV experience."
+                    break;
 				case "other":
 					document.message.msg.value="Your custom service."
-
 		}
 	  }
 	  </script>
@@ -126,12 +125,12 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 				</td>
 				<td><spacer W=24 type=block>
 					<select width="440" name="preset" onchange="updateService()" selected>
-						<option value="mattman69" selected>MattMan69's HackTV minisrv</option>
-						<option value="zefie">zefie's minisrv</option>
-						<option value="jarhead">JarHead's WebTV Recreation Server</option>
-						<option value="local">Your local minisrv</option>
-						<option value="wni-prod">WebTV Production Default</option>
-						<option value="wni-int">WebTV Internal Default</option>
+						<option value="mattman69" selected>MattMan's (HTV) MiniSrv - Public</option>
+						<option value="mm69bak">MattMan's (HTV) MiniSrv - Bakup</option>
+						<option value="mm69pri">MattMan's Revival Server</option>
+						<option value="zefie">Zefie's MiniSrv - Public</option>
+						<option value="jarhead">Jarhead's MiniSrv - Public</option>
+						<option value="local">Localhost - Your Server</option>
 						<option value="other">Other</option>
 					</select>
 <tr><td absheight=6>
@@ -156,7 +155,7 @@ hspace="0" vspace="0" fontsize="large" noscroll>
                   &nbsp;Custom:&nbsp;&nbsp;&nbsp;
                <td>
                   Address:
-                  <input size=16 ASCIIONLY name=machine bgcolor=#444444 text=#cbcbcb cursor=#cc9933 value="74.76.120.18" onkeypress="setOther()">
+                  <input size=16 ASCIIONLY name=machine bgcolor=#444444 text=#cbcbcb cursor=#cc9933 value="71.244.121.234" onkeypress="setOther()">
                   &nbsp;&nbsp;&nbsp;Port:
                   <input size=5 ASCIIONLY NUMBERS name=port bgcolor=#444444 text=#cbcbcb cursor=#cc9933 value="1615" onkeypress="setOther()">
          </table>
