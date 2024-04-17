@@ -22,14 +22,14 @@ Content-Type: text/html`
 data = `<html><head>
 
     <meta http-equiv="content-type" content="text/html;charset=iso-8859-1">
-        <title>WebTV community home pages</title>
+        <title>${minisrv_config.config.service_name} community home pages</title>
         <style type="text/css"></style></head>
     <body background="/blue_tile_128b.gif" bgcolor="1e4261" text="#dedede" link="#ccccff" data-new-gr-c-s-check-loaded="14.1114.0" data-gr-ext-installed="">
         <table border="0" cellpadding="4" cellspacing="0" width="95%">
             <tbody><tr>
                 <td width="100" rowspan="2">
                     <a href="/"><img src="${minisrv_config.config.service_logo_pc}" border="0" width="87" height="67"></a></td>
-                <td><font color="#dedede" size="5"><b>WebTV community home pages</b></font></td>
+                <td><font color="#dedede" size="5"><b>${minisrv_config.config.service_name} community home pages</b></font></td>
             </tr>
                 <tr>
                     <td>
@@ -52,8 +52,8 @@ data = `<html><head>
                 </tr>
                 <tr>
                     <td width="100"></td>
-                    <td bgcolor="#000033"><font color="#dedede" size="3">For example, if the username is </font><font color="darkOrange" size="3">ltolstoy</font><font color="#dedede" size="3">, then the address is:</font> <blockquote>
-                        <p><font color="#dedede" size="3">http://${site}/</font><font color="darkOrange" size="3">ltolstoy</font></p></blockquote>
+                    <td bgcolor="#000033"><font color="#dedede" size="3">For example, if the username is </font><font color="darkOrange" size="3">zefie</font><font color="#dedede" size="3">, then the address is:</font> <blockquote>
+                        <p><font color="#dedede" size="3">http://${site}/</font><font color="darkOrange" size="3">zefie</font></p></blockquote>
                     </td>
                 </tr>
                 <tr>

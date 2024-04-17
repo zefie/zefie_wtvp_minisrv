@@ -197,6 +197,8 @@
     <Content Include="includes\ServiceDeps\wtv-news\localserver_ca.pem" />
     <Content Include="includes\ServiceDeps\wtv-news\localserver_cert.pem" />
     <Content Include="includes\ServiceDeps\wtv-news\localserver_key.pem" />
+    <Content Include="includes\ServiceVault\http_pb\blue_tile_128b.gif" />
+    <Content Include="includes\ServiceVault\http_pb\index.js" />
     <Content Include="includes\ServiceVault\http_pc\favicon.ico" />
     <Content Include="includes\ServiceVault\http_pc\index.js" />
     <Content Include="includes\ServiceVault\http_pc\viewergen\index.js" />
@@ -2571,6 +2573,7 @@
     <Folder Include="includes\ServiceDeps\wtv-1800\tellyscripts\UTV\" />
     <Folder Include="includes\ServiceDeps\wtv-news\" />
     <Folder Include="includes\ServiceVault\" />
+    <Folder Include="includes\ServiceVault\http_pb\" />
     <Folder Include="includes\ServiceVault\http_pc\" />
     <Folder Include="includes\ServiceVault\http_pc\viewergen\" />
     <Folder Include="includes\ServiceVault\wtv-author\" />
