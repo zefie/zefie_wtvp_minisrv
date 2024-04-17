@@ -1019,7 +1019,7 @@ class WTVShared {
             data += "<br>Details:<br>" + details;
         }
 
-        let headers = pc_mode ? `${code} ${minisrv_config.httpStatusCodes[code]}\n` : `${code} ${message}\n`;
+        let headers = `${code} ${message}\n`;
         headers += "Content-Type: text/html\n";
 
         if (wtv_reset && !pc_mode) {
