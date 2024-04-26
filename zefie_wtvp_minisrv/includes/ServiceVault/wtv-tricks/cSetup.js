@@ -107,11 +107,6 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 					document.connect.port.value="1615"
 					document.message.msg.value="Connect to your server via localhost. Localhost refers to the computer that you are on that is running your server."
 					break;
-				case "jarhead":
-					document.connect.machine.value="23.247.14.250"
-					document.connect.port.value="1615"
-					document.message.msg.value="This is Jarhead's public minisrv, for those who want a more original WebTV experience."
-                    break;
 				case "other":
 					document.message.msg.value="Your custom service."
 		}
@@ -129,7 +124,6 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 						<option value="mm69bak">MattMan's (HTV) MiniSrv - Bakup</option>
 						<option value="mm69pri">MattMan's Revival Server</option>
 						<option value="zefie">Zefie's MiniSrv - Public</option>
-						<option value="jarhead">Jarhead's MiniSrv - Public</option>
 						<option value="local">Localhost - Your Server</option>
 						<option value="other">Other</option>
 					</select>
