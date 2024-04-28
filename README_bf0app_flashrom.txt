@@ -1,4 +1,4 @@
-The bf0app flashing system requires a two things that you must be aware of, that are different from a typical setup:
+The bf0app flashing system requires three things that you must be aware of, that are different from a typical setup:
 
 1) Your PPP system MUST accept auth, a noauth setup will not work for the 2nd dialing phase
 
