@@ -97,11 +97,16 @@ hspace="0" vspace="0" fontsize="large" noscroll>
                     document.connect.port.value="1515"
                     document.message.msg.value="This is MattMan's normally private WebTV server. It's the real deal, not minisrv! May be up from time to time."
 					break;
+				case "redialed":
+					document.connect.machine.value="192.161.48.92"
+					document.connect.port.value="1615"
+                    document.message.msg.value="WebTV Redialed, a server designed to replicate the original WebTV service."
+					break
 				case "zefie":
 					document.connect.machine.value="24.148.114.32"
 					document.connect.port.value="1615"
                     document.message.msg.value="This is zefie's public minisrv, for those who want the vanilla minisrv experience."
-					break;
+					break
 				case "local":
 					document.connect.machine.value="127.0.0.1"
 					document.connect.port.value="1615"
@@ -123,6 +128,7 @@ hspace="0" vspace="0" fontsize="large" noscroll>
 						<option value="mattman69" selected>MattMan's (HTV) MiniSrv - Public</option>
 						<option value="mm69bak">MattMan's (HTV) MiniSrv - Bakup</option>
 						<option value="mm69pri">MattMan's Revival Server</option>
+						<option value="redialed">WebTV Redialed</option>
 						<option value="zefie">Zefie's MiniSrv - Public</option>
 						<option value="local">Localhost - Your Server</option>
 						<option value="other">Other</option>
