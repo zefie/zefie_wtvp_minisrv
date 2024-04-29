@@ -1,7 +1,7 @@
 class WTVShenanigans {
     minisrv_config = null;
     shenanigans = {
-        // PLEASE NOTE: anything that is broken with any shenigan level besides "false" is NOT a bug!!!! 
+        // PLEASE NOTE: anything that is broken with any shenanigan level besides "false" is NOT a bug!!!! 
 
         "NO_SHENANIGANS": false, // no shenanigans, minisrv as intended, most secure option
         "ENABLE_TRICKS_URLACCESS": 1, // allows users to use wtv-tricks:/access?url=

@@ -65,6 +65,11 @@ if (session_data.data_store.wtvsec_login) {
 	var wtv_script_mod = parseInt(session_data.get("wtv-script-mod"));
 	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscript = false;
 	if (wtv_script_id !== 0 && wtv_script_mod !== 0) send_tellyscript = false;
+	if (!minisrv_config.services[service_name].send_tellyscript_to_mame) {
+		if (wtvshared.parseSSID(socket.ssid).boxType == "MAME") {
+			send_tellyscript = false;
+		}
+	}	
 	if (send_tellyscript) {
 		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
 			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)
