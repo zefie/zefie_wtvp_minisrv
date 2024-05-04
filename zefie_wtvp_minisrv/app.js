@@ -1682,9 +1682,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             } else {
                 socket_sessions[socket.id].headers = headers;
             }
-        } else {
-
-                // handle streaming POST
+        } else if (socket.ssid) {
+            // handle streaming POST
             if (socket_sessions[socket.id].expecting_post_data && headers) {
                 socket_sessions[socket.id].headers = headers;
                 if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
@@ -1807,8 +1806,14 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         }
                     }
                 }
+            } else {
+                cleanupSocket(socket);
             }
+        } else {
+            cleanupSocket(socket);
         }
+    } else {
+        cleanupSocket(socket);
     }
 }
 
