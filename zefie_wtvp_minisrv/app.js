@@ -1683,130 +1683,138 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 socket_sessions[socket.id].headers = headers;
             }
         } else if (socket.ssid) {
-            // handle streaming POST
-            if (socket_sessions[socket.id].expecting_post_data && headers) {
-                socket_sessions[socket.id].headers = headers;
-                if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
-                    new_header_obj = null;
-                    var enc_data = CryptoJS.enc.Hex.parse(data_hex);
-                    if (socket_sessions[socket.id].secure) {
-                        // decrypt if encrypted
-                        var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
+            try {
+                // handle streaming POST
+                if (socket_sessions[socket.id].expecting_post_data && headers) {
+                    if (socket_sessions[socket.id].post_data_length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
+                        closeSocket(socket);
                     } else {
-                        // just pass it over
-                        var dec_data = enc_data;
-                    }
+                        socket_sessions[socket.id].headers = headers;
+                        if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
+                            new_header_obj = null;
+                            var enc_data = CryptoJS.enc.Hex.parse(data_hex);
+                            if (socket_sessions[socket.id].secure) {
+                                // decrypt if encrypted
+                                var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
+                            } else {
+                                // just pass it over
+                                var dec_data = enc_data;
+                            }
 
-                    socket_sessions[socket.id].post_data += dec_data.toString(CryptoJS.enc.Hex);
+                            socket_sessions[socket.id].post_data += dec_data.toString(CryptoJS.enc.Hex);
 
-                    var post_string = "POST";
-                    if (socket_sessions[socket.id].secure == true) post_string = "Encrypted " + post_string;
+                            var post_string = "POST";
+                            if (socket_sessions[socket.id].secure == true) post_string = "Encrypted " + post_string;
 
-                    if (minisrv_config.config.post_debug) {
-                        // `post_debug` logging of every chunk
-                        console.log(" * ", Math.floor(new Date().getTime() / 1000), "Receiving", post_string, "data on", socket.id, "[", socket_sessions[socket.id].post_data.length / 2, "of", socket_sessions[socket.id].post_data_length, "bytes ]");
-                    } else {
-                        // calculate and display percentage of data received
-                        var postPercent = wtvshared.getPercentage(socket_sessions[socket.id].post_data.length, (socket_sessions[socket.id].post_data_length * 2));
-                        if (minisrv_config.config.post_percentages) {
-                            if (minisrv_config.config.post_percentages.includes(postPercent)) {
-                                if (!socket_sessions[socket.id].post_data_percents_shown) socket_sessions[socket.id].post_data_percents_shown = new Array();
-                                if (!socket_sessions[socket.id].post_data_percents_shown[postPercent]) {
-                                    console.log(" * Received", postPercent, "% of", socket_sessions[socket.id].post_data_length, "bytes on", socket.id, "from", wtvshared.filterSSID(socket.ssid));
-                                    socket_sessions[socket.id].post_data_percents_shown[postPercent] = true;
+                            if (minisrv_config.config.post_debug) {
+                                // `post_debug` logging of every chunk
+                                console.log(" * ", Math.floor(new Date().getTime() / 1000), "Receiving", post_string, "data on", socket.id, "[", socket_sessions[socket.id].post_data.length / 2, "of", socket_sessions[socket.id].post_data_length, "bytes ]");
+                            } else {
+                                // calculate and display percentage of data received
+                                var postPercent = wtvshared.getPercentage(socket_sessions[socket.id].post_data.length, (socket_sessions[socket.id].post_data_length * 2));
+                                if (minisrv_config.config.post_percentages) {
+                                    if (minisrv_config.config.post_percentages.includes(postPercent)) {
+                                        if (!socket_sessions[socket.id].post_data_percents_shown) socket_sessions[socket.id].post_data_percents_shown = new Array();
+                                        if (!socket_sessions[socket.id].post_data_percents_shown[postPercent]) {
+                                            console.log(" * Received", postPercent, "% of", socket_sessions[socket.id].post_data_length, "bytes on", socket.id, "from", wtvshared.filterSSID(socket.ssid));
+                                            socket_sessions[socket.id].post_data_percents_shown[postPercent] = true;
+                                        }
+                                        if (postPercent == 100) delete socket_sessions[socket.id].post_data_percents_shown;
+                                    }
                                 }
-                                if (postPercent == 100) delete socket_sessions[socket.id].post_data_percents_shown;
                             }
                         }
-                    }
-                }
-                if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
-                    // got all expected data
-                    if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
-                    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
-                    headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
-                    if (socket_sessions[socket.id].secure == true) {
-                        if (minisrv_config.config.debug_flags.debug) console.log(" # Encrypted POST Content (SECURE ON)", "on", socket.id, "[", headers.post_data.sigBytes, "bytes ]");
-                    } else {
-                        if (minisrv_config.config.debug_flags.debug) console.log(" # Unencrypted POST Content", "on", socket.id);
-                    }
-                    socket_sessions[socket.id].expecting_post_data = false;
-                    delete socket_sessions[socket.id].headers;
-                    delete socket_sessions[socket.id].post_data;
-                    delete socket_sessions[socket.id].post_data_length;
-                    processURL(socket, headers);
-                    return;
-                } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
-                    socket_sessions[socket.id].expecting_post_data = false;
-                    if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
-                    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
-                    // got too much data ? ... should not ever reach this code
-                    var errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
-                    headers = errpage[0];
-                    data = errpage[1];
-                    sendToClient(socket, headers, data);
-                    return;
-                }
-            } else if (!skipSecure) {
-                if (!encryptedRequest) {
-                    if (socket_sessions[socket.id].secure != true) {
-                        socket_sessions[socket.id].wtvsec = new WTVSec(minisrv_config);
-                        socket_sessions[socket.id].wtvsec.IssueChallenge();
-                        socket_sessions[socket.id].wtvsec.SecureOn();
-                        socket_sessions[socket.id].secure = true;
-                    }
-                    var enc_data = CryptoJS.enc.Hex.parse(data_hex);
-                    if (enc_data.sigBytes > 0) {
-                        if (!socket_sessions[socket.id].wtvsec) {
-                            var errpage = wtvshared.doErrorPage(400);
-                            var headers = errpage[0];
-                            headers += "wtv-visit: client:relog\n";
+                        if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
+                            // got all expected data
+                            if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                            socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
+                            headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
+                            if (socket_sessions[socket.id].secure == true) {
+                                if (minisrv_config.config.debug_flags.debug) console.log(" # Encrypted POST Content (SECURE ON)", "on", socket.id, "[", headers.post_data.sigBytes, "bytes ]");
+                            } else {
+                                if (minisrv_config.config.debug_flags.debug) console.log(" # Unencrypted POST Content", "on", socket.id);
+                            }
+                            socket_sessions[socket.id].expecting_post_data = false;
+                            delete socket_sessions[socket.id].headers;
+                            delete socket_sessions[socket.id].post_data;
+                            delete socket_sessions[socket.id].post_data_length;
+                            processURL(socket, headers);
+                            return;
+                        } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
+                            socket_sessions[socket.id].expecting_post_data = false;
+                            if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+                            socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
+                            // got too much data ? ... should not ever reach this code
+                            var errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
+                            headers = errpage[0];
                             data = errpage[1];
                             sendToClient(socket, headers, data);
                             return;
                         }
-                        var str_test = enc_data.toString(CryptoJS.enc.Latin1);
-                        if (isUnencryptedString(str_test)) {
-                            var dec_data = enc_data;
-                        } else {
-                            var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
+                    }
+                } else if (!skipSecure) {
+                    if (!encryptedRequest) {
+                        if (socket_sessions[socket.id].secure != true) {
+                            socket_sessions[socket.id].wtvsec = new WTVSec(minisrv_config);
+                            socket_sessions[socket.id].wtvsec.IssueChallenge();
+                            socket_sessions[socket.id].wtvsec.SecureOn();
+                            socket_sessions[socket.id].secure = true;
                         }
-                        if (!socket_sessions[socket.id].secure_buffer) socket_sessions[socket.id].secure_buffer = "";
-                        socket_sessions[socket.id].secure_buffer += dec_data.toString(CryptoJS.enc.Hex);
-                        var secure_headers = null;
-                        if (headers['request']) {
-                            if (headers['request'] == "GET") {
-                                if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
-                                    secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
+                        var enc_data = CryptoJS.enc.Hex.parse(data_hex);
+                        if (enc_data.sigBytes > 0) {
+                            if (!socket_sessions[socket.id].wtvsec) {
+                                var errpage = wtvshared.doErrorPage(400);
+                                var headers = errpage[0];
+                                headers += "wtv-visit: client:relog\n";
+                                data = errpage[1];
+                                sendToClient(socket, headers, data);
+                                return;
+                            }
+                            var str_test = enc_data.toString(CryptoJS.enc.Latin1);
+                            if (isUnencryptedString(str_test)) {
+                                var dec_data = enc_data;
+                            } else {
+                                var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
+                            }
+                            if (!socket_sessions[socket.id].secure_buffer) socket_sessions[socket.id].secure_buffer = "";
+                            socket_sessions[socket.id].secure_buffer += dec_data.toString(CryptoJS.enc.Hex);
+                            var secure_headers = null;
+                            if (headers['request']) {
+                                if (headers['request'] == "GET") {
+                                    if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
+                                        secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
+                                    }
+                                } else {
+                                    var secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                                 }
                             } else {
                                 var secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                             }
-                        } else {
-                            var secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
-                        }
-                        if (secure_headers) {
-                            delete socket_sessions[socket.id].secure_buffer;
-                            if (!headers) headers = new Array();
-                            headers.encrypted = true;
-                            Object.keys(secure_headers).forEach(function (k, v) {
-                                headers[k] = secure_headers[k];
-                            });
-                            if (headers['request']) {
-                                if (headers['request'].substring(0, 4) == "POST") {
-                                    if (!socket_sessions[socket.id].post_data) {
-                                        socket_sessions[socket.id].post_data_length = headers['Content-length'] || headers['Content-Length'] || 0;
-                                        socket_sessions[socket.id].post_data = "";
+                            if (secure_headers) {
+                                delete socket_sessions[socket.id].secure_buffer;
+                                if (!headers) headers = new Array();
+                                headers.encrypted = true;
+                                Object.keys(secure_headers).forEach(function (k, v) {
+                                    headers[k] = secure_headers[k];
+                                });
+                                if (headers['request']) {
+                                    if (headers['request'].substring(0, 4) == "POST") {
+                                        if (!socket_sessions[socket.id].post_data) {
+                                            socket_sessions[socket.id].post_data_length = headers['Content-length'] || headers['Content-Length'] || 0;
+                                            socket_sessions[socket.id].post_data = "";
+                                        }
+                                        processRequest(socket, dec_data.toString(CryptoJS.enc.Hex));
+                                    } else {
+                                        processURL(socket, headers);
                                     }
-                                    processRequest(socket, dec_data.toString(CryptoJS.enc.Hex));
-                                } else {
-                                    processURL(socket, headers);
                                 }
                             }
                         }
                     }
+                } else {
+                    cleanupSocket(socket);
                 }
-            } else {
+            } catch (e) {
                 cleanupSocket(socket);
             }
         } else {

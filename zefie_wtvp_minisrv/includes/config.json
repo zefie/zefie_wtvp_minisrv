@@ -46,6 +46,7 @@
     "enable_port_isolation": true, // Only respond to services on their correct ports
     "allow_guests": true, // Allow users to experience the server without registering
     "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet,
+    "max_post_length": 20, // in megabytes
     "user_accounts": { // user account settings
       "max_users_per_account": 6, // Max total users (including primary) per account
       "min_username_length": 5, // minimum username length
