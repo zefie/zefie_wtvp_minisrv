@@ -1471,17 +1471,19 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             if (!headers) return;
 
             if (headers["wtv-client-serial-number"] != null && socket.ssid == null) {
+                socket.ssid = wtvshared.makeSafeSSID(headers["wtv-client-serial-number"]);
                 if (minisrv_config.config.require_valid_ssid) {
                     if (!wtvshared.checkSSID(headers["wtv-client-serial-number"])) {
-                        // reject invalid SSIDs
-                        var errpage = wtvshared.doErrorPage(400, "minisrv ran into a technical problem. Reason: Your SSID is not valid.");
-                        headers = errpage[0];
-                        data = errpage[1];
-                        sendToClient(socket, headers, data);
-                        return;
+                        if (socket.ssid.substring(0, 5) != "1SEGA" && socket.ssid.substring(0, 8) != "MSTVSIMU") {
+                            // reject invalid SSIDs, but let Dreamcast and MSTV Sim through for now until we figure out their checksumming method.
+                            var errpage = wtvshared.doErrorPage(400, "minisrv ran into a technical problem. Reason: Your SSID is not valid.");
+                            headers = errpage[0];
+                            data = errpage[1];
+                            sendToClient(socket, headers, data);
+                            return;
+                        }
                     }
                 }
-                socket.ssid = wtvshared.makeSafeSSID(headers["wtv-client-serial-number"]);
                 if (socket.ssid != null) {
                     if (!ssid_sessions[socket.ssid]) {
                         ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
