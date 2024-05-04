@@ -142,10 +142,10 @@ class WTVFlashrom {
 			if (!self.fs.existsSync(flashrom_file_path)) flashrom_file_path = null;
 		});
 		if (this.use_zefie_server && !flashrom_file_path) {
-			// get flashrom files from archive.midnightchannel.net
+			// get flashrom files from roms.minisrv.dev
 			var options = {
-				host: "archive.midnightchannel.net",
-				path: "/zefie/files/wtv-flashrom/" + request_path,
+				host: "roms.minisrv.dev",
+				path: "/" + request_path,
 				timeout: 5000,
 				method: 'GET'
 			}
@@ -164,13 +164,13 @@ class WTVFlashrom {
 				})
 
 				res.on('end', function () {
-					if (self.minisrv_config.config.debug_flags.debug) console.log(` * Zefie's FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
+					if (self.minisrv_config.config.debug_flags.debug) console.log(` * minisrv FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
 					if (res.statusCode == 200) {
 						var data = Buffer.from(data_hex, 'hex');
 					} else if (res.statusCode == 206) {
 						var data = self.getFlashromInfo(Buffer.from(data_hex, 'hex'), request_path);
 					} else if (res.statusCode == 404) {
-						var errpage = self.wtvshared.doErrorPage(404, "The service could not find the requested ROM on zefie's server.")
+						var errpage = self.wtvshared.doErrorPage(404, "The service could not find the requested ROM on the minisrv FlashROM server.")
 						headers = errpage[0];
 						var data = errpage[1];
 					} else {
