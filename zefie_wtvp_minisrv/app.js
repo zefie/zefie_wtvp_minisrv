@@ -1124,7 +1124,7 @@ async function sendToClient(socket, headers_obj, data = null) {
         headers_obj = headerStringToObj(headers_obj, true);
     }
     if (!socket_sessions[socket.id]) {
-        socket.destroy();
+        if (socket.destroy) socket.destroy();
         return;
     }
     if (!socket.res) {
@@ -1471,10 +1471,15 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             if (!headers) return;
 
             if (headers["wtv-client-serial-number"] != null && socket.ssid == null) {
-                if (!wtvshared.checkSSID(headers["wtv-client-serial-number"])) {
-                    // close socket for invalid ssid
-                    cleanupSocket(socket)
-                    return;
+                if (minisrv_config.config.require_valid_ssid) {
+                    if (!wtvshared.checkSSID(headers["wtv-client-serial-number"])) {
+                        // reject invalid SSIDs
+                        var errpage = wtvshared.doErrorPage(400, "minisrv ran into a technical problem. Reason: Your SSID is not valid.");
+                        headers = errpage[0];
+                        data = errpage[1];
+                        sendToClient(socket, headers, data);
+                        return;
+                    }
                 }
                 socket.ssid = wtvshared.makeSafeSSID(headers["wtv-client-serial-number"]);
                 if (socket.ssid != null) {
