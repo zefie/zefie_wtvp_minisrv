@@ -85,7 +85,7 @@
       // urls the client can access without being "logged in"
       "wtv-1800:/preregister",
       "wtv-1800:/noflash",
-      "wtv-flashrom:/current-noflash",
+      "wtv-flashrom:/*",
       "wtv-head-waiter:/login",
       "wtv-head-waiter:/ValidateLogin",
       "wtv-head-waiter:/login-stage-two",
