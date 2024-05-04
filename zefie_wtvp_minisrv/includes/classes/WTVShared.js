@@ -69,6 +69,13 @@ class WTVShared {
         return crc.toString(16).padStart(2, '0');
     }
 
+    // check if the SSID has a valid checksum
+    checkSSID(ssid) {
+        if (ssid.slice(-2) == this.getSSIDCRC(ssid))
+            return true;
+        return false;
+    }
+
 
     parseConfigVars(s) {
         if (s.indexOf("%ServiceDeps%") >= 0) {

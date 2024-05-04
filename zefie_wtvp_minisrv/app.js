@@ -1471,6 +1471,11 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             if (!headers) return;
 
             if (headers["wtv-client-serial-number"] != null && socket.ssid == null) {
+                if (!wtvshared.checkSSID(headers["wtv-client-serial-number"])) {
+                    // close socket for invalid ssid
+                    cleanupSocket(socket)
+                    return;
+                }
                 socket.ssid = wtvshared.makeSafeSSID(headers["wtv-client-serial-number"]);
                 if (socket.ssid != null) {
                     if (!ssid_sessions[socket.ssid]) {
