@@ -127,7 +127,7 @@
     "wtv-news": {
       // Usenet
       "port": 1605,
-      "local_nntp_port": 57319, // Port for internal NNTP
+      "local_nntp_port": 5730, // Port for internal NNTP
       "local_nntp_requires_auth": true, // Needs to be enabled for posting
       "modules": [
         "WTVNews"
