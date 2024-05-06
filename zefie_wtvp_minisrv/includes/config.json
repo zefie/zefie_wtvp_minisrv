@@ -47,7 +47,7 @@
     "allow_guests": true, // Allow users to experience the server without registering
     "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet,
     "max_post_length": 20, // in megabytes
-    "require_valid_ssid": true, // require a valid SSID (with valid CRC)
+    "require_valid_ssid": false, // require a valid SSID (with valid CRC)
     "user_accounts": { // user account settings
       "max_users_per_account": 6, // Max total users (including primary) per account
       "min_username_length": 5, // minimum username length
