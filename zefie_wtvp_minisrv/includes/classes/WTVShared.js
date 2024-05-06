@@ -945,11 +945,11 @@ class WTVShared {
         });
 
         lineReader.on('line', (line) => {
-            lineCount++;
             if (lineCount === lineNo) {
                 lineReader.close();
                 callback(null, line);
             }
+            lineCount++;
         });
 
         lineReader.on('close', () => {
