@@ -142,9 +142,9 @@ class WTVFlashrom {
 			if (!self.fs.existsSync(flashrom_file_path)) flashrom_file_path = null;
 		});
 		if (this.use_zefie_server && !flashrom_file_path) {
-			// get flashrom files from roms.minisrv.dev
+			// get flashrom files from flashrom.webtv.onl
 			var options = {
-				host: "roms.minisrv.dev",
+				host: "flashrom.webtv.onl",
 				path: "/" + request_path,
 				timeout: 5000,
 				method: 'GET'
