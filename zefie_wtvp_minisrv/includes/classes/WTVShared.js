@@ -781,12 +781,16 @@ class WTVShared {
     }
 
     censorSSID(ssid) {
-        if (ssid.slice(0, 8) === "MSTVSIMU") {
-            return ssid.slice(0, 10) + ('*').repeat(10) + ssid.slice(20);
-        } else if (ssid.slice(0, 5) === "1SEGA") {
-            return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
+        if (ssid) {
+            if (ssid.slice(0, 8) === "MSTVSIMU") {
+                return ssid.slice(0, 10) + ('*').repeat(10) + ssid.slice(20);
+            } else if (ssid.slice(0, 5) === "1SEGA") {
+                return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
+            }
+            return ssid.slice(0, 6) + ('*').repeat(9);
+        } else {
+            return "????????????????";
         }
-        return ssid.slice(0, 6) + ('*').repeat(9);
     }
 
     /**

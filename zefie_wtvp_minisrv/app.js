@@ -1473,12 +1473,13 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             if (headers["wtv-client-serial-number"] != null && socket.ssid == null) {
                 socket.ssid = wtvshared.makeSafeSSID(headers["wtv-client-serial-number"]);
                 if (minisrv_config.config.require_valid_ssid) {
-                    if (!wtvshared.checkSSID(headers["wtv-client-serial-number"])) {
+                    if (!wtvshared.checkSSID(socket.ssid)) {
                         if (socket.ssid.substring(0, 5) != "1SEGA" && socket.ssid.substring(0, 8) != "MSTVSIMU") {
                             // reject invalid SSIDs, but let Dreamcast and MSTV Sim through for now until we figure out their checksumming method.
                             var errpage = wtvshared.doErrorPage(400, "minisrv ran into a technical problem. Reason: Your SSID is not valid.");
                             headers = errpage[0];
                             data = errpage[1];
+                            socket.close_me = true;
                             sendToClient(socket, headers, data);
                             return;
                         }
@@ -1573,7 +1574,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
                 if (socket_sessions[socket.id].secure != true) {
                     // first time so reroll sessions
-                    if (minisrv_config.config.debug_flags.debug) console.log(" # [ SECURE ON BLOCK (" + socket.id + ") ]");
+                    //if (minisrv_config.config.debug_flags.debug) console.log(" # [ SECURE ON BLOCK (" + socket.id + ") ]");
                     socket_sessions[socket.id].secure = true;
                 }
                 if (!headers.request_url) {
@@ -1823,17 +1824,27 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             }
                         }
                     }
-                } else {
-                    cleanupSocket(socket);
                 }
             } catch (e) {
-                cleanupSocket(socket);
+                var errpage = wtvshared.doErrorPage(400);
+                headers = errpage[0];
+                data = errpage[1];
+                socket.close_me = true;
+                sendToClient(socket, headers, data);
             }
         } else {
-            cleanupSocket(socket);
+            var errpage = wtvshared.doErrorPage(400);
+            headers = errpage[0];
+            data = errpage[1];
+            socket.close_me = true;
+            sendToClient(socket, headers, data);
         }
     } else {
-        cleanupSocket(socket);
+        var errpage = wtvshared.doErrorPage(400);
+        headers = errpage[0];
+        data = errpage[1];
+        socket.close_me = true;
+        sendToClient(socket, headers, data);
     }
 }
 
