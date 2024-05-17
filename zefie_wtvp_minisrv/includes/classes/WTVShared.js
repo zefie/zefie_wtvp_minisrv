@@ -820,11 +820,13 @@ class WTVShared {
             const passwordRegex = /(^pass$|passw(or)?d)/i;
             let newobj = this.cloneObj(obj); // Clone the object once at the beginning
 
-            Object.keys(newobj.query).forEach((k) => {
-                if (passwordRegex.test(k)) {
-                    newobj.query[k] = '*'.repeat(newobj.query[k].length);
-                }
-            });
+            if (newobj.query) {
+                Object.keys(newobj.query).forEach((k) => {
+                    if (passwordRegex.test(k)) {
+                        newobj.query[k] = '*'.repeat(newobj.query[k].length);
+                    }
+                });
+            }
 
             return newobj;
         }
