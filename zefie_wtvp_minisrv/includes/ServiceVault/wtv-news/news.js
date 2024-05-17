@@ -142,7 +142,7 @@ cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=6 >
 <td abswidth=93 absheight=26 >
-<table href="wtv-guide:/help?topic=Discuss&subtopic=Index&appName=Discuss"
+<table href="wtv-guide:/help?topic=Glossary&subtopic=D&page=discuss"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>
