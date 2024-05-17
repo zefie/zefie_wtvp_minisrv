@@ -850,7 +850,7 @@ minisrv-no-mail-count: true`;
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers)))));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
-        } else if ((shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0) && !pc_services) {
+        } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (minisrv_config.services[service_name].use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
             doHTTPProxy(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
             shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
@@ -886,14 +886,96 @@ minisrv-no-mail-count: true`;
     }
 }
 
+Array.prototype.replace = function(sub, newSub) {
+    splits = this.split(sub, 2);
+    return Array.concat(splits[0], newSub, splits[1])
+}
+
+function handleProxy(socket, request_type, request_headers, res, data) {
+    console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers.request}`)
+    // an http response error is not a request error, and will come here under the 'end' event rather than an 'error' event.
+    switch (res.statusCode) {
+        case 404:
+            res.headers.Response = res.statusCode + " The publisher can&#146;t find the page requested.";
+            break;
+
+        case 401:
+        case 403:
+            res.headers.Response = res.statusCode + " The publisher of that page has not authorized you to use it.";
+            break;
+
+        case 500:
+            res.headers.Response = res.statusCode + " The publisher of that page can&#146;t be reached.";
+            break;
+
+        default:
+            res.headers.Response = res.statusCode + " " + res.statusMessage;
+            break;
+    }
+
+    if (res.headers['Content-yype']) {
+        res.headers['Content-Type'] = res.headers['Content-Type'];
+        delete (res.headers['Content-type'])
+    }
+
+    if (res.headers['content-type']) {
+        res.headers['Content-Type'] = res.headers['content-type'];
+        delete (res.headers['content-type'])
+    }
+
+    if (res.headers['Content-Type'].substr(0, 4) == "text" && request_type != "http" && request_type != "https") {
+        var data_t = data.toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
+        data = [Buffer.from(data_t)]
+    }
+    
+
+    // header pass-through whitelist, case insensitive comparsion to server, however, you should
+    // specify the header case as you intend for the client
+    var headers = stripHeaders(res.headers, [
+        'Connection',
+        'Server',
+        'Date',
+        'Content-Type',
+        'Cookie',
+        'Location',
+        'Accept-Ranges',
+        'Last-Modified'
+    ]);
+    headers["wtv-http-proxy"] = true;
+    headers["wtv-trusted"] = false;
+
+    // if Connection: close header, set our internal variable to close the socket
+    if (headers['Connection']) {
+        if (headers['Connection'].toLowerCase().indexOf('close') !== -1) {
+            headers["wtv-connection-close"] = true;
+        }
+    }
+
+    // if a wtv-explaination is defined for an error code (except 200), define the header here to
+    // show the 'Explain' button on the client error ShowAlert
+    if (minisrv_config.services['http']['wtv-explanation']) {
+        if (minisrv_config.services['http']['wtv-explanation'][res.statusCode]) {
+            headers['wtv-explanation-url'] = minisrv_config.services['http']['wtv-explanation'][res.statusCode];
+        }
+    }
+    var data_hex = Buffer.concat(data).toString('hex');
+    if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
+    if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
+    sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
+}
+
 async function doHTTPProxy(socket, request_headers) {
-    var request_type = (request_headers.request_url.substring(0, 5) == "https") ? "https" : "http";
+    // detect protocol name
+    var idx = request_headers.request_url.indexOf('/') - 1;
+
+    var request_type = request_headers.request_url.substring(0, idx);
     if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers)))));
     switch (request_type) {
         case "https":
             var proxy_agent = https;
             break;
         case "http":
+        case "proto":
             var proxy_agent = http;
             break;
     }
@@ -911,7 +993,6 @@ async function doHTTPProxy(socket, request_headers) {
     }
     for (var i = 0; i < 3; i++) request_url_split.shift();
     request_data.path = "/" + request_url_split.join('/');
-
     if (request_data.method && request_data.host && request_data.path) {
 
         var options = {
@@ -949,91 +1030,61 @@ async function doHTTPProxy(socket, request_headers) {
                 options.port = minisrv_config.services[request_type].external_proxy_port;
                 options.path = request_headers.request.split(' ')[1];
                 options.headers.Host = request_data.host + ":" + request_data.port;
+                options.headers.Connection = 'close';
+                options.insecureHTTPParser = true;
+                if (minisrv_config.services[request_type].replace_protocol) {
+                    options.path = options.path.replace(request_type, minisrv_config.services[request_type].replace_protocol);
+                }
+            }
+            if (minisrv_config.services[request_type].external_proxy_is_http1) {
+                options.insecureHTTPParser = true;
+                options.headers.Connection = 'close'
             }
         }
         const req = proxy_agent.request(options, function (res) {
             var data = [];
+            var data_handled = false;
 
             res.on('data', d => {
                 data.push(d);
             })
 
             res.on('error', function (err) {
-                console.log(" * Unhandled Proxy Request Error:", err);
+                // hack for Protoweb ECONNRESET
+                if (minisrv_config.services[request_type].external_proxy_is_http1 && data.length > 0 && !data_handled) {
+                    handleProxy(socket, request_type, request_headers, res, data);
+                    data_handled = true
+                } else {
+                    console.log(" * Unhandled Proxy Request Error:", err);
+                }
             });
 
             res.on('end', function () {
-                var data_hex = Buffer.concat(data).toString('hex');
-
-                console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers.request}`)
-                // an http response error is not a request error, and will come here under the 'end' event rather than an 'error' event.
-                switch (res.statusCode) {
-                    case 404:
-                        res.headers.Response = res.statusCode + " The publisher can&#146;t find the page requested.";
-                        break;
-
-                    case 401:
-                    case 403:
-                        res.headers.Response = res.statusCode + " The publisher of that page has not authorized you to use it.";
-                        break;
-
-                    case 500:
-                        res.headers.Response = res.statusCode + " The publisher of that page can&#146;t be reached.";
-                        break;
-
-                    default:
-                        res.headers.Response = res.statusCode + " " + res.statusMessage;
-                        break;
+                // Hack for when old http proxies behave correctly
+                if (!minisrv_config.services[request_type].external_proxy_is_http1 || data.length > 0 && !data_handled) {
+                    handleProxy(socket, request_type, request_headers, res, data);
+                    data_handled = true;
                 }
-
-                // header pass-through whitelist, case insensitive comparsion to server, however, you should
-                // specify the header case as you intend for the client
-                var headers = stripHeaders(res.headers, [
-                    'Connection',
-                    'Server',
-                    'Date',
-                    'Content-Type',
-                    'Cookie',
-                    'Location',
-                    'Accept-Ranges',
-                    'Last-Modified'
-                ]);
-                headers["wtv-http-proxy"] = true;
-                headers["wtv-trusted"] = false;
-
-                // if Connection: close header, set our internal variable to close the socket
-                if (headers['Connection']) {
-                    if (headers['Connection'].toLowerCase().indexOf('close') !== -1) {
-                        headers["wtv-connection-close"] = true;
-                    }
-                }
-
-                // if a wtv-explaination is defined for an error code (except 200), define the header here to
-                // show the 'Explain' button on the client error ShowAlert
-                if (minisrv_config.services['http']['wtv-explanation']) {
-                    if (minisrv_config.services['http']['wtv-explanation'][res.statusCode]) {
-                        headers['wtv-explanation-url'] = minisrv_config.services['http']['wtv-explanation'][res.statusCode];
-                    }
-                }
-
-                if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
-                if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
-                sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
             });
         }).on('error', function (err) {
-            // severe errors, such as unable to connect.
+                // severe errors, such as unable to connect.
             var errpage, headers, data = null;
             if (err.code == "ENOTFOUND" || err.message.indexOf("HostUnreachable") > 0) {
                 errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
+            } else {
+                if (minisrv_config.services[request_type].external_proxy_is_http1 && !data_handled) {
+                    handleProxy(socket, request_type, request_headers, res, data);
+                    data_handled = true;
+                } else {
+                    console.log(" * Unhandled Proxy Request Error:", err);
+                    errpage = wtvshared.doErrorPage(400);
+                    headers = errpage[0];
+                    data = errpage[1];
+                    sendToClient(socket, headers, data);
+                }
             }
-            else {
-                console.log(" * Unhandled Proxy Request Error:", err);
-                errpage = wtvshared.doErrorPage(400);
-            }
-            headers = errpage[0];
-            data = errpage[1];
-            sendToClient(socket, headers, data);
-        });;
+           
+        });
         if (request_headers.post_data) {
             req.write(Buffer.from(request_headers.post_data.toString(CryptoJS.enc.Hex), 'hex'), function () {
                 req.end();
