@@ -810,6 +810,7 @@ minisrv-no-mail-count: true`;
         if (minisrv_config.services[service_name]) {
             if (minisrv_config.services[service_name].allow_double_slash) allow_double_slash = true;
         }
+
         if ((shortURL.indexOf(':/') >= 0) && (shortURL.indexOf('://') == -1 || (shortURL.indexOf('://') && allow_double_slash))) {
             var ssid = socket.ssid;
             if (ssid == null) {
@@ -850,7 +851,7 @@ minisrv-no-mail-count: true`;
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers)))));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
-        } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (minisrv_config.services[service_name].use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
+        } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (minisrv_config.services[original_service_name].use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
             doHTTPProxy(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
             shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
