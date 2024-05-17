@@ -46,7 +46,6 @@ async function WebTVListGroup(group) {
                 page_end = response.group.high;
                 limit_per_page = (page_end - (limit_per_page / (page + 1))) + limit_per_page;
             }
-
             wtvnews.listGroup(group, page, limit_per_page).then((response) => {
                 if (response.code == 211) {
                     NGCount = response.group.number;

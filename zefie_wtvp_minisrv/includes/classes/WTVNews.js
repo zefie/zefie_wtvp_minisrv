@@ -355,7 +355,8 @@ class WTVNews {
             var messages = [];
             var promises = [];
             for (var article in NGArticles) {
-                if (article == "getCaseInsensitiveKey") continue;
+                if (article == "getCaseInsensitiveKey" || isNaN(article)) continue;
+                console.log(article);
                 promises.push(new Promise((resolve, reject) => {
                     this.getHeader(NGArticles[article]).then((data) => {
                         if (data.article) messages.push(data.article)

@@ -1,11 +1,12 @@
 var minisrv_service_file = true;
-
+session_data.mailstore.setMailIntroSeen(true)
 headers = `200 OK
 Content-type: text/html`;
 
 data = `
 <html>
 <head>
+<display skipback>
 <title>
 Welcome to Mail
 </title>
