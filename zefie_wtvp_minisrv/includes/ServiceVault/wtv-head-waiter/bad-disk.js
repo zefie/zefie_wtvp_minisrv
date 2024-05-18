@@ -76,16 +76,17 @@ switch (wtvshared.getManufacturer(session_data.ssid, true)) {
 }
 
 data += `
-<tr><td colspan=2> 
+<tr>
 <td colspan=99 abswidth=436 absheight=2 bgcolor=2B2B2B> <img src="wtv-flashrom:/${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td absheight=1> 
-<tr><td colspan=2> 
+<tr>
 <td colspan=99 abswidth=436 absheight=2 bgcolor=0D0D0D> <img src="wtv-flashrom:/${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td height=7> 
 <tr> 
 <td width=104 valign=middle align=center> <td width=20 valign=middle align=center> <td colspan=9 width=416 valign=top align=left> <table cellspacing=0 cellpadding=0> 
 <tr> 
-<td width=306 valign=top align=right><td width=20> <td width=112 valign=top align=right> 
-<form action="wtv-head-waiter:/ValidateLogin?initial_login=true"> <FONT COLOR="#E7CE4A" SIZE=-1><input type="Submit" value="Continue" BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" usestyle selected></font> 
-<form action="client:poweroff"> <FONT COLOR="#E7CE4A" SIZE=-1><input type="Submit" value="Power Off" BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" usestyle selected></font> 
+<td width=208 valign=top align=right><td width=20> <td width=250 valign=top align=right> 
+<form action="wtv-head-waiter:/ValidateLogin?initial_login=true">
+<FONT COLOR="#E7CE4A" SIZE=-1><input type="Submit" value="Continue" BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" usestyle selected> &nbsp;
+<input type="Submit" value="Power Off" BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" usestyle onclick="location.href='client:poweroff'"></font> 
 <input type="Hidden" name="version" value=""> </form> 
 </table>
 </BODY>
