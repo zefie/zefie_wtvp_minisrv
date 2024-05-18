@@ -880,7 +880,8 @@ minisrv-no-mail-count: true`;
                 sendToClient(socket, headers, data);
             } else {
                 // error reading headers (no request_url provided)
-                var errpage = wtvshared.doErrorPage(400, null, null, false, true);                
+                if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming invalid headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers)))));
+                var errpage = wtvshared.doErrorPage(400, null, null, false, true);
                 headers = errpage[0];
                 data = ''
                 socket_sessions[socket.id].close_me = true;
