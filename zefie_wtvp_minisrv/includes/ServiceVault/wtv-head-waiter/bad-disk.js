@@ -77,9 +77,9 @@ switch (wtvshared.getManufacturer(session_data.ssid, true)) {
 
 data += `
 <tr>
-<td colspan=99 abswidth=436 absheight=2 bgcolor=2B2B2B> <img src="wtv-flashrom:/${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td absheight=1> 
+<td colspan=99 abswidth=436 absheight=2 bgcolor=2B2B2B> <img src="${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td absheight=1> 
 <tr>
-<td colspan=99 abswidth=436 absheight=2 bgcolor=0D0D0D> <img src="wtv-flashrom:/${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td height=7> 
+<td colspan=99 abswidth=436 absheight=2 bgcolor=0D0D0D> <img src="${service_name}:/ROMCache/Spacer.gif" width=1 height=1> <tr><td height=7> 
 <tr> 
 <td width=104 valign=middle align=center> <td width=20 valign=middle align=center> <td colspan=9 width=416 valign=top align=left> <table cellspacing=0 cellpadding=0> 
 <tr> 
