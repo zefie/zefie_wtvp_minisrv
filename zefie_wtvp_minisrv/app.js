@@ -872,6 +872,7 @@ minisrv-no-mail-count: true`;
             debug('request_headers', request_headers);
             if (request_headers.request.indexOf("HTTP/1.0") > 0) {
                 // webtv in HTTP/1.0 mode, try to kick it back to WTVP
+                if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming invalid headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers)))));
                 var errpage = wtvshared.doErrorPage(500, null, null, false, true);
                 headers = errpage[0];
                 data = ''
