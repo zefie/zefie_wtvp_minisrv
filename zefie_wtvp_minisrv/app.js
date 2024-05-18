@@ -644,7 +644,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 
 async function processURL(socket, request_headers, pc_services = false) {
     var shortURL, headers, data, service_name, original_service_name = "";
-    var enable_multi_query = false;
+    var enable_multi_query, use_external_proxy = false;
     request_headers.query = {};
     if (request_headers.request_url) {
         original_service_name = request_headers.service_name; // store service name
@@ -657,7 +657,10 @@ async function processURL(socket, request_headers, pc_services = false) {
 
             if (request_headers.request_url.indexOf('?') >= 0) {
                 shortURL = request_headers.request_url.split('?')[0];
-                if (minisrv_config.services[service_name]) enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
+                if (minisrv_config.services[service_name]) {
+                    enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
+                    use_external_proxy = minisrv_config.services[service_name].use_external_proxy || false;
+                }
                 var qraw = request_headers.request_url.split('?')[1];
                 if (qraw.length > 0) {
                     qraw = qraw.split("&");
@@ -851,7 +854,7 @@ minisrv-no-mail-count: true`;
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers)))));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
-        } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (minisrv_config.services[original_service_name].use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
+        } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
             doHTTPProxy(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
             shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
