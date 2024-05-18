@@ -225,6 +225,7 @@ data += `
 <td absheight="6">
 <tr>
 <td valign="top" colspan=4 absheight=80 >
+&#149;&nbsp; Added Protoweb Support (<a href="proto://www.webtv.net/">Try it!</a>)<br>
 &#149;&nbsp; Added a <a href="wtv-tricks:/charmap">WebTV Character Map</a><br>
 &#149;&nbsp; Redesigned homepage based on MattMan69's HackTV<br>
 &#149;&nbsp; Added a new minisrv logo<br>
