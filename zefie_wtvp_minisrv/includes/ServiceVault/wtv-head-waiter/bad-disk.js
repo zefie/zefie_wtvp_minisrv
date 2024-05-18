@@ -84,7 +84,7 @@ data += `
 <td width=104 valign=middle align=center> <td width=20 valign=middle align=center> <td colspan=9 width=416 valign=top align=left> <table cellspacing=0 cellpadding=0> 
 <tr> 
 <td width=306 valign=top align=right><td width=20> <td width=112 valign=top align=right> 
-<form action="wtv-head-waiter:/login"> <FONT COLOR="#E7CE4A" SIZE=-1><input type="Submit" value="Continue" BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" usestyle selected></font> 
+<form action="wtv-head-waiter:/ValidateLogin?initial_login=true"> <FONT COLOR="#E7CE4A" SIZE=-1><input type="Submit" value="Continue" BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" usestyle selected></font> 
 <form action="client:poweroff"> <FONT COLOR="#E7CE4A" SIZE=-1><input type="Submit" value="Power Off" BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" usestyle selected></font> 
 <input type="Hidden" name="version" value=""> </form> 
 </table>

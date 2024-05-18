@@ -112,7 +112,8 @@
     "wtv-head-waiter": {
       // wtv-head-waiter handles logins
       "port": 1601,
-      "connections": 1
+      "connections": 1,
+      "privileged": true
     },
     "wtv-tricks": {
       // wtv-tricks

@@ -69,7 +69,7 @@ minisrv-no-mail-count: true
 `;
 		}
 	} else {
-		if (session_data.baddisk === true) {
+		if (session_data.baddisk === true && !ssid_sessions[socket.ssid].get("bad_disk_shown")) {
 			gourl = "wtv-head-waiter:/bad-disk?"
 		}
 		else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && (!session_data.isUserLoggedIn() || request_headers.query.initial_login || request_headers.query.relogin) ) {
