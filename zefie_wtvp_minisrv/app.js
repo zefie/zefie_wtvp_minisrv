@@ -647,8 +647,8 @@ async function processURL(socket, request_headers, pc_services = false) {
     var enable_multi_query = false;
     request_headers.query = {};
     if (request_headers.request_url) {
-        if (pc_services) {
-            original_service_name = request_headers.service_name; // store PC Services service name
+        original_service_name = request_headers.service_name; // store service name
+        if (pc_services) {           
             service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
             delete request_headers.service_name;
         }
