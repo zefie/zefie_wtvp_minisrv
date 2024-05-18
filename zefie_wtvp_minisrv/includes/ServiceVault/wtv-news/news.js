@@ -46,7 +46,6 @@ async function WebTVListGroup(group) {
                 page_end = response.group.high;
                 limit_per_page = (page_end - (limit_per_page / (page + 1))) + limit_per_page;
             }
-
             wtvnews.listGroup(group, page, limit_per_page).then((response) => {
                 if (response.code == 211) {
                     NGCount = response.group.number;
@@ -143,7 +142,7 @@ cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=6 >
 <td abswidth=93 absheight=26 >
-<table href="wtv-guide:/help?topic=Discuss&subtopic=Index&appName=Discuss"
+<table href="wtv-guide:/help?topic=Glossary&subtopic=D&page=discuss"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>

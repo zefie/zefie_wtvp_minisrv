@@ -781,12 +781,16 @@ class WTVShared {
     }
 
     censorSSID(ssid) {
-        if (ssid.slice(0, 8) === "MSTVSIMU") {
-            return ssid.slice(0, 10) + ('*').repeat(10) + ssid.slice(20);
-        } else if (ssid.slice(0, 5) === "1SEGA") {
-            return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
+        if (ssid) {
+            if (ssid.slice(0, 8) === "MSTVSIMU") {
+                return ssid.slice(0, 10) + ('*').repeat(10) + ssid.slice(20);
+            } else if (ssid.slice(0, 5) === "1SEGA") {
+                return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
+            }
+            return ssid.slice(0, 6) + ('*').repeat(9);
+        } else {
+            return "????????????????";
         }
-        return ssid.slice(0, 6) + ('*').repeat(9);
     }
 
     /**
@@ -816,11 +820,13 @@ class WTVShared {
             const passwordRegex = /(^pass$|passw(or)?d)/i;
             let newobj = this.cloneObj(obj); // Clone the object once at the beginning
 
-            Object.keys(newobj.query).forEach((k) => {
-                if (passwordRegex.test(k)) {
-                    newobj.query[k] = '*'.repeat(newobj.query[k].length);
-                }
-            });
+            if (newobj.query) {
+                Object.keys(newobj.query).forEach((k) => {
+                    if (passwordRegex.test(k)) {
+                        newobj.query[k] = '*'.repeat(newobj.query[k].length);
+                    }
+                });
+            }
 
             return newobj;
         }

@@ -112,7 +112,8 @@
     "wtv-head-waiter": {
       // wtv-head-waiter handles logins
       "port": 1601,
-      "connections": 1
+      "connections": 1,
+      "privileged": true
     },
     "wtv-tricks": {
       // wtv-tricks
@@ -285,7 +286,7 @@
       "port": 1643,
       "connections": 3,
       "enable_multi_query": true,
-	  "max_pages": 4,
+      "max_pages": 4,
       "publish_mode": "service", // "service" or "directory"
       "publish_dest": "pb_services", // service name, or directory path
       "modules": [
@@ -311,13 +312,25 @@
       "external_proxy_port": 1080, // Port of proxy
       "flags": "0x00000001"
     },
-	"pb_services": {
+    "proto": {
+      "port": 1650,
+      "connections": 3,
+      "use_external_proxy": true,
+      "replace_protocol": "http",
+      "external_proxy_is_socks": false,
+      "external_proxy_host": "wayback.protoweb.org",
+      "external_proxy_port": 7851,
+      "external_proxy_is_http1": true,
+      "flags": "0x00000001"
+    },
+
+    "pb_services": {
       // PC Services for PageBuilder
       "port": 1697,
       "pc_services": true, // defines service as a PC service
       "hide_minisrv_version": true, // hide or show the minisrv version (eg like Apache version, can be hidden to hide known exploits for older version)
       "servicevault_dir": "http_pb", // The service vault dir for the PC Services for PageBuilder
-      "service_vaults": ["PageBuilderVault"], // additional service vaults for this service
+      "service_vaults": [ "PageBuilderVault" ], // additional service vaults for this service
       "drop_connection_on_wrong_port": true, // If true, resets connection if the PC browser connects to a port that is not PC Services enabled
       "show_verbose_errors": false, // extra debugging
       "allow_https": false, // for future use with LetsEncrypt
