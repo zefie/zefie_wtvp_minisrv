@@ -644,11 +644,12 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
 
 async function processURL(socket, request_headers, pc_services = false) {
     var shortURL, headers, data, service_name, original_service_name = "";
-    var enable_multi_query, use_external_proxy = false;
+    var allow_double_slash, enable_multi_query, use_external_proxy = false;
     request_headers.query = {};
     if (request_headers.request_url) {
-        original_service_name = request_headers.service_name; // store service name
+        service_name = request_headers.service_name;
         if (pc_services) {           
+            original_service_name = request_headers.service_name; // store service name
             service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
             delete request_headers.service_name;
         }
@@ -657,10 +658,6 @@ async function processURL(socket, request_headers, pc_services = false) {
 
             if (request_headers.request_url.indexOf('?') >= 0) {
                 shortURL = request_headers.request_url.split('?')[0];
-                if (minisrv_config.services[service_name]) {
-                    enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
-                    use_external_proxy = minisrv_config.services[service_name].use_external_proxy || false;
-                }
                 var qraw = request_headers.request_url.split('?')[1];
                 if (qraw.length > 0) {
                     qraw = qraw.split("&");
@@ -809,10 +806,12 @@ minisrv-no-mail-count: true`;
         } else {
             var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
         }
-        var allow_double_slash = false;
         if (minisrv_config.services[service_name]) {
-            if (minisrv_config.services[service_name].allow_double_slash) allow_double_slash = true;
+            allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
+            enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
+            use_external_proxy = minisrv_config.services[service_name].use_external_proxy || false;
         }
+
 
         if ((shortURL.indexOf(':/') >= 0) && (shortURL.indexOf('://') == -1 || (shortURL.indexOf('://') && allow_double_slash))) {
             var ssid = socket.ssid;
