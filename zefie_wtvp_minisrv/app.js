@@ -779,7 +779,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                 }
             }
 
-            if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks") && !ssid_sessions[socket.ssid].get("bad_disk_shown") {
+            if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks") && !ssid_sessions[socket.ssid].get("bad_disk_shown")) {
                 if (!ssid_sessions[socket.ssid].baddisk) {
                     // psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
                     ssid_sessions[socket.ssid].lockdown = true;
