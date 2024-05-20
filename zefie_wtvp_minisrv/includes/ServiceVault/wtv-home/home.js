@@ -45,7 +45,48 @@ var supportZefieAlert = new clientShowAlert({
 	'noback': true,
 }).getURL();
 
-data =`\0<html>
+
+if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.ssid].get("wtv-need-upgrade")) {
+data =`<html>
+<head>
+<title>MiniBrowser Home</title>
+<body background=Themes/Pattern.gif text=cbcbcb bgcolor=4c5a67 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>')
+	bgclr='4c5a67'
+	tclr='cbcbcb'
+	vclr='dddddd'
+	lclr='dddddd'
+<table cellspacing=0 cellpadding=0>
+<tr><td>
+<td width=100% height=80 valign=top align=left background=Themes/ShadowLogo.gif novtilebg>
+<spacer type=block width=11 height=11><br>
+<spacer type=block width=10 height=1>
+<img src=file://ROM/Cache/WebTVLogoJewel.gif width=90 height=69>
+<td width=100% height=80 valign=top background=Themes/ShadowLogo.gif novtilebg><td abswidth=460 height=54 valign=top background=Themes/ShadowLogo.gif align=right novtilebg><spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
+</td></tr></table>
+<table>
+<tr align=top>
+<td width=10 height=10>
+<td valign=top width=100%>
+<tr>
+<td>
+</table>
+
+<table>
+<tr><td>
+<ul>
+<li><a href="wtv-tricks:/tricks">WTV Tricks</a></li>
+<li><a href="wtv-flashrom:/big-willie">Big Willie</a> (Custom ROMs)</li>
+<li><a href="wtv-flashrom:/willie">Ultra Willie</a> (Stock ROMs)</li>
+</ul>
+<br>
+
+<form name="urlaccess">
+&nbsp;<input type="text" name="visitsite" value="wtv-" border="1" bgcolor="#BBAEC8" text="#423852" cursor="#423852" align="center" width="314" executeurl autoactivate>
+<input type="submit" value="Go" width=20>
+</form>
+`
+} else {
+data =`<html>
 <head>
 <display hspace=0 vspace=0 fontsize=small noscroll showwhencomplete>
 <title>
@@ -305,4 +346,5 @@ data += `
 </table>
 </table>
 `
+}
 data += "</body>\n</html>";
