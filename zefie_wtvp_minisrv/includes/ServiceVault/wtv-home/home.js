@@ -77,6 +77,7 @@ data =`<html>
 <li><a href="wtv-tricks:/tricks">WTV Tricks</a></li>
 <li><a href="wtv-flashrom:/big-willie">Big Willie</a> (Custom ROMs)</li>
 <li><a href="wtv-flashrom:/willie">Ultra Willie</a> (Stock ROMs)</li>
+<li><a href="wtv-head-waiter:/no-mini">Get me outta here!</a> (Unset MiniBrowser Flags)</li>
 </ul>
 <br>
 
