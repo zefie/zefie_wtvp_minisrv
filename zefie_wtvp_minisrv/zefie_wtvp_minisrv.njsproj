@@ -428,6 +428,7 @@
     <Content Include="includes\ServiceVault\wtv-flashrom\lc2-download-failed.js" />
     <Content Include="includes\ServiceVault\wtv-flashrom\noflash.js" />
     <Content Include="includes\ServiceVault\wtv-flashrom\willie.js" />
+    <Content Include="includes\ServiceVault\wtv-head-waiter\no-mini.js" />
     <Content Include="includes\ServiceVault\wtvchat\catchall.js">
       <SubType>Code</SubType>
     </Content>
