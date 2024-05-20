@@ -266,6 +266,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "sendToClient": sendToClient,
         "service_vaults": service_vaults,
         "service_deps": service_deps,
+        "ssid_sessions": ssid_sessions,
         "moveArrayKey": moveArrayKey,
         "cwd": __dirname, // current working directory
 
@@ -322,7 +323,6 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
             "privileged": true,
             "require": require, // this is dangerous but needed for some scripts at this time
             "SessionStore": SessionStore,
-            "ssid_sessions": ssid_sessions,
             "socket_sessions": socket_sessions,
             "reloadConfig": reloadConfig,
             "classPath": classPath
