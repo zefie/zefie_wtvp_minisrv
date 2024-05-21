@@ -50,11 +50,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 data =`<html>
 <head>
 <title>MiniBrowser Home</title>
-<body background=Themes/Pattern.gif text=cbcbcb bgcolor=4c5a67 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>')
-	bgclr='4c5a67'
-	tclr='cbcbcb'
-	vclr='dddddd'
-	lclr='dddddd'
+<body background=Themes/Pattern.gif text=cbcbcb bgcolor=4c5a67 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
 <table cellspacing=0 cellpadding=0>
 <tr><td>
 <td width=100% height=80 valign=top align=left background=Themes/ShadowLogo.gif novtilebg>
