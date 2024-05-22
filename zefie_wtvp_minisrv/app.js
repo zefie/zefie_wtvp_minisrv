@@ -118,7 +118,7 @@ function getServiceByVaultDir(vault_dir) {
 function configureService(service_name, service_obj, initial = false) {
     if (service_obj.disabled) return false;
 
-    service_obj.name = service_name;
+    service_obj.service_name = service_name;
     if (!service_obj.host) {
         service_obj.host = service_ip;
     }
