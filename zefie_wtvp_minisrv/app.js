@@ -138,7 +138,7 @@ function configureService(service_name, service_obj, initial = false) {
             }
         }
         if ((service_name == "wtv-star" && self.no_star_word != true) || service_name != "wtv-star") {
-            var outstr = "wtv-service: name=" + self.name + " host=" + self.host + " port=" + self.port;
+            var outstr = "wtv-service: name=" + self.service_name + " host=" + self.host + " port=" + self.port;
             if (self.flags) outstr += " flags=" + self.flags;
             if (self.connections) outstr += " connections=" + self.connections;
         }
