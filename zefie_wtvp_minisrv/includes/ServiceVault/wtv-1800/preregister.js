@@ -177,7 +177,7 @@ if (session_data.data_store.wtvsec_login) {
 	if (!session_data.lockdown) headers += getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {
-		headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true";
+		headers += "wtv-boot-url: wtv-head-waiter:/login?relogin=true";
 		if (request_headers.query.guest_login) headers += "&guest_login=true";
 		headers += "\n";
 	}
