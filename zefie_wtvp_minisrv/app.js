@@ -965,6 +965,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
     }
     var data_hex = Buffer.concat(data).toString('hex');
     if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
+    if (data_hex.substring(0, 8) == "0a0d0a") data_hex = data_hex.substring(6);
     if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
     sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
 }
@@ -1473,9 +1474,12 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
     }
     var data = Buffer.from(data_hex, 'hex').toString('ascii');
     if (typeof data === "string") {
-        if ((data.indexOf("\r\n\r\n") != -1 || data.indexOf("\n\n") != -1) && typeof socket_sessions[socket.id].post_data == "undefined") {
+        if ((data.indexOf("\r\n\r\n") != -1 || data.indexOf("\n\n") != -1 || data.indexOf("\n\r\n") != -1) && typeof socket_sessions[socket.id].post_data == "undefined") {
             if (data.indexOf("\r\n\r\n") != -1) {
                 data = data.split("\r\n\r\n")[0];
+            } else if (data.indexOf("\n\r\n") != -1) {
+                // early builds
+                data = data.split("\n\r\n")[0];
             } else {
                 data = data.split("\n\n")[0];
             }
@@ -1652,7 +1656,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         var secure_headers = null;
                         if (headers['request']) {
                             if (headers['request'] == "GET") {
-                                if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
+                                if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0d0a")  ||socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
                                     secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                                 }
                             } else {
@@ -1714,6 +1718,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 
                         // the client may have just sent the data with the primary headers, so lets look for that.
                         if (data_hex.indexOf("0d0a0d0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0d0a0d0a") + 8);
+                        if (data_hex.indexOf("0a0d0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0a0d0a") + 6);
                         if (data_hex.indexOf("0a0a") != -1) socket_sessions[socket.id].post_data = data_hex.substring(data_hex.indexOf("0a0a") + 4);
                     }
 
@@ -1850,7 +1855,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             var secure_headers = null;
                             if (headers['request']) {
                                 if (headers['request'] == "GET") {
-                                    if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
+                                    if (socket_sessions[socket.id].secure_buffer.indexOf("0d0a0d0a") || socket_sessions[socket.id].secure_buffer.indexOf("0a0d0a")  || socket_sessions[socket.id].secure_buffer.indexOf("0a0a")) {
                                         secure_headers = await processRequest(socket, socket_sessions[socket.id].secure_buffer, true, true);
                                     }
                                 } else {
@@ -1954,7 +1959,7 @@ async function handleSocket(socket) {
                 // buffer unencrypted data until we see the classic double-newline, or get blank
                 if (!socket_sessions[socket.id].header_buffer) socket_sessions[socket.id].header_buffer = "";
                 socket_sessions[socket.id].header_buffer += data_hex;
-                if (socket_sessions[socket.id].header_buffer.indexOf("0d0a0d0a") != -1 || socket_sessions[socket.id].header_buffer.indexOf("0a0a") != -1) {
+                if (socket_sessions[socket.id].header_buffer.indexOf("0d0a0d0a") != -1 || socket_sessions[socket.id].header_buffer.indexOf("0a0d0a") != -1 || socket_sessions[socket.id].header_buffer.indexOf("0a0a") != -1) {
                     data_hex = socket_sessions[socket.id].header_buffer;
                     delete socket_sessions[socket.id].header_buffer;
                     processRequest(this, data_hex);
