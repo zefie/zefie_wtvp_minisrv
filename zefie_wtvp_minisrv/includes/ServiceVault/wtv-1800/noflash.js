@@ -14,7 +14,6 @@ if (wtvsec_login) {
 
 headers = `200 OK
 Connection: Keep-Alive
-minisrv-use-carriage-return: false
 minisrv-no-mail-count: true
 wtv-initial-key: ` + wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + `
 Content-Type: text/tellyscript
