@@ -8,7 +8,7 @@ Content-Type: text/html`
 
 data = `<html>
 <head>
-<display hideoptions nostatus showwhencomplete skipback clearback fontsize=medium>
+<display hideoptions nostatus showwhencomplete switchtowebmode skipback clearback fontsize=medium>
 <title>Engaging zefie...</title>
 <meta http-equiv=Refresh content="${(wtvshared.parseBool(session_data.getSessionData("fast_splash"))) ? "0" : "4"}; url=wtv-home:/home?">
 </head>

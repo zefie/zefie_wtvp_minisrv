@@ -50,14 +50,16 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 data =`<html>
 <head>
 <title>MiniBrowser Home</title>
-<body background=Themes/Pattern.gif text=cbcbcb bgcolor=4c5a67 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
+<body background=/ROMCache/Themes/Images/Pattern.gif text=cbcbcb bgcolor=6e5b85 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
 <table cellspacing=0 cellpadding=0>
 <tr><td>
-<td width=100% height=80 valign=top align=left background=Themes/ShadowLogo.gif novtilebg>
+<td width=100% height=80 valign=top align=left background=/ROMCache/Themes/Images/ShadowLogoMB.gif>
 <spacer type=block width=11 height=11><br>
 <spacer type=block width=10 height=1>
-<img src=file://ROM/Cache/WebTVLogoJewel.gif width=90 height=69>
-<td width=100% height=80 valign=top background=Themes/ShadowLogo.gif novtilebg><td abswidth=460 height=54 valign=top background=Themes/ShadowLogo.gif align=right novtilebg><spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
+<img src=file://ROMCache/WebTVLogoJewel.gif width=90 height=69>
+<td width=100% height=80 valign=top background=/ROMCache/Themes/Images/ShadowLogoMB.gif>
+<td abswidth=460 height=54 valign=top background=/ROMCache/Themes/Images/ShadowLogoMB.gif align=right>
+<spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
 </td></tr></table>
 <table>
 <tr align=top>
