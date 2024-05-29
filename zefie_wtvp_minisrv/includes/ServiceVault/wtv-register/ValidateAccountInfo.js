@@ -5,6 +5,7 @@ if (!request_headers.query.registering) {
     headers = errpage[0];
     data = errpage[1];
 } else {
+    var hasJS = session_data.hasCap("client-can-do-javascript");
     const WTVRegister = require(classPath + "/WTVRegister.js")
     var wtvr = new WTVRegister(minisrv_config, SessionStore);
     var errpage = null;
@@ -25,15 +26,10 @@ if (!request_headers.query.registering) {
     } else {
 
         headers = `200 OK
-wtv-noback-all: wtv-register:
 Content-Type: text/html`;
         var title = "Account Review";
-        var isOldBuild = wtvshared.isOldBuild(session_data);
-        var main_data = '';
-        if (!isOldBuild) main_data += `<table cellspacing=0 cellpadding=0 border=0 width=560 bgcolor=#171726>
-<tr><td>`;
-
-        main_data += `<form ACTION="ValidateReviewAccountInfo" ENCTYPE="x-www-form-encoded" METHOD="POST">
+        var main_data = `<table cellspacing=0 cellpadding=0 border=0 width=560><tr><td>
+<form ACTION="ValidateReviewAccountInfo" ENCTYPE="x-www-form-encoded" METHOD="POST">
 <input type=hidden name=registering value="true">
 <input type=hidden name=subscriber_name value="${request_headers.query.subscriber_name}">
 <input type=hidden name=subscriber_username value="${request_headers.query.subscriber_username}">
@@ -42,10 +38,7 @@ Content-Type: text/html`;
 <td height=50 width=300 colspan=6 valign=top align=left>
  &nbsp; <br>
 Here is your account information. If you need to<br>
-correct an item, press <b>Back</b>.<p>`;
-        if (isOldBuild) main_data += "<table>";
-
-        main_data += `<tr>
+correct an item, press <b>Back</b>.<p><table><tr>
 <td width=260 valign=top align=left colspan=4>
 <table cellspacing=0 cellpadding=0 border=0 >
 	<img src="images/arrow.gif">&nbsp;&nbsp;<font size=-2><b>NAME</b></font><br>
@@ -69,13 +62,18 @@ correct an item, press <b>Back</b>.<p>`;
 <tt><font color=#d1d3d3 size=-2><spacer type=horizontal size=17>${request_headers.query.subscriber_contact_method}</font></tt>
 </table> <P>&nbsp;<P>&nbsp;
 <td abswidth=20>
-</tr>`;
-        if (isOldBuild) main_data += '</table>';
-        var form_data = `<shadow>
-<input selected Value="Sign Up" name="Sign Up" width="110" type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/ButtonBorder2.bif" text="#dddddd">
-</shadow>
-</font>
-</form>`;
-        data = wtvr.getHTMLTemplate(title, main_data, form_data, isOldBuild);
+</tr></table></table>`;
+
+
+        var form_data = '';
+        if (hasJS) {
+            form_data += `<script>butt(th,'Sign Up','Sign Up',110)</script>`;
+        }
+        else {
+            form_data += `<shadow><input selected Value="Sign Up" name="Sign Up" width="110" type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif"></shadow>`;
+        }
+
+        form_data += '</form>';
+        data = wtvr.getHTMLTemplate(title, main_data, form_data, hasJS);
     }
 }
