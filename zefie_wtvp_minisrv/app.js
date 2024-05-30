@@ -927,13 +927,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
         res.headers['Content-Type'] = res.headers['content-type'];
         delete (res.headers['content-type'])
     }
-
-    if (res.headers['Content-Type'].substr(0, 4) == "text" && request_type != "http" && request_type != "https") {
-        var data_t = data.toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
-        data = [Buffer.from(data_t)]
-    }
-    
-
+  
     // header pass-through whitelist, case insensitive comparsion to server, however, you should
     // specify the header case as you intend for the client
     var headers = stripHeaders(res.headers, [
@@ -948,6 +942,14 @@ function handleProxy(socket, request_type, request_headers, res, data) {
     ]);
     headers["wtv-http-proxy"] = true;
     headers["wtv-trusted"] = false;
+
+    if (res.headers['Content-Type'].substr(0, 4) == "text") {
+        if (request_type != "http" && request_type != "https") {
+            // replace http and https links on non http/https protocol (for proto:// for example)
+            var data_t = data.toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
+            data = [Buffer.from(data_t)]
+        }
+    }
 
     // if Connection: close header, set our internal variable to close the socket
     if (headers['Connection']) {
@@ -1036,8 +1038,6 @@ async function doHTTPProxy(socket, request_headers) {
                 options.port = minisrv_config.services[request_type].external_proxy_port;
                 options.path = request_headers.request.split(' ')[1];
                 options.headers.Host = request_data.host + ":" + request_data.port;
-                options.headers.Connection = 'close';
-                options.insecureHTTPParser = true;
                 if (minisrv_config.services[request_type].replace_protocol) {
                     options.path = options.path.replace(request_type, minisrv_config.services[request_type].replace_protocol);
                 }
