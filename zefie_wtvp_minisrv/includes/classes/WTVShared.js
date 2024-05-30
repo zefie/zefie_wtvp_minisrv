@@ -807,8 +807,7 @@ class WTVShared {
                     new_obj = this.cloneObj(obj)
                     new_obj["wtv-client-serial-number"] = this.censorSSID(new_obj["wtv-client-serial-number"]);
                 }
-                // Assuming cloneObj is necessary for other reasons
-                return this.cloneObj((new_obj != false) ? new_obj : obj);
+                return (new_obj != false) ? new_obj : obj;
             }
         }
         return obj;
