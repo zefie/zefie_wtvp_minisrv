@@ -918,8 +918,8 @@ function handleProxy(socket, request_type, request_headers, res, data) {
             break;
     }
 
-    if (res.headers['Content-yype']) {
-        res.headers['Content-Type'] = res.headers['Content-Type'];
+    if (res.headers['Content-type']) {
+        res.headers['Content-Type'] = res.headers['Content-type'];
         delete (res.headers['Content-type'])
     }
 
@@ -965,7 +965,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
     }
     var data_hex = Buffer.concat(data).toString('hex');
     if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
-    if (data_hex.substring(0, 8) == "0a0d0a") data_hex = data_hex.substring(6);
+    if (data_hex.substring(0, 6) == "0a0d0a") data_hex = data_hex.substring(6);
     if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
     sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
 }
@@ -1049,7 +1049,6 @@ async function doHTTPProxy(socket, request_headers) {
         }
         const req = proxy_agent.request(options, function (res) {
             var data = [];
-            var data_handled = false;
 
             res.on('data', d => {
                 data.push(d);
@@ -1057,19 +1056,17 @@ async function doHTTPProxy(socket, request_headers) {
 
             res.on('error', function (err) {
                 // hack for Protoweb ECONNRESET
-                if (minisrv_config.services[request_type].external_proxy_is_http1 && data.length > 0 && !data_handled) {
+                if (minisrv_config.services[request_type].external_proxy_is_http1 && data.length > 0) {
                     handleProxy(socket, request_type, request_headers, res, data);
-                    data_handled = true
                 } else {
                     console.log(" * Unhandled Proxy Request Error:", err);
                 }
             });
 
             res.on('end', function () {
-                // Hack for when old http proxies behave correctly
-                if (!minisrv_config.services[request_type].external_proxy_is_http1 || data.length > 0 && !data_handled) {
+                // For when http proxies behave correctly
+                if (!minisrv_config.services[request_type].external_proxy_is_http1 || data.length > 0) {
                     handleProxy(socket, request_type, request_headers, res, data);
-                    data_handled = true;
                 }
             });
         }).on('error', function (err) {
@@ -1080,7 +1077,6 @@ async function doHTTPProxy(socket, request_headers) {
             } else {
                 if (minisrv_config.services[request_type].external_proxy_is_http1 && !data_handled) {
                     handleProxy(socket, request_type, request_headers, res, data);
-                    data_handled = true;
                 } else {
                     console.log(" * Unhandled Proxy Request Error:", err);
                     errpage = wtvshared.doErrorPage(400);
@@ -1175,6 +1171,7 @@ function headerStringToObj(headers, response = false) {
 async function sendToClient(socket, headers_obj, data = null) {
     var headers = "";
     var content_length = 0;
+    var end_of_line = "\n";
     if (typeof (data) === 'undefined' || data === null) data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -1347,10 +1344,8 @@ async function sendToClient(socket, headers_obj, data = null) {
     }
 
     if (!socket.res) {
-        var end_of_line = "\n";
-
         // header object to string
-        if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing headers on socket ID", socket.id, (await wtvshared.filterSSID(headers_obj)));
+        if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing headers on socket ID", socket.id, headers_obj);
         Object.keys(headers_obj).forEach(function (k) {
             if (k == "Response") {
                 headers += headers_obj[k] + end_of_line;
