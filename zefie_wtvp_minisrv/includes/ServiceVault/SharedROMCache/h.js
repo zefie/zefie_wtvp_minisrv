@@ -1,17 +1,23 @@
-String.prototype.replace=function(o,n){return this.split(o).join(n)}
+if(!String.prototype.replace){String.prototype.replace=function(o,n){return this.split(o).join(n)}}
+if(!String.prototype.repeat){String.prototype.repeat=function(c){o='';for(i=0;i<c;i++){o+=this;}return o;}}
+
 d=document
 rom='file://rom/'
 htm=rom+'HTMLs/'
-cch='/ROMCache/'
-thm=cch+'Themes/'
+cch=rom+'Cache/'
+
+rch='/ROMCache/'
+thm=rch+'Themes/'
 thi=thm+'Images/'
 thb=thm+'Borders/'
 
+th=0
+
 function clientvers(){d.write('<form name=z2><input type=hidden name=v value=&wtv-appvers;></form>');return parseInt(d.z2.v.value)}
-function go(u){d.open('text/url');d.write(u);d.close();location=u}
+function go(u){location.href=u;d.open('text/url');d.write(u);d.close();}
 function dial(){go('client:redialphone');go('client:logoshown')}
 function nbsp(c){nout='';for(i=0;i<c;i++){nout+=' &nbsp;'}return nout}
-function gTC(th,type){
+function gTC(type,itm){
 	//light
 	bgclr='4c5a67'
 	bgimg='Pattern.gif'
@@ -22,11 +28,12 @@ function gTC(th,type){
 	tclr='cbcbcb'
 	vclr='dddddd'
 	lclr='dddddd'
-	switch(th){
+	if(!itm){itm=th}
+	switch(itm){
 		case 1://dark
 			bgclr='191919'
 			tclr='42bd52'
-			bbif=rom+'Borders/ButtonBorder2'
+			bbif=rom+'ButtonBorder2'
 		break
 		case 2://red
 			bgclr='6e0005'
@@ -34,10 +41,12 @@ function gTC(th,type){
 			bclr='f0f0f0'
 			bbif=thb+'ButtonBorder2'
 		break
-		case 3://orange
-			bgclr='c06000'
-			tclr='f0f0f0'
-			bbif=thb+'ButtonBorder3'
+		case 3://basic
+			bgclr='cccccc'
+			tclr='000000'
+			lclr='2a2aae'
+			vclr='962ab5'
+			bbif=''
 		break
 		case 4://tan
 			bgclr='ece9d8'
@@ -89,6 +98,7 @@ function gTC(th,type){
 			vclr='002244'
 			bclr='000000'
 			bbif=thb+'ButtonBorder10'
+		break
 		case 11://halloween
 			bgclr='080808'
 			tclr='c06000'
@@ -106,8 +116,8 @@ function gTC(th,type){
 		case 'v':return vclr
 	}
 }
-
-function headr(th,msg,fs,bgm,lp,nl){
+function headr(msg,fs,bgm,lp,nl){
+	th=gV(0)
 	out=''
 	switch(fs){
 		case 'small':fsn=7
@@ -118,24 +128,25 @@ function headr(th,msg,fs,bgm,lp,nl){
 			fsn=5
 		break
 	}
-	bgimg=gTC(th,'bgimg')
-	shimg=gTC(th,'shimg')
-	bgclr=gTC(th,'bg')
-	gclr=gTC(th,'g')
-	tclr=gTC(th,'t')
-	vclr=gTC(th,'v')
-	lclr=gTC(th,'l')
+	bgimg=gTC('bgimg')
+	shimg=gTC('shimg')
+	bgclr=gTC('bg')
+	gclr=gTC('g')
+	tclr=gTC('t')
+	vclr=gTC('v')
+	lclr=gTC('l')
 	if(msg){out+='<title>'+msg+'</title>'}
 	out+='<body background='+thi+bgimg+' text='+tclr+' bgcolor='+bgclr+' vlink='+vclr+' link='+lclr+' hspace=0 vspace=0 fontsize='+fs+'>'
 	if(bgm){
 		if(bgm.indexOf('.')<0){bgm += '.mid'}
 		if(bgm.indexOf('/')<0){bgm = cch+'Music/' + bgm}
-		out+='<bgsound name=bgm src="'+bgm+'" autostart=true'
+		out+='<embed name=ebgm src="'+bgm+'" autostart=true'
 		if(!lp){out+='>'}
 		else{
-			if(lp==-1){lp=9999;}
-			out+=' loop='+lp+'>'
+			if(lp==-1){lp=9999}
+			out+=(' loop='+lp+'>')
 		}
+		d.write('</embed>')
 	}
 	if(!msg){msg=''}
 	out+='<table cellspacing=0 cellpadding=0 abswidth=560 absheight=69'
@@ -152,10 +163,10 @@ function headr(th,msg,fs,bgm,lp,nl){
 	return out;
 }
 function tab(msg){
-	bgimg=gTC(th,'bgimg')
-	shimg=gTC(th,'shimg')
-	bgclr=gTC(th,'bg')
-	gclr=gTC(th,'g')
+	bgimg=gTC('bgimg')
+	shimg=gTC('shimg')
+	bgclr=gTC('bg')
+	gclr=gTC('g')
 	if(msg){
 		msg=msg.replace(' ','&nbsp;')
 		if(!shimg && bgimg=='Pattern.gif'){msg += nbsp(5)}
@@ -163,7 +174,7 @@ function tab(msg){
 		if(shimg){tout+=' background='+thi+shimg+' novtilebg'}
 		tout+='><td abswidth=460 height=69 valign=top'
 		if(shimg){tout+=' background='+thi+shimg+' novtilebg'}
-		tout+=' align=right><spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>'+msg+' &nbsp; </font></blackface></shadow></b>'
+		tout+=' align=right><spacer height=32 type=block><strong><shadow><font color=cbcbcb size=+1>'+msg+' &nbsp; </font></shadow></strong>'
 	}else{
 		tout='<td width=100% height=69 valign=top align=left'
 		if(shimg){tout+=' background='+thi+shimg}
@@ -172,20 +183,20 @@ function tab(msg){
 	}
 	return tout
 }
-function ta(th,r,s,n,b,c,x,u){
-	bgclr=gTC(th,'bg')
-	tclr=gTC(th,'t')	
+function ta(r,s,n,b,c,x,u){
+	bgclr=gTC('bg')
+	tclr=gTC('t')
 	if(u){x+=' usestyle';d.write('<font color='+tclr+'>')}
 	d.write('<textarea rows='+r+' size='+s+' id='+n+' name='+n+' border='+b+' text='+tclr+' bgcolor='+bgclr+' '+x+'>'+c+'</textarea>');
 	if(u){d.write('</font>')}
 }
-function as(th,bg,h,w,g,b,lc,rc,lo,ro,s){
+function as(bg,h,w,g,b,lc,rc,lo,ro,s){
 	if(s){
-		if(!lc){lc=gTC(th,'t')}
-		if(!rc){rc=gTC(th,'bg')}
+		if(!lc){lc=gTC('t')}
+		if(!rc){rc=gTC('bg')}
 	}else{
-		if(!lc){lc=gTC(th,'bg')}
-		if(!rc){rc=gTC(th,'t')}
+		if(!lc){lc=gTC('bg')}
+		if(!rc){rc=gTC('t')}
 	}
 	if(th==1){bgclr='333333'}
 	if(!bg){bg='191919'}
@@ -197,10 +208,10 @@ function as(th,bg,h,w,g,b,lc,rc,lo,ro,s){
 	if(!b){b=1}
 	d.write('<audioscope bgcolor='+bg+' height='+h+' width='+w+' gain='+g+' leftcolor='+tclr+' rightcolor='+bgclr+' leftoffset='+lo+' rightoffset='+ro+' border='+b+'>')
 }
-function butt(th,v,n,w,t,x){
+function butt(v,n,w,t,x){
 	if(th>0&&th!=4&&th!=7&&th!=10){sh=true}
-	bclr=gTC(th,'b')
-	bbif=gTC(th,'bbif')
+	bclr=gTC('b')
+	bbif=gTC('bbif')
 	if(sh){d.write('<shadow>')}
 	d.write('<font color='+bclr+'>')
 	if(!t)t='submit'
@@ -212,7 +223,7 @@ function butt(th,v,n,w,t,x){
 	d.write('></font>')
 	if(sh){d.write('</shadow>')}
 }
-function sa(m,i,b1t,b1a,b2t,b2a) {
+function csa(m,i,b1t,b1a,b2t,b2a) {
 	u='client:showalert?message='+escape(m);
 	if(i)u+='&image='+escape(i);
 	if(b1t)u+='&buttonlabel1='+escape(b1t);
@@ -230,6 +241,7 @@ function redir(){
 }
 
 function goHTV(){return go(htm+'HackTV.html')}
-function gsa(m,i,b1t,b1a,b2t,b2a){go(sa(m,i,b1t,b1a,b2t,b2a))}
-function head(th,msg,fs,bgm,lp,nl){d.write(headr(th,msg,fs,bgm,lp,nl))}
-function vhead(th){d.write(headr(th,'VFat Hax'))}
+function gsa(m,i,b1t,b1a,b2t,b2a){go(csa(m,i,b1t,b1a,b2t,b2a))}
+function head(msg,fs,bgm,lp,nl){d.write(headr(msg,fs,bgm,lp,nl))}
+function dhh(tit) {if(tit==1){head('Partition Map','','','',true)}}
+function vh(){d.write(headr('VFat Hax'))}

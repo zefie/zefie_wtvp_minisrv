@@ -71,7 +71,7 @@ connect to the Internet by choosing
 
             var form_data = '';
             if (hasJS) {
-                form_data += `<script>butt(th,'Continue','Continue',110)</script>`;
+                form_data += `<script>butt('Continue','Continue',110)</script>`;
             }
             else {
                 form_data += `<shadow><input selected Value="Continue" name="Continue" width="110" type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif"></shadow>`;
