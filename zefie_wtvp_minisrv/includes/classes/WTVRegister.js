@@ -79,7 +79,7 @@ class WTVRegister {
         var data;
         data = `<html><head>`;
         if (hasJS) {
-            data += `<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script></head><script>th=pp(); head(th,'${title}','','','',1)</script>`
+            data += `<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script></head><script>head('${title}','','','',1)</script>`
         } else {
             data += `<body background=/ROMCache/Themes/Images/Pattern.gif text=42bd52 bgcolor=191919 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
 <table cellspacing=0 cellpadding=0>

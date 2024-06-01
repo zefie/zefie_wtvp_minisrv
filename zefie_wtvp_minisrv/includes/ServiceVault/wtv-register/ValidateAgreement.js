@@ -57,7 +57,7 @@ AutoCaps selected>
 </td></tr></table>`;
     var form_data = ``
     if (hasJS) {
-        form_data += `<script>butt(th,'Continue','Continue',110)</script>`;
+        form_data += `<script>butt('Continue','Continue',110)</script>`;
     } else {
         form_data += `<shadow><input type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/ButtonBorder2.bif" width=110></shadow>`;
     }

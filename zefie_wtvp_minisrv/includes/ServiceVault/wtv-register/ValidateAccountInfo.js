@@ -67,7 +67,7 @@ correct an item, press <b>Back</b>.<p><table><tr>
 
         var form_data = '';
         if (hasJS) {
-            form_data += `<script>butt(th,'Sign Up','Sign Up',110)</script>`;
+            form_data += `<script>butt('Sign Up','Sign Up',110)</script>`;
         }
         else {
             form_data += `<shadow><input selected Value="Sign Up" name="Sign Up" width="110" type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif"></shadow>`;
