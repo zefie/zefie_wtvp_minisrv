@@ -31,19 +31,10 @@ Content-Type: text/html`
 	data = `<html>
 <!--- *=* Copyright 1996, 1997 WebTV Networks, Inc. All rights reserved. --->
 <display nosave nosend skipback>
-<title>${minisrv_config.config.service_name} Info</title>
+<script src=file://rom/Cache/h.js></script><script src=file://rom/Cache/n.js></script><script>
+head('${minisrv_config.config.service_name} Info')</script>
 
-<sidebar width=20%>
-		<img src="wtv-tricks:/images/About_bg.jpg">
-</sidebar>
-
-<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0>
-<br>
-<br>
-<br>
-
-<h1>${minisrv_config.config.service_name} Info</h1>
-
+<table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
 <table>
 <tr>
 		<td height=20>

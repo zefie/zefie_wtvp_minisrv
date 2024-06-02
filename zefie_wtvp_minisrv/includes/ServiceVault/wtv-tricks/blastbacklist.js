@@ -17,7 +17,10 @@ data = `<html>
         http-equiv=refresh
         content="1; url=`+ visit_url +`"
     >	
-<body bgcolor="black" text="gold" link="gold" vlink="gold" alink="gold">
+<script src=file://rom/Cache/h.js></script><script src=file://rom/Cache/n.js></script><script>
+head('${minisrv_config.config.service_name} Tricks - Blast Blacklist','','','',1)</script>
+<table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
+<br>
 Successfully expired service URL cache<br>
 Any previously cached pages should be reloaded from the network.<br><br>
 <a href="`+visit_url+`">Not loading? Click here.</a>

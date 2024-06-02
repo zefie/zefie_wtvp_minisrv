@@ -22,7 +22,6 @@ function gTC(type,itm){
 	bgclr='4c5a67'
 	bgimg='Pattern.gif'
 	shimg='ShadowLogo.gif'
-	bbif=''
 	gclr=''
 	bclr='e7ce4a'
 	tclr='cbcbcb'
@@ -33,13 +32,13 @@ function gTC(type,itm){
 		case 1://dark
 			bgclr='191919'
 			tclr='42bd52'
-			bbif=rom+'ButtonBorder2'
+			bbif = rom + 'ButtonBorder2'
 		break
 		case 2://red
 			bgclr='6e0005'
 			tclr='f0f0f0'
 			bclr='f0f0f0'
-			bbif=thb+'ButtonBorder2'
+			bbif = rom + 'ButtonBorder2'
 		break
 		case 3://basic
 			bgclr='cccccc'
@@ -56,12 +55,11 @@ function gTC(type,itm){
 			vclr='002244'
 			bclr='000000'
 			shimg='ShadowLogo4.gif'
-			bbif=thb+'ButtonBorder4'
 		break
 		case 5://green
 			bgclr='004422'
 			tclr='f0f0f0'
-			bbif=thb+'ButtonBorder5'
+			bbif = rom + 'ButtonBorder2'
 		break
 		case 6://blue
 			bgclr='002244'
@@ -70,25 +68,24 @@ function gTC(type,itm){
 			vclr='0080ff'
 			shimg=''
 			gclr='004488'
-			bbif=thb+'ButtonBorder6'
+			bbif = rom + 'ButtonBorder2'
 		break
 		case 7://teal
 			bgclr='008080'
 			bgimg='9xbg.gif'
 			tclr='f0f0f0'
 			bclr='080808'
-			bbif=thb+'ButtonBorder7'
 		break
 		case 8://purple
 			bgclr='4a2766'
 			lclr='aaaaaa'
 			shimg='ShadowLogo8.gif'
-			bbif=thb+'ButtonBorder8'
+			bbif=rom+'ButtonBorder2'
 		break
 		case 9://brown
 			bgclr='442200'
 			tclr='e7ce4a'
-			bbif=thb+'ButtonBorder9'
+			bbif = rom + 'ButtonBorder2'
 		break
 		case 10://white
 			bgclr='c9c9c9'
@@ -96,13 +93,12 @@ function gTC(type,itm){
 			tclr='020202'
 			lclr='002244'
 			vclr='002244'
-			bclr='000000'
-			bbif=thb+'ButtonBorder10'
+			bclr='000000'			
 		break
 		case 11://halloween
 			bgclr='080808'
 			tclr='c06000'
-			bbif=thb+'ButtonBorder11'
+			bbif = rom + 'ButtonBorder2'
 		break
 	}switch(type){
 		case 'bg':return bgclr
@@ -156,7 +152,7 @@ function headr(msg,fs,bgm,lp,nl){
 	out+=tab();
 	out+='<spacer type=block width=11 height=11><br><spacer type=block width=10 height=1>'
 	if(!nl){out+='<a href="javascript:goHTV()">'}
-	out+='<img src='+cch+'WebTVLogoJewel.gif width=90 height=69>'
+	out+='<img src='+rch+'WebTVLogoJewel.gif width=90 height=69>'
 	if(!nl){out+='</a>'}
 	out+=tab(msg);
 	out+='</td></tr></table>'
