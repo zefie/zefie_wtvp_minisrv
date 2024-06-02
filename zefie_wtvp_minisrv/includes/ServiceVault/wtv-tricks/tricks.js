@@ -14,16 +14,10 @@ Content-Type: text/html`
 
 
 data = `<html>
-<body>
 <display nosave nosend>
-<title>${minisrv_config.config.service_name} Tricks</title>
-<sidebar width=20%>
-<img src="wtv-tricks:/images/Favorites_bg.jpg">
-</sidebar>
-<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0>
-<br>
-<br>
-<h1>${minisrv_config.config.service_name} Tricks</h1>
+<script src=file://rom/Cache/h.js></script><script src=file://rom/Cache/n.js></script><script>
+head('${minisrv_config.config.service_name} Tricks')</script>
+<table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
 <br>
 <table>
 <tr>
