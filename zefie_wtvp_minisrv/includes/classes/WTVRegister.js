@@ -60,7 +60,7 @@ class WTVRegister {
                         }
                     }
                 } catch (e) {
-                    console.error(" # Error parsing Session Data JSON", search_dir + self.path.sep + file, e);
+                    console.error(" # Error parsing Session Data JSON", directory + self.path.sep + file, e);
                 }
             });
         }
