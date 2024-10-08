@@ -436,6 +436,15 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                 var zip = new AdmZip();
 
                 zip.addZipComment("Viewer SSID: " + client_ssid);
+                console.log(request_headers)
+                update_str = "http://" + request_headers.host + request_headers.request_url.split('?')[0] + "?ssid=" + client_ssid;
+                Object.keys(request_headers.query).forEach((k) => {
+                    if (k != "random_ssid") {
+                        update_str += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(request_headers.query[k]);
+                    }
+                });
+                zip.addFile("update_url.txt", update_str);
+
                 zip.addFile(viewer_file.replace("--", "-" + client_ssid + "-"), patched_file);
                 if (!request_headers.query.viewer_only) {
                     var romset_zip = new AdmZip(wtvshared.getServiceDep("/viewergen/" + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip", true));
