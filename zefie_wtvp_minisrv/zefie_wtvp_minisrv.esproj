@@ -1,9 +1,11 @@
 ﻿<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/0.5.89-alpha">
   <PropertyGroup>
     <!--Command to run on project build-->
-    <BuildCommand> </BuildCommand>
+    <BuildCommand>
+    </BuildCommand>
     <!--Command to run on project clean-->
-    <CleanCommand> </CleanCommand>
-    <StartupCommand>npm run start</StartupCommand>
+    <CleanCommand>
+    </CleanCommand>
+    <StartupCommand>npm start</StartupCommand>
   </PropertyGroup>
 </Project>
