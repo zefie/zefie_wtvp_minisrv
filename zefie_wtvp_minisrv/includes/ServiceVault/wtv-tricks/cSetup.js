@@ -98,12 +98,12 @@ hspace="0" vspace="0" fontsize="large" noscroll>
                     document.message.msg.value="This is MattMan's normally private WebTV server. It's the real deal, not minisrv! May be up from time to time."
 					break;
 				case "redialed":
-					document.connect.machine.value="192.161.48.92"
+					document.connect.machine.value="217.160.150.209"
 					document.connect.port.value="1615"
                     document.message.msg.value="WebTV Redialed, a server designed to replicate the original WebTV service."
 					break
 				case "zefie":
-					document.connect.machine.value="24.148.114.32"
+					document.connect.machine.value="38.175.202.142"
 					document.connect.port.value="1615"
                     document.message.msg.value="This is zefie's public minisrv, for those who want the vanilla minisrv experience."
 					break
