@@ -56,7 +56,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 <td width=100% height=80 valign=top align=left background=/ROMCache/Themes/Images/ShadowLogoMB.gif>
 <spacer type=block width=11 height=11><br>
 <spacer type=block width=10 height=1>
-<img src=file://ROMCache/WebTVLogoJewel.gif width=90 height=69>
+<img src=${minisrv_config.config.service_logo} width=90 height=69>
 <td width=100% height=80 valign=top background=/ROMCache/Themes/Images/ShadowLogoMB.gif>
 <td abswidth=460 height=54 valign=top background=/ROMCache/Themes/Images/ShadowLogoMB.gif align=right>
 <spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
@@ -89,7 +89,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 	title = `Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}`
 	data = `<html><head>`;
 	if (hasJS) {
-		data += `<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script></head><script>head('${title}','','','',1)</script>`
+		data += `<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script></head><script>head('${title}','','','',1,'${minisrv_config.config.service_logo}')</script>`
 	} else {
 		data += `<body background=/ROMCache/Themes/Images/Pattern.gif text=42bd52 bgcolor=191919 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
 <table cellspacing=0 cellpadding=0>
@@ -97,7 +97,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 <td width=100% height=80 valign=top align=left>
 <spacer type=block width=11 height=11><br>
 <spacer type=block width=10 height=1>
-<img src=/ROMCache/WebTVLogoJewel.gif width=90 height=69>
+<img src=${minisrv_config.config.service_logo} width=90 height=69>
 <td width=100% height=80 valign=top>
 <td abswidth=460 height=54 valign=top align=right>
 <spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>${title} &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; </font></blackface></shadow></b>
@@ -116,7 +116,17 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 <a href="wtv-guide:/help?topic=Index&subtopic=Glossary" align="center"><b>Help</b></a>
 </center>
 <hr>
-
+<form action="wtv-tricks:/access">
+<spacer type=block width="34">`
+	if (hasJS) {
+		data += `<script>document.write('<input type="text" name="url" width=440 autoexecute bgcolor='+gTC("bg")+' text='+gTC("t")+' cursor='+gTC("t")+' value="wtv-tricks:/tricks">')</script>`;
+	} else {
+		data += `<input type="text" name="url" width=440 bgcolor=191919 text=42bd52 cursor=42bd52 autoexecute value="wtv-tricks:/tricks">`;
+	}
+data += `
+<input type="submit" value="Go">
+</form>
+<hr>
 <table>
 <tr>
 
@@ -222,6 +232,7 @@ This server is operated by ${minisrv_config.config.service_owner}.<br>
 <tr><td absheight="6"></td></tr>
 <tr>
 <td valign="top" colspan=4>
+&#149;&nbsp; Redesigned home page, uses custom rom theme system.<br>
 &#149;&nbsp; Added Protoweb Support (<a href="proto://www.webtv.net/">Try it!</a>)<br>
 &#149;&nbsp; Added a <a href="wtv-tricks:/charmap">WebTV Character Map</a><br>
 &#149;&nbsp; Redesigned homepage based on MattMan69's HackTV<br>
