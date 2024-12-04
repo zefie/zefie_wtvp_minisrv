@@ -84,10 +84,10 @@ class WTVPCAdmin {
     listRegisteredSSIDs() {
         var search_dir = this.minisrv_config.config.SessionStore + this.path.sep + "accounts";
         var self = this;
-        out = [];
+        var out = [];
         this.fs.readdirSync(search_dir).forEach(file => {
             if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory()) {
-                user = getAccountInfoBySSID(file);
+                var user = self.getAccountInfoBySSID(file);
                 out.push([file,user]);
             }
         });

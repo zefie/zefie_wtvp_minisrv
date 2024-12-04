@@ -35,7 +35,17 @@ Welcome to the zefie minisrv v${minisrv_config.version} Account Administration
             </p>
         </body>
 </html >`;
-}
+        }
+        else if (request_headers.query.cmd == "list") {
+            data += `<hr>
+<table border=1>`;
+            accounts = wtva.listRegisteredSSIDs();
+            Object.keys(accounts).forEach(function (k) {
+                data += `<tr><td>${accounts[k][0]}</td><td>${accounts[k][1]['username']}</td></tr>`;
+            });
+            data += `</table>`;
+
+        }
     } else {
         var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
