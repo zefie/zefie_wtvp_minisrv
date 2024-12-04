@@ -336,8 +336,9 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         eval_ctx.runInNewContext(contextObj, {
             "breakOnSigint": true
         });
-    } catch (e) {
+    } catch (e) {        
         console.error(e);
+        throw e;
     }
 
     // unload any loaded modules for this vm
@@ -382,7 +383,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     }
     var privileged = false;
     if (minisrv_config.services[service_name]) privileged = (minisrv_config.services[service_name].privileged) ? true : false;
-    else if (pc_services) privileged = (minisrv_config.services['pc_services'].privileged) ? true : false;
+    else if (pc_services) privileged = (minisrv_config.services[pc_service_name].privileged) ? true : false;
 
     if (privileged) {
         updateFromVM.push(["ssid_sessions", "ssid_sessions"]);             // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
@@ -439,6 +440,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 } else {
                     contextObj.cwd = service_vault_file_path.substr(0, service_vault_file_path.lastIndexOf(path.sep));
                 }
+
 
                 if (file_exists && !is_dir) {
                     // file exists, read it and return it 
@@ -616,7 +618,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         headers = errpage[0];
         data = errpage[1];
         if (pc_services) {
-            if (minisrv_config.services[real_service_name].show_verbose_errors)
+            if (minisrv_config.services[pc_service_name].show_verbose_errors)
                 data += "<br><br>The interpreter said:<br><pre>" + e.stack + "</pre>";
         }
         console.error(" * Scripting error:", e);
