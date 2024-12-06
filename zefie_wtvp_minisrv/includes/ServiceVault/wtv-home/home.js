@@ -234,8 +234,6 @@ This server is operated by ${minisrv_config.config.service_owner}.<br>
 <td valign="top" colspan=4>
 &#149;&nbsp; Redesigned home page, uses custom rom theme system.<br>
 &#149;&nbsp; Added Protoweb Support (<a href="proto://www.webtv.net/">Try it!</a>)<br>
-&#149;&nbsp; Added a <a href="wtv-tricks:/charmap">WebTV Character Map</a><br>
-&#149;&nbsp; Redesigned homepage based on MattMan69's HackTV<br>
 &#149;&nbsp; Added a new minisrv logo<br>
 </td></tr>
 </table>
