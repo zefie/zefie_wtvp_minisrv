@@ -87,7 +87,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 } else {
 	hasJS = session_data.hasCap("client-can-do-javascript");
 	title = `Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}`
-	data = `<html><head>`;
+	data = `<html><head><display showoptions>`;
 	if (hasJS) {
 		data += `<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script></head><script>head('${title}','','','',1,'${minisrv_config.config.service_logo}')</script>`
 	} else {

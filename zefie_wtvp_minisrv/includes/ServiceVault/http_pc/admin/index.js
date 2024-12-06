@@ -51,7 +51,7 @@ Welcome to the zefie minisrv v${minisrv_config.version} Account Administration
         } else if (request_headers.query.cmd == "ssid") {
             var ssid = request_headers.query.ssid;
             if (!ssid) {
-                data += "<hr>Missing SSID?";
+                redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
             } else {
                 data += "<hr>";
                 if (request_headers.query.msg) {
@@ -78,19 +78,23 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 }
                 data += "<p><table border=1>";
                 user_info = wtva.getAccountInfoBySSID(ssid.toLowerCase());
-                if (user_info.account_users['subscriber']) {
-                    data += `<tr><td>Primary User:</td><td>${user_info.account_users['subscriber'].subscriber_username}</td></tr>`;
-                    if (Object.keys(user_info.account_users).length > 1) {
-                        data += `<tr><td style="vertical-align: top">Additional Users:</td><td>`;
-                        Object.keys(user_info.account_users).forEach(function (k) {
-                            if (k == "subscriber") return;
-                            data += user_info.account_users[k].subscriber_username + "<br>";
-                        })
-                        data += `</td></tr>`
+                if (user_info.account_users) {
+                    if (user_info.account_users['subscriber']) {
+                        data += `<tr><td>Primary User:</td><td>${user_info.account_users['subscriber'].subscriber_username}</td></tr>`;
+                        if (Object.keys(user_info.account_users).length > 1) {
+                            data += `<tr><td style="vertical-align: top">Additional Users:</td><td>`;
+                            Object.keys(user_info.account_users).forEach(function (k) {
+                                if (k == "subscriber") return;
+                                data += user_info.account_users[k].subscriber_username + "<br>";
+                            })
+                            data += `</td></tr>`
+                        }
+                        data += "</table></p>";
+                    } else {
+                        data += "The user aborted registration, so this account has no users."
                     }
-                    data += "</table></p>";
                 } else {
-                    data += "User aborted registration, and has no users."
+                    data += "The SSID does not exist in the SessionStore."
                 }
             }
         } else if (request_headers.query.cmd == "delete") {
@@ -99,9 +103,9 @@ function validateSelection(cmd, ssid, friendlymsg) {
             if (ssid) {
                 var userAccount = wtva.getAccountBySSID(ssid);
                 userAccount.unregisterBox();
-                redirectmsg = "Account deleted.";
+                redirectmsg = `All data for SSID ${ssid} has been deleted. Please note that this does not include Usenet posts made by this account.`;
             } else {
-                redirectmsg = "Missing SSID.";
+                redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
             }
             headers = "302 OK\nLocation: /admin/?cmd=list&msg=" + encodeURI(redirectmsg);
         } else if (request_headers.query.cmd == "ban") {
@@ -114,21 +118,21 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 var entry_exists = false;
                 Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
                     if (fake_config.config.ssid_block_list[k] == ssid) {
-                        redirectmsg = "That SSID is already banned.";
+                        redirectmsg = "The SSID was already banned.";
                     }
                 });
                 if (!entry_exists) {
                     fake_config.config.ssid_block_list.push(ssid);
                     wtvshared.writeToUserConfig(fake_config);
                     reloadConfig();
-                    redirectmsg = "SSID Banned.";
+                    redirectmsg = "The SSID is now banned.";
                 }
             } else {
-                redirectmsg = "Missing SSID.";
+                redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
             }
             headers = "302 OK\nLocation: /admin/?cmd=ssid&ssid=" + encodeURI(ssid) + "&msg=" + encodeURI(redirectmsg);
         } else if (request_headers.query.cmd == "unban") {
-            redirectmsg = "SSID was not banned.";
+            redirectmsg = "The SSID was not banned, so it could not be unbanned.";
             var ssid = request_headers.query.ssid;
             if (ssid) {
                 var config_changed = false;
@@ -155,7 +159,10 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 if (config_changed) {
                     wtvshared.writeToUserConfig(fake_config);
                     minisrv_config = reloadConfig();
-                    redirectmsg = "SSID Unbanned.";
+                    redirectmsg = "The SSID is now unbanned.";
+                }
+                else {
+                    redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
                 }
             }
             headers = "302 OK\nLocation: /admin/?cmd=ssid&ssid=" + encodeURI(ssid) + "&msg=" + encodeURI(redirectmsg);
