@@ -41,7 +41,7 @@ Content-Type: text/html`
 <script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script>
 <script src=htv-cSetup.js></script>
 </head><form name=t><input type=hidden name=h value=&pname;></form>
-<script>head('Connect Setup v2.6','','karTV',5);
+<script>head('Connect Setup v2.6');
 window.onload=uS;
 </script><form name=c action=client:ConfirmConnectSetup>
 <table width=100% cellspacing=1 cellpadding=0>
