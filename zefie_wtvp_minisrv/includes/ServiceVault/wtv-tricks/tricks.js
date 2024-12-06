@@ -15,7 +15,7 @@ Content-Type: text/html`
 
 data = `<html>
 <display nosave nosend>
-<script src=file://rom/Cache/h.js></script><script src=file://rom/Cache/n.js></script><script>
+<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script><script>
 head('${minisrv_config.config.service_name} Tricks')</script>
 <table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
 <br>
@@ -51,29 +51,34 @@ data += `
 <tr>
 <td colspan=3 height=6>
 <tr>
+<td><a href="wtv-tricks:/cSetup">Connect Setup</a>
+<td width=25>
+<td><a href="wtv-tricks:/charmap">Character Map</a>
+<tr>
+<td colspan=3 height=6>
+<tr>
+<td><!-- TODO -->
+<td width=25>
+<td><!-- TODO -->
+<tr>
+<td colspan=3 height=6>
+<tr>
+<td><!-- TODO -->
+<td width=25>
+<td><!-- TODO -->
+<tr>
+<td colspan=3 height=6>
+<tr>
+<td><!-- TODO -->
+<td width=25>
+<td><!-- TODO -->
+<tr>
+<td colspan=3 height=6>
+<tr>
+<td><!-- TODO -->
+<td width=25>
 <td><a href="${(wtvshared.isAdmin(session_data)) ? "wtv-admin:/admin" : notAdminAlert}">${minisrv_config.config.service_name} Admin</a>
-<td width = 25>
-<td><!-- TODO -->
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 25>
-<td><!-- TODO -->
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 25>
-<td><!-- TODO -->
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 25>
-<td>
-<!-- TODO -->
-<td width = 25>
+<td width=25>
 </table>
 </body>
 </html>
