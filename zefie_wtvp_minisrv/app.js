@@ -336,8 +336,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         eval_ctx.runInNewContext(contextObj, {
             "breakOnSigint": true
         });
-    } catch (e) {        
-        console.error(e);
+    } catch (e) {
         throw e;
     }
 

@@ -137,7 +137,16 @@ class WTVPCAdmin {
         if (userSession.isRegistered(false)) {
             account_info.ssid = ssid;
             account_info.account_users = userSession.listPrimaryAccountUsers();
-            account_info.username = account_info.account_users['subscriber'].subscriber_username;
+            if (account_info.account_users) {
+                if (account_info.account_users['subscriber']) {
+                    account_info.username = account_info.account_users['subscriber'].subscriber_username;
+                } else {
+                    account_info.username = account_info.account_users[0];
+                }
+            } else {
+                account_info.username = account_info.account_users[0];
+            }
+            
             account_info.user_id = 0;
             return account_info;
         }
