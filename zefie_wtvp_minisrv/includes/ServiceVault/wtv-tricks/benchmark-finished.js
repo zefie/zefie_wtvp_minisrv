@@ -9,7 +9,7 @@ data = `<html>
 <display nosave nosend skipback>
 <script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script><script>
 head('Speed Test Result')</script>`;
-var start_time = session_data.getTicketData("benchmark_starttime");
+var start_time = parseInt(session_data.getTicketData("benchmark_starttime"));
 if (isNaN(start_time)) {
 	data += "Invalid data, please try your benchmark again";
 } else {
