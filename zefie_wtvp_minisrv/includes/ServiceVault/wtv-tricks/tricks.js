@@ -21,7 +21,7 @@ tricks = [
 	["client:ResetNVAndPowerOff", "Blast NVRAM"],
 	["wtv-tricks:/charmap", "Character Map"],
 	["wtv-tricks:/cSetup", "Connect Setup"],
-	["", ""],
+	["wtv-tricks:/benchmark", "Speed Test"],
 	["", ""],
 	["", ""],
 	["", ""],

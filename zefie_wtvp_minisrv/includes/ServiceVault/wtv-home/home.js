@@ -123,8 +123,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 	} else {
 		data += `<input type="text" name="url" width=440 bgcolor=191919 text=42bd52 cursor=42bd52 autoexecute value="wtv-tricks:/tricks">`;
 	}
-data += `
-<input type="submit" value="Go">
+data += `<script>butt("Go","submit",30,"submit")</script>
 </form>
 <hr>
 <table>
