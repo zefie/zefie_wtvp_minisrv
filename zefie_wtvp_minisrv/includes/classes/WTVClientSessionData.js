@@ -193,7 +193,7 @@ class WTVClientSessionData {
     }
 
     getAccountStoreDirectory() {
-        return this.minisrv_config.config.SessionStore + this.path.sep + "accounts";
+        return this.path.resolve(this.wtvshared.getAbsolutePath() + this.path.sep + this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
     }
 
     /**

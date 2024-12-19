@@ -1,9 +1,8 @@
 'use strict';
 const path = require('path');
-var classPath = __dirname + path.sep + "includes" + path.sep + "classes" + path.sep;
+var classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;
 const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
-classPath = wtvshared.getAbsolutePath(classPath, __dirname);
 
 const fs = require('fs');
 const tls = require('tls');

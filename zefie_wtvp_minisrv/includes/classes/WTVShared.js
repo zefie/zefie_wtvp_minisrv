@@ -886,13 +886,25 @@ class WTVShared {
     * @param {string} path 
     * @param {string} directory Root directory
     */
-    getAbsolutePath(path, directory = this.appdir) {
-        const pathModule = require('path');
+    getAbsolutePath(path = '', directory = '.') {
+        if (directory[0] == "/") {
+            return this.path.resolve(directory + this.path.sep + path);
+        }
         try {
+            // start with our absolute path (of app.js)
+            const appdir = this.path.resolve(__dirname + this.path.sep + '..' + this.path.sep + '..')
+
+            if (path == '' && directory == '.') {
+                return appdir;
+            }
             // If the directory is a valid directory, prepend it to the path
+            directory = this.path.resolve(appdir + this.path.sep + directory);
+            if (!path) {
+                return directory;
+            }
             if (directory && !path.startsWith(directory)) {
-                if (!directory.endsWith(pathModule.sep)) {
-                    directory += pathModule.sep;
+                if (!directory.endsWith(this.path.sep)) {
+                    directory += this.path.sep;
                 }
                 path = directory + path;
             }
@@ -901,7 +913,7 @@ class WTVShared {
             console.error('Error resolving directory:', e);
         }
         // The path.resolve method will take care of normalizing slashes
-        return pathModule.resolve(path);
+        return this.path.resolve(path);
     }
 
 
