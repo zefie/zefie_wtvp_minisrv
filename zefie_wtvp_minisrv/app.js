@@ -2044,7 +2044,7 @@ if (!minisrv_config) {
 var service_vaults = new Array();
 if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
-        var service_vault = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
+        var service_vault = wtvshared.getAbsolutePath(minisrv_config.config.ServiceVaults[k]);
         service_vaults.push(service_vault);
         console.log(" * Configured Service Vault at", service_vault, "with priority", (parseInt(k) + 1));
     })
@@ -2055,7 +2055,7 @@ if (minisrv_config.config.ServiceVaults) {
 var service_deps = new Array();
 if (minisrv_config.config.ServiceDeps) {
     Object.keys(minisrv_config.config.ServiceDeps).forEach(function (k) {
-        var service_dep = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps[k]);
+        var service_dep = wtvshared.getAbsolutePath(minisrv_config.config.ServiceDeps[k]);
         service_deps.push(service_dep);
         console.log(" * Configured Service Dependencies at", service_dep, "with priority", (parseInt(k) + 1));
     })
@@ -2064,7 +2064,7 @@ if (minisrv_config.config.ServiceDeps) {
 }
 
 if (minisrv_config.config.SessionStore) {
-    var SessionStore = wtvshared.returnAbsolutePath(minisrv_config.config.SessionStore);
+    var SessionStore = wtvshared.getAbsolutePath(minisrv_config.config.SessionStore);
     console.log(" * Configured Session Storage at", SessionStore);
 } else {
     throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
