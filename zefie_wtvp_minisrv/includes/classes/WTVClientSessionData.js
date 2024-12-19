@@ -127,6 +127,19 @@ class WTVClientSessionData {
         return true;
     }
 
+    isAddressInAddressBook(addr) {
+        const addresses = this.getSessionData("address_book");
+        if (addresses) {
+            for (let i = 0; i < addresses.length; i++) {
+                console.log(addr.toLowerCase(), addresses[i].address.toLowerCase())
+                if (addr.toLowerCase() == addresses[i].address.toLowerCase()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     findFreeUserSlot() {
         if (this.user_id != 0) return false; // subscriber only command
         var master_directory = this.getUserStoreDirectory(true);

@@ -376,7 +376,7 @@ class WTVMail {
 
     checkUserExists(username, directory = null) {
         // returns the user's ssid, and user_id and userid in an array if true, false if not
-        var search_dir = this.minisrv_config.config.SessionStore;
+        var search_dir = this.path.resolve(this.wtvshared.getAbsolutePath() + this.path.sep + this.minisrv_config.config.SessionStore);
         var return_val = false;
         var self = this;
         if (directory) search_dir = directory;
@@ -388,9 +388,11 @@ class WTVMail {
             try {
                 var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 var temp_session_data = JSON.parse(temp_session_data_file);
-                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
-                    return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep + "accounts" + self.path.sep, '').replace("user", '').split(self.path.sep);
-                    return_val.push(temp_session_data.subscriber_name);
+                if (temp_session_data.subscriber_username) {
+                    if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                        return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep + "accounts" + self.path.sep, '').replace("user", '').split(self.path.sep);
+                        return_val.push(temp_session_data.subscriber_name);
+                    }
                 }
             } catch (e) {
                 console.error(" # Error parsing Session Data JSON", file, e);

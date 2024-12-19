@@ -143,7 +143,7 @@ label="View saved e-mail messages">
 <tr>
 <td width=10 height=26>
 <td width=89 valign=middle>
-<table cellspacing=0 cellpadding=0 href="${notImplementedAlert}"
+<table cellspacing=0 cellpadding=0 href="wtv-mail:/addressbook"
 >
 <tr>
 <td height=1>
@@ -282,6 +282,7 @@ ${username}@${minisrv_config.config.service_name}
                 Object.keys(message_list).forEach(function (k) {
                     var message = message_list[k];
                     if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
+                    message.known_sender = session_data.isAddressInAddressBook(message.from_addr);
                     var message_font_open = "<font color=#7A9FCC>";
                     var message_font_close = "</font>";
                     if (message.unread) {
