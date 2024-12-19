@@ -103,7 +103,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 <spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>${title} &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; </font></blackface></shadow></b>
 </td></tr></table>`;
 	}
-	data += `<display nooptions>
+	data += `
 
 <hr>
 <center>
@@ -123,8 +123,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 	} else {
 		data += `<input type="text" name="url" width=440 bgcolor=191919 text=42bd52 cursor=42bd52 autoexecute value="wtv-tricks:/tricks">`;
 	}
-data += `
-<input type="submit" value="Go">
+data += `<script>butt("Go","submit",30,"submit")</script>
 </form>
 <hr>
 <table>
@@ -234,8 +233,6 @@ This server is operated by ${minisrv_config.config.service_owner}.<br>
 <td valign="top" colspan=4>
 &#149;&nbsp; Redesigned home page, uses custom rom theme system.<br>
 &#149;&nbsp; Added Protoweb Support (<a href="proto://www.webtv.net/">Try it!</a>)<br>
-&#149;&nbsp; Added a <a href="wtv-tricks:/charmap">WebTV Character Map</a><br>
-&#149;&nbsp; Redesigned homepage based on MattMan69's HackTV<br>
 &#149;&nbsp; Added a new minisrv logo<br>
 </td></tr>
 </table>

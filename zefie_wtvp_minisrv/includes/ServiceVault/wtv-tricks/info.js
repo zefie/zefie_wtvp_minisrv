@@ -31,7 +31,7 @@ Content-Type: text/html`
 	data = `<html>
 <!--- *=* Copyright 1996, 1997 WebTV Networks, Inc. All rights reserved. --->
 <display nosave nosend skipback>
-<script src=file://rom/Cache/h.js></script><script src=file://rom/Cache/n.js></script><script>
+<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script><script>
 head('${minisrv_config.config.service_name} Info')</script>
 
 <table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>

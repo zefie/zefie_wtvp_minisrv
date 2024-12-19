@@ -9,7 +9,7 @@ cch=rom+'Cache/'
 rch='/ROMCache/'
 thm=rch+'Themes/'
 thi=thm+'Images/'
-thb=thm+'Borders/'
+thb=rom+'Borders/'
 
 th=0
 
@@ -32,13 +32,13 @@ function gTC(type,itm){
 		case 1://dark
 			bgclr='191919'
 			tclr='42bd52'
-			bbif = rom + 'ButtonBorder2'
+			bbif = thb+'ButtonBorder2'
 		break
 		case 2://red
 			bgclr='6e0005'
 			tclr='f0f0f0'
 			bclr='f0f0f0'
-			bbif = rom + 'ButtonBorder2'
+			bbif = thb+'ButtonBorder2'
 		break
 		case 3://basic
 			bgclr='cccccc'
@@ -59,7 +59,7 @@ function gTC(type,itm){
 		case 5://green
 			bgclr='004422'
 			tclr='f0f0f0'
-			bbif = rom + 'ButtonBorder2'
+			bbif = thb+'ButtonBorder2'
 		break
 		case 6://blue
 			bgclr='002244'
@@ -68,7 +68,7 @@ function gTC(type,itm){
 			vclr='0080ff'
 			shimg=''
 			gclr='004488'
-			bbif = rom + 'ButtonBorder2'
+			bbif = thb+'ButtonBorder2'
 		break
 		case 7://teal
 			bgclr='008080'
@@ -80,12 +80,12 @@ function gTC(type,itm){
 			bgclr='4a2766'
 			lclr='aaaaaa'
 			shimg='ShadowLogo8.gif'
-			bbif=rom+'ButtonBorder2'
+			bbif = thb+'ButtonBorder2'
 		break
 		case 9://brown
 			bgclr='442200'
 			tclr='e7ce4a'
-			bbif = rom + 'ButtonBorder2'
+			bbif = thb+'ButtonBorder2'
 		break
 		case 10://white
 			bgclr='c9c9c9'
@@ -98,7 +98,7 @@ function gTC(type,itm){
 		case 11://halloween
 			bgclr='080808'
 			tclr='c06000'
-			bbif = rom + 'ButtonBorder2'
+			bbif = thb+'ButtonBorder2'
 		break
 	}switch(type){
 		case 'bg':return bgclr
@@ -187,6 +187,7 @@ function ta(r,s,n,b,c,x,u){
 	d.write('<textarea rows='+r+' size='+s+' id='+n+' name='+n+' border='+b+' text='+tclr+' bgcolor='+bgclr+' '+x+'>'+c+'</textarea>');
 	if(u){d.write('</font>')}
 }
+
 function as(bg,h,w,g,b,lc,rc,lo,ro,s){
 	if(s){
 		if(!lc){lc=gTC('t')}

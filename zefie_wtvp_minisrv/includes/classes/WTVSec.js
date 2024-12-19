@@ -158,6 +158,7 @@ class WTVSec {
     getTicketData(key = null) {
         if (typeof (this.ticket_store) === 'session_store') return null;
         else if (key === null) return this.ticket_store;
+        else if (typeof this.ticket_store[key] !== 'undefined') return this.ticket_store[key];
         else return null;
     }
 

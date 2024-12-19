@@ -14,7 +14,7 @@ class WTVNewsServer {
     constructor(minisrv_config, local_server_port, using_auth = false, username = null, password = null, run_server = true) {
         this.minisrv_config = minisrv_config;
         const { WTVShared } = require("./WTVShared.js");
-        this.wtvshared = new WTVShared(minisrv_config);
+        this.wtvshared = new WTVShared(this.minisrv_config);
         this.featuredGroups = minisrv_config.services['wtv-news'].featuredGroups;
         const nntp_server = require('nntp-server-zefie');
         var nntp_statuses = require('nntp-server-zefie/lib/status');
@@ -23,7 +23,7 @@ class WTVNewsServer {
         this.password = password || null;
         this.using_auth = using_auth;
         this.scan_interval = minisrv_config.services['wtv-news'].groupMetaRefreshInterval || 86400;
-        this.data_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + '/minisrv_internal_nntp');
+        this.data_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + 'minisrv_internal_nntp');
         this.createDataStore();
 
         if (using_auth && (!username && !password)) {
@@ -140,9 +140,9 @@ class WTVNewsServer {
             }
 
             var tls_options = {
-                ca: this.wtvshared.getServiceDep('wtv-news/localserver_ca.pem'),
-                key: this.wtvshared.getServiceDep('wtv-news/localserver_key.pem'),
-                cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
+                ca: this.wtvshared.getServiceDep('wtv-news' + this.path.sep + 'localserver_ca.pem'),
+                key: this.wtvshared.getServiceDep('wtv-news' + this.path.sep + 'localserver_key.pem'),
+                cert: this.wtvshared.getServiceDep('wtv-news' + this.path.sep + 'localserver_cert.pem'),
             }
             this.local_server = new nntp_server({ requireAuth: using_auth, tls: tls_options, secure: true, allow_posting: true });
             this.local_server.listen('nntps://127.0.0.1:' + local_server_port);

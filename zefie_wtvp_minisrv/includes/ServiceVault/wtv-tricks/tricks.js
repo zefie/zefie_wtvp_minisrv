@@ -12,69 +12,51 @@ var notAdminAlert = new clientShowAlert({
 headers = `200 OK
 Content-Type: text/html`
 
+tricks = [
+	["wtv-tricks:/info", minisrv_config.config.service_name + " info"],
+	["wtv-tricks:/themes", "Theme Switcher"],
+	["wtv-cookie:list", "List Cookies"],
+	["wtv-cookie:reset", "Clear Cookies"],
+	["wtv-tricks:/bastblacklist?return_to=wtv-tricks%3A%2Ftricks", "Blast Blacklist"],
+	["client:ResetNVAndPowerOff", "Blast NVRAM"],
+	["wtv-tricks:/charmap", "Character Map"],
+	["wtv-tricks:/cSetup", "Connect Setup"],
+	["wtv-tricks:/benchmark", "Speed Test"],
+	["", ""],
+	["", ""],
+	["", ""],
+	["", ""],
+	["", ""],
+	["", ""],
+	["", ""],
+]
+// add these at the bottom
+tricks.push((session_data.getSessionData("registered")) ? ["wtv-tricks:/unregister", "Unregister This Box"] : ["wtv-tricks:/register", "Register This Box"]); // reg/unreg
+tricks.push((wtvshared.isAdmin(session_data)) ? ["wtv-admin:/admin", minisrv_config.config.service_name + " Admin"] : [notAdminAlert, minisrv_config.config.service_name + " Admin"]); // wtv-admin
 
 data = `<html>
 <display nosave nosend>
-<script src=file://rom/Cache/h.js></script><script src=file://rom/Cache/n.js></script><script>
+<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script><script>
 head('${minisrv_config.config.service_name} Tricks')</script>
 <table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
 <br>
-<table>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><a href="wtv-tricks:/info">Info</a>
-<td width = 25>
-<td><a href="wtv-cookie:list">List Cookies</a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><a href="wtv-flashrom:/willie">Visit Ultra Willie's!</a>
-<td width = 25>
-<td><a href="wtv-cookie:reset">Clear Cookies</a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><a href="wtv-tricks:/blastbacklist?return_to=wtv-tricks%3A%2Ftricks">Blast Backlist</a>
-<td width = 25>
-<td><a href="client:ResetNVAndPowerOff">Blast NVRAM</a>
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><a href="client:showservices">Show Services</a>
-<td width = 25>
-`;
-if (session_data.getSessionData("registered")) data += `<td><a href="wtv-tricks:/unregister">Unregister This Box</a>`;
-else data += `<td><a href="wtv-tricks:/register">Register This Box</a>`
+<table>`;
 
-data += `
-<tr>
+for (i = 0; i < tricks.length; i += 2) {
+	data += `<tr>
 <td colspan=3 height=6>
 <tr>
-<td><a href="${(wtvshared.isAdmin(session_data)) ? "wtv-admin:/admin" : notAdminAlert}">${minisrv_config.config.service_name} Admin</a>
-<td width = 25>
-<td><!-- TODO -->
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 25>
-<td><!-- TODO -->
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 25>
-<td><!-- TODO -->
-<tr>
-<td colspan=3 height=6>
-<tr>
-<td><!-- TODO -->
-<td width = 25>
-<td>
-<!-- TODO -->
-<td width = 25>
-</table>
+<td>${(tricks[i][0] != "") ? `<a href="${tricks[i][0]}">${tricks[i][1]}</a>` : `<!-- TODO --> &nbsp;`}
+<td width=25>
+<td>`
+	if (i + 1 < tricks.length) {
+		data += (tricks[i + 1][0] != "") ? `<a href="${tricks[i + 1][0]}">${tricks[i + 1][1]}</a>` : `<!-- TODO --> &nbsp;`
+	} else {
+		// require even number of tricks
+		data += "<!-- TODO --> &nbsp;"
+	}
+}
+data += `</table>
 </body>
 </html>
 `;

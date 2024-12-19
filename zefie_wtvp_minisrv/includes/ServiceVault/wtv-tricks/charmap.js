@@ -6,7 +6,7 @@ var legend_every = 6;
 function getLegend() {
     d = "<tr>\n";
     for (var i = 0; i < num_per_line; i++) {
-        d += "<td><b><font color=44cc55>Code</font></b>\n<td><b><font color=44cc55>Char</font></b>\n";
+        d += "<td><b>Code</b>\n<td><b>Char</b>\n";
     }
     d += "<tr>\n";
     return d;
@@ -16,18 +16,12 @@ function getLegend() {
 headers = `200 OK
 Content-Type: text/html`;
 
-data = `<html>
-<body>
-<display nosave nosend>
-<title>WebTV Character Map</title>
-<sidebar width=20%>
-<img src="wtv-tricks:/images/Favorites_bg2.jpg">
-</sidebar>
-<body bgcolor="#191919" text="#33bb44" link="36d5ff" vlink="36d5ff" vspace=0>
-<br>
-<br>
-<font color=44cc55><h1>WebTV Character Map</h1></font>
-<br>
+data = `<html><head><display allowoffline switchtowebmode>
+<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script>
+<script src=htv-cSetup.js></script>
+</head ><form name=t><input type=hidden name=h value=&pname;></form>
+<script>head('WebTV Character Map');</script>
+<br><br>
 <table border=1>`;
 
 

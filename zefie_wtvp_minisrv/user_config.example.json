@@ -30,6 +30,13 @@
 			]
 		},
 		"hide_ssid_in_logs": true,
+		"pc_admin": {
+			"ip_whitelist": [
+				"192.168.20.0/24", // your subnet
+				"127.0.0.1"
+			],
+			"password": "MyEvEnMoReSeqRetKey1!11!" // change this
+		},
 		"verbosity": 2,
 		"errorMessages": {
 			"999": "My Custom Error Code Message",

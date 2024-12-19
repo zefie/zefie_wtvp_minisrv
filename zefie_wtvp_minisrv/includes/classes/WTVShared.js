@@ -19,12 +19,14 @@ class WTVShared {
     debug = require('debug')('WTVShared')
     process = require('process');
     shenanigans = null;
+    appdir = this.path.resolve(__dirname + this.path.sep + ".." + this.path.sep + "..");
 
     minisrv_config = [];
     
     constructor(minisrv_config, quiet = false) {
         if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
+
         this.shenanigans = new WTVShenanigans(this.minisrv_config);
        
         if (!String.prototype.reverse) {
@@ -370,7 +372,7 @@ class WTVShared {
         // Assuming this.path.sep is a slash (/ or \) and this.parentDirectory is set correctly
         if (!/^(?:[a-zA-Z]:)?[\\/]/.test(check_path)) {
             // It's a relative path
-            check_path = this.parentDirectory + this.path.sep + check_path;
+            check_path = this.path.resolve(this.parentDirectory + this.path.sep + check_path);
         }
         // Use the fixPathSlashes method to normalize the slashes
         return this.fixPathSlashes(check_path);
@@ -398,8 +400,7 @@ class WTVShared {
 
     getUserConfig() {
         try {
-            var user_config_filename = this.getAbsolutePath("user_config.json", this.parentDirectory);
-
+            var user_config_filename = this.getAbsolutePath("user_config.json", this.appdir);
             if (this.fs.lstatSync(user_config_filename)) {
                 try {
                     var minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
@@ -885,26 +886,34 @@ class WTVShared {
     * @param {string} path 
     * @param {string} directory Root directory
     */
-    getAbsolutePath(path, directory = '') {
-        const pathModule = require('path');
+    getAbsolutePath(path = '', directory = '.') {
+        if (directory[0] == "/") {
+            return this.path.resolve(directory + this.path.sep + path);
+        }
         try {
+            // start with our absolute path (of app.js)
+            const appdir = this.path.resolve(__dirname + this.path.sep + '..' + this.path.sep + '..')
+
+            if (path == '' && directory == '.') {
+                return appdir;
+            }
             // If the directory is a valid directory, prepend it to the path
+            directory = this.path.resolve(appdir + this.path.sep + directory);
+            if (!path) {
+                return directory;
+            }
             if (directory && !path.startsWith(directory)) {
-                const fs = require('fs');
-                if (fs.lstatSync(directory).isDirectory()) {
-                    // Ensure directory has trailing separator
-                    if (!directory.endsWith(pathModule.sep)) {
-                        directory += pathModule.sep;
-                    }
-                    path = directory + path;
+                if (!directory.endsWith(this.path.sep)) {
+                    directory += this.path.sep;
                 }
+                path = directory + path;
             }
         } catch (e) {
             // If there's an error accessing the directory, log it or handle as needed
             console.error('Error resolving directory:', e);
         }
         // The path.resolve method will take care of normalizing slashes
-        return pathModule.resolve(path);
+        return this.path.resolve(path);
     }
 
 
@@ -925,9 +934,9 @@ class WTVShared {
      * @return {string} path without gz, or unmodified path if it isnt a gz
      */
     getFilePath(path) {
-        var path_split = path.split('/');
+        var path_split = path.split(this.path.sep);
         path_split.pop();
-        return path_split.join('/');
+        return path_split.join(this.path.sep);
     }
 
     /**

@@ -1,9 +1,8 @@
 'use strict';
 const path = require('path');
-var classPath = __dirname + path.sep + "includes" + path.sep + "classes" + path.sep;
+var classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;
 const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
-classPath = wtvshared.getAbsolutePath(classPath, __dirname);
 
 const fs = require('fs');
 const tls = require('tls');
@@ -337,7 +336,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
             "breakOnSigint": true
         });
     } catch (e) {
-        console.error(e);
+        throw e;
     }
 
     // unload any loaded modules for this vm
@@ -382,7 +381,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
     }
     var privileged = false;
     if (minisrv_config.services[service_name]) privileged = (minisrv_config.services[service_name].privileged) ? true : false;
-    else if (pc_services) privileged = (minisrv_config.services['pc_services'].privileged) ? true : false;
+    else if (pc_services) privileged = (minisrv_config.services[pc_service_name].privileged) ? true : false;
 
     if (privileged) {
         updateFromVM.push(["ssid_sessions", "ssid_sessions"]);             // global ssid_sessions object for privileged service scripts, such as wtv-setup, wtv-head-waiter, etc
@@ -439,6 +438,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 } else {
                     contextObj.cwd = service_vault_file_path.substr(0, service_vault_file_path.lastIndexOf(path.sep));
                 }
+
 
                 if (file_exists && !is_dir) {
                     // file exists, read it and return it 
@@ -616,7 +616,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         headers = errpage[0];
         data = errpage[1];
         if (pc_services) {
-            if (minisrv_config.services[real_service_name].show_verbose_errors)
+            if (minisrv_config.services[pc_service_name].show_verbose_errors)
                 data += "<br><br>The interpreter said:<br><pre>" + e.stack + "</pre>";
         }
         console.error(" * Scripting error:", e);
@@ -2043,7 +2043,7 @@ if (!minisrv_config) {
 var service_vaults = new Array();
 if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
-        var service_vault = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceVaults[k]);
+        var service_vault = wtvshared.getAbsolutePath(minisrv_config.config.ServiceVaults[k]);
         service_vaults.push(service_vault);
         console.log(" * Configured Service Vault at", service_vault, "with priority", (parseInt(k) + 1));
     })
@@ -2054,7 +2054,7 @@ if (minisrv_config.config.ServiceVaults) {
 var service_deps = new Array();
 if (minisrv_config.config.ServiceDeps) {
     Object.keys(minisrv_config.config.ServiceDeps).forEach(function (k) {
-        var service_dep = wtvshared.returnAbsolutePath(minisrv_config.config.ServiceDeps[k]);
+        var service_dep = wtvshared.getAbsolutePath(minisrv_config.config.ServiceDeps[k]);
         service_deps.push(service_dep);
         console.log(" * Configured Service Dependencies at", service_dep, "with priority", (parseInt(k) + 1));
     })
@@ -2063,7 +2063,7 @@ if (minisrv_config.config.ServiceDeps) {
 }
 
 if (minisrv_config.config.SessionStore) {
-    var SessionStore = wtvshared.returnAbsolutePath(minisrv_config.config.SessionStore);
+    var SessionStore = wtvshared.getAbsolutePath(minisrv_config.config.SessionStore);
     console.log(" * Configured Session Storage at", SessionStore);
 } else {
     throw ("ERROR: No Session Storage Directory (SessionStore) defined!");
