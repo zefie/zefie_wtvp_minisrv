@@ -608,7 +608,7 @@ class WTVShared {
                     var new_user_config = {};
                     Object.assign(new_user_config, minisrv_user_config, config);
                     if (this.minisrv_config.config.debug_flags.debug) console.log(" * Writing new user configuration...");
-                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.parentDirectory), JSON.stringify(new_user_config, null, "\t"));
+                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.appdir), JSON.stringify(new_user_config, null, "\t"));
                     return true;
                 }
                 catch (e) {

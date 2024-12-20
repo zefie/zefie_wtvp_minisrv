@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
-WTVPCAdmin = require(classPath + "/WTVPCAdmin.js")
-var wtva = new WTVPCAdmin(minisrv_config, socket, service_name);
+WTVAdmin = require(classPath + "/WTVAdmin.js")
+var wtva = new WTVAdmin(minisrv_config, socket, service_name);
 var auth = wtva.isAuthorized();
 if (auth === true) {
     var password = null;
@@ -76,6 +76,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                     data += `<input type="button" value="Ban Account" onclick="validateSelection('ban', '${ssid}', 'ban this SSID')">`
                     data += `<input type="button" value="Unban Account" onclick="validateSelection('unban', '${ssid}', 'unban this SSID')" disabled=disabled>`
                 }
+                data += "<p><a href='?cmd=list'>Back to SSID List</a>";
                 data += "<p><table border=1>";
                 user_info = wtva.getAccountInfoBySSID(ssid.toLowerCase());
                 if (user_info.account_users) {
@@ -122,7 +123,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                     }
                 });
                 if (!entry_exists) {
-                    fake_config.config.ssid_block_list.push(ssid);
+                    fake_config.config.ssid_block_list.push(ssid.toLowerCase());
                     wtvshared.writeToUserConfig(fake_config);
                     reloadConfig();
                     redirectmsg = "The SSID is now banned.";
@@ -141,7 +142,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
                 if (typeof request_headers.query.ssid === 'string') {
                     Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                        if (fake_config.config.ssid_block_list[k] == request_headers.query.ssid) {
+                        if (fake_config.config.ssid_block_list[k] == request_headers.query.ssid.toLowerCase()) {
                             fake_config.config.ssid_block_list.splice(k, 1);
                             config_changed = true
                         }
@@ -149,7 +150,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 } else {
                     Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
                         Object.keys(request_headers.query.ssid).forEach(function (j) {
-                            if (fake_config.config.ssid_block_list[k] == request_headers.query.ssid[j]) {
+                            if (fake_config.config.ssid_block_list[k] == request_headers.query.ssid[j].toLowerCase()) {
                                 fake_config.config.ssid_block_list.splice(k, 1);
                                 config_changed = true
                             }
