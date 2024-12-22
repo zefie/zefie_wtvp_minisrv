@@ -78,7 +78,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 }
                 data += "<p><a href='?cmd=list'>Back to SSID List</a>";
                 data += "<p><table border=1>";
-                user_info = wtva.getAccountInfoBySSID(ssid.toLowerCase());
+                user_info = wtva.getAccountInfoBySSID(ssid);
                 if (user_info.account_users) {
                     if (user_info.account_users['subscriber']) {
                         data += `<tr><td>Primary User:</td><td>${user_info.account_users['subscriber'].subscriber_username}</td></tr>`;
@@ -113,20 +113,14 @@ function validateSelection(cmd, ssid, friendlymsg) {
             redirectmsg = "";
             var ssid = request_headers.query.ssid;
             if (ssid) {
-                var fake_config = wtvshared.getUserConfig();
-                if (!fake_config.config) fake_config.config = {};
-                if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
-                var entry_exists = false;
-                Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                    if (fake_config.config.ssid_block_list[k] == ssid) {
-                        redirectmsg = "The SSID was already banned.";
-                    }
-                });
-                if (!entry_exists) {
-                    fake_config.config.ssid_block_list.push(ssid.toLowerCase());
-                    wtvshared.writeToUserConfig(fake_config);
+                var result = wtva.banSSID(ssid);
+                if (result === wtva.SUCCESS) {
                     reloadConfig();
                     redirectmsg = "The SSID is now banned.";
+                } else if (result == wtva.REASON_EXISTS) {
+                    redirectmsg = "The SSID was already banned.";
+                } else {
+                    redirectmsg = "Unknown response " + result.toString();
                 }
             } else {
                 redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
@@ -136,35 +130,17 @@ function validateSelection(cmd, ssid, friendlymsg) {
             redirectmsg = "The SSID was not banned, so it could not be unbanned.";
             var ssid = request_headers.query.ssid;
             if (ssid) {
-                var config_changed = false;
-                var fake_config = wtvshared.getUserConfig();
-                if (!fake_config.config) fake_config.config = {};
-                if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
-                if (typeof request_headers.query.ssid === 'string') {
-                    Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                        if (fake_config.config.ssid_block_list[k] == request_headers.query.ssid.toLowerCase()) {
-                            fake_config.config.ssid_block_list.splice(k, 1);
-                            config_changed = true
-                        }
-                    });
-                } else {
-                    Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                        Object.keys(request_headers.query.ssid).forEach(function (j) {
-                            if (fake_config.config.ssid_block_list[k] == request_headers.query.ssid[j].toLowerCase()) {
-                                fake_config.config.ssid_block_list.splice(k, 1);
-                                config_changed = true
-                            }
-                        });
-                    });
-                }
-                if (config_changed) {
-                    wtvshared.writeToUserConfig(fake_config);
-                    minisrv_config = reloadConfig();
+                var result = wtv.unbanSSID(ssid);
+                if (result === wtva.SUCCESS) {
+                    reloadConfig();
                     redirectmsg = "The SSID is now unbanned.";
+                } else if (result == wtva.REASON_EXISTS) {
+                    redirectmsg = "The SSID was not banned.";
+                } else {
+                    redirectmsg = "Unknown response " + result.toString();
                 }
-                else {
-                    redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
-                }
+            } else {
+                redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
             }
             headers = "302 OK\nLocation: /admin/?cmd=ssid&ssid=" + encodeURI(ssid) + "&msg=" + encodeURI(redirectmsg);
         }

@@ -10,6 +10,14 @@ class WTVAdmin {
     WTVClientSessionData = require("./WTVClientSessionData.js");
     service_name = "wtv-admin";
 
+    SUCCESS = 0
+    FAIL = 1
+    INVALID_OP = 2
+
+    REASON_NOSELF = 3
+    REASON_EXISTS = 4
+    REASON_NONEXIST = 5
+
     constructor(minisrv_config, wtvclient, service_name) {
         this.minisrv_config = minisrv_config;
         var { WTVShared } = require("./WTVShared.js");
@@ -28,6 +36,58 @@ class WTVAdmin {
         this.service_name = service_name;
     }
 
+    banSSID(ssid, admin_ssid = null) {
+        if (ssid == admin_ssid) {
+            return this.REASON_NOSELF;
+        } else {
+            var fake_config = this.wtvshared.getUserConfig();
+            if (!fake_config.config) fake_config.config = {};
+            if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
+            var entry_exists = false;
+            var self = this;
+            Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
+                if (fake_config.config.ssid_block_list[k] == ssid) {
+                    return self.REASON_EXISTS;
+                }
+            });
+            if (!entry_exists) {
+                fake_config.config.ssid_block_list.push(ssid);
+                this.wtvshared.writeToUserConfig(fake_config);
+                return this.SUCCESS;
+            }
+        }
+    }
+
+    unbanSSID(ssid) {
+        var config_changed = false;
+        var fake_config = wtvshared.getUserConfig();
+        if (!fake_config.config) fake_config.config = {};
+        if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
+        if (typeof request_headers.query.ssid === 'string') {
+            Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
+                if (fake_config.config.ssid_block_list[k].toLowerCase() == request_headers.query.ssid.toLowerCase()) {
+                    fake_config.config.ssid_block_list.splice(k, 1);
+                    config_changed = true
+                }
+            });
+        } else {
+            Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
+                Object.keys(request_headers.query.ssid).forEach(function (j) {
+                    if (fake_config.config.ssid_block_list[k].toLowerCase() == request_headers.query.ssid[j].toLowerCase()) {
+                        fake_config.config.ssid_block_list.splice(k, 1);
+                        config_changed = true
+                    }
+                });
+            });
+        }
+        if (config_changed) {
+            wtvshared.writeToUserConfig(fake_config);
+            minisrv_config = reloadConfig();
+            return this.SUCCESS
+        } else {
+            return this.REASON_NONEXIST;
+        }
+    }
 
     ip2long(ip) {
         var components;
