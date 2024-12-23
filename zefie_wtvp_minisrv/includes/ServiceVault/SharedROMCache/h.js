@@ -3,6 +3,7 @@ if(!String.prototype.repeat){String.prototype.repeat=function(c){o='';for(i=0;i<
 
 d=document
 rom='file://rom/'
+rmb=rom+'Borders/'
 htm=rom+'HTMLs/'
 cch=rom+'Cache/'
 
@@ -32,7 +33,7 @@ function gTC(type,itm){
 		case 1://dark
 			bgclr='191919'
 			tclr='42bd52'
-			bbif = thb+'ButtonBorder2'
+			bbif = rmb+'ButtonBorder2'
 		break
 		case 2://red
 			bgclr='6e0005'
