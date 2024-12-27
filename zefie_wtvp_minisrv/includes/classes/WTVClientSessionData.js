@@ -625,8 +625,8 @@ class WTVClientSessionData {
     }
 
     getSessionData(key = null) {
-        if (typeof (this.data_store) === 'session_store') return null;
-        else if (key === null) return this.data_store;
+        if (typeof (this.session_store) === 'session_store') return null;
+        else if (key === null) return this.session_store;
         else if (this.session_store[key]) return this.session_store[key];
         else return null;
     }

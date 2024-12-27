@@ -349,7 +349,7 @@ class WTVShared {
 
     utf8Decode(utf8String) {
         if (typeof utf8String !== 'string') {
-            throw new TypeError('parameter ‘utf8String’ is not a string');
+            throw new TypeError('parameter ï¿½utf8Stringï¿½ is not a string');
         }
         const textDecoder = new TextDecoder('utf-8');
         const bytes = new Uint8Array(utf8String.split('').map(c => c.charCodeAt(0)));
@@ -827,6 +827,7 @@ class WTVShared {
                     }
                 });
             }
+            delete newobj.raw_headers;
 
             return newobj;
         }
