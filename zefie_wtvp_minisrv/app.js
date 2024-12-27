@@ -347,7 +347,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     return contextObj; // updated context object with whatever global varibles the script set
 }
 
-async function handleCGI(executable, cgi_file, socket, request_headers, vault, service_name, session_data)
+async function handleCGI(executable, cgi_file, socket, request_headers, vault, service_name, session_data = null, extra_path = "")
 {
     var env = process.env;    
     env.QUERY_STRING = "";
@@ -355,7 +355,6 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     var split_req = request_headers.request.split(' ');
     request_data.method = split_req[0];
     var request_type = (request_headers.request_url.indexOf(":/")) ? request_headers.request_url.split(":/")[0] : 'http';
-    console.log(request_type);
     if (request_type != "http" && request_type != "https") {
         request_type = "http";
         request_data.host = minisrv_config.config.service_ip;
@@ -375,14 +374,12 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     env.MINISRV_SESSION_STORE = serialize((session_data) ? session_data.getSessionData() : null);
     env.MINISRV_DATA_STORE = serialize((session_data) ? session_data.get() : null);
     env.REQUEST_METHOD = request_data.method;
-    env.SCRIPT_NAME = cgi_file.replace(vault + path.sep + service_name,"");
+    env.SCRIPT_NAME = cgi_file.replace(vault,"");
     env.SCRIPT_URI = request_type + "://" + request_data.host;
     if (request_data.port != 80 && request_data.port != 443 ) env.SCRIPT_URI += ":" + request_data.port;
     env.SCRIPT_URI += env.SCRIPT_NAME;
-    env.PATH_INFO = env.SCRIPT_URI.replace(request_type + "://" + request_data.host, "");
-    if (request_data.port != 80 && request_data.port != 443 ) env.PATH_INFO = env.PATH_INFO.replace(":" + request_data.port, "");
-    env.PATH_INFO = env.PATH_INFO.replace(env.SCRIPT_NAME, "");
-    env.PATH_TRANSLATED = cgi_file;
+    env.PATH_INFO = extra_path;
+    env.PATH_TRANSLATED = extra_path ? vault + extra_path : cgi_file;
     env.GATEWAY_INTERFACE = "CGI/1.1";
     env.SCRIPT_FILENAME = cgi_file;
     env.SERVER_SOFTWARE = "Express via " + z_title;
@@ -392,10 +389,9 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     env.SERVER_PROTOCOL = (split_req.length >= 3) ? request_headers.request.split(' ')[2] : "HTTP/1.0";
     env.REMOTE_ADDR = socket.remoteAddress;
     env.REMOTE_PORT = socket.remotePort;
-    env.DOCUMENT_ROOT = vault + path.sep + service_name;
+    env.DOCUMENT_ROOT = vault;
     env.ALL_RAW = request_headers.raw_headers;
     env.ALL_HTTP = "";
-    console.log(env.ALL_RAW);
     var raw_header_split = env.ALL_RAW.split("\r\n");
     raw_header_split.forEach(function (header) { 
         if (header) {
@@ -428,11 +424,8 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
             stdout = stdout.toString().split("\r\n\r\n", 2);
             var headers = stdout[0];
             var data = stdout[1];
-            if (isNaN(parseInt(headers.substr(0,3)))) {
-                // no HTTP code was provided, assume 200 OK
-                headers = "200 OK\n"+headers;
-            }
             headers = headerStringToObj(headers, true);
+            if (!headers.Status) headers.Status = "200 OK";
             headers['Connection'] = 'keep-alive';
             sendToClient(socket, headers, data);
         });
@@ -443,16 +436,12 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
                 var errpage = wtvshared.doErrorPage(500);
                 sendToClient(socket, errpage[0], error.toString());
                 return null;
-            }
-
+            }            
             stdout = stdout.toString().split("\r\n\r\n", 2);
             var headers = stdout[0];
             var data = stdout[1];
-            if (isNaN(parseInt(headers.substr(0,3)))) {
-                // no HTTP code was provided, assume 200 OK
-                headers = "200 OK\n"+headers;
-            }
             headers = headerStringToObj(headers, true);
+            if (!headers.Status) headers.Status = "200 OK";
             headers['Connection'] = 'keep-alive';
             sendToClient(socket, headers, data);
         });
@@ -460,8 +449,8 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
 }
 
 
-async function handlePHP(socket, request_headers, php_file, vault, service_name, session_data) {
-    handleCGI(minisrv_config.config.php_binpath, php_file, socket, request_headers, vault, service_name, session_data);
+async function handlePHP(socket, request_headers, php_file, vault, service_name, session_data = null, extra_path = "") {
+    handleCGI(minisrv_config.config.php_binpath, php_file, socket, request_headers, vault, service_name, session_data, extra_path);
 }
 
 async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name, shared_romcache = null, pc_services = false) {
@@ -548,6 +537,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         }
                     }
                 }
+                if (service_vault_file_path.substr(-6, 6) == "/index") {
+                    service_vault_file_path = getDirectoryIndex(service_vault_file_path.substr(0,service_vault_file_path.length-6));
+                    console.log(service_vault_file_path);
+                }
                 var is_dir = false;
                 var file_exists = false;
                 minisrv_catchall, service_path_split, service_path_request_file = null;
@@ -611,14 +604,30 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     })
 
                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
-                } else if (fs.existsSync(service_vault_file_path + ".php") || (service_vault_file_path.indexOf(".php") == service_vault_file_path.length - 4 && fs.existsSync(service_vault_file_path))) {
+                } else if (service_vault_file_path.indexOf(".php") > 0) {
+                    request_is_async = true;
                     if (minisrv_config.config.php_enabled && minisrv_config.config.php_binpath) {
-                        request_is_async = true;
-                        if (fs.existsSync(service_vault_file_path + ".php")) service_vault_file_path += ".php";
-                        handlePHP(socket, request_headers, service_vault_file_path, service_vault_dir, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid])
+                        if (fs.existsSync(service_vault_file_path + ".php") || fs.existsSync(service_vault_file_path)) {
+                            if (fs.existsSync(service_vault_file_path + ".php")) service_vault_file_path += ".php";
+                            service_vault_found = true;
+                            handlePHP(socket, request_headers, service_vault_file_path, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid])
+                            return;
+                        } else {
+                            console.log(service_vault_file_path);
+                            var extra_path = (service_vault_file_path.lastIndexOf(".php") == -1) ? "" : service_vault_file_path.substr(service_vault_file_path.lastIndexOf(".php") + 4);
+                            service_vault_file_path = service_vault_file_path.replace(extra_path, "");
+                            if (fs.existsSync(service_vault_file_path)) {
+                                service_vault_found = true;
+                                handlePHP(socket, request_headers, service_vault_file_path, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
+                                return;
+                            } else if (service_vault_dir == vaults_to_scan[vaults_to_scan.length - 1]) {
+                                var errpage = wtvshared.doErrorPage(404);
+                                sendToClient(socket, errpage[0], errpage[1]);
+                                return;    
+                            }
+                        }
                     } else {
                         // php is not enabled, don't expose source code
-                        request_is_async = true;
                         var errpage = wtvshared.doErrorPage(403);
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
@@ -626,9 +635,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 } else if (fs.existsSync(service_vault_file_path + ".cgi") || (service_vault_file_path.indexOf(".cgi") == service_vault_file_path.length - 4 && fs.existsSync(service_vault_file_path))) {
                     if (minisrv_config.config.cgi_enabled) {
                         request_is_async = true;
-                        var executable = null;
+                        var extra_path = (service_vault_file_path.lastIndexOf(".cgi") == service_vault_file_path.length) ? "" : service_vault_file_path.substr(service_vault_file_path.lastIndexOf(".cgi"));
+                        service_vault_file_path = service_vault_file_path.substr(0, service_vault_file_path.lastIndexOf(".cgi"));
                         if (fs.existsSync(service_vault_file_path + ".cgi")) service_vault_file_path += ".cgi";
-                        handleCGI(service_vault_file_path, service_vault_file_path, socket, request_headers, service_vault_dir, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid]);
+                        handleCGI(service_vault_file_path, service_vault_file_path, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path);
                     } else {
                         // cgi is not enabled, don't expose source code
                         request_is_async = true;
@@ -791,6 +801,16 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
         }
         sendToClient(socket, headers, data);
     }
+}
+
+function getDirectoryIndex(svpath) {
+    if (fs.existsSync(svpath + path.sep + "index.js")) return svpath + path.sep + "index";
+    else if (fs.existsSync(svpath + path.sep + "index.html")) return svpath + path.sep + "index.html";
+    else if (fs.existsSync(svpath + path.sep + "index.htm")) return svpath + path.sep + "index.htm";
+    else if (fs.existsSync(svpath + path.sep + "index.txt")) return svpath + path.sep + "index.txt";  
+    else if (fs.existsSync(svpath + path.sep + "index.php")) return svpath + path.sep + "index.php";
+    else if (fs.existsSync(svpath + path.sep + "index.cgi")) return svpath + path.sep + "index.cgi";
+    else return svpath;
 }
 
 async function processURL(socket, request_headers, pc_services = false) {
@@ -1020,7 +1040,6 @@ minisrv-no-mail-count: true`;
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else {
-            debug('request_headers', request_headers);
             if (request_headers.request.indexOf("HTTP/1.0") > 0) {
                 // webtv in HTTP/1.0 mode, try to kick it back to WTVP
                 if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming invalid headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
@@ -1052,20 +1071,20 @@ function handleProxy(socket, request_type, request_headers, res, data) {
     // an http response error is not a request error, and will come here under the 'end' event rather than an 'error' event.
     switch (res.statusCode) {
         case 404:
-            res.headers.Response = res.statusCode + " The publisher can&#146;t find the page requested.";
+            res.headers.Status = res.statusCode + " The publisher can&#146;t find the page requested.";
             break;
 
         case 401:
         case 403:
-            res.headers.Response = res.statusCode + " The publisher of that page has not authorized you to use it.";
+            res.headers.Status = res.statusCode + " The publisher of that page has not authorized you to use it.";
             break;
 
         case 500:
-            res.headers.Response = res.statusCode + " The publisher of that page can&#146;t be reached.";
+            res.headers.Status = res.statusCode + " The publisher of that page can&#146;t be reached.";
             break;
 
         default:
-            res.headers.Response = res.statusCode + " " + res.statusMessage;
+            res.headers.Status = res.statusCode + " " + res.statusMessage;
             break;
     }
 
@@ -1251,7 +1270,7 @@ async function doHTTPProxy(socket, request_headers) {
 function stripHeaders(headers_obj, whitelist) {
     var whitelisted_headers = new Array();
     var out_headers = new Array();
-    out_headers.Response = headers_obj.Response;
+    out_headers.Status = headers_obj.Status;
     if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
 
     // compare regardless of case
@@ -1286,8 +1305,8 @@ function headerStringToObj(headers, response = false) {
     headers_obj_pre.forEach(function (d) {
         if (/^SECURE ON/.test(d) && !response) {
             headers_obj.secure = true;
-        } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response) {
-            headers_obj.Response = d.replace("\r", "");
+        } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response && !headers_obj.Status) {
+            headers_obj.Status = d.replace("\r", "");
         } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
             headers_obj.request = d.replace("\r", "");
             var request_url = d.split(' ');
@@ -1415,7 +1434,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     }
 
     // compress if needed
-    if (compression_type > 0 && content_length > 0 && headers_obj['Response'].substring(0, 3) == "200") {
+    if (compression_type > 0 && content_length > 0 && headers_obj['Status'].substring(0, 3) == "200") {
         var uncompressed_content_length = content_length;
         switch (compression_type) {
             case 1:
@@ -1502,7 +1521,7 @@ async function sendToClient(socket, headers_obj, data = null) {
         // header object to string
         if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing headers on socket ID", socket.id, headers_obj);
         Object.keys(headers_obj).forEach(function (k) {
-            if (k == "Response") {
+            if (k == "Status") {
                 headers += headers_obj[k] + end_of_line;
             } else {
                 if (k.indexOf('_') >= 0) {
@@ -1524,13 +1543,13 @@ async function sendToClient(socket, headers_obj, data = null) {
     // send to client
     if (socket.res) {
 
-        var resCode = parseInt(headers_obj.Response.substr(0, 3));
+        var resCode = parseInt(headers_obj.Status.substr(0, 3));
         headers_obj['x-powered-by'] = "Express via " + z_title;
         socket.res.writeHead(resCode, headers_obj);
         socket.res.end(data);
         var log_obj = Object.assign({}, socket.res.getHeaders());
         if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing PC headers on " + socket.service_name + " socket ID", socket.id, log_obj);
-        if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent response " + headers_obj.Response + " to PC client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
+        if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent response " + headers_obj.status + " to PC client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
     } else {
         var toClient = null;
         if (typeof data == 'string') {
@@ -1546,7 +1565,7 @@ async function sendToClient(socket, headers_obj, data = null) {
             } else {
                 sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
             }
-            if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.Response + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
+            if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.status + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
         }
     }
 }
