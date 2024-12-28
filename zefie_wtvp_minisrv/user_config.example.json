@@ -17,7 +17,7 @@
 		],
 		"php_enabled": true, // enables PHP CGI support
 		"php_binpath": "/usr/bin/php-cgi", // path to PHP CGI binary
-		"cgi_enabled": false, // disable CGI Support
+		"cgi_enabled": true, // enables CGI Support
 		"ssid_block_list": [
 			// list of SSID's to block
 			"8100000000000000",
