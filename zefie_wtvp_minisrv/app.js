@@ -9,7 +9,7 @@ const tls = require('tls');
 const zlib = require('zlib');
 const util = require('util');
 const {serialize, unserialize} = require('php-serialize');
-const exec = util.promisify(require('child_process').exec);
+const {spawn} = require('child_process');
 const http = require('follow-redirects').http
 const https = require('follow-redirects').https
 const httpx = require(classPath + "/HTTPX.js");
@@ -27,6 +27,7 @@ const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const vm = require('vm');
 const debug = require('debug')('minisrv_main');
 const express = require('express');
+
 var wtvnewsserver = null;
 
 process
@@ -349,7 +350,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
 
 async function handleCGI(executable, cgi_file, socket, request_headers, vault, service_name, session_data = null, extra_path = "")
 {
-    var env = process.env;    
+    var env = wtvshared.cloneObj(process.env);
     env.QUERY_STRING = "";
     var request_data = new Array();
     var split_req = request_headers.request.split(' ');
@@ -369,83 +370,100 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
             else request_data.port = 80;
         }
     }
-    // CGI/1.1 stuff
-    env.REDIRECT_STATUS = true;
-    env.MINISRV_SESSION_STORE = serialize((session_data) ? session_data.getSessionData() : null);
-    env.MINISRV_DATA_STORE = serialize((session_data) ? session_data.get() : null);
-    env.REQUEST_METHOD = request_data.method;
+    // CGI/1.1 stuff    
     env.SCRIPT_NAME = cgi_file.replace(vault,"");
-    env.SCRIPT_URI = request_type + "://" + request_data.host;
-    if (request_data.port != 80 && request_data.port != 443 ) env.SCRIPT_URI += ":" + request_data.port;
-    env.SCRIPT_URI += env.SCRIPT_NAME;
-    env.PATH_INFO = extra_path;
-    env.PATH_TRANSLATED = extra_path ? vault + extra_path : cgi_file;
-    env.GATEWAY_INTERFACE = "CGI/1.1";
-    env.SCRIPT_FILENAME = cgi_file;
-    env.SERVER_SOFTWARE = "Express via " + z_title;
-    env.SERVER_NAME = request_data.host;
-    env.SERVER_ADDR = request_data.host;
-    env.SERVER_PORT = request_data.port;
-    env.SERVER_PROTOCOL = (split_req.length >= 3) ? request_headers.request.split(' ')[2] : "HTTP/1.0";
-    env.REMOTE_ADDR = socket.remoteAddress;
-    env.REMOTE_PORT = socket.remotePort;
-    env.DOCUMENT_ROOT = vault;
-    env.ALL_RAW = request_headers.raw_headers;
-    env.ALL_HTTP = "";
-    var raw_header_split = env.ALL_RAW.split("\r\n");
-    raw_header_split.forEach(function (header) { 
-        if (header) {
-            header = header.split(": ");
-            if (header[1]) {
-                env.ALL_HTTP += "HTTP_"+header[0].toUpperCase().replaceAll("-","_") + ": " + header[1] + "\n";
-            } else {
-                header[0] = "REQUEST: "+header[0];
-                env.ALL_HTTP += "HTTP_"+header[0].replace("-","_")+"\n";
-            }
-        }
-    });
-
+    env.REQUEST_URI = request_headers.request_url;
     Object.keys(request_headers.query).forEach(function (k) {
         env.QUERY_STRING += k + "=" + request_headers.query[k] + "&";
     });
     env.QUERY_STRING = env.QUERY_STRING.substr(0, env.QUERY_STRING.length - 1);
-    console.log(env)
-
-    var options = { 'env': env };
-    if (executable == cgi_file) {
-        exec(cgi_file, options, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`CGI exec error: ${error}`);
-                var errpage = wtvshared.doErrorPage(500);
-                sendToClient(socket, errpage[0], error.toString());
-                return null;
+    env.REQUEST_METHOD = request_data.method;
+    env.SERVER_PROTOCOL = (split_req.length >= 3) ? request_headers.request.split(' ')[2] : "HTTP/1.0";
+    env.GATEWAY_INTERFACE = "CGI/1.1";
+    env.REMOTE_PORT = socket.remotePort;
+    env.SCRIPT_FILENAME = cgi_file;
+    env.SERVER_ADMIN = minisrv_config.config.service_owner_contact;
+    env.CONTEXT_DOCUMENT_ROOT = vault;
+    env.CONTEXT_PREFIX = "";
+    env.REQUEST_SCHEME = request_type;    
+    env.DOCUMENT_ROOT = vault;
+    env.REMOTE_ADDR = socket.remoteAddress;
+    env.SERVER_PORT = request_data.port;
+    env.SERVER_ADDR = request_data.host;
+    env.SERVER_NAME = request_data.host;
+    env.SERVER_SOFTWARE = "Node "+process.versions.node+" Express via " + z_title;;
+    env.SERVER_SIGNATURE = z_title;
+    env.ALL_RAW = request_headers.raw_headers;
+    var raw_header_split = env.ALL_RAW.split("\r\n");
+    raw_header_split.forEach(function (header) { 
+        if (header) {
+            header = header.split(": ");
+            if (header[0] == "Request") return;
+            if (header[1]) {
+                env["HTTP_"+header[0].toUpperCase().replaceAll("-","_")] = header[1];
             }
-    
-            stdout = stdout.toString().split("\r\n\r\n", 2);
-            var headers = stdout[0];
-            var data = stdout[1];
-            headers = headerStringToObj(headers, true);
-            if (!headers.Status) headers.Status = "200 OK";
-            headers['Connection'] = 'keep-alive';
-            sendToClient(socket, headers, data);
-        });
+        }
+    });
+    env.SCRIPT_URI = request_type + "://" + request_data.host;
+    if (request_data.port != 80 && request_data.port != 443 ) env.SCRIPT_URI += ":" + request_data.port;
+    env.SCRIPT_URI += env.SCRIPT_NAME;
+    env.SCRIPT_URL = env.SCRIPT_NAME;
+    env.PHP_SELF = env.SCRIPT_NAME;       
+    env.REQUEST_TIME_FLOAT = Math.floor(new Date().getTime() / 1000);
+    env.REQUEST_TIME = parseInt(env.REQUEST_TIME_FLOAT);
+
+    env.REDIRECT_STATUS = true;
+    if (request_headers['content-type']) env.CONTENT_TYPE = request_headers['content-type'];
+    else delete env['CONTENT_TYPE'];
+    if (request_headers['content-length']) env.CONTENT_LENGTH = request_headers['content-length'];
+    else delete env['CONTENT_LENGTH'];
+
+    var post_data = (request_headers['post_data']) ? request_headers['post_data'] : "";
+    env.MINISRV_SESSION_STORE = serialize((session_data) ? session_data.getSessionData() : null);
+    env.MINISRV_DATA_STORE = serialize((session_data) ? session_data.get() : null);
+
+    if (extra_path) {
+        env.PATH_INFO = extra_path;
+        env.PATH_TRANSLATED = extra_path ? vault + extra_path : "";
     } else {
-        exec(executable + " " + cgi_file, options, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`CGI exec error: ${error}`);
-                var errpage = wtvshared.doErrorPage(500);
-                sendToClient(socket, errpage[0], error.toString());
-                return null;
-            }            
-            stdout = stdout.toString().split("\r\n\r\n", 2);
-            var headers = stdout[0];
-            var data = stdout[1];
-            headers = headerStringToObj(headers, true);
-            if (!headers.Status) headers.Status = "200 OK";
-            headers['Connection'] = 'keep-alive';
-            sendToClient(socket, headers, data);
-        });
+        delete env['PATH_INFO'];
+        delete env['PATH_TRANSLATED'];
     }
+    
+    
+    var options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'uid': process.getuid(), 'gid': process.getgid(), 'stdio': 'overlapped' };
+    console.log(" * Executing CGI: " + executable + " " + cgi_file + " with options:", options);
+    var cgi = (executable == cgi_file) ? spawn(cgi_file, options=options) : spawn(executable, [cgi_file], options)
+    var data = "";
+    var error = "";
+    
+    if (request_headers['content-length'] && post_data) {
+        cgi.stdin.write(post_data);
+        cgi.stdin.end();
+    }
+
+    cgi.stdout.on('data', function (dat) {
+        data += dat;
+    });
+    cgi.stderr.on('data', function (dat) {
+        error += dat;
+    });
+    cgi.on('close', function (code) {
+        if (code != 0) {
+            console.error(`CGI exec error: ${code} (${error})`);
+            var errpage = wtvshared.doErrorPage(500);
+            sendToClient(socket, errpage[0], code + " " + error);
+            return null;
+        }
+        var stdout = data.split("\r\n\r\n", 2);
+        
+        var headers = stdout[0];
+        data = stdout[1];
+        headers = headerStringToObj(headers, true);
+        if (!headers.Status) headers.Status = "200 OK";
+        headers['Connection'] = 'keep-alive';
+        sendToClient(socket, headers, data);
+    });
 }
 
 
@@ -539,7 +557,6 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 }
                 if (service_vault_file_path.substr(-6, 6) == "/index") {
                     service_vault_file_path = getDirectoryIndex(service_vault_file_path.substr(0,service_vault_file_path.length-6));
-                    console.log(service_vault_file_path);
                 }
                 var is_dir = false;
                 var file_exists = false;
@@ -613,9 +630,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                             handlePHP(socket, request_headers, service_vault_file_path, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid])
                             return;
                         } else {
-                            console.log(service_vault_file_path);
                             var extra_path = (service_vault_file_path.lastIndexOf(".php") == -1) ? "" : service_vault_file_path.substr(service_vault_file_path.lastIndexOf(".php") + 4);
-                            service_vault_file_path = service_vault_file_path.replace(extra_path, "");
+                            service_vault_file_path = service_vault_file_path.substr(0, service_vault_file_path.indexOf(".php") + 4);
                             if (fs.existsSync(service_vault_file_path)) {
                                 service_vault_found = true;
                                 handlePHP(socket, request_headers, service_vault_file_path, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
@@ -820,9 +836,9 @@ async function processURL(socket, request_headers, pc_services = false) {
     if (request_headers.request_url) {
         service_name = request_headers.service_name;
         if (pc_services) {           
-            original_service_name = request_headers.service_name; // store service name
-            service_name = verifyServicePort(request_headers.service_name, socket); // get the actual ServiceVault path
-            delete request_headers.service_name;
+            original_service_name = socket.service_name; // store service name
+            service_name = verifyServicePort(socket.service_name, socket); // get the actual ServiceVault path
+            delete socket.service_name;
         }
         if (request_headers.request_url.indexOf('?') >= 0) {
             shortURL = request_headers.request_url.split('?')[0];
@@ -1724,27 +1740,20 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
             }
 
-            if (!socket.ssid) {
-                // process as pc service
-                processURL(socket, headers);
-                return;
-            }
-
-            if (!ssid_sessions[socket.ssid] || !socket.ssid) return headers;
-            if (!ssid_sessions[socket.ssid].getClientAddress()) ssid_sessions[socket.ssid].setClientAddress(socket.remoteAddress);
-            ssid_sessions[socket.ssid].checkSecurity();
-
-            if (headers["wtv-capability-flags"] != null) {
-                if (!ssid_sessions[socket.ssid]) {
-                    ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
-                    ssid_sessions[socket.ssid].SaveIfRegistered();
-                }
-                if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
-            }
-
-            // log all client wtv- headers to the SessionData for that SSID
-            // this way we can pull up client info such as wtv-client-rom-type or wtv-system-sysconfig
             if (socket.ssid) {
+                if (!ssid_sessions[socket.ssid] || !socket.ssid) return headers;
+                if (!ssid_sessions[socket.ssid].getClientAddress()) ssid_sessions[socket.ssid].setClientAddress(socket.remoteAddress);
+                if (ssid_sessions[socket.ssid]) ssid_sessions[socket.ssid].checkSecurity();
+
+                if (headers["wtv-capability-flags"] != null) {
+                    if (!ssid_sessions[socket.ssid]) {
+                        ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
+                        ssid_sessions[socket.ssid].SaveIfRegistered();
+                    }
+                    if (!ssid_sessions[socket.ssid].capabilities) ssid_sessions[socket.ssid].capabilities = new WTVClientCapabilities(headers["wtv-capability-flags"]);
+                }
+                // log all client wtv- headers to the SessionData for that SSID
+                // this way we can pull up client info such as wtv-client-rom-type or wtv-system-sysconfig
                 Object.keys(headers).forEach(function (k) {
                     if (k.substr(0, 4) === "wtv-") {
                         if (k === "wtv-incarnation" && socket_sessions[socket.id].wtvsec) {
@@ -2348,6 +2357,7 @@ if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 pc_bind_ports.every(function (v) {
     try {
         var server = express();
+        server.use(express.raw({ type: '*/*' }))
         var service_name = getServiceByPort(v);
         var service_handler = http;
         var server_opts = {};
@@ -2390,7 +2400,46 @@ pc_bind_ports.every(function (v) {
             request_headers.query = req.query;
             request_headers.service_name = service_name;
 
-            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
+            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
+            if (!ssl && minisrv_config.services[service_name].force_https && minisrv_config.services[service_name].https_cert) {
+                var headers = `302 Moved
+Location: https://${(minisrv_config.services[service_name].https_cert.domain) ? minisrv_config.services[service_name].https_cert.domain : minisrv_config.services[service_name].host}:${minisrv_config.services[service_name].port}${req.originalUrl}
+Content-type: text/html`;
+                sendToClient(req.socket, headers);
+            } else {
+                processURL(req.socket, request_headers, true)
+            }
+        })
+        server.post('*', (req, res) => {
+            var ssl = (req.socket.ssl) ? true : false;
+            var service_name = getServiceByPort(v);
+            req.socket.minisrv_pc_mode = true;
+            req.socket.res = res;
+            req.socket.service_name = service_name;
+            req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
+            socket_sessions[req.socket.id] = []; 
+
+            var request_headers = {};           
+            request_headers['request'] = "POST " + req.originalUrl + " HTTP/1.1";
+            request_headers.request_url = req.originalUrl;
+            request_headers.raw_headers = "Request: "+request_headers['request']+"\r\n";
+            Object.keys(req.headers).forEach(function (k) {
+                request_headers[k] = req.headers[k];
+                request_headers.raw_headers += k+": "+req.headers[k] + "\r\n";
+            });
+            request_headers.query = req.query;
+            console.log(req)
+            if (req.body) {
+                var data = "";
+                for (var i=0; i<req.body.length; i++) {
+                    data += String.fromCharCode(req.body[i]);
+                }
+                request_headers.post_data = data;
+            } else {
+                request_headers.post_data = "";
+            }
+
+            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC POST Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
             if (!ssl && minisrv_config.services[service_name].force_https && minisrv_config.services[service_name].https_cert) {
                 var headers = `302 Moved
 Location: https://${(minisrv_config.services[service_name].https_cert.domain) ? minisrv_config.services[service_name].https_cert.domain : minisrv_config.services[service_name].host}:${minisrv_config.services[service_name].port}${req.originalUrl}

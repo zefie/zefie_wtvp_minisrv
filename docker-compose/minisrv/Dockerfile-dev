@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-RUN apk add git bash php-cgi python3
+RUN apk add git bash php-cgi python3 php-mbstring php-dom php-xml php-mysqli php-tokenizer
 RUN npm install -g npm@latest 2>/dev/null > /dev/null
 
 VOLUME /workspace
