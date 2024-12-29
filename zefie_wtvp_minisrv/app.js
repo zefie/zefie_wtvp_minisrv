@@ -1,13 +1,13 @@
 'use strict';
 const path = require('path');
 var classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;
+require(classPath + "Prototypes.js");
+
 const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
 
 const fs = require('fs');
-const tls = require('tls');
 const zlib = require('zlib');
-const util = require('util');
 const {serialize, unserialize} = require('php-serialize');
 const {spawn} = require('child_process');
 const http = require('follow-redirects').http
@@ -30,10 +30,13 @@ const express = require('express');
 
 var wtvnewsserver = null;
 
+
+
+
 process
     .on('SIGTERM', shutdown('SIGTERM'))
     .on('SIGINT', shutdown('SIGINT'))
-    .on('uncaughtException', (e => { console.log(e); }));
+    .on('uncaughtException', (e => { console.error(e); }));
 
 
 function shutdown(signal = 'SIGTERM') {
@@ -163,42 +166,10 @@ var socket_sessions = new Array();
 var ports = [];
 var pc_ports = [];
 
-// add .reverse() feature to all JavaScript Strings in this application
-// works for service vault scripts too.
-if (!String.prototype.reverse) {
-    String.prototype.reverse = function () {
-        return this.split("").reverse().reverseArray.join("");
-    }
-}
-
-// for some reason making this a prototype override breaks newsie
-
-/*
-if (!Array.prototype.movekey) {
-    Array.prototype.movekey = function (from, to) {
-        this.splice(to, 0, this.splice(from, 1)[0]);
-        return this;
-    };
-}
-*/
-
 function moveArrayKey(array, from, to) {
     array.splice(to, 0, array.splice(from, 1)[0]);
     return array;
 };
-
-// add .getCaseInsensitiveKey() to all JavaScript Objects in this application {
-// works for service vault scripts too.
-
-if (!Object.prototype.getCaseInsensitiveKey) {
-    Object.prototype.getCaseInsensitiveKey = function (object_name, key_name) {
-        var foundKey = Object.keys(object_name).find(key => key.toLowerCase() === key_name.toLowerCase()) || null;
-        if (foundKey) {
-            // found a key
-            return object_name[foundKey];
-        } else return null;
-    }
-}
 
 function getServiceString(service, overrides = {}) {
     return wtvshared.getServiceString(service, overrides);
@@ -206,7 +177,7 @@ function getServiceString(service, overrides = {}) {
 
 
 async function sendRawFile(socket, path) {
-    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
+    if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found " + path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
     var contypes = wtvmime.getContentType(path);
     var headers = "200 OK\n"
     headers += "Content-Type: " + contypes[0] + "\n";
@@ -277,6 +248,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "Buffer": Buffer,
         "String": String,
         "Object": Object,
+        "Array": Array,
 
         // add any additional context objects provided with function call
         ...user_contextObj
@@ -357,7 +329,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     request_data.method = split_req[0];
     var request_type = (request_headers.request_url.indexOf(":/")) ? request_headers.request_url.split(":/")[0] : 'http';
     if (request_type != "http" && request_type != "https") {
-        request_type = "http";
+        request_type = "wtvp";
         request_data.host = minisrv_config.config.service_ip;
         request_data.port = minisrv_config.services[service_name].port;
     } else {
@@ -431,8 +403,8 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     }
     
     
-    var options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'uid': process.getuid(), 'gid': process.getgid(), 'stdio': 'overlapped' };
-    console.log(" * Executing CGI: " + executable + " " + cgi_file + " with options:", options);
+    var options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'uid': process.getuid(), 'gid': process.getgid(), 'stdio': 'overlapped' };        
+    if (!minisrv_config.config.debug_flags.quiet) (executable == cgi_file) ? console.debug(" * Executing CGI:", executable) : console.debug(" * Executing CGI:", executable, cgi_file);
     var cgi = (executable == cgi_file) ? spawn(cgi_file, options=options) : spawn(executable, [cgi_file], options)
     var data = "";
     var error = "";
@@ -449,23 +421,22 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
         error += dat;
     });
     cgi.on('close', function (code) {
-        if (code != 0) {
-            console.error(`CGI exec error: ${code} (${error})`);
-            var errpage = wtvshared.doErrorPage(500);
-            sendToClient(socket, errpage[0], code + " " + error);
-            return null;
+        if (code == 0) {
+            var stdout = data.split("\r\n\r\n", 2);
+            var headers = stdout[0];
+            data = stdout[1];
+            headers = headerStringToObj(headers, true);
+            if (!headers.Status) headers.Status = "200 OK";
+            headers['Connection'] = 'keep-alive';
+            sendToClient(socket, headers, data);
         }
-        var stdout = data.split("\r\n\r\n", 2);
-        
-        var headers = stdout[0];
-        data = stdout[1];
-        headers = headerStringToObj(headers, true);
-        if (!headers.Status) headers.Status = "200 OK";
-        headers['Connection'] = 'keep-alive';
-        sendToClient(socket, headers, data);
+    });
+    cgi.on('error', function (err) {
+        console.error("CGI exec error", err);
+        var errpage = wtvshared.doErrorPage(500);
+        sendToClient(socket, errpage[0], errpage[1]);
     });
 }
-
 
 async function handlePHP(socket, request_headers, php_file, vault, service_name, session_data = null, extra_path = "") {
     handleCGI(minisrv_config.config.php_binpath, php_file, socket, request_headers, vault, service_name, session_data, extra_path);
@@ -573,7 +544,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // raw text format, entire payload expected (headers and content)
                     service_vault_found = true;
                     request_is_async = true;
-                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".txt to handle request (Raw TXT Mode) [Socket " + socket.id + "]");
+                    if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found " + service_vault_file_path + ".txt to handle request (Raw TXT Mode) [Socket " + socket.id + "]");
                     request_headers.service_file_path = service_vault_file_path + ".txt";
                     fs.readFile(service_vault_file_path + ".txt", 'Utf-8', function (err, file_raw) {
                         if (file_raw.indexOf("\n\n") > 0) {
@@ -604,7 +575,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // In Asynchronous mode, you are expected to call sendToClient(socket,headers,data) by the end of your script
                     // `socket` is already defined and should be passed-through.
                     service_vault_found = true;
-                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
+                    if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found " + service_vault_file_path + ".js to handle request (JS Interpreter mode) [Socket " + socket.id + "]");
                     request_headers.service_file_path = service_vault_file_path + ".js";
                     // expose var service_dir for script path to the root of the wtv-service                    
                     socket_sessions[socket.id].starttime = Math.floor(new Date().getTime() / 1000);
@@ -620,8 +591,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         }
                     })
 
-                    if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
-                } else if (service_vault_file_path.indexOf(".php") > 0) {
+                    if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.debug(" * Script requested Asynchronous mode");
+                } else if (fs.existsSync(service_vault_file_path + ".php") || (service_vault_file_path.indexOf(".php") == service_vault_file_path.length - 4 && fs.existsSync(service_vault_file_path)) || fs.existsSync(service_vault_file_path + ".php")) {
                     request_is_async = true;
                     if (minisrv_config.config.php_enabled && minisrv_config.config.php_binpath) {
                         if (fs.existsSync(service_vault_file_path + ".php") || fs.existsSync(service_vault_file_path)) {
@@ -648,25 +619,37 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
-                } else if (fs.existsSync(service_vault_file_path + ".cgi") || (service_vault_file_path.indexOf(".cgi") == service_vault_file_path.length - 4 && fs.existsSync(service_vault_file_path))) {
-                    if (minisrv_config.config.cgi_enabled) {
-                        request_is_async = true;
-                        var extra_path = (service_vault_file_path.lastIndexOf(".cgi") == service_vault_file_path.length) ? "" : service_vault_file_path.substr(service_vault_file_path.lastIndexOf(".cgi"));
-                        service_vault_file_path = service_vault_file_path.substr(0, service_vault_file_path.lastIndexOf(".cgi"));
-                        if (fs.existsSync(service_vault_file_path + ".cgi")) service_vault_file_path += ".cgi";
-                        handleCGI(service_vault_file_path, service_vault_file_path, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path);
+                } else if (fs.existsSync(service_vault_file_path + ".cgi") || (service_vault_file_path.indexOf(".cgi") == service_vault_file_path.length - 4 && fs.existsSync(service_vault_file_path)) || fs.existsSync(service_vault_file_path + ".cgi")) {
+                    request_is_async = true;
+                    if (minisrv_config.config.php_enabled && minisrv_config.config.php_binpath) {
+                        if (fs.existsSync(service_vault_file_path + ".cgi") || fs.existsSync(service_vault_file_path)) {
+                            if (fs.existsSync(service_vault_file_path + ".cgi")) service_vault_file_path += ".cgi";
+                            service_vault_found = true;
+                            handleCGI(service_vault_file_path, service_vault_file_path, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid])
+                            return;
+                        } else {
+                            var extra_path = (service_vault_file_path.lastIndexOf(".cgi") == -1) ? "" : service_vault_file_path.substr(service_vault_file_path.lastIndexOf(".cgi") + 4);
+                            service_vault_file_path = service_vault_file_path.substr(0, service_vault_file_path.indexOf(".cgi") + 4);
+                            if (fs.existsSync(service_vault_file_path)) {
+                                service_vault_found = true;
+                                handleCGI(service_vault_file_path, service_vault_file_path, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
+                                return;
+                            } else if (service_vault_dir == vaults_to_scan[vaults_to_scan.length - 1]) {
+                                var errpage = wtvshared.doErrorPage(404);
+                                sendToClient(socket, errpage[0], errpage[1]);
+                                return;    
+                            }
+                        }
                     } else {
-                        // cgi is not enabled, don't expose source code
-                        request_is_async = true;
+                        // php is not enabled, don't expose source code
                         var errpage = wtvshared.doErrorPage(403);
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
-                
                 } else if (fs.existsSync(service_vault_file_path + ".html")) {
                     // Standard HTML with no headers, WTV Style
                     service_vault_found = true;
-                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found " + service_vault_file_path + ".html to handle request (HTML Mode) [Socket " + socket.id + "]");
+                    if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found " + service_vault_file_path + ".html to handle request (HTML Mode) [Socket " + socket.id + "]");
                     request_headers.service_file_path = service_vault_file_path + ".html";
                     request_is_async = true;
                     headers = "200 OK\n"
@@ -761,7 +744,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                 var catchall_file = service_check_dir.join(path.sep) + path.sep + minisrv_catchall_file_name;
                                 if (fs.existsSync(catchall_file)) {
                                     service_vault_found = true;
-                                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
+                                    if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                     request_headers.service_file_path = catchall_file;
                                     var script_data = fs.readFileSync(catchall_file).toString();
 
@@ -776,7 +759,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                         }
                                     });
 
-                                    if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.log(" * Script requested Asynchronous mode");
+                                    if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.debug(" * Script requested Asynchronous mode");
                                     break;
                                 } else {
                                     service_check_dir.pop();
@@ -834,11 +817,10 @@ async function processURL(socket, request_headers, pc_services = false) {
     var allow_double_slash, enable_multi_query, use_external_proxy = false;
     request_headers.query = {};
     if (request_headers.request_url) {
-        service_name = request_headers.service_name;
+        service_name = socket.service_name;
         if (pc_services) {           
             original_service_name = socket.service_name; // store service name
             service_name = verifyServicePort(socket.service_name, socket); // get the actual ServiceVault path
-            delete socket.service_name;
         }
         if (request_headers.request_url.indexOf('?') >= 0) {
             shortURL = request_headers.request_url.split('?')[0];
@@ -949,7 +931,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                 headers += "minisrv-no-mail-count: true\n";
                 data = "";
                 sendToClient(socket, headers, data);
-                console.log(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
+                console.warn(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
                 return;
             }
 
@@ -961,7 +943,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                     headers += "minisrv-no-mail-count: true\n";
                     data = "";
                     sendToClient(socket, headers, data);
-                    console.log(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
+                    console.warn(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
                     return;
                 }
             }
@@ -981,7 +963,7 @@ Location: ${minisrv_config.config.unauthorized_url}
 minisrv-no-mail-count: true`;
                 data = "";
                 sendToClient(socket, headers, data);
-                console.log(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
+                console.warn(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
                 return;
             }
         }
@@ -1020,7 +1002,7 @@ minisrv-no-mail-count: true`;
                     // detect if client is trying to load wtv-star due to client-perceived error
                     if (getSocketDestinationPort(socket) == getPortByService("wtv-star")) {
                         // is wtv-star
-                        if (minisrv_config.config.debug_flags.debug) console.log(" * client requested", shortURL, "on wtv-star port", getSocketDestinationPort(socket))
+                        if (minisrv_config.config.debug_flags.debug) console.debug(" * client requested", shortURL, "on wtv-star port", getSocketDestinationPort(socket))
                         shortURL = "wtv-star:/star";
                         service_name = "wtv-star";
                     } else {
@@ -1037,7 +1019,7 @@ minisrv-no-mail-count: true`;
             if ((shortURL.indexOf(":/ROMCache/") != -1 || shortURL.indexOf("://ROMCache/") != -1) && minisrv_config.config.enable_shared_romcache) {
                 shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split(':/')[1]);
             } 
-            if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
+            if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
@@ -1058,7 +1040,7 @@ minisrv-no-mail-count: true`;
         } else {
             if (request_headers.request.indexOf("HTTP/1.0") > 0) {
                 // webtv in HTTP/1.0 mode, try to kick it back to WTVP
-                if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming invalid headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
+                if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming headers (HTTP/1.0) on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
                 var errpage = wtvshared.doErrorPage(500, null, null, false, true);
                 headers = errpage[0];
                 data = ''
@@ -1066,7 +1048,7 @@ minisrv-no-mail-count: true`;
                 sendToClient(socket, headers, data);
             } else {
                 // error reading headers (no request_url provided)
-                if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming invalid headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
+                if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming headers (INVALID) on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
                 var errpage = wtvshared.doErrorPage(400, null, null, false, true);
                 headers = errpage[0];
                 data = ''
@@ -1075,11 +1057,6 @@ minisrv-no-mail-count: true`;
             }
         }
     }
-}
-
-Array.prototype.replace = function(sub, newSub) {
-    splits = this.split(sub, 2);
-    return Array.concat(splits[0], newSub, splits[1])
 }
 
 function handleProxy(socket, request_type, request_headers, res, data) {
@@ -1163,7 +1140,7 @@ async function doHTTPProxy(socket, request_headers) {
     var idx = request_headers.request_url.indexOf('/') - 1;
 
     var request_type = request_headers.request_url.substring(0, idx);
-    if (minisrv_config.config.debug_flags.show_headers) console.log(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
+    if (minisrv_config.config.debug_flags.show_headers) console.debug(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
     switch (request_type) {
         case "https":
             var proxy_agent = https;
@@ -1245,7 +1222,7 @@ async function doHTTPProxy(socket, request_headers) {
                 if (minisrv_config.services[request_type].external_proxy_is_http1 && data.length > 0) {
                     handleProxy(socket, request_type, request_headers, res, data);
                 } else {
-                    console.log(" * Unhandled Proxy Request Error:", err);
+                    console.error(" * Unhandled Proxy Request Error:", err);
                 }
             });
 
@@ -1260,15 +1237,14 @@ async function doHTTPProxy(socket, request_headers) {
             var errpage, headers, data = null;
             if (err.code == "ENOTFOUND" || err.message.indexOf("HostUnreachable") > 0) {
                 errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
+                sendToClient(socket, errpage[0], errpage[1]);
             } else {
                 if (minisrv_config.services[request_type].external_proxy_is_http1 && !data_handled) {
                     handleProxy(socket, request_type, request_headers, res, data);
                 } else {
-                    console.log(" * Unhandled Proxy Request Error:", err);
+                    console.error(" * Unhandled Proxy Request Error:", err);
                     errpage = wtvshared.doErrorPage(400);
-                    headers = errpage[0];
-                    data = errpage[1];
-                    sendToClient(socket, headers, data);
+                    sendToClient(socket, errpage[0], errpage[1]);
                 }
             }
            
@@ -1393,7 +1369,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     // add Connection header if missing, default to Keep-Alive
     if (!headers_obj.Connection) {
         headers_obj.Connection = "Keep-Alive";
-        headers_obj = wtvshared.moveObjectElement('Connection', 'Response', headers_obj);
+        headers_obj = wtvshared.moveObjectKey('Connection', 'Status', headers_obj);
     }
 
     var content_length = 0;
@@ -1407,9 +1383,16 @@ async function sendToClient(socket, headers_obj, data = null) {
     if (headers_obj["raw_headers"]) {
         delete headers_obj["raw_headers"];
     }
-    if (headers_obj["Content-type"]) {
-        headers_obj["Content-Type"] = headers_obj["Content-type"];
-        delete headers_obj["Content-type"];
+    var contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
+    if (contype_key) {
+        if (socket.ssid && headers_obj[contype_key].indexOf(";") > 0) {
+            // WebTV client
+            headers_obj[contype_key] = headers_obj[contype_key].split(";")[0];
+        }
+        if (contype_key != "Content-type") {        
+            headers_obj["Content-type"] = headers_obj[contype_key];
+            delete headers_obj[contype_key];
+        }
     }
 
     // Add last modified if not a dynamic script
@@ -1481,16 +1464,16 @@ async function sendToClient(socket, headers_obj, data = null) {
         }
         var compression_ratio = (uncompressed_content_length / compressed_content_length).toFixed(2);
         var compression_percentage = ((1 - (compressed_content_length / uncompressed_content_length)) * 100).toFixed(1);
-        if (uncompressed_content_length != compressed_content_length) if (minisrv_config.config.debug_flags.debug) console.log(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_ratio, "~ Saved:", compression_percentage.toString() + "%");
+        if (uncompressed_content_length != compressed_content_length) if (minisrv_config.config.debug_flags.debug) console.debug(" # Compression stats: Orig Size:", uncompressed_content_length, "~ Comp Size:", compressed_content_length, "~ Ratio:", compression_ratio, "~ Saved:", compression_percentage.toString() + "%");
     }
 
     if (!socket.res) {
         // encrypt if needed
         if (socket_sessions[socket.id].secure == true && !socket_sessions[socket.id].do_not_encrypt) {
             headers_obj["wtv-encrypted"] = 'true';
-            headers_obj = wtvshared.moveObjectElement('wtv-encrypted', 'Connection', headers_obj);
+            headers_obj = wtvshared.moveObjectKey('wtv-encrypted', 'Connection', headers_obj);
             if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
-                if (!minisrv_config.config.debug_flags.quiet) console.log(" * Encrypting response to client ...")
+                if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Encrypting response to client ...")
                 var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
                 data = enc_data;
             }
@@ -1525,7 +1508,7 @@ async function sendToClient(socket, headers_obj, data = null) {
                 if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64) {
                     if (ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket) {
                         headers_obj["wtv-ticket"] = ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64;
-                        headers_obj = wtvshared.moveObjectElement("wtv-ticket", "Connection", headers_obj);
+                        headers_obj = wtvshared.moveObjectKey("wtv-ticket", "Connection", headers_obj);
                         ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket = false;
                     }
                 }
@@ -1533,9 +1516,26 @@ async function sendToClient(socket, headers_obj, data = null) {
         }
     }
 
+    // rearranges headers for WebTV (and zefie's OCD)
+    headers_obj = wtvshared.moveObjectKey("Status", 0, headers_obj); // move Status to top
+    headers_obj = wtvshared.moveObjectKey("Connection", 1, headers_obj); // move Connection to second
+    headers_obj = wtvshared.moveObjectKey("Content-type", -1, headers_obj); // move Content-type to last
+    headers_obj = wtvshared.moveObjectKey("Content-length", "Content-type", headers_obj); // move Content-length to before Content-type
+
+    // remove x-powered-by header if client is WebTV
+    var xpower = wtvshared.getCaseInsensitiveKey("x-powered-by", headers_obj);
+    if (!xpower) {
+        // add X-Powered-By header if not WebTV and not already set
+        if (!socket.ssid) headers_obj['X-Powered-By'] = "NodeJS ("+process.version+") Express via " + z_title;
+    } else {
+        // delete if webtv
+        if (socket.ssid) delete headers_obj[xpower];
+    }
+    headers_obj = wtvshared.moveObjectKey("x-powered-by", -2, headers_obj, true) // move x-powered-by before Content-type
+
     if (!socket.res) {
         // header object to string
-        if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing headers on socket ID", socket.id, headers_obj);
+        if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Outgoing headers on socket ID", socket.id, headers_obj);
         Object.keys(headers_obj).forEach(function (k) {
             if (k == "Status") {
                 headers += headers_obj[k] + end_of_line;
@@ -1555,17 +1555,13 @@ async function sendToClient(socket, headers_obj, data = null) {
             }
         }
     }
-
     // send to client
     if (socket.res) {
-
-        var resCode = parseInt(headers_obj.Status.substr(0, 3));
-        headers_obj['x-powered-by'] = "Express via " + z_title;
+        var resCode = parseInt(headers_obj.Status.substr(0, 3));        
         socket.res.writeHead(resCode, headers_obj);
         socket.res.end(data);
-        var log_obj = Object.assign({}, socket.res.getHeaders());
-        if (minisrv_config.config.debug_flags.show_headers) console.log(" * Outgoing PC headers on " + socket.service_name + " socket ID", socket.id, log_obj);
-        if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent response " + headers_obj.status + " to PC client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
+        if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Outgoing PC headers on " + socket.service_name + " socket ID", socket.id, headers_obj);
+        if (minisrv_config.config.debug_flags.quiet) console.debug(" * Sent response " + headers_obj.status + " to PC client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
     } else {
         var toClient = null;
         if (typeof data == 'string') {
@@ -1581,7 +1577,7 @@ async function sendToClient(socket, headers_obj, data = null) {
             } else {
                 sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
             }
-            if (minisrv_config.config.debug_flags.quiet) console.log(" * Sent" + verbosity_mod + " " + headers_obj.status + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
+            if (minisrv_config.config.debug_flags.quiet) console.debug(" * Sent" + verbosity_mod + " " + headers_obj.status + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
         }
     }
 }
@@ -1631,6 +1627,8 @@ async function sendToSocket(socket, data) {
 }
 
 function concatArrayBuffer(buffer1, buffer2) {
+    if (!buffer1) return buffer2;
+    if (!buffer2) return buffer1;
     var tmp = new Uint8Array(buffer1.byteLength + buffer2.byteLength);
     tmp.set(new Uint8Array(buffer1), 0);
     tmp.set(new Uint8Array(buffer2), buffer1.byteLength);
@@ -1684,7 +1682,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     // its not a POST and it failed the isUnencryptedString test, so we think this is an encrypted blob
                     if (socket_sessions[socket.id].secure != true) {
                         // first time so reroll sessions
-                        //                        if (minisrv_config.config.debug_flags.debug) console.log(" # [ UNEXPECTED BINARY BLOCK ] First sign of encryption, re-creating RC4 sessions for socket id", socket.id);
                         socket_sessions[socket.id].wtvsec = new WTVSec(minisrv_config);
                         socket_sessions[socket.id].wtvsec.IssueChallenge();
                         socket_sessions[socket.id].wtvsec.SecureOn();
@@ -1781,7 +1778,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     } else {
                         if (ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 != headers["wtv-ticket"]) {
                             if (!ssid_sessions[socket.ssid].data_store.wtvsec_login.update_ticket) {
-                                if (minisrv_config.config.debug_flags.debug) console.log(" # New ticket from client");
+                                if (minisrv_config.config.debug_flags.debug) console.debug(" # New ticket from client");
                                 ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64 = headers["wtv-ticket"];
                                 ssid_sessions[socket.ssid].data_store.wtvsec_login.DecodeTicket(ssid_sessions[socket.ssid].data_store.wtvsec_login.ticket_b64);
                                 if (headers["wtv-incarnation"]) ssid_sessions[socket.ssid].data_store.wtvsec_login.set_incarnation(headers["wtv-incarnation"]);
@@ -1800,7 +1797,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 
             if ((headers.secure === true || headers.encrypted === true) && !skipSecure) {
                 if (!socket_sessions[socket.id].wtvsec) {
-                    if (!minisrv_config.config.debug_flags.quiet) console.log(" * Starting new WTVSec instance on socket", socket.id);
+                    if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Starting new WTVSec instance on socket", socket.id);
                     if (ssid_sessions[socket.ssid].get("wtv-incarnation")) {
                         socket_sessions[socket.id].wtvsec = new WTVSec(minisrv_config, ssid_sessions[socket.ssid].get("wtv-incarnation"));
                     } else {
@@ -1812,7 +1809,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
                 if (socket_sessions[socket.id].secure != true) {
                     // first time so reroll sessions
-                    //if (minisrv_config.config.debug_flags.debug) console.log(" # [ SECURE ON BLOCK (" + socket.id + ") ]");
                     socket_sessions[socket.id].secure = true;
                 }
                 if (!headers.request_url) {
@@ -1846,8 +1842,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (!secure_headers) return;
 
                         delete socket_sessions[socket.id].secure_buffer;
-                        if (minisrv_config.config.debug_flags.debug) console.log(" # Encrypted Request (SECURE ON)", "on", socket.id);
-                        //if (minisrv_config.config.debug_flags.show_headers) console.log(wtvshared.filterRequestLog(secure_headers));
+                        if (minisrv_config.config.debug_flags.debug) console.debug(" # Encrypted Request (SECURE ON)", "on", socket.id);
                         if (!secure_headers.request) {
                             socket_sessions[socket.id].secure = false;
                             var errpage = wtvshared.doErrorPage(400);
@@ -1960,7 +1955,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 
                             if (minisrv_config.config.post_debug) {
                                 // `post_debug` logging of every chunk
-                                console.log(" * ", Math.floor(new Date().getTime() / 1000), "Receiving", post_string, "data on", socket.id, "[", socket_sessions[socket.id].post_data.length / 2, "of", socket_sessions[socket.id].post_data_length, "bytes ]");
+                                console.debug(" * ", Math.floor(new Date().getTime() / 1000), "Receiving", post_string, "data on", socket.id, "[", socket_sessions[socket.id].post_data.length / 2, "of", socket_sessions[socket.id].post_data_length, "bytes ]");
                             } else {
                                 // calculate and display percentage of data received
                                 var postPercent = wtvshared.getPercentage(socket_sessions[socket.id].post_data.length, (socket_sessions[socket.id].post_data_length * 2));
@@ -1968,7 +1963,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                     if (minisrv_config.config.post_percentages.includes(postPercent)) {
                                         if (!socket_sessions[socket.id].post_data_percents_shown) socket_sessions[socket.id].post_data_percents_shown = new Array();
                                         if (!socket_sessions[socket.id].post_data_percents_shown[postPercent]) {
-                                            console.log(" * Received", postPercent, "% of", socket_sessions[socket.id].post_data_length, "bytes on", socket.id, "from", wtvshared.filterSSID(socket.ssid));
+                                            console.debug(" * Received", postPercent, "% of", socket_sessions[socket.id].post_data_length, "bytes on", socket.id, "from", wtvshared.filterSSID(socket.ssid));
                                             socket_sessions[socket.id].post_data_percents_shown[postPercent] = true;
                                         }
                                         if (postPercent == 100) delete socket_sessions[socket.id].post_data_percents_shown;
@@ -1982,9 +1977,9 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                             headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                             if (socket_sessions[socket.id].secure == true) {
-                                if (minisrv_config.config.debug_flags.debug) console.log(" # Encrypted POST Content (SECURE ON)", "on", socket.id, "[", headers.post_data.sigBytes, "bytes ]");
+                                if (minisrv_config.config.debug_flags.debug) console.debug(" # Encrypted POST Content (SECURE ON)", "on", socket.id, "[", headers.post_data.sigBytes, "bytes ]");
                             } else {
-                                if (minisrv_config.config.debug_flags.debug) console.log(" # Unencrypted POST Content", "on", socket.id);
+                                if (minisrv_config.config.debug_flags.debug) console.debug(" # Unencrypted POST Content", "on", socket.id);
                             }
                             socket_sessions[socket.id].expecting_post_data = false;
                             delete socket_sessions[socket.id].headers;
@@ -1997,7 +1992,9 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                             // got too much data ? ... should not ever reach this code
-                            var errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length);
+                            var errmsg = "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length;
+                            console.error(errmsg);
+                            var errpage = wtvshared.doErrorPage(400, null, errmsg);
                             headers = errpage[0];
                             data = errpage[1];
                             sendToClient(socket, headers, data);
@@ -2090,7 +2087,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 async function cleanupSocket(socket) {
     try {
         if (socket_sessions[socket.id]) {
-            if (!minisrv_config.config.debug_flags.quiet) console.log(" * Cleaning up disconnected socket", socket.id);
+            if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Cleaning up disconnected socket", socket.id);
             delete socket_sessions[socket.id];
         }
         if (socket.ssid) {
@@ -2110,7 +2107,7 @@ async function cleanupSocket(socket) {
                 // set timeout to check 
                 ssid_sessions[socket.ssid].data_store.socket_check = setTimeout(function (ssid) {
                     if (ssid_sessions[ssid].currentConnections() === 0) {
-                        if (!minisrv_config.config.debug_flags.quiet) console.log(" * WebTV SSID", wtvshared.filterSSID(ssid), "has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
+                        if (!minisrv_config.config.debug_flags.quiet) console.debug(" * WebTV SSID", wtvshared.filterSSID(ssid), "has not been seen in", (timeout / 1000), "seconds, cleaning up session data for this SSID");
                         delete ssid_sessions[ssid];
                     }
                 }, timeout, socket.ssid);
@@ -2255,6 +2252,7 @@ if (minisrv_config.config.SessionStore) {
 
 var service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
+    if (typeof(minisrv_config.services[k]) === 'function') return;
     if (configureService(k, minisrv_config.services[k], true)) {
         var using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
         console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
@@ -2398,7 +2396,6 @@ pc_bind_ports.every(function (v) {
                 request_headers.raw_headers += k+": "+req.headers[k] + "\r\n";
             });
             request_headers.query = req.query;
-            request_headers.service_name = service_name;
 
             if (minisrv_config.config.debug_flags.show_headers) console.log(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
             if (!ssl && minisrv_config.services[service_name].force_https && minisrv_config.services[service_name].https_cert) {
@@ -2428,7 +2425,6 @@ Content-type: text/html`;
                 request_headers.raw_headers += k+": "+req.headers[k] + "\r\n";
             });
             request_headers.query = req.query;
-            console.log(req)
             if (req.body) {
                 var data = "";
                 for (var i=0; i<req.body.length; i++) {

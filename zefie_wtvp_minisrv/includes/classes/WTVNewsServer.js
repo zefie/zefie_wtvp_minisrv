@@ -228,13 +228,13 @@ class WTVNewsServer {
             post_data.headers['Injection-Date'] = this.strftime("%a, %-d %b %Y %H:%M:%S %z", Date.parse(Date.now()))
 
             // Reorder headers per examples in RFC3977 sect 6.2.1.3, not sure if needed
-            post_data.headers = this.wtvshared.moveObjectElement('Path', null, post_data.headers, true);
-            post_data.headers = this.wtvshared.moveObjectElement('From', 'Path', post_data.headers, true);
-            post_data.headers = this.wtvshared.moveObjectElement('Newsgroups', 'From', post_data.headers, true);
-            post_data.headers = this.wtvshared.moveObjectElement('Subject', 'Newsgroups', post_data.headers, true);
-            post_data.headers = this.wtvshared.moveObjectElement('Date', 'Subject', post_data.headers, true);
-            post_data.headers = this.wtvshared.moveObjectElement('Organization', 'Date', post_data.headers, true);
-            post_data.headers = this.wtvshared.moveObjectElement('Message-ID', 'Organization', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectKey('Path', null, post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectKey('From', 'Path', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectKey('Newsgroups', 'From', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectKey('Subject', 'Newsgroups', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectKey('Date', 'Subject', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectKey('Organization', 'Date', post_data.headers, true);
+            post_data.headers = this.wtvshared.moveObjectKey('Message-ID', 'Organization', post_data.headers, true);
             // end reordering of headers
 
             if (this.articleExists(group, post_data.articleNumber)) return false // should not occur, but just in case
