@@ -95,9 +95,9 @@ class WTVRegister {
         }
         data += `<display nooptions>
 
-   <table width=520 align=center cellspacing=0 cellpadding=0>
+   <table width=480 align=center cellspacing=0 cellpadding=0>
       <tr>
-         <td height=272>
+         <td height=242>
             <font size=+1>
                ${main_content}
                <p>

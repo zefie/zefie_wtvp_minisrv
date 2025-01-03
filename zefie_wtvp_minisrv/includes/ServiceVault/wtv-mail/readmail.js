@@ -42,10 +42,13 @@ Content-type: text/html`;
 
 
                 var message_colors = null;
-
-                if (message.body.indexOf("<body")) {
-                    var default_colors = session_data.mailstore.defaultColors;
-                    var message_colors = session_data.mailstore.getSignatureColors(message.body);
+                if (message.body) {
+                    if (message.body.indexOf("<body")) {
+                        var default_colors = session_data.mailstore.defaultColors;
+                        var message_colors = session_data.mailstore.getSignatureColors(message.body);
+                    }
+                } else {
+                    message_colors = session_data.mailstore.defaultColors;
                 }
                 if (message.signature) message_colors = session_data.mailstore.getSignatureColors(message.signature);
 
@@ -282,13 +285,14 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
                 if (typeof message.body === "object" && message.body) {
                     message.body = wtvshared.decodeBufferText(message.body);
                 }
-                if (message.body) message.body = message.body.replace(/\n/g, "<br><br>");
-                if (message.body.indexOf("<html>") >= 0) {
-                    message.allow_html = true;
+                if (message.body) {
+                    message.body = message.body.replace(/\n/g, "<br><br>");
+                    if (message.body.indexOf("<html>") >= 0) {
+                        message.allow_html = true;
+                    }                
+                    data += `${(message.allow_html) ? wtvshared.sanitizeSignature(message.body) : wtvshared.htmlEntitize(message.body, true)}`
                 }
-                data += `${(message.allow_html) ? wtvshared.sanitizeSignature(message.body) : wtvshared.htmlEntitize(message.body, true)}
-<br>
-<br>`;
+                data += "<br><br>";
                 if (message.signature) {
                     data += wtvshared.sanitizeSignature(message.signature);
                 }
@@ -296,8 +300,7 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
 `;
                 if (Array.isArray(message.attachments)) {
                     message.attachments.forEach((v, k) => {
-                        if (v) {
-                            console.log("*****************", v['Content-Type']);
+                        if (v) {                            
                             switch (v['Content-Type']) {
                                 case "image/jpeg":
                                     data += `<img border=2 src="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Video%20Snapshot" width="380" height="290"><br><br>`;

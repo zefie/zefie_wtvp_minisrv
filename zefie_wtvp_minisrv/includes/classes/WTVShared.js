@@ -349,7 +349,7 @@ class WTVShared {
 
     utf8Decode(utf8String) {
         if (typeof utf8String !== 'string') {
-            throw new TypeError('parameter ‘utf8String’ is not a string');
+            throw new TypeError('parameter ï¿½utf8Stringï¿½ is not a string');
         }
         const textDecoder = new TextDecoder('utf-8');
         const bytes = new Uint8Array(utf8String.split('').map(c => c.charCodeAt(0)));
@@ -480,57 +480,6 @@ class WTVShared {
         else return this.parseSSID(ssid).manufacturer || null;
     }
 
-    /**
-     * Moves an object to the desired location in the object (reorder)
-     * @param {string} currentKey Name of the object Key to move
-     * @param {string} afterKey  Name of the object key to place currentKey after
-     * @param {object} obj The object to work on
-     * @param {boolean} caseInsensitive
-     * @returns {object} The modified object
-     */
-    moveObjectElement(currentKey, afterKey, obj, caseInsensitive = false) {
-        let keys = Object.keys(obj);
-        let values = Object.values(obj);
-
-        if (caseInsensitive) {
-            const lowerCurrentKey = currentKey.toLowerCase();
-            const foundKey = keys.find(k => k.toLowerCase() === lowerCurrentKey);
-            currentKey = foundKey || currentKey;
-        }
-
-        const afterKeyIndex = typeof afterKey === 'string' ?
-            keys.findIndex(k => caseInsensitive ? k.toLowerCase() === afterKey.toLowerCase() : k === afterKey)
-            : -1;
-
-        if (afterKeyIndex === -1) {
-            // If afterKey is not found or not defined, don't move the element
-            return obj;
-        }
-
-        const currentIndex = keys.indexOf(currentKey);
-        if (currentIndex === -1) {
-            // If currentKey is not found, don't move the element
-            return obj;
-        }
-
-        // Remove the current element from keys and values
-        const [currentKeyValue] = values.splice(currentIndex, 1);
-        keys.splice(currentIndex, 1);
-
-        // Insert the current element after the afterKey position
-        keys.splice(afterKeyIndex + 1, 0, currentKey);
-        values.splice(afterKeyIndex + 1, 0, currentKeyValue);
-
-        // Reconstruct the object with the new order
-        const result = {};
-        keys.forEach((key, index) => {
-            result[key] = values[index];
-        });
-
-        return result;
-    }
-
-
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
         const log = (msg) => {
             if (notices || reload_notice) console.log(msg);
@@ -608,7 +557,7 @@ class WTVShared {
                     var new_user_config = {};
                     Object.assign(new_user_config, minisrv_user_config, config);
                     if (this.minisrv_config.config.debug_flags.debug) console.log(" * Writing new user configuration...");
-                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.parentDirectory), JSON.stringify(new_user_config, null, "\t"));
+                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.appdir), JSON.stringify(new_user_config, null, "\t"));
                     return true;
                 }
                 catch (e) {
@@ -827,6 +776,7 @@ class WTVShared {
                     }
                 });
             }
+            delete newobj.raw_headers;
 
             return newobj;
         }
@@ -1159,6 +1109,67 @@ class WTVShared {
      */
     getTemplate(service_name, path, path_only = false) {
         return this.getServiceDep(service_name + this.path.sep + path, path_only, true);
+    }
+
+
+    /**
+     * Finds a key in an object
+     * @param {string} key The key to find
+     * @param {object} obj The object to search
+     * @param {boolean} case_insensitive Search case insensitive
+     * @returns 
+     */
+    findObjectKeyIndex(key, obj, case_insensitive = false) {
+        const keys = Object.keys(obj);
+        if (case_insensitive) {
+            key = key.toLowerCase();
+            return keys.findIndex(k => k.toLowerCase() === key);
+        }
+        return keys.indexOf(key);
+    }
+    /**
+     * Moves an object to the desired location in the object (reorder)
+     * @param {string|int} currentKey Name of the object Key to move or the index to move
+     * @param {string|int} destKey Name of the object key to place currentKey after or the index to place it at
+     * @param {object} obj The object to work on
+     * @param {boolean} case_insensitive Search case insensitive
+     * @returns {object} The modified object
+     */
+    moveObjectKey(currentKey, destKey, obj, case_insensitive = false) {
+        let keys = Object.keys(obj);
+        let values = Object.values(obj);
+
+        const currentIndex = typeof currentKey === 'string' ? this.findObjectKeyIndex(currentKey, obj, case_insensitive) : parseInt(currentKey);
+        if (currentIndex === -1) return obj;
+
+        var destIndex = typeof destKey === 'string' ? this.findObjectKeyIndex(destKey, obj, case_insensitive) : parseInt(destKey);
+
+        // Bump by one if the destKey is a string (put after the key)
+        if (typeof destKey === 'string' && destIndex !== -1) destIndex++;
+
+        // If destKey is not found or not defined, don't move the element
+        if (isNaN(destIndex)) return obj;
+
+        // Remove the current element from keys and values
+        const [currentKeyValue] = values.splice(currentIndex, 1);
+        const [currentKeyName] = keys.splice(currentIndex, 1);
+
+        // Insert the current element after the destKey position
+        keys.splice(destIndex, 0, currentKeyName);
+        values.splice(destIndex, 0, currentKeyValue);
+
+        // Reconstruct the object with the new order
+        const result = {};
+        keys.forEach((key, index) => {
+            result[key] = values[index];
+        });
+
+        return result;
+    }
+
+    getCaseInsensitiveKey(key, obj) {
+        const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+        return foundKey || null;
     }
 }
 

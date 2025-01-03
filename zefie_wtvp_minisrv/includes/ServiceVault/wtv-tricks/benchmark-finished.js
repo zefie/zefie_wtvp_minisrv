@@ -24,10 +24,11 @@ if (isNaN(start_time)) {
 	var image_size = fs.statSync(image_filename).size
 	var image_size_kb = parseFloat(image_size / 1024).toFixed(3);
 	var throughput = parseFloat((image_size / download_time) * 1024).toFixed(0);
+	var throughput_bps = parseInt(throughput * 8)
 	data += `
 <table>
 <tr>
-        <td height=20>
+        <td height=5>
 <tr>
 	<td valign=top align=right width=200><shadow>POP Number:</shadow>
 	<td width=10>
@@ -61,18 +62,21 @@ if (isNaN(start_time)) {
 <tr>
 	<td valign=top align=right><shadow>Throughput:</shadow>
 	<td width=10>
-	<td valign=top>${throughput} bytes/sec
+	<td valign=top>${throughput} bytes/sec (${throughput_bps} bps)
 
-</table>
+
 `;
 }
 data += `
+</table>
 <p>
-<p>
-<a selected href="wtv-tricks:/benchmark">Re-Test</a>
+<table>
+<tr>
+<td width=120>
+<td><a selected href="wtv-tricks:/benchmark">Re-Test</a>
 <td width=30>
-<a href="wtv-tricks:/tricks">Back to Tricks</a>
-
+<td><a href="wtv-tricks:/tricks">Back to Tricks</a>
+</table>
 </CENTER>
 </BODY>
 </HTML>

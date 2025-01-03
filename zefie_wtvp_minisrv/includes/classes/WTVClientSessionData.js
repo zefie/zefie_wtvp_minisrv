@@ -127,6 +127,19 @@ class WTVClientSessionData {
         return true;
     }
 
+    isAddressInAddressBook(addr) {
+        const addresses = this.getSessionData("address_book");
+        if (addresses) {
+            for (let i = 0; i < addresses.length; i++) {
+                console.log(addr.toLowerCase(), addresses[i].address.toLowerCase())
+                if (addr.toLowerCase() == addresses[i].address.toLowerCase()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     findFreeUserSlot() {
         if (this.user_id != 0) return false; // subscriber only command
         var master_directory = this.getUserStoreDirectory(true);
@@ -158,10 +171,11 @@ class WTVClientSessionData {
         var master_directory = this.getUserStoreDirectory(true);
         var account_data = [];
         var self = this;
+        this.debug(this.ssid)
         this.fs.readdirSync(master_directory).forEach(f => {
             if (self.fs.lstatSync(master_directory + self.path.sep + f).isDirectory()) {
                 if (f.substr(0, 4) == "user") {
-                    var user_file = master_directory + self.path.sep + f + self.path.sep + f + ".json";
+                    var user_file = this.path.resolve(master_directory + self.path.sep + f + self.path.sep + f + ".json");
                     if (self.fs.existsSync(user_file)) {
                         if (f == "user0") {
                             account_data['subscriber'] = JSON.parse(this.fs.readFileSync(user_file));
@@ -193,7 +207,7 @@ class WTVClientSessionData {
     }
 
     getAccountStoreDirectory() {
-        return this.path.resolve(this.wtvshared.getAbsolutePath() + this.path.sep + this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
+        return this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
     }
 
     /**
@@ -205,7 +219,7 @@ class WTVClientSessionData {
         if (user_id == null) user_id = this.user_id;
         var userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
         if (!subscriber) userstore += "user" + user_id + this.path.sep;
-        return userstore;
+        return this.wtvshared.getAbsolutePath(userstore);
     }
 
     removeUser(user_id) {
@@ -264,7 +278,7 @@ class WTVClientSessionData {
         if (!store_dir) return false; // unregistered
         // FileStore
         store_dir += "FileStore" + this.path.sep;
-        var store_dir_path = this.wtvshared.makeSafePath(store_dir, path.replace('/', this.path.sep));
+        var store_dir_path = this.wtvshared.getAbsolutePath(this.wtvshared.makeSafePath(store_dir, path.replace('/', this.path.sep)));
         if (this.fs.existsSync(store_dir_path)) return this.fs.readFileSync(store_dir_path);
         else return false;
     }
@@ -611,8 +625,8 @@ class WTVClientSessionData {
     }
 
     getSessionData(key = null) {
-        if (typeof (this.data_store) === 'session_store') return null;
-        else if (key === null) return this.data_store;
+        if (typeof (this.session_store) === 'session_store') return null;
+        else if (key === null) return this.session_store;
         else if (this.session_store[key]) return this.session_store[key];
         else return null;
     }

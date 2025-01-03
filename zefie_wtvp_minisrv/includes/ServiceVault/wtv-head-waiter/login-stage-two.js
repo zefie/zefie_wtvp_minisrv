@@ -95,6 +95,7 @@ wtv-language-header: en-US,en
 wtv-noback-all: wtv-
 wtv-transition-override: off
 wtv-smartcard-inserted-message: Contacting service
+wtv-addresses-url: wtv-mail:/addresslist
 wtv-ssl-timeout: 240
 wtv-login-timeout: 7200
 `;
