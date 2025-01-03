@@ -47,19 +47,17 @@ var supportZefieAlert = new clientShowAlert({
 
 
 if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.ssid].get("wtv-need-upgrade")) {
-	data = `<html>
+data =`<html>
 <head>
 <title>MiniBrowser Home</title>
-<body background=/ROMCache/Themes/Images/Pattern.gif text=cbcbcb bgcolor=6e5b85 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
+<body background=Themes/Pattern.gif text=cbcbcb bgcolor=4c5a67 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
 <table cellspacing=0 cellpadding=0>
 <tr><td>
-<td width=100% height=80 valign=top align=left background=/ROMCache/Themes/Images/ShadowLogoMB.gif>
+<td width=100% height=80 valign=top align=left background=Themes/ShadowLogo.gif novtilebg>
 <spacer type=block width=11 height=11><br>
 <spacer type=block width=10 height=1>
-<img src=${minisrv_config.config.service_logo} width=90 height=69>
-<td width=100% height=80 valign=top background=/ROMCache/Themes/Images/ShadowLogoMB.gif>
-<td abswidth=460 height=54 valign=top background=/ROMCache/Themes/Images/ShadowLogoMB.gif align=right>
-<spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
+<img src=file://ROM/Cache/WebTVLogoJewel.gif width=90 height=69>
+<td width=100% height=80 valign=top background=Themes/ShadowLogo.gif novtilebg><td abswidth=460 height=54 valign=top background=Themes/ShadowLogo.gif align=right novtilebg><spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
 </td></tr></table>
 <table>
 <tr align=top>
@@ -85,168 +83,7 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 </form>
 `
 } else {
-	hasJS = session_data.hasCap("client-can-do-javascript");
-	title = `Home for ${session_data.getSessionData("subscriber_username") || "minisrv"}`
-	data = `<html><head>`;
-	if (hasJS) {
-		data += `<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script></head><script>head('${title}','','','',1,'${minisrv_config.config.service_logo}')</script>`
-	} else {
-		data += `<body background=/ROMCache/Themes/Images/Pattern.gif text=42bd52 bgcolor=191919 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
-<table cellspacing=0 cellpadding=0>
-<tr><td>
-<td width=100% height=80 valign=top align=left>
-<spacer type=block width=11 height=11><br>
-<spacer type=block width=10 height=1>
-<img src=${minisrv_config.config.service_logo} width=90 height=69>
-<td width=100% height=80 valign=top>
-<td abswidth=460 height=54 valign=top align=right>
-<spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>${title} &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; </font></blackface></shadow></b>
-</td></tr></table>`;
-	}
-	data += `
-
-<hr>
-<center>
-<a href="wtv-mail:/listmail" align="center"><b>Mail</b></a> -
-<a href="wtv-favorite:/favorite" align="center"><b>Favorites</b></a> -
-<a href="wtv-setup:/sound" align="center"><b>Music</b></a> -
-<a href="http://frogfind.com" align="center"><b>Search</b></a> -
-<a href="wtv-flashrom:/willie" align="center"><b>ROMs</b></a> -
-<a href="wtv-setup:/setup" align="center"><b>Settings</b></a> -
-<a href="wtv-guide:/help?topic=Index&subtopic=Glossary" align="center"><b>Help</b></a>
-</center>
-<hr>
-<form action="wtv-tricks:/access">
-<spacer type=block width="34">`
-	if (hasJS) {
-		data += `<script>document.write('<input type="text" name="url" width=440 autoexecute bgcolor='+gTC("bg")+' text='+gTC("t")+' cursor='+gTC("t")+' value="wtv-tricks:/tricks">')</script>`;
-	} else {
-		data += `<input type="text" name="url" width=440 bgcolor=191919 text=42bd52 cursor=42bd52 autoexecute value="wtv-tricks:/tricks">`;
-	}
-data += `<script>butt("Go","submit",30,"submit")</script>
-</form>
-<hr>
-<table>
-<tr>
-
-<td valign="top" width="135">
-<table><tr>
-<td><b>&#187; Community &#171;</b></td>
-</tr><tr>
-<td><a href="wtv-chat:/home" height="18" valign="middle">&#128;&nbsp;Chat</a></td>
-</tr><tr>
-<td><a href="wtv-news:/lobby" height="18" valign="middle">&#128;&nbsp;Discuss</a></td>
-</tr><tr>
-<td><a href="wtv-setup:/messenger" height="21" valign="middle">&#128;&nbsp;Messenger</a></td>
-</tr></table>
-</td>
-<td valign="top" width="120">
-<table><tr>
-<td><b>&#187; Account &#171;</b></td>
-</tr><tr>
-<td><a href="client:relogin" height="21" valign="middle">&#128;&nbsp;Relogin</a></td>
-</tr><tr>
-<td><a href="wtv-setup:/serve-billing-overview" height="21" valign="middle">&#128;&nbsp;Configure</a></td>
-</tr><tr>
-<td><a href="wtv-setup:/edit-password" height="21" valign="middle">&#128;&nbsp;Password</a></td>
-</tr><tr>
-<td><a href="wtv-setup:/accounts" height="21" valign="middle">&#128;&nbsp;Add User</a></td>
-</tr><tr>
-<td>
-`;
-	if (session_data.getSessionData("registered")) data += `<a href="wtv-tricks:/unregister" height="21" valign="middle">&#128;&nbsp;Unregister`;
-	else data += `<a href="wtv-tricks:/register" height="21" valign="middle">&#128;&nbsp;Register`
-	data += `
-</a></td>
-</tr></table>
-</td>
-
-<td valign="top" width="120">
-<table><tr>
-<td><b>&#187; Tools &#171;</b></td>
-</tr><tr>
-<td><a href="wtv-tricks:/tricks">&#128;&nbsp;WTV Tricks</a></td>
-</tr><tr>
-<td><a href="wtv-tricks:/themes">&#128;&nbsp;Themes</a><td>
-</tr><tr>
-<td><a href="wtv-author:/documents">&#128;&nbsp;Pagebuilder</a></td>
-</tr><tr>
-<td><a href="wtv-tricks:/blastbacklist?return_to=wtv-home:/home">&#128;&nbsp;Clear Cache</a></td>
-</tr></table>
-</td>
-
-<td valign="top">
-<table><tr>
-<td><b>&#187; More Stuff &#171;</b></td>
-</tr><tr>
-<td><a href="wtv-tricks:/cSetup">&#128;&nbsp;Switch server</a></td>
-</tr><tr>
-<td><a href="${ownMinisrv}">&#128;&nbsp;Run your own server</a></td>
-</tr><tr>
-<td><a href="http://archive.midnightchannel.net/zefie/media/">&#128;&nbsp;Midnight Archives</a></td>
-</tr><tr>
-<td><a href="${supportZefieAlert}">&#128;&nbsp;Help zefie</a></td>
-</tr></table>
-</td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td align="left" colspan=4>
-<table border=0 cellspacing=0 cellpadding=0 width="100%">
-<tr>`
-	if (hasJS) {
-		data += `<script>document.write('<td colspan=2 background="'+thi+gTC('shimg')+'" text="'+gTC('bg')+'" valign=middle absheight=24>')</script>`
-	} else {
-		data += `<td colspan=2 background="/ROMCache/Themes/Images/Pattern.gif" text=42bd52 valign="middle" absheight="24">`
-	}
-	data += `
-<spacer type=block height=3 width=100%><b><shadow>&nbsp;&#128; Welcome to zefie's minisrv ${minisrv_version_string.split(" ")[3]}</shadow></b>
-</td></tr>
-<tr><td absheight="6"></tr>
-<tr>
-<td valign="top" colspan=3>
-This server is operated by ${minisrv_config.config.service_owner}.<br>
-`;
-	if (minisrv_config.config.service_description) {
-		if (typeof minisrv_config.config.service_description === "string") {
-			if (minisrv_config.config.service_description.length > 0) {
-				data += minisrv_config.config.service_description;
-			}
-		}
-	}
-
-	data += `
-	<p></p>
-</tr>
-<tr>`
-	if (hasJS) {
-		data += `<script>document.write('<td colspan=2 background="'+thi+gTC('shimg')+'" text="'+gTC('bg')+'" valign=middle absheight=24>')</script>`
-	} else {
-		data += `<td colspan=2 background="/ROMCache/Themes/Images/Pattern.gif" text=42bd52 valign="middle" absheight="24">`
-	}
-	data += `
-<spacer type=block height=3 width=100%><b><shadow>&nbsp;&#128; minisrv Latest Updates</b></shadow>
-<tr><td absheight="6"></td></tr>
-<tr>
-<td valign="top" colspan=4>
-&#149;&nbsp; Redesigned home page, uses custom rom theme system.<br>
-&#149;&nbsp; Added Protoweb Support (<a href="proto://www.webtv.net/">Try it!</a>)<br>
-&#149;&nbsp; Added a new minisrv logo<br>
-</td></tr>
-</table>
-</table>
-</body>
-</html>`
-}
-
-/*
-data =`
-
-
-<html>
-<head>
+data = `<html><head>
 <display hspace=0 vspace=0 fontsize=small noscroll showwhencomplete>
 <title>
 Home for ${session_data.getSessionData("subscriber_username") || "minisrv"} 
@@ -507,4 +344,3 @@ data += `
 `
 }
 data += "</body>\n</html>";
-*/

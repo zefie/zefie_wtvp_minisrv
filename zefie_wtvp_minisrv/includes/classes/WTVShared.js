@@ -520,8 +520,8 @@ class WTVShared {
 
         if (minisrv_config.config.verbosity >= 0 && minisrv_config.config.verbosity <= 3) {
             debugFlags.quiet = minisrv_config.config.verbosity < 2;
-            debugFlags.show_headers = minisrv_config.config.verbosity % 2 === 1;
-            debugFlags.debug = minisrv_config.config.verbosity === 2 || minisrv_config.config.verbosity === 3;
+            debugFlags.show_headers = minisrv_config.config.verbosity === 2
+            debugFlags.debug = minisrv_config.config.verbosity === 3;
             log(` * Console Verbosity level ${minisrv_config.config.verbosity}`);
         } else {
             Object.assign(debugFlags, { debug: true, quiet: false, show_headers: true });

@@ -372,3 +372,7 @@ FodyWeavers.xsd
 !/zefie_wtvp_minisrv/PageBuilderVault/http_pb/clipart
 !*.gitkeep
 /user_config.json
+
+# CodeQL
+codeql-custom-queries-javascript/
+codeql/

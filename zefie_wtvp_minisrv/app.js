@@ -321,6 +321,14 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
 
 async function handleCGI(executable, cgi_file, socket, request_headers, vault, service_name, session_data = null, extra_path = "")
 {
+    const SAFE_ROOT = path.resolve(__dirname);
+    vault = path.resolve(vault);
+    if (!vault.startsWith(SAFE_ROOT)) {
+        console.error("Invalid vault path:", vault);
+        var errpage = wtvshared.doErrorPage(403);
+        sendToClient(socket, errpage[0], errpage[1]);
+        return;
+    }
     var env = wtvshared.cloneObj(process.env);
     env.QUERY_STRING = "";
     var request_data = new Array();
@@ -591,7 +599,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     })
 
                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.debug(" * Script requested Asynchronous mode");
-                } else if (fs.existsSync(service_vault_file_path + ".php") || (service_vault_file_path.indexOf(".php") == service_vault_file_path.length - 4 && fs.existsSync(service_vault_file_path)) || fs.existsSync(service_vault_file_path + ".php")) {
+                } else if (fs.existsSync(service_vault_file_path + ".php") || (service_vault_file_path.endsWith(".php") && fs.existsSync(service_vault_file_path)) || service_vault_file_path.indexOf(".php") > 0) {
                     request_is_async = true;
                     if (minisrv_config.config.php_enabled && minisrv_config.config.php_binpath) {
                         if (fs.existsSync(service_vault_file_path + ".php") || fs.existsSync(service_vault_file_path)) {
@@ -618,7 +626,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
-                } else if (fs.existsSync(service_vault_file_path + ".cgi") || (service_vault_file_path.indexOf(".cgi") == service_vault_file_path.length - 4 && fs.existsSync(service_vault_file_path)) || fs.existsSync(service_vault_file_path + ".cgi")) {
+                } else if (fs.existsSync(service_vault_file_path + ".cgi") || (service_vault_file_path.endsWith(".cgi") && fs.existsSync(service_vault_file_path)) || service_vault_file_path.indexOf(".cgi") > 0) {
                     request_is_async = true;
                     if (minisrv_config.config.php_enabled && minisrv_config.config.php_binpath) {
                         if (fs.existsSync(service_vault_file_path + ".cgi") || fs.existsSync(service_vault_file_path)) {
@@ -730,11 +738,10 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         sendRawFile(socket, service_vault_file_path);
                     }
                 } else {
-                    // look for a catchallin the current path and all parent paths up until the service root
-                    if (minisrv_config.config.catchall_file_name) {
-                        var minisrv_catchall_file_name = null;
-                        if (minisrv_config.services[service_name]) minisrv_catchall_file_name = minisrv_config.services[service_name].catchall_file_name || minisrv_config.config.catchall_file_name || null;
-                        else minisrv_catchall_file_name = minisrv_config.config.catchall_file_name || null;
+                    // look for a catchall in the current path and all parent paths up until the service root
+                    var service_config = minisrv_config.services[service_name] || {};
+                    if (minisrv_config.config.catchall_file_name || service_config['catchall_file_name']) {
+                        var minisrv_catchall_file_name = service_config['catchall_file_name'] || minisrv_config.config.catchall_file_name || null;
                         if (minisrv_catchall_file_name) {
                             var service_check_dir = service_vault_file_path.split(path.sep);
                             service_check_dir.pop(); // pop filename
@@ -742,21 +749,48 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                             while (service_check_dir.join(path.sep) != service_vault_dir && service_check_dir.length > 0) {
                                 var catchall_file = service_check_dir.join(path.sep) + path.sep + minisrv_catchall_file_name;
                                 if (fs.existsSync(catchall_file)) {
+
                                     service_vault_found = true;
                                     if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found catchall at " + catchall_file + " to handle request (JS Interpreter Mode) [Socket " + socket.id + "]");
                                     request_headers.service_file_path = catchall_file;
-                                    var script_data = fs.readFileSync(catchall_file).toString();
+                                    if (catchall_file.endsWith(".js")) {
+                                        var script_data = fs.readFileSync(catchall_file).toString();
 
-                                    var vmResults = runScriptInVM(script_data, contextObj, privileged, catchall_file);
+                                        var vmResults = runScriptInVM(script_data, contextObj, privileged, catchall_file);
 
-                                    updateFromVM.forEach((item) => {
-                                        // Here we read back certain data from the ServiceVault Script Context Object
-                                        try {
-                                            if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
-                                        } catch (e) {
-                                            console.error("vm readback error", e);
+                                        updateFromVM.forEach((item) => {
+                                            // Here we read back certain data from the ServiceVault Script Context Object
+                                            try {
+                                                if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
+                                            } catch (e) {
+                                                console.error("vm readback error", e);
+                                            }
+                                        });
+                                    } else if (catchall_file.endsWith(".php")) {
+                                        if (minisrv_config.config.php_enabled && minisrv_config.config.php_binpath) {
+                                            request_is_async = true;
+                                            var extra_path = service_check_dir.join(path.sep) + path.sep + request_headers.request_url.replace(service_name + ":/", "");
+                                            if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found catchall at " + catchall_file + " to handle request (CGI Interpreter Mode) [Socket " + socket.id + "]");
+                                            handlePHP(socket, request_headers, catchall_file, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
+                                        } else {
+                                            // php is not enabled, don't expose source code
+                                            var errpage = wtvshared.doErrorPage(403);
+                                            sendToClient(socket, errpage[0], errpage[1]);
+                                            return;
                                         }
-                                    });
+                                    } else if (catchall_file.endsWith(".cgi")) {
+                                        if (minisrv_config.config.cgi_enabled) {
+                                            request_is_async = true;
+                                            var extra_path = service_check_dir.join(path.sep) + path.sep + request_headers.request_url.replace(service_name + ":/", "");
+                                            if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found catchall at " + catchall_file + " to handle request (CGI Interpreter Mode) [Socket " + socket.id + "]");
+                                            handleCGI(catchall_file, catchall_file, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
+                                        } else {
+                                            // cgi is not enabled, don't expose source code
+                                            var errpage = wtvshared.doErrorPage(403);
+                                            sendToClient(socket, errpage[0], errpage[1]);
+                                            return;
+                                        }
+                                    }
 
                                     if (request_is_async && !minisrv_config.config.debug_flags.quiet) console.debug(" * Script requested Asynchronous mode");
                                     break;
@@ -1333,7 +1367,7 @@ function headerStringToObj(headers, response = false) {
 async function sendToClient(socket, headers_obj, data = null) {
     var headers = "";
     var content_length = 0;
-    var end_of_line = "\n";
+    var eol = "\n";
     if (typeof (data) === 'undefined' || data === null) data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -1398,16 +1432,23 @@ async function sendToClient(socket, headers_obj, data = null) {
     if (socket_sessions[socket.id]) {
         if (socket_sessions[socket.id].request_headers) {
             if (socket_sessions[socket.id].request_headers.service_file_path) {
-                if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js" || socket_sessions[socket.id].request_headers.raw_file === true) {
-                    var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
-                    if (last_modified) headers_obj["Last-Modified"] = last_modified;
+                // Don't change Last-modified header if provided already
+                if (!headers['Last-Modified']) {
+                    // Only add the header if not a js, php, or cgi file                    
+                    if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js" || 
+                        wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "php" ||
+                        wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "cgi" ||
+                        socket_sessions[socket.id].request_headers.raw_file === true) {
+                            var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
+                            if (last_modified) headers_obj["Last-Modified"] = last_modified;
+                    }
                 }
             }
         }
     }
 
 
-    // if box can do compression, see if its worth enabling
+    // if client can do compression, see if its worth enabling
     // small files actually get larger, so don't compress them
     var compression_type = 0;
     if (content_length >= 256) compression_type = wtvmime.shouldWeCompress(ssid_sessions[socket.ssid], headers_obj);
@@ -1428,7 +1469,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     }
 
     if (socket.res) { // pc mode with response object available
-        if (compression_type == 1) compression_type = 2; // just in case
+        if (compression_type == 1) compression_type = 2; // wtv-lzpf not supported in pc mode
     }
 
     // compress if needed
@@ -1497,7 +1538,6 @@ async function sendToClient(socket, headers_obj, data = null) {
     if (headers_obj["minisrv-force-content-length"]) {
         headers_obj["Content-length"] = headers_obj["minisrv-force-content-length"];
         delete headers_obj["minisrv-force-content-length"];
-
     }
 
     if (!socket.res) {
@@ -1525,25 +1565,27 @@ async function sendToClient(socket, headers_obj, data = null) {
     var xpower = wtvshared.getCaseInsensitiveKey("x-powered-by", headers_obj);
     if (!xpower) {
         // add X-Powered-By header if not WebTV and not already set
-        if (!socket.ssid) headers_obj['X-Powered-By'] = "NodeJS ("+process.version+") Express via " + z_title;
+        xpower = 'X-Powered-By';
+        if (!socket.ssid) headers_obj[xpower] = "NodeJS ("+process.version+") Express via " + z_title;
     } else {
         // delete if webtv
         if (socket.ssid) delete headers_obj[xpower];
     }
-    headers_obj = wtvshared.moveObjectKey("x-powered-by", -2, headers_obj, true) // move x-powered-by before Content-type
+
+    if (headers_obj[xpower]) headers_obj = wtvshared.moveObjectKey(xpower, -2, headers_obj, true) // move x-powered-by before Content-type
 
     if (!socket.res) {
         // header object to string
         if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Outgoing headers on socket ID", socket.id, headers_obj);
         Object.keys(headers_obj).forEach(function (k) {
             if (k == "Status") {
-                headers += headers_obj[k] + end_of_line;
+                headers += headers_obj[k] + eol;
             } else {
                 if (k.indexOf('_') >= 0) {
                     var j = k.split('_')[0];
-                    headers += j + ": " + headers_obj[k] + end_of_line;
+                    headers += j + ": " + headers_obj[k] + eol;
                 } else {
-                    headers += k + ": " + headers_obj[k] + end_of_line;
+                    headers += k + ": " + headers_obj[k] + eol;
                 }
             }
         });
@@ -1554,29 +1596,37 @@ async function sendToClient(socket, headers_obj, data = null) {
             }
         }
     }
+
+    // Delete any other stray minisrv headers (we process them all before this)
+    Object.keys(headers_obj).forEach(function (k) {
+        if (k.indexOf("minisrv-") == 0) {
+            delete headers_obj[k];
+        }
+    });
+
     // send to client
     if (socket.res) {
         var resCode = parseInt(headers_obj.Status.substr(0, 3));        
         socket.res.writeHead(resCode, headers_obj);
         socket.res.end(data);
         if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Outgoing PC headers on " + socket.service_name + " socket ID", socket.id, headers_obj);
-        if (minisrv_config.config.debug_flags.quiet) console.debug(" * Sent response " + headers_obj.status + " to PC client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
+        if (minisrv_config.config.debug_flags.quiet) console.debug(" * Sent response " + headers_obj.Status + " to PC client (Content-Type:", headers_obj['Content-type'], "~", headers_obj['Content-length'], "bytes)");
     } else {
         var toClient = null;
         if (typeof data == 'string') {
-            toClient = headers + end_of_line + data;
+            toClient = headers + eol + data;
             sendToSocket(socket, Buffer.from(toClient));
         } else if (typeof data == 'object') {
             if (minisrv_config.config.debug_flags.quiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
             if (socket_sessions[socket.id].secure_headers == true) {
                 // encrypt headers
                 if (minisrv_config.config.debug_flags.quiet) verbosity_mod += " with encrypted headers";
-                var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + end_of_line);
+                var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + eol);
                 sendToSocket(socket, new Buffer.from(concatArrayBuffer(enc_headers, data)));
             } else {
-                sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + end_of_line), data)));
+                sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + eol), data)));
             }
-            if (minisrv_config.config.debug_flags.quiet) console.debug(" * Sent" + verbosity_mod + " " + headers_obj.status + " to client (Content-Type:", headers_obj['Content-Type'], "~", headers_obj['Content-length'], "bytes)");
+            if (minisrv_config.config.debug_flags.quiet) console.debug(" * Sent" + verbosity_mod + " " + headers_obj.Status + " to client (Content-Type:", headers_obj['Content-type'], "~", headers_obj['Content-length'], "bytes)");
         }
     }
 }
@@ -2425,11 +2475,17 @@ Content-type: text/html`;
             });
             request_headers.query = req.query;
             if (req.body) {
-                var data = "";
-                for (var i=0; i<req.body.length; i++) {
-                    data += String.fromCharCode(req.body[i]);
+                if (typeof(req.body) == "string") {
+                    request_headers.post_data = req.body;
+                } else if (req.body.length) {
+                    var data = "";
+                    for (var i=0; i<req.body.length; i++) {
+                        data += String.fromCharCode(req.body[i]);
+                    }
+                    request_headers.post_data = data;
+                } else {
+                    request_headers.post_data = "";
                 }
-                request_headers.post_data = data;
             } else {
                 request_headers.post_data = "";
             }
