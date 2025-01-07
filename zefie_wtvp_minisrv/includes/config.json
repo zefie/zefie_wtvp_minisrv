@@ -20,6 +20,7 @@
     ],
     "cgi_enabled": false, // Disable CGI by default
     "php_enabled": false, // Disable PHP by default
+    "php_binpath": "php-cgi",
     "SessionStore": "SessionStore", // Where we store account (session) data. Best left unchanged.
     "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Found under service vault. Best left unchanged.
     "enable_shared_romcache": true, // Disabling this will cause a lot of problems without manual intervention. Best left unchanged.
@@ -54,14 +55,9 @@
       "max_users_per_account": 6, // Max total users (including primary) per account
       "min_username_length": 5, // minimum username length
       "max_username_length": 18, // maximum username length
-      "reserved_names": [
-        // reserved account names, users (nor admins) can register these
-        "AccountDisabled",
-        "Demo",
-        "abuse",
-        "support",
-        "registration",
-        "null"
+      "reserved_names_files": [
+        "includes/badWords.json",
+        "includes/reservedWords.json"
       ]
     },
     "pc_admin": {

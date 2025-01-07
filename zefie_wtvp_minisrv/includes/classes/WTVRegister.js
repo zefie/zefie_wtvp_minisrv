@@ -34,9 +34,19 @@ class WTVRegister {
         // returns the user's ssid, and user_id and userid in an array if true, false if not
 
         // check against reserved name list
-        if (this.minisrv_config.config.user_accounts.reserved_names) {
-            Object.keys(this.minisrv_config.config.user_accounts.reserved_names).forEach((k) => {
-                if (self.minisrv_config.config.user_accounts.reserved_names[k].toLowerCase() == username.toLowerCase()) return_val = true;
+        if (this.minisrv_config.config.user_accounts.reserved_names_files) {
+            var reserved_names = []
+            this.minisrv_config.config.user_accounts.reserved_names_files.forEach(function (v) {
+                var data = self.fs.readFileSync(v);
+                var json = JSON.parse(data);
+                json.forEach(function (v) {
+                    reserved_names.push(v);
+                });
+            });
+
+            Object.keys(reserved_names).forEach((k) => {
+                var regex = new RegExp("^"+reserved_names[k]+"$", 'i');
+                if (username.match(regex)) return_val = true;
             })
         }
 

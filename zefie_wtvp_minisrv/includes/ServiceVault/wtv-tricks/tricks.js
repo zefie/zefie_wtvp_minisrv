@@ -17,7 +17,7 @@ tricks = [
 	["wtv-tricks:/themes", "Theme Switcher"],
 	["wtv-cookie:list", "List Cookies"],
 	["wtv-cookie:reset", "Clear Cookies"],
-	["wtv-tricks:/bastblacklist?return_to=wtv-tricks%3A%2Ftricks", "Blast Blacklist"],
+	["wtv-tricks:/blastblacklist?return_to=wtv-tricks%3A%2Ftricks", "Blast Blacklist"],
 	["client:ResetNVAndPowerOff", "Blast NVRAM"],
 	["wtv-tricks:/charmap", "Character Map"],
 	["wtv-tricks:/cSetup", "Connect Setup"],

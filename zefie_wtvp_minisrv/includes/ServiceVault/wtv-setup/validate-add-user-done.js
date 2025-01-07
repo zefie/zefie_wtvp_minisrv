@@ -34,7 +34,7 @@ if (errpage) {
 } else {
     if (!request_headers.query.display_name) request_headers.query.display_name = request_headers.query.username;
     userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
-    var freeUserId = session_data.findFreeUserSlot(session_data);
+    var freeUserId = session_data.findFreeUserSlot();
     if (freeUserId) {
         userSession.user_id = freeUserId;
         userSession.setSessionData("subscriber_userid", freeUserId);

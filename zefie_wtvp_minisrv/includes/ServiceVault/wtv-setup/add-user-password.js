@@ -4,11 +4,11 @@ var errpage = null;
 const wtvr = new WTVRegister(minisrv_config, SessionStore);
 
 if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
-else if (!request_headers.query.user_name) errpage = doErrorPage(400, "Please enter a username.");
+else if (!request_headers.query.user_name) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
 else if (request_headers.query.user_name.length < minisrv_config.config.user_accounts.min_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.min_username_length + "</b> or more characters.");
 else if (request_headers.query.user_name.length > minisrv_config.config.user_accounts.max_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.max_username_length + "</b> or less characters.");
 else if (!wtvr.checkUsernameSanity(request_headers.query.user_name)) errpage = wtvshared.doErrorPage(400, "The username you have chosen contains invalid characters. Please choose a username with only <b>letters</b>, <b>numbers</b>, <b>_</b> or <b>-</b>. Also, please be sure your username begins with a letter.");
-else if (!wtvr.checkUsernameAvailable(request_headers.query.user_name)) errpage = wtvshared.doErrorPage(400, "The username you have selected is already in use. Please select another username.");
+else if (!wtvr.checkUsernameAvailable(request_headers.query.user_name)) errpage = wtvshared.doErrorPage(400, "The username you have selected is not available. Please select another username.");
 else if (session_data.getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + ` account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.`);
 
 
@@ -67,12 +67,13 @@ noscroll>
 <td abswidth=416 absheight=80 valign=center>
 <font size="+2" color="E7CE4A"><blackface><shadow>
 Optional password
+</table>
 <td abswidth=20>
 <tr>
 <td>
 <td absheight=244 valign=top align=left>
 <form action="wtv-setup:/validate-add-user">
-<INPUT TYPE="hidden" NAME="display_name" VALUE="${(request_headers.query.display_name) ? request_headers.query.display_name : request_headers.query.user_name}">
+<INPUT TYPE="hidden" NAME="display_name" VALUE="${request_headers.query.display_name || request_headers.query.user_name || ''}">
 <INPUT TYPE="hidden" NAME="user_name" VALUE="${request_headers.query.user_name}">
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>

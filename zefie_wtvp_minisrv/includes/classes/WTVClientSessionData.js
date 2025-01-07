@@ -192,7 +192,6 @@ class WTVClientSessionData {
         return account_data;
     }
 
-
     mkdirRecursive(thedir) {
         thedir.split(this.path.sep).reduce(
             (directories, directory) => {

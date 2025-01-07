@@ -66,8 +66,17 @@ User's name
 <td>
 <td absheight=244 valign=top align=left>
 <form
-action="wtv-setup:/add-user-name"
+action="${(request_headers.query.display_name) ? "wtv-setup:/validate-add-user" : "wtv-setup:/add-user-name"}"
 >
+`;
+    if (request_headers.query.display_name) {
+        data += `        
+            <INPUT TYPE="hidden" NAME="user_name" VALUE="${request_headers.query.user_name}">
+            <INPUT TYPE="hidden" NAME="user_password" VALUE="${request_headers.query.user_password}">
+            <INPUT TYPE="hidden" NAME="user_password2" VALUE="${request_headers.query.user_password2}">
+        `
+    }
+data += `
 <P>
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
@@ -94,7 +103,7 @@ person's name.
 <tr>
 <td colspan=3 align=left>
 Display name<br>
-<INPUT noSubmit name="display_name" id="display_name" Value=""
+<INPUT noSubmit name="display_name" id="display_name" Value="${(request_headers.query.display_name) ? request_headers.query.display_name : ""}"
 bgcolor=#444444 text=#ffdd33 cursor=#cc9933
 TYPE="text" ASCIIONLY
 SIZE="18"

@@ -12,7 +12,7 @@ function uS(){switch(d.c.p[d.c.p.selectedIndex].value){
 	break
 	case "htvb":uI("71.244.121.234","1415","This is the public HackTV minisrv backup, only available when the main HackTV server is down.",true)
 	break
-	case "zef": uI("38.175.202.142","1615","zefie's public minisrv, for those who want an experience close to the vanilla minisrv.",true)
+	case "zef": uI("216.126.232.171","1615","zefie's public minisrv, for those who want an experience close to the vanilla minisrv.",true)
 	break
 	case "mm69":uI("71.244.121.234","1515","MattMan's megasrv. It's the real deal, not minisrv! May be up from time to time.",true)
 	break

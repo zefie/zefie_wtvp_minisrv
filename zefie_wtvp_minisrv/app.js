@@ -370,8 +370,13 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     env.SERVER_PORT = request_data.port;
     env.SERVER_ADDR = request_data.host;
     env.SERVER_NAME = request_data.host;
-    env.SERVER_SOFTWARE = "Node "+process.versions.node+" Express via " + z_title;;
-    env.SERVER_SIGNATURE = z_title;
+    if (minisrv_config.services[socket.service_name].hide_minisrv_version) {
+        env.SERVER_SOFTWARE = "NodeJS; minisrv";
+    } else {
+        // Full version
+        env.SERVER_SOFTWARE = "NodeJS/"+process.version+"; " + z_cgiver;
+    }
+    env.SERVER_SIGNATURE = env.SERVER_SOFTWARE;
     env.ALL_RAW = request_headers.raw_headers;
     var raw_header_split = env.ALL_RAW.split("\r\n");
     raw_header_split.forEach(function (header) { 
@@ -1563,13 +1568,28 @@ async function sendToClient(socket, headers_obj, data = null) {
 
     // remove x-powered-by header if client is WebTV
     var xpower = wtvshared.getCaseInsensitiveKey("x-powered-by", headers_obj);
-    if (!xpower) {
+    if (!xpower && socket.service_name) {
         // add X-Powered-By header if not WebTV and not already set
         xpower = 'X-Powered-By';
-        if (!socket.ssid) headers_obj[xpower] = "NodeJS ("+process.version+") Express via " + z_title;
+        if (minisrv_config.services[socket.service_name].hide_minisrv_version) {   
+            // Don't report version         
+            if (!socket.ssid) headers_obj[xpower] = "NodeJS; minisrv";
+        } else {
+            // Full version
+            if (!socket.ssid) headers_obj[xpower] = "NodeJS/"+process.version+"; " + z_cgiver;
+        }
     } else {
         // delete if webtv
         if (socket.ssid) delete headers_obj[xpower];
+        else {
+            if (minisrv_config.services[socket.service_name].hide_minisrv_version) {   
+                // Don't report version         
+                if (!socket.ssid) headers_obj[xpower] = headers_obj[xpower] + "; NodeJS; minisrv";
+            } else {
+                // Full version
+                if (!socket.ssid) headers_obj[xpower] = headers_obj[xpower] + "; NodeJS/"+process.version+"; " + z_cgiver;
+            }
+        }
     }
 
     if (headers_obj[xpower]) headers_obj = wtvshared.moveObjectKey(xpower, -2, headers_obj, true) // move x-powered-by before Content-type
@@ -2253,9 +2273,13 @@ function reloadConfig() {
 // SERVER START
 var git_commit = getGitRevision()
 var z_title = "zefie's wtv minisrv v" + require('./package.json').version;
+var z_cgiver = "minisrv/" + require('./package.json').version;
 if (git_commit) z_title += " (git " + git_commit + ")";
 console.log("**** Welcome to " + z_title + "  ****");
-console.log("**** Detected nodejs v"+process.versions.node+" ***")
+console.log("**** Detected nodejs v" + process.versions.node + " ****")
+var application_root = wtvshared.getAbsolutePath('', __dirname)
+console.log("**** Application Root Path:", application_root, "****")
+
 
 minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
 const wtvmime = new WTVMime(minisrv_config);

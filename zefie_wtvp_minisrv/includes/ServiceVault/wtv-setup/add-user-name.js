@@ -63,8 +63,13 @@ User's Internet name
 <tr>
 <td>
 <td absheight=244 valign=top align=left>
-<form action="wtv-setup:/add-user-password">
+<form action="${(request_headers.query.user_password) ? "wtv-setup:/validate-add-user" : "wtv-setup:/add-user-password"}">
 <INPUT TYPE="hidden" NAME="display_name" VALUE="${request_headers.query.display_name || ''}">
+`;
+    if (request_headers.query.user_password) data += `<INPUT TYPE="hidden" NAME="user_password" VALUE="${request_headers.query.user_password}">`;
+    if (request_headers.query.user_password2) data += `<INPUT TYPE="hidden" NAME="user_password2" VALUE="${request_headers.query.user_password2}">`;
+
+data += `
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td align=left valign=top abswidth=198>

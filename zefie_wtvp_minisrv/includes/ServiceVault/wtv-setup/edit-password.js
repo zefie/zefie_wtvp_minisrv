@@ -36,8 +36,7 @@ Content-Type: text/html`;
 <TITLE>
 Change ${(user_id == session_data.user_id) ? 'your' : 'user'} password
 </TITLE>
-<DISPLAY nosave
-noscroll>
+<DISPLAY nosave skipback noscroll>
 </HEAD>
 <sidebar width=110> <table cellspacing=0 cellpadding=0 BGCOLOR="30364D">
 <tr>
