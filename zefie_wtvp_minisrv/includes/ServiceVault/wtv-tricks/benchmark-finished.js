@@ -6,19 +6,27 @@ Connection: Keep-Alive
 wtv-expire-all: wtv-tricks:/benchmark
 Content-type: text/html`
 data = `<html>
+<body>
 <display nosave nosend skipback>
-<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script><script>
-head('Speed Test Result')</script>`;
+<title>${minisrv_config.config.service_name} Tricks</title>
+<sidebar width=20%>
+<img src="wtv-tricks:/images/Favorites_bg.jpg">
+</sidebar>
+<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0>
+<br>
+<br>
+<h1>${minisrv_config.config.service_name} Tricks</h1>`;
+
 var start_time = parseInt(session_data.getTicketData("benchmark_starttime"));
 if (isNaN(start_time)) {
 	data += "Invalid data, please try your benchmark again";
 } else {
 	var end_time = Math.floor(new Date().getTime());
-	if (!session_data.getTicketData("benchmark_endtime")) {		
+	if (!session_data.getTicketData("benchmark_endtime")) {
 		session_data.setTicketData("benchmark_endtime", end_time);
 	} else {
 		end_time = session_data.getTicketData("benchmark_endtime");
-	}	
+	}
 	var download_time = end_time - start_time;
 	var image_filename = wtvshared.getServiceDep("/wtv-tricks/benchmark.jpg", true);
 	var image_size = fs.statSync(image_filename).size
@@ -30,7 +38,7 @@ if (isNaN(start_time)) {
 <tr>
         <td height=5>
 <tr>
-	<td valign=top align=right width=200><shadow>POP Number:</shadow>
+	<td valign=top align=right width=150><shadow>POP Number:</shadow>
 	<td width=10>
 	<td valign=top>&phone;
 <tr>
@@ -44,7 +52,7 @@ if (isNaN(start_time)) {
 <tr>
         <td height=40>
 <tr>
-	<td valign=top align=right width=200><shadow>Image Size:</shadow>
+	<td valign=top align=right width=150><shadow>Image Size:</shadow>
 	<td width=10>
 	<td valign=top>${image_size_kb} KBytes
 <tr>
@@ -72,7 +80,7 @@ data += `
 <p>
 <table>
 <tr>
-<td width=120>
+<td width=100>
 <td><a selected href="wtv-tricks:/benchmark">Re-Test</a>
 <td width=30>
 <td><a href="wtv-tricks:/tricks">Back to Tricks</a>

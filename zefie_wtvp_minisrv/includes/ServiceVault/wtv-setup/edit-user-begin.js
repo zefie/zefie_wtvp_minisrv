@@ -11,7 +11,7 @@ if (request_headers.query.user_id) {
 // security
 if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
-    var errpage = doErrorPage(400, "You are not authorized to edit the selected user.");
+    var errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
     data = errpage[1];
 }
@@ -30,7 +30,7 @@ wtv-noback-all: wtv-setup:/edit-user`
     }
 
     if (!userSession.loadSessionData()) {
-        var errpage = doErrorPage(400, "Invalid user ID.");
+        var errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
         headers = errpage[0];
         data = errpage[1];
     } else {

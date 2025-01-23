@@ -832,29 +832,17 @@ class WTVShared {
     }
 
     /**
-    * Returns an absolute path with an trailing path seperator
+    * Returns an absolute path without an trailing path seperator
     * @param {string} path 
     * @param {string} directory Root directory
     */
     getAbsolutePath(path = '', directory = '.') {
         if (directory[0] == "/" || directory.substr(1, 2) == ":" + this.path.sep) {
-            var newpath = this.path.resolve(directory + this.path.sep + path);
-            if (this.fs.existsSync(newpath)) {
-                this.fs.statSync(newpath, (err, stats) => {
-                    if (err) {
-                        console.log('Error checking path:', err);
-                    } else {
-                        if (stats.isDirectory()) {
-                            newpath += this.path.sep
-                        }
-                    }
-                });
-            }
-            return newpath;
+            return this.path.resolve(directory + this.path.sep + path);
         }
         try {
             // start with our absolute path (of app.js)
-            const appdir = this.path.resolve(__dirname + this.path.sep + '..' + this.path.sep + '..') + this.path.sep
+            const appdir = this.path.resolve(__dirname + this.path.sep + '..' + this.path.sep + '..')
 
             if (path == '' && directory == '.') {
                 return appdir;
@@ -874,27 +862,8 @@ class WTVShared {
             // If there's an error accessing the directory, log it or handle as needed
             console.error('Error resolving directory:', e);
         }
-        // determine if the final path is a directory, and add a final path.sep if so
-        var add_sep = false;
-        if (this.fs.existsSync(path)) {
-            this.fs.statSync(path, (err, stats) => {
-                if (err) {
-                    console.log('Error checking path:', err);
-                } else {
-                    if (stats.isDirectory()) {
-                        add_sep = true
-                    }
-                }
-            });
-        } else {
-            // path doesn't exist, we have to guess if its a directory
-            var path_split = this.path.resolve(path).split(this.path.sep);
-            if (path_split[(path_split.length - 1)].indexOf('.') > -1) {
-                add_sep = true;
-            }
-        }
         // The path.resolve method will take care of normalizing slashes
-        return this.path.resolve(path) + ((add_sep) ? this.path.sep : '');
+        return this.path.resolve(path);
     }
 
 

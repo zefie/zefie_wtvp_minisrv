@@ -218,7 +218,7 @@ class WTVClientSessionData {
         if (user_id == null) user_id = this.user_id;
         var userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
         if (!subscriber) userstore += "user" + user_id + this.path.sep;
-        return this.wtvshared.getAbsolutePath(userstore);
+        return this.wtvshared.getAbsolutePath(userstore) + this.path.sep;
     }
 
     removeUser(user_id) {

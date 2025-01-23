@@ -14,7 +14,6 @@ Content-Type: text/html`
 
 tricks = [
 	["wtv-tricks:/info", minisrv_config.config.service_name + " info"],
-	["wtv-tricks:/themes", "Theme Switcher"],
 	["wtv-cookie:list", "List Cookies"],
 	["wtv-cookie:reset", "Clear Cookies"],
 	["wtv-tricks:/blastblacklist?return_to=wtv-tricks%3A%2Ftricks", "Blast Blacklist"],
@@ -28,11 +27,18 @@ tricks.push((session_data.getSessionData("registered")) ? ["wtv-tricks:/unregist
 tricks.push((wtvshared.isAdmin(session_data)) ? ["wtv-admin:/admin", minisrv_config.config.service_name + " Admin"] : [notAdminAlert, minisrv_config.config.service_name + " Admin"]); // wtv-admin
 
 data = `<html>
+<body>
 <display nosave nosend>
-<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script><script>
-head('${minisrv_config.config.service_name} Tricks')</script>
+<title>${minisrv_config.config.service_name} Tricks</title>
+<sidebar width=20%>
+<img src="wtv-tricks:/images/Favorites_bg.jpg">
+</sidebar>
+<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0>
+<br>
+<br>
+<h1>${minisrv_config.config.service_name} Tricks</h1>
 <table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
-<table><tc><td width=50>&nbsp;</td></tc><tc><td><table>`;
+<table><tc><td>&nbsp;</td></tc><tc><td><table>`;
 
 for (i = 0; i < tricks.length; i += 2) {
 	data += `<tr>
