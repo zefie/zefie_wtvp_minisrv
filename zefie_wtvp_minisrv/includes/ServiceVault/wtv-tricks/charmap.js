@@ -16,12 +16,17 @@ function getLegend() {
 headers = `200 OK
 Content-Type: text/html`;
 
-data = `<html><head><display allowoffline switchtowebmode>
-<script src=/ROMCache/h.js></script><script src=/ROMCache/n.js></script>
-<script src=htv-cSetup.js></script>
-</head ><form name=t><input type=hidden name=h value=&pname;></form>
-<script>head('WebTV Character Map');</script>
-<br><br>
+data = `<html>
+<body>
+<display nosave nosend>
+<title>Character Map</title>
+<sidebar width=20%>
+<img src="wtv-tricks:/images/Favorites_bg.jpg">
+</sidebar>
+<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0>
+<br>
+<br>
+<h1>WebTV Character Map</h1>
 <table border=1>`;
 
 

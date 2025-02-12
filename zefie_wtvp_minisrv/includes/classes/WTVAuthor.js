@@ -274,7 +274,7 @@ ${thisblock.title}
 					block += "<td>"
 				
 				block += `<CENTER>
-<IMG SRC="wtv-author:/${btoa(thisblock.photo)}">
+<IMG SRC="wtv-author:/${atob(thisblock.photo)}">
 </CENTER>
 </TD>
 </TR>
@@ -470,8 +470,8 @@ this.fs.writeFile(destDir + this.wtvclient.session_store.subscriber_username + '
 			break;
 			
 			case "clipart":
-				this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + btoa(thisblock.photo).substr(0, btoa(thisblock.photo).lastIndexOf("/")), { recursive: true })
-				this.fs.copyFile('includes/ServiceVault/wtv-author/' + btoa(thisblock.photo), destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + btoa(thisblock.photo), (err) => {
+				this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo).substr(0, atob(thisblock.photo).lastIndexOf("/")), { recursive: true })
+				this.fs.copyFile('includes/ServiceVault/wtv-author/' + atob(thisblock.photo), destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo), (err) => {
 				if (err) throw err;
 				});
 				block = `<p><TABLE nocolor width=100%>`
@@ -486,7 +486,7 @@ ${thisblock.title}
 </TD>
 </TR>`
 				block += `<TR><td><CENTER>
-<IMG SRC="${btoa(thisblock.photo)}">
+<IMG SRC="${atob(thisblock.photo)}">
 </CENTER>
 </TD>
 </TR>

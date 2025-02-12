@@ -33,8 +33,7 @@ class WTVShared {
             String.prototype.reverse = function () {
                 var splitString = this.split("");
                 var reverseArray = splitString.reverse();
-                var joinArray = reverseArray.join("");
-                return joinArray;
+                return reverseArray.join("");
             }
         }
         if (!String.prototype.hexEncode) {
@@ -80,11 +79,10 @@ class WTVShared {
 
 
     parseConfigVars(s) {
-        if (s.indexOf("%ServiceDeps%") >= 0) {
+        if (s.indexOf("%ServiceDeps%") >= 0)
             return this.getServiceDep(s.replace("%ServiceDeps%", ""), true);
-        } else {
+        else
             return s;
-        }
     }
 
     /**
@@ -119,12 +117,14 @@ class WTVShared {
             return new RegExp(src);
         } else if (src instanceof Date) {
             return new Date(src.getTime());
-        } else if (Array.isArray(src)) {
-            return src.map(item => this.cloneObj(item));
         } else if (typeof src === 'object' && src !== null) {
-            const clone = {};
-            Object.keys(src).forEach(k => {
-                clone[k] = this.cloneObj(src[k]);
+            var clone = null;
+            if (Array.isArray(src)) clone = [];
+            else clone = {};
+
+            var self = this;
+            Object.keys(src).forEach((k) => {
+                clone[k] = self.cloneObj(src[k]);
             });
             return clone;
         }
@@ -349,7 +349,7 @@ class WTVShared {
 
     utf8Decode(utf8String) {
         if (typeof utf8String !== 'string') {
-            throw new TypeError('parameter �utf8String� is not a string');
+            throw new TypeError("parameter 'utf8String' is not a string");
         }
         const textDecoder = new TextDecoder('utf-8');
         const bytes = new Uint8Array(utf8String.split('').map(c => c.charCodeAt(0)));
@@ -617,7 +617,7 @@ class WTVShared {
      * @returns {string} Random string
      */
     generatePassword(len, simple = false) {
-        return this.generateString(len, (simple) ? null : '!@#$%&()[]-_+=?.');
+        return this.generateString(len, (simple) ? '' : '!@#$%&()[]-_+=?.');
     }
 
     /**
@@ -749,7 +749,7 @@ class WTVShared {
     */
     filterSSID(obj) {
         var new_obj = false;
-        if (this.minisrv_config && this.minisrv_config.config.hide_ssid_in_logs) {
+        if (this.minisrv_config.config.hide_ssid_in_logs) {
             if (typeof obj === "string") {
                 return this.censorSSID(obj);
             } else if (typeof obj === "object" && obj !== null) {
@@ -765,23 +765,18 @@ class WTVShared {
 
 
     filterRequestLog(obj) {
-        if (this.minisrv_config.config.filter_passwords_in_logs && obj.query) {
-            const passwordRegex = /(^pass$|passw(or)?d)/i;
-            let newobj = this.cloneObj(obj); // Clone the object once at the beginning
+        const passwordRegex = /(^pass$|passw(or)?d)/i;
+        var newobj = this.cloneObj(obj); // Clone the object once at the beginning
 
-            if (newobj.query) {
-                Object.keys(newobj.query).forEach((k) => {
-                    if (passwordRegex.test(k)) {
-                        newobj.query[k] = '*'.repeat(newobj.query[k].length);
-                    }
-                });
-            }
-            delete newobj.raw_headers;
-
-            return newobj;
+        if (newobj.query) {
+            Object.keys(newobj.query).forEach((k) => {
+                if (passwordRegex.test(k)) {
+                    newobj.query[k] = '*'.repeat(newobj.query[k].length);
+                }
+            });
         }
-
-        return obj;
+        delete newobj.raw_headers;
+        return newobj;
     }
 
 
@@ -974,6 +969,11 @@ class WTVShared {
         }
     }
 
+    /**
+     * Creates a 302 redirect and returns the headers/data
+     * @param {any} url
+     * @returns [headers, data]
+     */
     doRedirect(url) {
         var headers = []
         headers['Status'] = "302 Moved";
@@ -984,14 +984,14 @@ class WTVShared {
     }
 
     /**
-     * Creates an error message and sends it to the client
+     * Creates an error message and returns the headers/data
      * @param {number} code HTTP Error Code
      * @param {string} data Optinal Custom Error Message
      * @param {string} details Optional extra error information
      * @param {boolean} pc_mode If true, sends response formatted for PCs instead of WebTV
      * @param {boolean} wtv_reset if true, tells the WebTV box to reset the service list and reconnect
      */
-     doErrorPage(code, data = null, details = null, pc_mode = false, wtv_reset = false) {
+    doErrorPage(code, data = null, details = null, pc_mode = false, wtv_reset = false) {
         const minisrv_config = this.minisrv_config;
         const errorMessage = minisrv_config.config.errorMessages[code] || "";
         const message = data || errorMessage.replace(/\$\{(\w+)\}/g, (match, p1) => minisrv_config.config[p1] || '');
@@ -1000,7 +1000,7 @@ class WTVShared {
             data += "<br>Details:<br>" + details;
         }
 
-        let headers = `${code} ${message}\n`;
+        let headers = `Status: ${(pc_mode) ? 'HTTP/1.1' : ''} ${code} ${message}\n`;
         headers += "Content-Type: text/html\n";
 
         if (wtv_reset && !pc_mode) {
@@ -1075,12 +1075,16 @@ class WTVShared {
         return path;
     }
 
-
     unpackCompressedB64(data) {        
         var data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
         return this.zlib.inflateSync(data_buf, { finishFlush: this.zlib.Z_SYNC_FLUSH }).toString('ascii');
     }
 
+    /**
+     * Compresses data and converts it to a base64 string
+     * @param {any} data
+     * @returns {string} base64 string
+     */
     packCompressedB64(data) {
         return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
     }
@@ -1176,6 +1180,12 @@ class WTVShared {
         return result;
     }
 
+    /**
+     * Find a key in an object regardless of its case
+     * @param {string} key Key to find
+     * @param {obj} obj Object to search
+     * @returns {string|null} The found key or null if not found
+     */
     getCaseInsensitiveKey(key, obj) {
         const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
         return foundKey || null;
@@ -1191,6 +1201,17 @@ class clientShowAlert {
     noback = null;
     image = null;
 
+    /**
+     * User-friendly client:showalert generation
+     * @param {string} image Image URL
+     * @param {string} message Alert Message (HTML Allowed)
+     * @param {string} buttonlabel1 Button 1 Label
+     * @param {string} buttonaction1 Button 1 Action
+     * @param {string} buttonlabel2 Button 2 Label
+     * @param {string} buttonaction2 Button 2 Action
+     * @param {string} noback If true, disables the back button
+     * @param {string} sound Sound to play
+     */
     constructor(image = null, message = null, buttonlabel1 = null, buttonaction1 = null, buttonlabel2 = null, buttonaction2 = null, noback = null, sound = null) {
         this.message = message;
         this.buttonlabel1 = buttonlabel1;
@@ -1212,6 +1233,10 @@ class clientShowAlert {
         }
     }
 
+    /**
+     * Get the client:showalert URL from the helper class
+     * @returns {string} client:showalert URL
+     */
     getURL() {
         var url = "client:ShowAlert?";
         if (this.message) url += "message=" + escape(this.message) + "&";

@@ -27,6 +27,19 @@ class WTVRegister {
         return regex.test(username);
     }
 
+    checkSSIDAvailable(ssid) {
+        var directory = (directory) ? directory : this.session_store_dir + this.path.sep + "accounts";
+        var available = true;
+        if (this.fs.existsSync(directory)) {
+            this.fs.readdirSync(directory).forEach(file => {
+                if (file.toLowerCase() == ssid.toLowerCase()) {
+                    available = false;
+                    return false;
+                }
+            });
+        };
+        return available;
+    }
 
     checkUsernameAvailable(username, directory = null) {
         var self = this;

@@ -2,16 +2,20 @@ class PBTemplate {
     styledata = {};
 
     constructor(wtvauthor, title, desc, state, docName) {
-        this.styledata.text = "#7ac2d5";
-        this.styledata.link = "#a5a033";
-        this.styledata.vlink = "#25a51f";
+        this.styledata.text = "#000000";
+        this.styledata.link = "#180d4b";
+        this.styledata.vlink = "#660000";
         this.styledata.headcol = this.styledata.text;
-        this.styledata.listcol1 = null;
-        this.styledata.listcol2 = null;
-        this.styledata.stylemedia = [];
-        this.styledata.headerimgL = null;
-        this.styledata.headerimgLheight = null;
-        this.styledata.headerimgLwidth = null;
+        this.styledata.listcol1 = "#e5f4ff";
+        this.styledata.listcol2 = "#81c2d0";
+        this.styledata.stylemedia = [
+            "/clipart/styleMedia/stars.gif",
+            "/clipart/Animals/Wildlife/an00348_.gif",
+            "/clipart/Animals/Wildlife/an00974_.gif",
+        ];
+        this.styledata.headerimgL = "clipart/Animals/Wildlife/an00974_.gif";
+        this.styledata.headerimgLheight = "75";
+        this.styledata.headerimgLwidth = "88";
         this.styledata.headerimgR = null;
         this.styledata.headerimgRheight = null;
         this.styledata.headerimgRwidth = null;
@@ -21,7 +25,7 @@ class PBTemplate {
 <META NAME="description" CONTENT="${desc}">
 <title>${title}</title>
 </head>
-<body text="#7ac2d5" bgcolor="#11144c" link="#a5a033" vlink="#25a51f">`;
+<body bgcolor="white" link="#180d4b" vlink="#660000" background="clipart/styleMedia/stars.gif">`;
         if (state == "previewing") {
             this.styledata.header += `<TABLE cellspacing=0 cellpadding=0 bgcolor=#1e4261 border=1 width=100%>
 <TR><TD valign=middle align=center><FONT color=#D1D1D1>
@@ -30,34 +34,29 @@ to return to editing it.
 </FONT>
 </TABLE>`;
         }
-        this.styledata.header += `
-<center>
-<font size="+3" color="#66ff66"><b>
-<table width="100%" cellspacing="4" cellpadding="4" border="0">
-<tbody><tr>
-<td>`;
         this.styledata.titheader = ``;
         if (state == "editing") {
             this.styledata.titheader += `<a href="wtv-author:/edit-title?docName=${docName}&titleOnly=true">
 `;
         }
         this.styledata.titheader +=
-            `<font size="+4" color=` +
+            `<center><font size="6" color=` +
             this.styledata.text +
-            `>${title}</font></td>
-<td>`;
+            `><b>${title}</b></font>`;
 
         if (state == "editing") {
             this.styledata.titheader += `</a>`;
         }
 
-        this.styledata.afterblock1 = `</tr>
-</table>
-</b></font></center>`;
+        this.styledata.titheader += `<p><img src="clipart/Animals/Wildlife/an00348_.gif" width="277" height="273" align="bottom"> </p>
+<p>&nbsp;</p>
+</center>`;
 
-        this.styledata.tabstart = ``;
+        this.styledata.afterblock1 = null;
 
-        this.styledata.footerstart = `
+        this.styledata.tabstart = `<blockquote>`;
+
+        this.styledata.footerstart = `</blockquote>
 <table border="0" cellpadding="0" cellspacing="2" width="100%">
 <tr height=0>
 <td height=0>

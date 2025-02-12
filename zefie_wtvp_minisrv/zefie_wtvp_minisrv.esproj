@@ -8,4 +8,7 @@
     </CleanCommand>
     <StartupCommand>npm start</StartupCommand>
   </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="UserServiceVault\http_pc\content\midi\" />
+  </ItemGroup>
 </Project>

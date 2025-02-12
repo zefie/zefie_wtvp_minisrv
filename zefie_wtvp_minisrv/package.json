@@ -1,13 +1,14 @@
 {
   "name": "zefie_wtvp_minisrv",
-  "version": "0.9.58",
+  "version": "0.9.59",
   "description": "WebTV Service (WTVP) Emulation Server",
   "main": "app.js",
   "homepage": "https://github.com/zefie/zefie_wtvp_minisrv",
   "license": "GPL3",
   "scripts": {
     "start": "node app.js",
-    "test": "node test.js"
+    "test": "node test.js",
+    "debug": "cross-env DEBUG=* node app.js"
   },
   "author": {
     "name": "zefie",
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.12",
+    "cross-env": "^7.0.3",
     "crypto-js": "^4.2.0",
     "easy-crc": "0.0.2",
     "endianness": "^8.0.2",

@@ -95,6 +95,8 @@
       "wtv-head-waiter:/login",
       "wtv-head-waiter:/ValidateLogin",
       "wtv-head-waiter:/login-stage-two",
+      "wtv-head-waiter:/complete-account-transfer",
+      "wtv-head-waiter:/cancel-account-transfer",
       "wtv-head-waiter:/relogin",
       "wtv-head-waiter:/ROMCache/Spacer.gif",
       "wtv-head-waiter:/ROMCache/NameStrip.gif",
@@ -167,7 +169,6 @@
     "news": {
       // for news:group.name urls
       "port": 1605,
-      "nobind": true,
       "flags": "0x00000004"
     },
     "wtv-register": {
@@ -233,14 +234,12 @@
     "wtvchat": {
       // wtvchat://server:port/channel passthrough (wni official)
       "port": 1630,
-      "nobind": true,
       "flags": "0x00000004",
       "allow_double_slash": true // allows service:// .. don't enable on http or https
     },
     "irc": {
       // irc://server:port/channel passthrough (something wni should have had...)
       "port": 1630,
-      "nobind": true,
       "flags": "0x00000004",
       "servicevault_dir": "wtvchat", // share service_vault with wtvchat
       "allow_double_slash": true // allows service:// .. don't enable on http or https
@@ -354,6 +353,7 @@
       "privileged": true,
       "use_https": false,
       "force_https": false,
+      "catchall_file_name": "indexer.js",
       "https_cert": {
         /* self-signed, can be replaced with another cert */
         // "domain": "mycooldomain.com",

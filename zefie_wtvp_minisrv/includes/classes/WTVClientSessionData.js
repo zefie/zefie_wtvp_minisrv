@@ -52,6 +52,7 @@ class WTVClientSessionData {
         this.loginWhitelist = Object.assign([], this.lockdownWhitelist); // clone lockdown whitelist into login whitelist
         this.loginWhitelist.push("wtv-head-waiter:/choose-user");
         this.loginWhitelist.push("wtv-head-waiter:/password");
+        this.loginWhitelist.push("wtv-head-waiter:/confirm-transfer");
     }
 
     assignMailStore() {
@@ -170,8 +171,7 @@ class WTVClientSessionData {
 
         var master_directory = this.getUserStoreDirectory(true);
         var account_data = [];
-        var self = this;
-        this.debug(this.ssid)
+        var self = this;        
         this.fs.readdirSync(master_directory).forEach(f => {
             if (self.fs.lstatSync(master_directory + self.path.sep + f).isDirectory()) {
                 if (f.substr(0, 4) == "user") {
@@ -232,6 +232,67 @@ class WTVClientSessionData {
             return true;
         }
         return false;
+    }
+
+    setPendingTransfer(ssid) {
+        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        var ssidobj = { "ssid": ssid, "type": "source" };
+        this.fs.writeFileSync(pending_file, JSON.stringify(ssidobj));
+        var new_userstore = this.getAccountStoreDirectory() + this.path.sep + ssidobj.ssid;
+        if (!this.fs.existsSync(new_userstore)) this.fs.mkdirSync(new_userstore);
+        var dest_pending_file = new_userstore + this.path.sep + "pending_transfer.json";
+        var ssidobj = { "ssid": this.ssid, "type": "target" };
+        this.fs.writeFileSync(dest_pending_file, JSON.stringify(ssidobj));
+    }
+
+    cancelPendingTransfer() {
+        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        if (this.fs.existsSync(pending_file)) {
+            var file = this.fs.readFileSync(pending_file)
+            var ssidobj = JSON.parse(file);
+            var new_userstore = this.getAccountStoreDirectory() + this.path.sep + ssidobj.ssid;
+            var dest_pending_file = new_userstore + this.path.sep + "pending_transfer.json";
+            if (this.fs.existsSync(dest_pending_file)) this.fs.unlinkSync(dest_pending_file);
+            this.fs.unlinkSync(pending_file);
+            if (this.fs.existsSync(new_userstore)) this.fs.rmdirSync(new_userstore);
+            return ssidobj.ssid
+        }
+        return null;
+    }
+
+    finalizePendingTransfer() {
+        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        var file = this.fs.readFileSync(pending_file)
+        var ssidobj = JSON.parse(file);
+        if (ssidobj.type != "target") return false; // Only allow completion from target
+        var source_ssid = ssidobj.ssid
+        var old_account = this.getAccountStoreDirectory() + this.path.sep + source_ssid
+        var new_account = this.getUserStoreDirectory(true);
+        this.fs.cpSync(old_account, new_account, {
+            filter: (source, _destination) => {
+                return source != "pending_transfer.json";
+            }, 
+            recursive: true
+        });
+        this.fs.rmSync(old_account, { recursive: true })
+        this.fs.rmSync(pending_file);
+        return true;
+    }
+
+    hasPendingTransfer(dtype = null) {
+        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        if (this.fs.existsSync(pending_file)) {
+            var ssidobj = JSON.parse(this.fs.readFileSync(pending_file));
+            console.log(ssidobj)
+            if (dtype) {
+                (ssidobj.type == dtype) ? ssidobj.ssid : false;
+            }
+            else {
+                return ssidobj;
+            }
+        } else {
+            return false
+        }
     }
 
     /**
@@ -631,14 +692,14 @@ class WTVClientSessionData {
     }
 
     setSessionData(key, value) {
-        if (key === null) throw ("ClientSessionData.set(): invalid key provided");
+        if (key === null) throw ("ClientSessionData.setSessionData(): invalid key provided");
         if (typeof (this.session_store) === 'undefined') this.session_store = new Array();
         this.session_store[key] = value;
         this.SaveIfRegistered();
     }
 
     deleteSessionData(key) {
-        if (key === null) throw ("ClientSessionData.delete(): invalid key provided");
+        if (key === null) throw ("ClientSessionData.deleteSessionData(): invalid key provided");
         delete this.session_store[key];
         this.SaveIfRegistered(true);
     }

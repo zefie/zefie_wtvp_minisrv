@@ -3,7 +3,6 @@ session_data.setUserLoggedIn(false);
 
 var challenge_response, challenge_header = "";
 if (socket.ssid !== null) session_data.switchUserID(0);
-
 var gourl = "wtv-head-waiter:/ValidateLogin?";
 if (request_headers.query.relogin) gourl += "relogin=true";
 else if (request_headers.query.reconnect) gourl += "reconnect=true";

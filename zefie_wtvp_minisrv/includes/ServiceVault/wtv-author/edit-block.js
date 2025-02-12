@@ -8,9 +8,10 @@ var oldBlockNum = request_headers.query.blockNum
 var blockType = pagedata.blocks[oldBlockNum].type
 var photo;
 var thumbnail;
+
 if (pagedata.blocks[oldBlockNum].photo) {
 	console.log(pagedata.blocks[oldBlockNum].photo);
-	photo = wtvshared.atob(pagedata.blocks[oldBlockNum].photo)
+	photo = wtvshared.btoa(pagedata.blocks[oldBlockNum].photo)
 	thumbnail = photo.replace('clipart/', 'clipart/icons/');
 }
 
