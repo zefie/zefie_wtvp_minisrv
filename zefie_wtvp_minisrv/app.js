@@ -1657,8 +1657,6 @@ async function sendToClient(socket, headers_obj, data = null) {
         }
     });
 
-    console.log(headers_obj);
-
     // send to client
     if (socket.res) {
         var resCode = parseInt(headers_obj.Status.substr(0, 3));        
