@@ -69,16 +69,14 @@ if (session_data.data_store.wtvsec_login) {
 		if (wtvshared.parseSSID(socket.ssid).boxType == "MAME") {
 			send_tellyscript = false;
 		}
-	}	
+	}
+
+	if (minisrv_config.services[service_name].tellyscript_ssid_blacklist) {
+		send_tellyscript = (minisrv_config.services[service_name].tellyscript_ssid_blacklist.findIndex(element => element == socket.ssid) == -1)
+	}
+
 	if (send_tellyscript) {
-		if (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist) {
-			var send_telly_to_ssid = (minisrv_config.services[service_name].send_tellyscript_ssid_whitelist.findIndex(element => element == socket.ssid) != -1)
-			if (send_telly_to_ssid) {
-				romtype = session_data.get("wtv-client-rom-type");
-			}
-		} else {
-			romtype = session_data.get("wtv-client-rom-type");
-		}
+		romtype = session_data.get("wtv-client-rom-type");
 		switch (romtype) {
 			case "US-LC2-disk-0MB-8MB":
 			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
