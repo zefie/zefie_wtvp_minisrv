@@ -59,7 +59,7 @@ function getServiceByPort(port) {
     Object.keys(minisrv_config.services).forEach(function (k) {
         if (service_name) return;
         if (minisrv_config.services[k].port) {
-            if (port == parseInt(minisrv_config.services[k].port))
+            if (port == parseInt(minisrv_config.services[k].port) && getServiceEnabled(k))
                 service_name = k;
         }
     })
