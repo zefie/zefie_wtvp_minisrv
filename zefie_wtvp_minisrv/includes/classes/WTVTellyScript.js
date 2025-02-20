@@ -921,6 +921,31 @@ class WTVTellyScript {
         this.process(data, dataState);
     }
 
+    ipToHex(ip) {
+        const parts = ip.split('.');
+        if (parts.length !== 4) {
+            throw new Error('Invalid IP address');
+        }
+        let num = 0;
+        for (let i = 0; i < 4; i++) {
+            const part = parseInt(parts[i], 10);
+            if (part < 0 || part > 255) {
+                throw new Error('Invalid IP address');
+            }
+            num = (num << 8) | part;
+        }
+        return "0x" + num.toString(16).toUpperCase();
+    }
+
+    setTemplateVars(service_name, dialin_number, DNS1IP, DNS2IP) {
+        this.raw_data = this.raw_data.replaceAll("%ServiceName%", service_name);
+        this.raw_data = this.raw_data.replaceAll("%DialinNumber%", dialin_number);
+        this.raw_data = this.raw_data.replaceAll("%DNSIP1%", DNS1IP);
+        this.raw_data = this.raw_data.replaceAll("%DNSIP2%", DNS2IP);
+        this.raw_data = this.raw_data.replaceAll("%DNS1%", this.ipToHex(DNS1IP));
+        this.raw_data = this.raw_data.replaceAll("%DNS2%", this.ipToHex(DNS2IP));   
+    }
+
     // --- Big Endian Converter Helpers ---
 
     toUint32(bytes, offset) {

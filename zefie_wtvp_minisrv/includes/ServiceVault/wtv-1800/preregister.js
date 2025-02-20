@@ -86,7 +86,8 @@ if (session_data.data_store.wtvsec_login) {
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
 				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
-				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
+				else template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.prereg.template.txt", true);
+				//else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
@@ -195,6 +196,20 @@ if (session_data.data_store.wtvsec_login) {
 				file_read_data = errmsg[1] + "\n" + err.toString();
 			}
 			sendToClient(socket, headers, file_read_data);
+		});
+	} else if (template_path) {
+		request_is_async = true;
+		fs.readFile(template_path, null, function (err, file_read_data) {
+			if (err) {
+				var errmsg = wtvshared.doErrorPage(400);
+				headers = errmsg[0];
+				file_read_data = errmsg[1] + "\n" + err.toString();
+			}
+			telly = new WTVTellyScript(file_read_data, 2); // 2 = Untokenized
+			telly.setTemplateVars(minisrv_config.config.service_name, minisrv_config.services[service_name].dialin_number, minisrv_config.services[service_name].dns1ip, minisrv_config.services[service_name].dns2ip);
+			telly.tokenize();
+			telly.pack();
+			sendToClient(socket, headers, telly.packed_data);
 		});
 	}
 } else {
