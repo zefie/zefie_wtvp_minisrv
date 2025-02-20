@@ -2363,8 +2363,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     if (typeof(minisrv_config.services[k]) === 'function') return;
     if (configureService(k, minisrv_config.services[k], true)) {
         var using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
-        if (minisrv_config.services[k].port)
-            console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
+        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
 
         if (minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
@@ -2515,10 +2514,8 @@ pc_bind_ports.every(function (v) {
             req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
             socket_sessions[req.socket.id] = []; 
 
-            var pc_services_name = getServiceByVaultDir(service_name) | null;
-            var is_enabled = (pc_services_name) ? getServiceEnabled(pc_services_name) : getServiceEnabled(service_name);
 
-            if (is_enabled) {
+            if (getServiceEnabled(service_name)) {
                 if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
                 else debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
 
