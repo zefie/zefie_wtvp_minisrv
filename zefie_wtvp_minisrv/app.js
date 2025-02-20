@@ -2504,7 +2504,6 @@ pc_bind_ports.every(function (v) {
 
             if (host_name) {
                 if (host_name.indexOf(":") != -1) host_name = host_name.substring(0, host_name.indexOf(":"));
-                debug(host_name)
                 service_name = (getServiceByVHost(host_name)) ? getServiceByVHost(host_name) : service_name
             }
 
@@ -2513,7 +2512,6 @@ pc_bind_ports.every(function (v) {
             req.socket.service_name = service_name;
             req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
             socket_sessions[req.socket.id] = []; 
-
 
             if (getServiceEnabled(service_name)) {
                 if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
@@ -2528,19 +2526,15 @@ Content-type: text/html`;
                     processURL(req.socket, request_headers, true)
                 }
             } else {
-                var errpage = wtvshared.doErrorPage(404, "Service Not Found");
+                var errpage = wtvshared.doErrorPage(404, "Service Not Found ("+service_name+")");
                 sendToClient(req.socket, errpage[0], errpage[1]);
             }
         })
+
         server.post('*', (req, res) => {
             var errpage = null;
             var ssl = (req.socket.ssl) ? true : false;
             var service_name = getServiceByPort(v);
-            req.socket.minisrv_pc_mode = true;
-            req.socket.res = res;
-            req.socket.service_name = service_name;
-            req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
-            socket_sessions[req.socket.id] = []; 
 
             var request_headers = {};           
             request_headers['request'] = "POST " + req.originalUrl + " HTTP/1.1";
@@ -2552,14 +2546,18 @@ Content-type: text/html`;
             });
             request_headers.query = req.query;
 
-
             var host_name = (request_headers['host']) ? request_headers['host'] : null;
 
             if (host_name) {
                 if (host_name.indexOf(":") != -1) host_name = host_name.substring(0, host_name.indexOf(":"));
-                debug(host_name)
                 service_name = (getServiceByVHost(host_name)) ? getServiceByVHost(host_name) : service_name
             }
+
+            req.socket.minisrv_pc_mode = true;
+            req.socket.res = res;
+            req.socket.service_name = service_name;
+            req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
+            socket_sessions[req.socket.id] = [];
 
             if (getServiceEnabled(service_name)) {
                 if (req.body) {
@@ -2594,7 +2592,7 @@ Content-type: text/html`;
                     processURL(req.socket, request_headers, true)
                 }
             } else {
-                var errpage = wtvshared.doErrorPage(404, "Service Not Found");
+                var errpage = wtvshared.doErrorPage(404, "Service Not Found (" + service_name +")");
                 sendToClient(req.socket, errpage[0], errpage[1]);
             }
         })
