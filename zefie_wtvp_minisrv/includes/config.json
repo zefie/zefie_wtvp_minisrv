@@ -61,7 +61,7 @@
       ]
     },
     "pc_admin": {
-      "enabled": true,
+      "enabled": false,
       "ip_whitelist": [
         "192.168.1.0/24",
         "127.0.0.1"
