@@ -9,7 +9,6 @@ const WTVTellyScript = require(classPath + "/WTVTellyScript.js")
 
 headers = `GET wtv-1800:/preregister
 wtv-client-serial-number: 9111111111111111
-wtv-client-rom-type: US-LC2-disk-0MB-8MB
 wtv-show-time-record: 1 <file://disk/Browser/cSetup/cSetup.html>
 wtv-request-type: primary
 wtv-system-cpuspeed: 166187148
@@ -22,7 +21,7 @@ wtv-connect-session-id: 7b662075
 wtv-system-version: 7181
 wtv-capability-flags: 10935ffc8f
 wtv-client-bootrom-version: 2046
-wtv-client-rom-type: US-LC2-disk-0MB-8MB
+wtv-client-rom-type: bf0app
 wtv-system-chipversion: 51511296
 User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)
 wtv-encryption: true

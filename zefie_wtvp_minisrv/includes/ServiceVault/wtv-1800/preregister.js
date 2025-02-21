@@ -110,7 +110,8 @@ if (session_data.data_store.wtvsec_login) {
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
 				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_OISP.tok", true);
-				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok", true);
+				else template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.prereg.template.txt", true);
+				//else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok", true);
 				break;
 
 			// the following are not yet zefie generated and may have an unknown username/password attached
@@ -207,6 +208,7 @@ if (session_data.data_store.wtvsec_login) {
 			}
 			telly = new WTVTellyScript(file_read_data, 2); // 2 = Untokenized
 			telly.setTemplateVars(minisrv_config.config.service_name, minisrv_config.services[service_name].dialin_number, minisrv_config.services[service_name].dns1ip, minisrv_config.services[service_name].dns2ip);
+			telly.minify();
 			telly.tokenize();
 			telly.pack();
 			sendToClient(socket, headers, telly.packed_data);

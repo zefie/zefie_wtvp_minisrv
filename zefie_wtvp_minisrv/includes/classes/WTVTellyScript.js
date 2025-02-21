@@ -36,6 +36,17 @@ const TellyScriptType = {
     DIALSCRIPT: 1,
 };
 
+const reservedKeywords = new Set([
+    'int', 'char', 'if', 'else', 'while', 'return', 'void', , 'delay', 'flush', 'break',
+    'printf', 'atoi', 'main', 'setprogressmode', 'setprogresstext', 'setworkingnumber',
+    'setprogresspercentage', 'setprogressdirty', 'strcpy', 'strcat', 'setwindowsize',
+    'enablemodem', 'builtin_winkdtr', 'setflowcontrol', 'setbaud', 'setdtr', 'sendstr',
+    'setusername', 'setpassword', 'setpapmode', 'startppp', 'getpppresult', 'ticks',
+    'getpreregnumber', 'getserialnumber', 'getsecret', 'getphonesettings', 'setstatus',
+    'sprintf', 'setconnectionstats', 'setforcehook', 'waitfor', 'setnameservice',
+    'getline'
+]);
+
 
 class WTVTellyScriptTokenizer {
     constructor(rawData) {        
@@ -902,6 +913,128 @@ class WTVTellyScriptDetokenizer {
 }
 
 
+class WTVTellyScriptMinifier {
+    // 1. Tokenization: Build the token array from raw text
+    tokenize(input) {
+        // Define token specs as pairs: [regex, tokenType]
+        const tokenSpecs = [
+            [/^\s+/, 'WHITESPACE'],                          // Whitespace (skip)
+            [/^\/\/.*/, null],                        // Single-line comment (skip)
+            [/^\/\*[\s\S]*?\*\//, null],               // Multi-line comment (skip)
+            // Keywords (update with your TellyScript keywords as needed)
+            [/^\b(int|char|if|else|while|return|void)\b/, 'KEYWORD'],
+            // Identifiers (variable and function names)
+            [/^\b[a-zA-Z_][a-zA-Z0-9_]*\b/, 'IDENTIFIER'],
+            // Hexadecimal numbers (e.g., 0xe100)
+            [/^0x[0-9a-fA-F]+/, 'NUMBER'],
+            // Decimal numbers
+            [/^\d+/, 'NUMBER'],
+            // String literals (supports escaped quotes)
+            [/^"([^"\\]|\\.)*"/, 'STRING'],
+            // Punctuation (parentheses, braces, commas, semicolons, etc.)
+            [/^[{};,\[\]\(\)]/, 'PUNCTUATION'],
+            // Operators (covers common operators; adjust as needed)
+            [/^(==|!=|<=|>=|[+\-*/=<>!&|%]+)/, 'OPERATOR']
+        ];
+
+        const tokens = [];
+        let remaining = input;
+
+        while (remaining.length > 0) {
+            let matched = false;
+            for (const [regex, tokenType] of tokenSpecs) {
+                const match = regex.exec(remaining);
+                if (match) {
+                    matched = true;
+                    const tokenValue = match[0];
+                    // Only include tokens with a type (skip whitespace/comments)
+                    if (tokenType) {
+                        tokens.push({ type: tokenType, value: tokenValue });
+                    }
+                    // Slice off the matched portion of the input
+                    remaining = remaining.slice(tokenValue.length);
+                    break;
+                }
+            }
+            if (!matched) {
+                throw new Error("Unexpected token: " + remaining[0]);
+            }
+        }
+        return tokens;
+    }
+
+    detokenize(tokens) {
+        let output = "";
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            output += token.value;
+
+            // Look ahead to the next token
+            if (i < tokens.length - 1) {
+                const nextToken = tokens[i + 1];
+                // Insert a space if both tokens are of types that, if concatenated, could form a different valid token.
+                if (token.type === 'OPERATOR' && token.value === '=' && nextToken.type === 'OPERATOR' && nextToken.value === '&') {
+                    output += " ";
+                }
+                if ((token.type === 'IDENTIFIER' || token.type === 'NUMBER') &&
+                    (nextToken.type === 'IDENTIFIER' || nextToken.type === 'NUMBER') ||
+                    token.type === 'KEYWORD') {
+                    output += " ";
+                }
+            }
+        }
+        return output;
+    }
+
+    // 2. Minification: Dynamically generate short names for variable identifiers
+
+    // Helper: Convert a counter to a short name (0 -> "a", 1 -> "b", ... 26 -> "aa", etc.)
+    generateShortName(counter) {
+        let name = '';
+        let n = counter;
+        do {
+            name = String.fromCharCode(97 + (n % 26)) + name;
+            n = Math.floor(n / 26) - 1;
+        } while (n >= 0);
+        return name;
+    }
+
+    // Reserved keywords that should not be renamed (include any built-in function names too)
+
+    minifyIdentifiers(tokens) {
+        const mapping = {}; // Map original identifier -> short name
+        let counter = 0;
+
+        // First pass: Build mapping for each identifier that isn't a reserved keyword.
+        tokens.forEach(token => {
+            if (token.type === 'IDENTIFIER' && !reservedKeywords.has(token.value)) {
+                if (!(token.value in mapping)) {
+                    mapping[token.value] = this.generateShortName(counter++);
+                }
+            }
+        });
+
+        // Second pass: Replace identifier token values with their short names.
+        tokens.forEach(token => {
+            if (token.type === 'IDENTIFIER' && mapping[token.value]) {
+                token.value = mapping[token.value];
+            }
+        });
+
+        return tokens;
+    }
+
+
+    minify(tellyscript) {
+        // Tokenize the raw text
+        let tokens = this.tokenize(tellyscript.raw_data);
+console.log(tokens)
+        // Minify identifier names
+        tokens = this.minifyIdentifiers(tokens);
+        return this.detokenize(tokens);
+    }
+}
+
 class WTVTellyScript {
 
     // --- TellyScript Class ---
@@ -921,6 +1054,13 @@ class WTVTellyScript {
         this.process(data, dataState);
     }
 
+    minify() {
+        let minifier = new WTVTellyScriptMinifier();
+        this.raw_data = minifier.minify(this);
+        this.tokenize();
+        this.pack();        
+    }
+
     ipToHex(ip) {
         const parts = ip.split('.');
         if (parts.length !== 4) {
@@ -934,7 +1074,8 @@ class WTVTellyScript {
             }
             num = (num << 8) | part;
         }
-        return "0x" + num.toString(16).toUpperCase();
+        // Convert to unsigned 32-bit number before converting to hex
+        return "0x" + (num >>> 0).toString(16).toUpperCase();
     }
 
     setTemplateVars(service_name, dialin_number, DNS1IP, DNS2IP) {
