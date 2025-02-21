@@ -185,6 +185,7 @@ class WTVAdmin {
                             allowed_ssid = true;
                             Object.keys(self.minisrv_config.services[self.service_name].authorized_ssids[k]).forEach(function (j) {
                                 if (self.isInSubnet(self.clientAddress, self.minisrv_config.services[self.service_name].authorized_ssids[k][j])) {
+                                    if (allowed_ip) return;
                                     allowed_ip = true;
                                 }
                             });
@@ -194,9 +195,15 @@ class WTVAdmin {
             }
         } else {
             if (this.pcservices) {
+                if (!this.minisrv_config.config.pc_admin.enabled) {
+                    if (justchecking) return false;
+                    else return this.rejectConnection(false);
+                }
+
                 if (this.minisrv_config.config.pc_admin.ip_whitelist) {
                     var self = this;
                     Object.keys(this.minisrv_config.config.pc_admin.ip_whitelist).forEach(function (k) {
+                        if (allowed_ip) return;
                         allowed_ip = self.isInSubnet(self.clientAddress, self.minisrv_config.config.pc_admin.ip_whitelist[k]);
                     });
                 }
