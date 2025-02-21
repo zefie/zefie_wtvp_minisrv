@@ -918,7 +918,7 @@ class WTVTellyScriptMinifier {
     tokenize(input) {
         // Define token specs as pairs: [regex, tokenType]
         const tokenSpecs = [
-            [/^\s+/, 'WHITESPACE'],                          // Whitespace (skip)
+            [/^\s+/, 'WHITESPACE'],                          // Whitespace
             [/^\/\/.*/, null],                        // Single-line comment (skip)
             [/^\/\*[\s\S]*?\*\//, null],               // Multi-line comment (skip)
             // Keywords (update with your TellyScript keywords as needed)
@@ -967,7 +967,14 @@ class WTVTellyScriptMinifier {
         let output = "";
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
-            output += token.value;
+
+            if (token.type === 'WHITESPACE') {
+                //token.value = token.value.replaceAll("\r", " ");
+                if (token.value.indexOf("\n") !== -1) output += token.value.replaceAll("\n\n\n", "\n\n");
+                else output += " ";
+            } else {
+                output += token.value;
+            }
 
             // Look ahead to the next token
             if (i < tokens.length - 1) {

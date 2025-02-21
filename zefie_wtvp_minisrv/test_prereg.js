@@ -30,6 +30,8 @@ wtv-script-mod: 0
 
 `
 
+//wtv-client-rom-type: US-LC2-disk-0MB-8MB
+
 const net = require('net');
 
 // Create a socket connection to localhost on port 1615
