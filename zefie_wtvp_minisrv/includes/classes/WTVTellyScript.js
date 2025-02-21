@@ -44,7 +44,10 @@ const reservedKeywords = new Set([
     'setusername', 'setpassword', 'setpapmode', 'startppp', 'getpppresult', 'ticks',
     'getpreregnumber', 'getserialnumber', 'getsecret', 'getphonesettings', 'setstatus',
     'sprintf', 'setconnectionstats', 'setforcehook', 'waitfor', 'setnameservice',
-    'getline'
+    'getline', 'connectingwithvideoad', 'version', 'alert', 'system_getboxfeatureflags',
+    'parsesystemtime', 'getdatetimelocal', 'getdayofweek', 'gethour', 'getminute',
+    'getmonth', 'getyear', 'getconnectretrycount', 'dialerror', 'setfullpopnumber',
+    'setconnectretrycount', 'setani', 'setlocalpopcount', 'computefcs'
 ]);
 
 
@@ -931,6 +934,7 @@ class WTVTellyScriptMinifier {
             [/^\d+/, 'NUMBER'],
             // String literals (supports escaped quotes)
             [/^"([^"\\]|\\.)*"/, 'STRING'],
+            [/^'([^'\\]|\\.)*'/, 'STRING'],
             // Punctuation (parentheses, braces, commas, semicolons, etc.)
             [/^[{};,\[\]\(\)]/, 'PUNCTUATION'],
             // Operators (covers common operators; adjust as needed)
@@ -969,8 +973,8 @@ class WTVTellyScriptMinifier {
             const token = tokens[i];
 
             if (token.type === 'WHITESPACE') {
-                //token.value = token.value.replaceAll("\r", " ");
-                if (token.value.indexOf("\n") !== -1) output += token.value.replaceAll("\n\n\n", "\n\n");
+                token.value = token.value.replaceAll("\r", "\n");
+                if (token.value.indexOf("\n") !== -1) output += token.value.replaceAll("\n\n", "\n");
                 else output += " ";
             } else {
                 output += token.value;
@@ -1064,6 +1068,7 @@ class WTVTellyScript {
     minify() {
         let minifier = new WTVTellyScriptMinifier();
         this.raw_data = minifier.minify(this);
+        this.raw_data = this.raw_data.replaceAll("\n\n\n", "\n");
         this.tokenize();
         this.pack();        
     }
@@ -1291,7 +1296,7 @@ class WTVTellyScript {
         this.packed_header = {
             magic: (this.tellyscript_type === TellyScriptType.DIALSCRIPT) ? "VKAT" : "ANDY",
             version_major: (this.packed_header && this.packed_header.version_major) ? this.packed_header.version_major : 1,
-            version_minor: (this.packed_header && this.packed_header.version_minor) ? this.packed_header.version_minor : 1,
+            version_minor: (this.packed_header && this.packed_header.version_minor) ? this.packed_header.version_minor : 3,
             script_id: script_id,
             script_mod: Math.floor(Date.now() / 1000),
             compressed_data_length: compressed_data.length,

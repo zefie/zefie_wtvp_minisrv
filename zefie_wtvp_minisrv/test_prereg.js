@@ -22,6 +22,7 @@ wtv-system-version: 7181
 wtv-capability-flags: 10935ffc8f
 wtv-client-bootrom-version: 2046
 wtv-client-rom-type: bf0app
+wtv-open-access: true
 wtv-system-chipversion: 51511296
 User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)
 wtv-encryption: true
@@ -29,6 +30,7 @@ wtv-script-id: 0
 wtv-script-mod: 0
 
 `
+
 
 //wtv-client-rom-type: US-LC2-disk-0MB-8MB
 

@@ -108,7 +108,8 @@ if (session_data.data_store.wtvsec_login) {
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_OISP.tok", true);
+				//if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_OISP.tok", true);
+				if (session_data.get("wtv-open-access")) template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.openisp.template.txt", true);				
 				else template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.prereg.template.txt", true);
 				break;
 
