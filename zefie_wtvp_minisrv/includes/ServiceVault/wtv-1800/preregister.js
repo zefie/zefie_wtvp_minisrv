@@ -1,4 +1,5 @@
 var minisrv_service_file = true;
+var template_path = "";
 
 var gourl = "wtv-head-waiter:/login?";
 
