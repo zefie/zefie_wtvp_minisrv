@@ -87,7 +87,7 @@ if (session_data.data_store.wtvsec_login) {
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
 				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
-				else template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.prereg.template.txt", true);
+				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
@@ -109,9 +109,8 @@ if (session_data.data_store.wtvsec_login) {
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				//if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_OISP.tok", true);
 				if (session_data.get("wtv-open-access")) template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.openisp.template.txt", true);				
-				else template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.prereg.template.txt", true);
+				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok", true);
 				break;
 
 			// the following are not yet zefie generated and may have an unknown username/password attached
