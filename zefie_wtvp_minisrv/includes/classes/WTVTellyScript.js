@@ -1053,16 +1053,92 @@ class WTVTellyScript {
      * @param {Uint8Array|string} data - The TellyScript data (either packed, tokenized, or raw).
      * @param {number} dataState - One of TellyScriptState (default: PACKED).
      * @param {number} tellyscriptType - One of TellyScriptType (default: ORIGINAL).
+     * @param {object} preprocessor_definitions - A dictionary of preprocessor definitions.
+     * @param {number} version_minor - The minor version number (default: 1).
      */
-    constructor(data, dataState = TellyScriptState.PACKED, tellyscriptType = TellyScriptType.ORIGINAL) {
+    constructor(data, dataState = TellyScriptState.PACKED, preprocessor_definitions = {}, version_minor = 1, tellyscriptType = TellyScriptType.ORIGINAL) {
         this.tellyscript_type = tellyscriptType;
         this.packed_data = null;
         this.packed_header = null;
         this.tokenized_data = null;
         this.raw_data = null;
+        this.preprocessor_definitions = preprocessor_definitions;
+        this.version_minor = version_minor;
 
         this.process(data, dataState);
     }
+
+    preprocess() {
+        var definitions = this.preprocessor_definitions || {};
+        // Split input into lines (handling CRLF and LF)
+        const lines = this.raw_data.split(/\r?\n/);
+        const output = [];
+        // A stack to track whether the current block is active.
+        // Start with "true" so that top-level lines are output.
+        const stateStack = [true];
+
+        // Process each line one by one.
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            // Only process directives if they are left-aligned.
+            if (line.startsWith("#")) {
+                if (/^#ifdef\b/.test(line)) {
+                    // Get the label immediately after "#ifdef"
+                    const token = line.slice(6).split(/\s/)[0];
+                    const condition = !!definitions[token];
+                    // The block is active only if the parent block is active and condition is true.
+                    const active = stateStack[stateStack.length - 1] && condition;
+                    stateStack.push(active);
+                    continue; // Do not output this directive line.
+                } else if (/^#ifndef\b/.test(line)) {
+                    const token = line.slice(7).split(/\s/)[0];
+                    const condition = !definitions[token];
+                    const active = stateStack[stateStack.length - 1] && condition;
+                    stateStack.push(active);
+                    continue;
+                } else if (/^#if\b/.test(line)) {
+                    // Expect exactly "#if 1" or "#if 0" (no extra spaces allowed).
+                    const token = line.slice(3).split(/\s/)[0];
+                    if (token !== "1" && token !== "0") {
+                        throw new Error(
+                            `Invalid #if condition at line ${i + 1}: "${line}"`
+                        );
+                    }
+                    const condition = token === "1";
+                    const active = stateStack[stateStack.length - 1] && condition;
+                    stateStack.push(active);
+                    continue;
+                } else if (/^#else\b/.test(line)) {
+                    if (stateStack.length <= 1) {
+                        throw new Error(`#else without matching #if at line ${i + 1}`);
+                    }
+                    // Flip the state of the current block while considering the parent's state.
+                    const previous = stateStack.pop();
+                    const newState = stateStack[stateStack.length - 1] && !previous;
+                    stateStack.push(newState);
+                    continue;
+                } else if (/^#endif\b/.test(line)) {
+                    if (stateStack.length <= 1) {
+                        throw new Error(`#endif without matching #if at line ${i + 1}`);
+                    }
+                    stateStack.pop();
+                    continue;
+                } else if (/^#include\b/.test(line)) {
+                    // Silently remove #include directives.
+                    continue;
+                }
+            }
+            // For non-directive lines (or lines with unrecognized directives),
+            // output them only if the current block is active.
+            if (stateStack[stateStack.length - 1]) {
+                output.push(line);
+            }
+        }
+
+        this.raw_data = output.join("\n");
+    }
+
 
     minify() {
         let minifier = new WTVTellyScriptMinifier();
@@ -1218,12 +1294,13 @@ class WTVTellyScript {
                 this.pack();
                 this.detokenize();
             } else if (dataState === TellyScriptState.RAW) {
-                // For RAW byte data, convert to string (assuming UTF-8)
+                // For RAW byte data, convert to string (assuming UTF-8)                
                 this.process(new TextDecoder().decode(data), dataState);
             }
         } else if (typeof data === "string") {
             if (dataState === TellyScriptState.RAW) {
                 this.raw_data = data;
+                this.preprocess()
                 this.tokenize();
                 this.pack();
             } else if (dataState === TellyScriptState.PACKED || dataState === TellyScriptState.TOKENIZED) {
@@ -1275,7 +1352,7 @@ class WTVTellyScript {
     }
 
     // --- Packing ---
-    pack(version_minor = 1) {
+    pack() {
         // Compress tokenized data using LZSS.
         const comp = new LZSS();
         const compressed_data = comp.compress(this.tokenized_data);
@@ -1295,7 +1372,7 @@ class WTVTellyScript {
         this.packed_header = {
             magic: (this.tellyscript_type === TellyScriptType.DIALSCRIPT) ? "VKAT" : "ANDY",
             version_major: (this.packed_header && this.packed_header.version_major) ? this.packed_header.version_major : 1,
-            version_minor: (this.packed_header && this.packed_header.version_minor) ? this.packed_header.version_minor : version_minor,
+            version_minor: (this.packed_header && this.packed_header.version_minor) ? this.packed_header.version_minor : this.version_minor,
             script_id: script_id,
             script_mod: Math.floor(Date.now() / 1000),
             compressed_data_length: compressed_data.length,

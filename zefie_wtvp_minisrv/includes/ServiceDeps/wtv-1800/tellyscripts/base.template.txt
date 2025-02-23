@@ -1,5 +1,6 @@
 /* TLLY ver=77 */
 /* *=* Copyright 1996, 1997 WebTV Networks, Inc. All rights reserved. */
+#ifndef FIJI
 /*
  * This is the "base" TellyScript Fragment. It is suppressed for FIJI
  * (see comments below).
@@ -164,11 +165,12 @@ char* gPAPPassword;	/* box's PAP password, embedded in script by the
 int gEnable56K;		/* if set, allow 56K connections; if not, don't */
 int gDisguiseRate;	/* if set, reverse the DTE and DCE rates */
 int gFlexKnob=5;	/* 56k knob for Rockwell, 5=most aggressive (default) */
-
+#endif /*!FIJI*/
 /* FIJI doesn't have these built-in */
 int gBlock911=1;	/* This flag is now set for all services. */
 int gWantsVideoAd;	/* if set, user wants to download Video Ads */
 			/* This flag is not needed anymore, left here for future use */
+#ifndef FIJI
 
 /*
  * ===========================================================================
@@ -431,6 +433,97 @@ GetPhoneSettings(int* pSettingsVersion)
  * ===========================================================================
  */
 
+#ifndef CLASSIC
+/*
+ * GetHardwareInfo - figure out some things about the platform we're
+ * running on.
+ *
+ * "*pIsEarlyK56" is set if we're using Rockwell's v1.0 K56 firmware.
+ * "*pAcceptsS220" is set if the modem recognizes S220 as a valid S-register.
+ *
+ * Assumes that the modem is happy and in V1E0 (verbose result code, no
+ * echo) mode.
+ *
+ * NOTE: we don't really check for and try to handle the case where the
+ * modem goes out to lunch and we're hitting the getline() timeouts.  Since
+ * we've already talked to the modem a little before getting here, I think
+ * it's safe to assume that we won't fail here and then succeed later.  If
+ * the information we get from this function is more critical than what we
+ * have now, we should be more careful.
+ *
+ * Returns 0 if all went well, nonzero on error.
+ */
+GetHardwareInfo(int* pIsEarlyK56, int* pAcceptsS220, int* pIsRockwell,
+	int* pAcceptsAmpP, int* pAcceptsPlusMR)
+{
+	char resultBuf[64];
+
+	/* look for v1.0 Rockwell K56 firmware... if found, limit to <= V.34 */
+	flush();
+	sendstr("ATI3\r");				/* modem firmware query */
+	printf("TS: SENT ATI3");
+	getline(resultBuf, 63, 300);		/* throw out the first one */
+	if (!getline(resultBuf, 63, 300))	/* keep 2nd; note it has leading '\r' */
+		return 1;
+	printf("TS: fw query got '%s'", resultBuf+1);
+	setfirmwareversion(resultBuf+1);
+	resultBuf[21] = '\0';			/* me falta strncmp in 1.0 */
+	*pIsEarlyK56 = 0;
+	if (strcmp(resultBuf+1, "V1.001_WEBTV-K56_DLP") == 0)
+		*pIsEarlyK56 = 1;
+
+	/*
+	 * Softmodem can't handle AT+MS, so try to detect Rockwell.  Sadly,
+	 * there doesn't seem to be a simple way to do this.
+	 */
+	*pIsRockwell = 0;
+	if (strcmp(resultBuf+11, "TV-K56_DLP") == 0)
+		*pIsRockwell = 1;
+	resultBuf[15] = '\0';			/* do we have strncmp in 2.0? */
+	if (strcmp(resultBuf+8, "K56_DLP") == 0)	/* V2.200-K56_DLP_RAM */
+		*pIsRockwell = 1;
+	printf("TS: isRockwell=%d", *pIsRockwell);
+
+	/* see if it's a Rockwell that supports +MR */
+	*pAcceptsPlusMR = 0;
+	if (*pIsRockwell) {
+		flush();
+		sendstr("AT+MR=0\r");
+		getline(resultBuf, 63, 300);		/* throw out 1st */
+		if (!getline(resultBuf, 63, 300))	/* keep 2nd */
+			return 1;
+		printf("TS: +MR=0 test returned '%s'", resultBuf+1);
+		if (strcmp(resultBuf+1, "OK") == 0)
+			*pAcceptsPlusMR = 1;
+	}
+
+	/* see if it will take an S220 command */
+	flush();
+	sendstr("ATS220=0\r");				/* JP CW --> extremely insensitive */
+	printf("TS: SENT ATS220=0");
+	getline(resultBuf, 63, 300);		/* throw out 1st */
+	if (!getline(resultBuf, 63, 300))	/* keep 2nd */
+		return 1;
+	printf("TS: S220 test returned '%s'", resultBuf+1);
+	*pAcceptsS220 = 0;
+	if (strcmp(resultBuf+1, "OK") == 0)
+		*pAcceptsS220 = 1;
+
+	/* see if it will take an &Pn command -- desktop Supras won't */
+	flush();
+	sendstr("AT&P0\r");
+	printf("TS: SENT AT&P0");
+	getline(resultBuf, 63, 300);		/* throw out 1st */
+	if (!getline(resultBuf, 63, 300))	/* keep 2nd */
+		return 1;
+	printf("TS: AT&P0 test returned '%s'", resultBuf+1);
+	*pAcceptsAmpP = 0;
+	if (strcmp(resultBuf+1, "OK") == 0)
+		*pAcceptsAmpP = 1;
+
+	return 0;
+}
+#endif
 
 /*
  * Initialize - set up the modem configuration and dialing commands, and
@@ -454,6 +547,11 @@ Initialize(char* staticConfigBuf, char* dynamicConfigBuf)
 	char dialSpeed = settings[104];
 	char cwSensitivity = extendedSettings[105];			/* version >= 7 */
 	char *cwValue = "14";
+#ifndef CLASSIC
+	char *s220Value;
+	int isEarlyK56, acceptsS220, isRockwell, acceptsAmpP, acceptsPlusMR;
+	char *flexKnobStr;	/* sairam testing */
+#endif
 
 	/*
 	 * Talk to the modem.
@@ -466,7 +564,40 @@ Initialize(char* staticConfigBuf, char* dynamicConfigBuf)
 	if (SendAndWaitForOK("AT&D2V1E0\r", "OK"))
 		return 3;		/* kTellyConfigurationError */
 
+#ifndef CLASSIC
+	/* figure out what we got? */
+	if (GetHardwareInfo(&isEarlyK56, &acceptsS220, &isRockwell, &acceptsAmpP,
+			    &acceptsPlusMR))
+		return 3;		/* kTellyConfigurationError */
+	if (isEarlyK56)
+		printf("TS: found v1.0 K56 fw, disabling 56K");
+
+	strcpy(staticConfigBuf, "AT");
+	if (isRockwell) {
+		if (isEarlyK56 || !gEnable56K) {
+			strcat(staticConfigBuf, "+MS=11,1");	/* disable 56K */
+		}
+/*
+		else {
+			/+ Rockwell 56k Aggressiveness knob - sairam testing +/
+			if (isRockwell) {			
+				sprintf(staticConfigBuf+2, "!0049=0%d", gFlexKnob);
+				printf("TS: setting 56k knob to %d", gFlexKnob);
+			}
+		}
+ */
+	} else {
+		/* assume softmodem */
+		if (!gEnable56K) {
+			strcat(staticConfigBuf, "S51=31");		/* disable 56K */
+		}
+	}
+
+	if (acceptsPlusMR)	/* suppress extended result codes we don't parse */
+		strcat(staticConfigBuf, "+MR=0");
+#else
 	strcpy(staticConfigBuf, "AT");	/* CLASSIC doesn't support 56K */
+#endif
 
 	/*
 	 * Modem configuration.  This sets things so we connect with V.34 only,
@@ -528,6 +659,26 @@ Initialize(char* staticConfigBuf, char* dynamicConfigBuf)
 	strcat(dynamicConfigBuf, "S10=");
 	strcat(dynamicConfigBuf, cwValue);
 
+#ifndef CLASSIC
+	/* set the JP "catch-phone" sensitivity; this is *in addition* to S10 */
+	if (acceptsS220) {
+		if (cwSensitivity == 1)				/* most likely to hang up */
+			s220Value = "32";
+		else if (cwSensitivity == 2)
+			s220Value = "21";
+		else if (cwSensitivity == 3)
+			s220Value = "11";
+		else	/* == 4 or bogus */			/* most likely to ignore calls */
+			s220Value = "1";
+
+		printf("TS: setting S220=%s", s220Value);
+		strcat(dynamicConfigBuf, "S220=");
+		strcat(dynamicConfigBuf, s220Value);
+	} else {
+		printf("TS: not setting S220");		/* CLASSIC boxes; others? */
+	}
+#endif
+
 	/*
 	 * Set the dial speed.
 	 */
@@ -540,6 +691,22 @@ Initialize(char* staticConfigBuf, char* dynamicConfigBuf)
 	} else if (dialSpeed == 3) {
 		strcat(dynamicConfigBuf, "S11=1");			/* blazing (not in UI) */
 	}
+
+#ifndef CLASSIC
+	/*
+	 * Set the pulse speed.  &P0 is default for US, but we use JP pulse
+	 * values for now since they seem to work anyway.  Some desktop Supra
+	 * modems don't understand "&Pn", and will fail to configure, so we
+	 * use the "acceptsAmpP" auto-detect value.
+	 */
+	if (acceptsAmpP) {
+		if (dialSpeed == 0 || dialSpeed == 1) {
+			strcat(dynamicConfigBuf, "&P1");		/* 10PPS 33% */
+		} else if (dialSpeed == 2 || dialSpeed == 3) {
+			strcat(dynamicConfigBuf, "&P3");		/* 20PPS 33% */
+		}
+	}
+#endif
 
 
 	/* put a carriage return on the end */
@@ -699,6 +866,18 @@ ParseResult(int result)
 	int retcode;
 	char* comment = "";
 
+#ifndef CLASSIC		/* no CLASSIC box supports modem_parsersult() */
+	retcode = modem_parseresult(&result, &gDTERate, &gDCERate, &gCompression,
+				&gProtocol, &gConnected, &comment);
+	if (retcode != 0x42554646) {
+		printf("TS: parseresult -- %d %s (retcode=%d)", result,
+			comment, retcode);
+		if (gDCERate && gDCERate < 14400) {
+                   retcode = 14;   /* kTellyVerySlowConnect */
+		}
+		return retcode;
+	}
+#endif
 	retcode = 0;
 
 	if (result == 0)						/* OK */
@@ -1285,11 +1464,34 @@ DialByIndex(char* staticConfig, char* dynamicConfig, char* sequence)
 				return err;
 			} else {
 				dialerror(err);
+#ifndef CLASSIC
+				/* 101223/093628
+				 * Make sure that MsgWatch calls are
+				 * limited to the primary POP only,
+				 * and to the first trial!
+				 */
+				if (idx == nextNumber) {
+					if (getconnectreason() == 1) {
+						return err;
+					}
+				}
+#endif
 			}
 		} else if (status == 2 || idx == sequenceLen-1) {
 			return err;
 		} else /*status==1*/ {
 			dialerror(err);
+#ifndef CLASSIC
+			/* 101223/093628
+			 * Make sure that MsgWatch calls are
+			 * limited to the primary POP only
+			 */
+			if (idx == nextNumber) {
+				if (getconnectreason() == 1) {
+					return err;
+				}
+			}
+#endif
 		}
 	}
 
@@ -1369,6 +1571,9 @@ main()
 		return result;
 	}
 }
+#endif /* !FIJI */
+
+/* --- base.tsf END --- */
 
 /*
  * Locale-specific stuff for USA.

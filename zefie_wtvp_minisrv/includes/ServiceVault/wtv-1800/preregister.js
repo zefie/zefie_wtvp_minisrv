@@ -1,5 +1,6 @@
 var minisrv_service_file = true;
-var template_path = "";
+var template = "";
+var template_preprocessor = {};
 
 var gourl = "wtv-head-waiter:/login?";
 
@@ -109,7 +110,8 @@ if (session_data.data_store.wtvsec_login) {
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.base.template.txt")
+				template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.txt")
+				template_preprocessor = { 'CLASSIC': true }
 				if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.openisp.template.txt");
 				else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.normal.template.txt");
 				//else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok", true);
@@ -119,6 +121,7 @@ if (session_data.data_store.wtvsec_login) {
 
 			case "JP-Fiji":
 				prereg_contype = "text/tellyscript";
+				template_preprocessor = { 'FIJI': true }
 				// if wtv-open-access: true then client expects OpenISP
 				if (session_data.get("wtv-open-access")) var file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok", true);
 				else var file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok", true);
@@ -201,11 +204,11 @@ if (session_data.data_store.wtvsec_login) {
 		});
 	} else if (template) {
 		request_is_async = true;
-		telly = new WTVTellyScript(template, 2); // 2 = Untokenized
+		telly = new WTVTellyScript(template, 2, template_preprocessor, session_data.get("wtv-open-access") ? 3 : 1); // dataState 2 = Untokenized
 		telly.setTemplateVars(minisrv_config.config.service_name, minisrv_config.services[service_name].dialin_number, minisrv_config.services[service_name].dns1ip, minisrv_config.services[service_name].dns2ip);
 		telly.minify();
 		telly.tokenize();
-		telly.pack((session_data.get("wtv-open-access")) ? 3 : 1);
+		telly.pack();
 		sendToClient(socket, headers, telly.packed_data);
 	}
 } else {
