@@ -109,7 +109,7 @@ if (session_data.data_store.wtvsec_login) {
 			case "bf0app":
 				prereg_contype = "text/tellyscript";
 				// if wtv-open-access: true then client expects OpenISP
-				if (session_data.get("wtv-open-access")) template_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.openisp.template.txt", true);				
+				if (session_data.get("wtv-open-access")) template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.base.template.txt") + wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.openisp.template.txt");
 				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app_WTV_18006138199.tok", true);
 				break;
 
@@ -197,21 +197,14 @@ if (session_data.data_store.wtvsec_login) {
 			}
 			sendToClient(socket, headers, file_read_data);
 		});
-	} else if (template_path) {
+	} else if (template) {
 		request_is_async = true;
-		fs.readFile(template_path, null, function (err, file_read_data) {
-			if (err) {
-				var errmsg = wtvshared.doErrorPage(400);
-				headers = errmsg[0];
-				file_read_data = errmsg[1] + "\n" + err.toString();
-			}
-			telly = new WTVTellyScript(file_read_data, 2); // 2 = Untokenized
-			telly.setTemplateVars(minisrv_config.config.service_name, minisrv_config.services[service_name].dialin_number, minisrv_config.services[service_name].dns1ip, minisrv_config.services[service_name].dns2ip);
-			telly.minify();
-			telly.tokenize();
-			telly.pack();
-			sendToClient(socket, headers, telly.packed_data);
-		});
+		telly = new WTVTellyScript(template, 2); // 2 = Untokenized
+		telly.setTemplateVars(minisrv_config.config.service_name, minisrv_config.services[service_name].dialin_number, minisrv_config.services[service_name].dns1ip, minisrv_config.services[service_name].dns2ip);
+		telly.minify();
+		telly.tokenize();
+		telly.pack();
+		sendToClient(socket, headers, telly.packed_data);
 	}
 } else {
 	var errpage = wtvshared.doErrorPage(400);

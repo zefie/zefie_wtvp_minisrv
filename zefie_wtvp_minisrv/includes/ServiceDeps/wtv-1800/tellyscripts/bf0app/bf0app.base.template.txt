@@ -1,0 +1,1483 @@
+/* TLLY ver=77 */
+/* *=* Copyright 1996, 1997 WebTV Networks, Inc. All rights reserved. */
+/*
+ * This is the "base" TellyScript Fragment. It is suppressed for FIJI
+ * (see comments below).
+ *
+ * This has all of the generic stuff.  Fragments for each ISP should be
+ * appended to this one, along with the "PatternDial" function generated
+ * by the server.
+ *
+ * ---
+ *
+ * v1.0 (e.g. build 105+) is version() 5 (phoneSettings len = 105)
+ * v1.1 (e.g. build 253+) is version() 8 (phoneSettings len = 172)
+ * v1.2 (e.g. build 430+) is version() 9 (phoneSettings len = 336)
+ * v1.3 (e.g. build 1040+) is version() 9 (phoneSettings len = 336?)
+ * v1.4 (e.g. build 1150+) is version() 11?? (phoneSettings len = 344)
+ * v2.0 (e.g. build 2039+) is version() ? (phoneSettings len = ?)
+ * v2.1 (e.g. build 3000+) is version() 11 (phoneSettings len = ?)
+ * v2.2 (e.g. build 3300+) is version() 11? (phoneSettings len = ?)
+ *
+ * ---
+ *
+ * TellyScript is a lot like C, but there are a few things that the
+ * interpreter doesn't know about:
+ *	const, volatile, static, extern
+ *	switch, case, default, goto, do, continue
+ *	long (use "int"), short, float, double, void
+ *	Return types on functions (they just return 4-byte "int")
+ *	Global "char blah[xx]" statements (they end up with a size of 4)
+ *	Initialized globals ("int foo = 0" ends up as 1??)
+ *	"if (0 && something-else)" will evaluate "something-else"
+ *	Typecasts (don't use "(char*)foo"... assume everything is 4 bytes here)
+ *	Bitwise '|', '&', and '^'
+ * Some of the intrinsics are kinda lame:
+ *  printf() understands "%l" and "%d" but not "%ld"
+ *	sprintf() doesn't understand things like "%.31s"
+ *	sprintf(foostr, "%s", mystring) expands '%' chars in "mystring" (!!)
+ *
+ * Be sure to put braces around all parts of else-if clauses; in some
+ * cases a "return" won't come all the way out if you don't.
+ *
+ * By convention, intrinsic function names are entirely lower case, and
+ * script-defined function names are mixed.
+ *
+ * ---
+ *
+ * As of the "Funk" service, a limited form of pre-processing is done.  We
+ * allow:
+ *
+ *  #ifdef CLASSIC
+ *  #ifndef CLASSIC
+ *  #else
+ *  #endif
+ *  #if 1
+ *  #if 0
+ *
+ * We silently remove:
+ *  #include ...
+ *
+ * All directives MUST be left-aligned.  Nested #ifdefs are allowed.
+ * Extra spaces or tab characters between the "#if" or "#ifdef" and the
+ * label are NOT allowed, and "# ifdef" is NOT valid.
+ *
+ * It's okay to put comments on the lines, or write "#endif FOO".
+ *
+ * ---
+ *
+ * The Rockwell chipset appears to have a 64-character line buffer.  Each
+ * individual command (i.e. stuff that starts with "AT" and ends with "\r")
+ * has to fit, or the end will be truncated.
+ *
+ * ---
+ *
+ * The dial settings are copied out of NVRAM.  For 1.0 boxes this was
+ * broken (it copied sizeof(struct), so 1.0 boot ROMs don't give you
+ * access to more recent fields), but a workaround exists in the
+ * GetPhoneSettings function.
+ *
+ *	char* callWaitingPrefix = &settings[0];
+ *	char* dialOutsidePrefix = &settings[32];
+ *	char* accessNumber = settings[64];
+ *	char usePulseDialing = settings[96];
+ *	char audibleDialing = settings[97];
+ *	char disableCallWaiting = settings[98];
+ *	char dialOutsideLine = settings[99];
+ *	char changedCity = settings[100];
+ *	char waitForTone = settings[101];
+ *	char hasCallWaiting = settings[102];	\* never used? *\
+ *	char useCallWaitingHack = settings[103];
+ *	char dialSpeed = settings[104];
+ *	char cwSensitivity = settings[105];			\* version >= 7 *\
+ *	char brokenPBX = settings[106];				\* version >= 8 *\
+ *	char access800 = settings[108];				\* version >= 8 *\
+ *	char* dialLDPrefix = &settings[140];		\* version >= 8 *\
+ *	char* openISPPhoneNumber = &settings[172];	\* version >= 9 *\
+ *	char* openISPPassword = &settings[204];		\* version >= 9 *\
+ *	char* openISPUserName = &settings[236];		\* version >= 9 *\
+ *	char* openISPProviderName = &settings[268];	\* version >= 9 *\
+ *	char openISPOn = settings[300];				\* version >= 9 *\
+ *	char* openISPPhoneNumber2 = &settings[304];	\* version >= 9 *\
+ *	char* featureFlags = &settings[336];		\* version >= 11 *\
+ *	char* maxFeatureFlag = &settings[340]l;		\* version >= 11 *\
+ *
+ * ---
+ * The fiji client is short of NVRAM. Accordingly, we have preloaded all of
+ * ver 65 of base.tsf. All of the functionality has been replaced by 
+ * preloaded functions, which are somewhat like intrinsics, but expressed
+ * in tellyscript, rather than C. They can thus call back into downloaded
+ * functions.
+ *
+ * Any calling in either direction between preloaded functions and 
+ * downloaded functions requires that the function names not be abbreviated.
+ * However, we don't want to lose the benefits of name abbreviation for 
+ * non-Fiji clients. We accomplish this as follows:
+ * - functions which are called by generated code retain their names and
+ *   so they are added to the list of identifiers immune to abbreviation.
+ *   (Compression will mitigate the effects of this somewhat).
+ * - functions not in the above list, and which may be downloaded to be
+ *   called by preloaded functions have names which start with an underscore,
+ *   and we suppress abbreviation for such names.
+ *
+ * We use this to allow any function to be overridden, as follows.
+ *
+ * Each of the preloaded functions calls, as its first action, a hook function. 
+ * The name of the hook function is that of the original function, but with 
+ * an underscore prefix. If the hook function is unimplemented (or returns the 
+ * "unimplemented" value 0x42554646) the preloaded function will return
+ * immediately. This allows any or all of the functions to be overridden or
+ * supplemented by downloaded code.
+ *
+ * As a consequence of all of this, all of this file is simply suppressed
+ * for Fiji. For efficiency, this is done by one mondo #ifndef. (We're inside
+ * it right now. 
+ *
+ * Bear in mind that if you make a change it won't automatically happen for Fiji
+ * clients. If you want to make a change for Fiji, you may have to add to the
+ * list of names for which abbreviation is suppressed.
+ *
+ * 1999/09/10 -- rule of thumb: anything added to base.tsf that is referenced
+ * by generated code MUST be included for FIJI as well.  If you add a couple
+ * of globals that are set up by InitGeneratedValues, they MUST be made
+ * visible to FIJI.
+ */
+
+/*
+ * Globals.  Don't count on these being initialized to zero, and don't give
+ * them static initializers.
+ */
+int gDTERate;		/* connection stats, set by ParseResult() */
+int gDCERate;
+int gProtocol;
+int gCompression;
+
+int gConnected;		/* set to 1 by ParseResult if we're considered connected */
+
+int gUsingOpenISP;	/* are we an OpenISP script? */
+int gNVRAMMayBeInvalid;	/* was the script sent down for a brain-dead download?*/
+char* gCHAPSecret;	/* box's CHAP secret, embedded in script by the service */
+char* gUsername;	/* box's username for login, embedded in script by the
+					 * service */
+char* gPAPPassword;	/* box's PAP password, embedded in script by the
+					 * service */
+int gEnable56K;		/* if set, allow 56K connections; if not, don't */
+int gDisguiseRate;	/* if set, reverse the DTE and DCE rates */
+int gFlexKnob=5;	/* 56k knob for Rockwell, 5=most aggressive (default) */
+
+/* FIJI doesn't have these built-in */
+int gBlock911=1;	/* This flag is now set for all services. */
+int gWantsVideoAd;	/* if set, user wants to download Video Ads */
+			/* This flag is not needed anymore, left here for future use */
+
+/*
+ * ===========================================================================
+ *		Misc utility functions (some of which are now intrinsics)
+ * ===========================================================================
+ */
+
+/*
+ * WinkDTR - bounce DTR down then up, to get the modem into a happy state.
+ */
+WinkDTR()
+{
+	setdtr(0);
+	delay(30);
+	setdtr(1);
+	delay(30);
+
+	return 0;
+}
+
+/*
+ * StrLen - there's no strlen() intrinsic (in versions < 7).
+ */
+StrLen(char* str)
+{
+	int len = 0;
+
+	while (*str++)
+		len++;
+	return len;
+}
+
+/*
+ * StrnCpy - ain't no strncpy() either (at least not for versions < 7).
+ */
+StrnCpy(char* dstStr, char* srcStr, int count)
+{
+	while (*srcStr) {
+		if (!count--)
+			break;
+		*dstStr++ = *srcStr++;
+	}
+
+	if (count > 0)		/* if src finished first, null-terminate the target */
+		*dstStr = 0;
+
+	return 0;			/* for ANSI this would return dstStr */
+}
+
+
+/*
+ * 018647
+ * PatternCmp - compare a pattern to two supplied strings.. this is particularly 
+ * useful for detecting 911 patterns.
+ */
+PatternCmp(char* pattern, char* prefix, char* number) 
+{
+    char *oldpattern = pattern;
+    char *oldprefix = prefix;
+    char *oldnumber = number;
+
+	while(*pattern){
+		if(*prefix){
+                        if(*prefix != ',') {
+                                if(*pattern != *prefix) { return 0;}
+                                prefix++;
+                        } else { if(*number) {
+                                if(*pattern != *number) {
+                                pattern = oldpattern;
+                                number = oldnumber;
+                                while(*pattern){
+                                   if(*pattern != *number) {return 0;}
+                                      number++;pattern++;
+                                          }return 1;
+                        }
+                                prefix++; number++;
+                        } else { return 0;}
+                }
+                }else if(*number) {
+                        if(*pattern != *number) { return 0;}
+                        number++;
+                } else { return 0;}
+                pattern++;
+        }
+        return 1;
+}
+
+
+/*
+ * OStrChr - like strchr(), but returns an offset instead of a pointer.
+ * Returns -1 if not found.
+ *
+ * This does NOT treat the '\0' as part of the string.  Sorry.
+ *
+ * Note the real strchr() intrinsic was added in version 8 or 9.
+ */
+OStrChr(char* s, int c)
+{
+	char* orig = s;
+
+	while (*s != '\0') {
+		if (*s == c)
+			return s - orig;
+		s++;
+	}
+
+	return -1;
+}
+
+/*
+ * Test to see if the idx'th bit in "flags" is set.  Bit 0 is the LSB.
+ * (The interpreter doesn't have bitwise operations.)
+ */
+BitTest(int flags, int idx)
+{
+	while (idx > 0) {
+		flags = flags / 2;
+		idx--;
+	}
+	return flags % 2;
+}
+
+/*
+ * SetProgress - shorthand notation for three intrinsic calls:
+ *
+ *	setprogresstext(message)
+ *	setprogresspercentage(percent)
+ *	setprogressdirty(1)
+ */
+SetProgress(char* message, int percent)
+{
+	setprogresstext(message);
+	setprogresspercentage(percent);
+	setprogressdirty(1);
+	return 0;
+}
+
+
+/*
+ * GetPhoneSettings - hairy replacement for getphonesettings().  The values
+ * pointed to by this should ONLY be used for 1.1 and later options.  For
+ * access to options present in client 1.0, you MUST use getphonesettings()
+ * instead.  (Like C, TellyScripts are case-sensitive.)
+ *
+ * Get the phone settings.  For 1.1 and later clients, we can just use
+ * the getphonesettings() intrinsic.  For 1.0 clients, getphonesettings()
+ * copied sizeof(struct) rather than everything that was there, so 1.0
+ * boxes can't see anything added after 1.0.  (This wouldn't be a big
+ * problem, except that the boot ROM is effectively a 1.0 client.)
+ *
+ * We work around the problem by finding the phone options in NVRAM.  The
+ * trick is to avoid doing this when NVRAM is invalid (such as when we're
+ * doing a brain-dead flash download), and also to figure out what version
+ * of the client wrote the phone settings.
+ *
+ * As an added obstacle, editing the phone options on a box only changes
+ * the copy in RAM.  If they've made changes, but haven't rebooted, we
+ * need to use the copy in RAM instead of the copy in NVRAM.  As a general
+ * rule, we only use the NVRAM copy if the version that wrote the phone
+ * settings is different from the current version.  I'm not *quite* sure
+ * how things look right after an upgrade, when the box converts the old
+ * options to the new format, initializing fields and whatever else.  We
+ * might end up looking at older data on the first boot.  We can fix this
+ * for the upgrade case by checking to see if the settings are *older*
+ * than the current rev, but the downgrade case looks just like a flash dl.
+ *
+ * But wait, there's more.  A user doing a flash download could use the
+ * manual configuration options to specify an access number.  If we're
+ * looking at NVRAM, we can't see it.  The solution is to always use the
+ * getphonesettings() pointer for 1.0 options, and use the GetPhoneSettings
+ * pointer for 1.1 and later options.  (Since the boot ROM is 1.0, by
+ * definition it can't see the later options, so there's no risk of them
+ * being changed.)
+ *
+ * We have to be careful that we don't go wandering through NVRAM on a
+ * brain-dead box.  Since we never give an OpenISP script to zombies,
+ * we can freely do this in conjunction with OpenISP, but have to be
+ * very careful otherwise.  Be sure gNVRAMMayBeInvalid is initialized
+ * correctly before calling this.
+ *
+ * Returns 0 on error.
+ */
+GetPhoneSettings(int* pSettingsVersion)
+{
+	int offset;
+	int *len_ptr;
+	int *tag;
+	int *rom_size = 0xbf00000c;
+	int *rom_end;
+	*pSettingsVersion = 0;
+
+	/*
+	 * If we're new enough, or we're brain-dead, return our own version
+	 * and just use the intrinsic function.
+	 */
+	if (version() >= 9 || gNVRAMMayBeInvalid) {
+		*pSettingsVersion = version();
+		return getphonesettings();
+	}
+
+	/* use the Code de Rubin to find the 'FONE' chunk */
+	if (*rom_size == 0x80000) {
+		/* two mb ROM */
+		offset = 0xbf1fc000;
+		rom_end = 0xbf200000;
+	} else if (*rom_size == 0x100000) {
+		/* four mb ROM */
+		offset = 0xbf3fc000;
+		rom_end = 0xbf400000;
+	} else {
+		printf("TS: couldn't get size of ROM");
+		return 0;
+	}
+
+	offset = offset + 16;				/* skip past NVRAM header */
+
+	while( (offset + 9) < rom_end) {
+		len_ptr = offset;
+		tag = offset + 4;
+
+		if (*tag == 0x464f4e45) {
+			if (*len_ptr == 105)
+				*pSettingsVersion = 5;
+			else if (*len_ptr == 172)
+				*pSettingsVersion = 8;
+			else if (*len_ptr == 336)
+				*pSettingsVersion = 9;
+			else if (*len_ptr == 344)
+				*pSettingsVersion = 11;
+			else
+				*pSettingsVersion = version();	/* punt... this is BAD */
+			printf("TS: FONE@%x, len=%d, vers=%d",
+				offset+8, *len_ptr, *pSettingsVersion);
+
+			/* if the versions match, return the RAM copy */
+			if (*pSettingsVersion == version()) {
+				return getphonesettings();
+			} else {
+				return offset + 8;
+			}
+		}
+
+		offset = offset + *len_ptr + 8;
+		offset = offset - (offset % 4);
+	}
+
+	/*
+	 * We didn't find it in NVRAM.  The only way this should be possible
+	 * is if they just did a 32768, and the in-RAM copy of the settings
+	 * hasn't been flushed out yet.
+	 */
+	*pSettingsVersion = version();
+	return getphonesettings();
+}
+
+
+/*
+ * ===========================================================================
+ *		Initializing
+ * ===========================================================================
+ */
+
+
+/*
+ * Initialize - set up the modem configuration and dialing commands, and
+ * set some options to defaults.  Does not talk to the modem.
+ *
+ * Some of this assumes a Rockwell modem, some is generic.
+ *
+ * "staticConfigBuf" will be filled in with the commands that never
+ * change.  "dynamicConfigBuf" gets the commands that are based on the
+ * user settings.  The split is largely historical, but serves as a
+ * convenient way to keep the total length of each command under 64 chars.
+ */
+Initialize(char* staticConfigBuf, char* dynamicConfigBuf)
+{
+	int settingsVersion;
+	char *settings = getphonesettings();
+	char *extendedSettings = GetPhoneSettings(&settingsVersion);
+	char audibleDialing = settings[97];
+	char waitForTone = settings[101];
+	char useCallWaitingHack = settings[103];
+	char dialSpeed = settings[104];
+	char cwSensitivity = extendedSettings[105];			/* version >= 7 */
+	char *cwValue = "14";
+
+	/*
+	 * Talk to the modem.
+	 */
+	enablemodem();					/* turn on ints */
+	setflowcontrol(3);				/* hardware flow */
+	setbaud(57600);					/* meaningless except for Mac simulator */
+
+	/* check to see if the modem is on speaking terms */
+	if (SendAndWaitForOK("AT&D2V1E0\r", "OK"))
+		return 3;		/* kTellyConfigurationError */
+
+	strcpy(staticConfigBuf, "AT");	/* CLASSIC doesn't support 56K */
+
+	/*
+	 * Modem configuration.  This sets things so we connect with V.34 only,
+	 * and at 14.4Kbps or better.  (970129: I've removed the +MS command
+	 * in favor of handling it explicitly, because it takes a full minute
+	 * for the modem to drop, and it gets blended into the "no carrier"
+	 * stats.)
+	 *
+	 * We set V1 here and V0 later because the modem can be a little groggy
+	 * after a reset, and returns OK even though V0 was set.
+	 *
+	 * If we were still doing this, "+MS=11,1,14400" is the correct string.
+	 * The "demo" service should use "+MS=11,1,9600" instead.
+	 *
+	 * The "\N2" forces &Q5, but I'm leaving &Q5 in so that if we remove
+	 * the \N2 later we won't forget to put the &Q5 back in.  [ Q5 has
+	 * returned while we evaluate the #of disconnects ]
+	 */
+	strcat(staticConfigBuf, "S38=0S30=180S95=36&D2V1E0L3&Q5&K3\r");
+
+	/* set default dialing string */
+	strcpy(dynamicConfigBuf, "ATV0");
+
+	/* handle audible dialing */
+	/* check that connectingwithvideoad() returns 1, because
+	 * 0 or 0x42554646 mean false (the big number is from unimplemented)
+	 */  
+	if (audibleDialing && (connectingwithvideoad() != 1))
+		strcat(dynamicConfigBuf, "M1");
+	else
+		strcat(dynamicConfigBuf, "M0");
+
+	/* add blind dialing */
+	if (waitForTone)
+		strcat(dynamicConfigBuf, "S6=10X4");
+	else
+		strcat(dynamicConfigBuf, "S6=4X3");
+
+	/* handle call waiting hack; default value of "14" means "off" */
+	if (settingsVersion >= 7) {
+		if (useCallWaitingHack) {
+			if (cwSensitivity == 1)			/* most likely to hang up */
+				cwValue = "113";
+			else if (cwSensitivity == 2)
+				cwValue = "116";
+			else if (cwSensitivity == 3)
+				cwValue = "88";
+			else if (cwSensitivity == 4)	/* most likely to ignore calls */
+				cwValue = "92";
+			else
+				cwValue = "92";
+		}
+	} else {
+		if (useCallWaitingHack)
+			cwValue = "92";
+	}
+	printf("TS: vers=%d/%d, cw-hack=%d, cw-sens=%d, setting S10=%s",
+		version(), settingsVersion, useCallWaitingHack, cwSensitivity, cwValue);
+	strcat(dynamicConfigBuf, "S10=");
+	strcat(dynamicConfigBuf, cwValue);
+
+	/*
+	 * Set the dial speed.
+	 */
+	if (dialSpeed == 0) {
+		strcat(dynamicConfigBuf, "S11=200");		/* slow */
+	} else if (dialSpeed == 1) {
+		strcat(dynamicConfigBuf, "S11=110");		/* medium */
+	} else if (dialSpeed == 2) {
+		strcat(dynamicConfigBuf, "S11=60");			/* fast */
+	} else if (dialSpeed == 3) {
+		strcat(dynamicConfigBuf, "S11=1");			/* blazing (not in UI) */
+	}
+
+
+	/* put a carriage return on the end */
+	strcat(dynamicConfigBuf, "\r");
+
+	/* (this is now generated) */
+	/*setnameservice(0xcf4cb483, 0xce439805);*/
+
+	/*
+	 * Set the default window size.  It should already be this, but there's
+	 * little harm in being paranoid.
+	 */
+	setwindowsize(7);
+
+	return 0;
+}
+
+
+/*
+ * GetDialingPrefix - figure out what needs to be in the dialing prefix.
+ *
+ * The string will be a combination of the call waiting prefix and the
+ * outside line prefix.  If we can't find anything to put in the string
+ * (i.e. no prefixes have been specified), the buffer will be set empty
+ * (i.e. start with '\0').
+ *
+ * This function doesn't talk to the modem; it just builds the string.
+ *
+ * "prefixBuffer" must be able to hold the cw prefix (31 bytes), the
+ * outside line prefix (16 bytes), and a terminating null.  Total 48 bytes.
+ */
+GetDialingPrefix(char* prefixBuffer, int isLocal)
+{
+	int settingsVersion;
+	char *settings = getphonesettings();
+	char *extendedSettings = GetPhoneSettings(&settingsVersion);
+ 	char *callWaitingPrefix = &settings[0];
+	char *dialOutsidePrefix = &settings[32];
+ 	char disableCallWaiting = settings[98];
+	char dialOutsideLine = settings[99];
+	char *dialLDPrefix = &extendedSettings[140];	/* version >= 8 */
+
+	prefixBuffer[0] = '\0';
+
+	/* handle a special char sequence to disable call waiting */
+	if (disableCallWaiting)
+		strcat(prefixBuffer, callWaitingPrefix);
+
+	/* use LD prefix or normal dial-outside-line prefix as appropriate */
+	if (settingsVersion >= 8) {
+		if (dialLDPrefix[0] && !isLocal) {
+			printf("TS: Using LD prefix");
+			strcat(prefixBuffer, dialLDPrefix);
+			strcat(prefixBuffer, ",");
+		} else {
+			if (dialOutsideLine) {
+				strcat(prefixBuffer, dialOutsidePrefix);
+				strcat(prefixBuffer, ",");
+			}
+		}
+	} else {
+		if (dialOutsideLine) {
+			strcat(prefixBuffer, dialOutsidePrefix);
+			strcat(prefixBuffer, ",");
+		}
+	}
+
+	return 0;
+}
+
+
+/*
+ * SendAndWaitForOK - send a string to the modem and wait for the "OK"
+ * response.
+ *
+ * Retries "retryCount" times, waiting for two seconds and bouncing DTR
+ * down and up between each.
+ *
+ * Returns 0 on success, nonzero on failure.
+ */
+SendAndWaitForOK(char* str, char* okstr)
+{
+	int retries = 0;
+
+	while (retries++ < 4) {
+		flush();	/* flush data that's pending *from* the modem */
+
+		sendstr(str);
+		if (waitfor(okstr, StrLen(okstr), 120)) {
+			printf("TS: SENT config str '%s'", str);
+			break;
+		} else {
+			printf("TS: TIMEOUT waiting for OK (str='%s')", str);
+			WinkDTR();
+		}
+	}
+
+	if (retries >= 4 ) {
+		printf("TS: Couldn't get '%s' from modem", okstr);
+		setdtr(0);
+		return 3;
+	}
+
+	return 0;
+}
+
+
+/*
+ * InitModem - initialize the modem with "staticConfig" and "dynamicConfig".
+ * We do this before each time we dial.
+ *
+ * IMPORTANT: there is an assumption we're making that dropping DTR doesn't
+ * erase the stuff we've already sent (i.e. by reinitializing the modem).
+ * If it does, retries for the second string will undo the first string.
+ *
+ * Returns 0 on success.  Returns nonzero and drops DTR on failure.
+ */
+InitModem(char* staticConfig, char* dynamicConfig)
+{
+	setstatus(6);					/* kTellyInitializingModem */
+	SP_PreparingToCall(13);
+
+	WinkDTR();
+	if (SendAndWaitForOK(staticConfig, "OK")) {
+		setdtr(0);
+		return 3;		/* kTellyConfigurationError */
+	}
+
+	/* this assumes "dynamicConfig" enables numeric result codes */
+	if (SendAndWaitForOK(dynamicConfig, "0")) {
+		setdtr(0);
+		return 3;		/* kTellyConfigurationError */
+	}
+
+	/* turn off a bad idea */
+	/*printf("TS: Overriding exclusion circuit...");*/
+	setforcehook(1);
+
+	return(0);
+}
+
+
+/*
+ * ===========================================================================
+ *		Dialing
+ * ===========================================================================
+ */
+
+/*
+ * ParseResult - parse the return code from the modem.
+ *
+ * This is expected to work on Rockwell-based modems only.  Other modems
+ * should implement the modem_parseresult intrinsic.
+ */
+ParseResult(int result)
+{
+	int retcode;
+	char* comment = "";
+
+	retcode = 0;
+
+	if (result == 0)						/* OK */
+	{
+		comment = " OK";
+		retcode = 1;							/* okay */
+	}
+	else if (result == 3)					/* NO CARRIER */
+	{
+		comment = "NO CARRIER";
+		retcode = 12;							/* kTellyNoCarrier */
+	}
+	else if (result == 6)					/* NO DIALTONE */
+	{
+		comment = "NO DIALTONE";
+		retcode = 5;							/* kTellyNoDialtone */
+	}
+	else if (result == 7)					/* BUSY */
+	{
+		comment = "BUSY";
+		retcode = 7;							/* kTellyBusy */
+	}
+	else if (result == 8)					/* NO ANSWER */
+	{
+		comment = "NO ANSWER";
+		retcode = 6;							/* kTellyNoAnswer */
+	}
+	else if (result >= 18 && result <= 19)	/* CONNECT 57600 and 115200 */
+	{
+		comment = "Connected!";
+		gConnected = 1;
+		gDTERate = 57600 * (result - 17);
+	}
+	else if (result == 20)					/* CONNECT 230400 */
+	{
+		comment = "Connected!";
+		gConnected = 1;
+		gDTERate = 230400;
+	}
+	else if (result >= 47 && result <= 51)	/* CARRIER 2400 - CARRIER 12000 */
+	{
+		gDCERate = 2400 * (result - 46);
+		retcode = 14;							/* kTellyVerySlowConnect */
+	}
+	else if (result >= 52 && result <= 58)	/* CARRIER 14400 - CARRIER 28800 */
+	{
+		gDCERate = 2400 * (result - 46);
+	}
+	else if (result == 66)					/* COMPRESSION: CLASS 5 */
+	{
+		gCompression = 1;
+	}
+	else if (result == 67)					/* COMPRESSION: V.42bis */
+	{
+		gCompression = 2;
+	}
+	else if (result == 69)					/* COMPRESSION: NONE */
+	{
+		gCompression = 0;
+	}
+	else if (result == 76)					/* PROTOCOL: NONE */
+	{
+		gProtocol = 0;
+	}
+	else if (result == 77)					/* PROTOCOL: LAPM */
+	{
+		gProtocol = 1;
+	}
+	else if (result == 78 || result == 60)	/* CARRIER 31200 */
+	{
+		gDCERate = 31200;
+	}
+	else if (result == 79 || result == 65)	/* CARRIER 33600 */
+	{
+		gDCERate = 33600;
+	}
+	else if (result == 80)					/* PROTOCOL: ALT */
+	{
+		gProtocol = 2;
+	}
+	else if (result == 81)					/* PROTOCOL: ALT-CELLULAR */
+	{
+		gProtocol = 3;
+	}
+	else if (result >= 150 && result <= 162) /* CARRIER 32000 - 56000 (K56) */
+	{
+		gDCERate = 2000 * (result - 134);
+	}
+	else
+	{
+		printf("TS: ParseResult -- %d unknown", result);
+		retcode = 9;							/* kTellyUnknown */
+	}
+
+	printf("TS: ParseResult -- %d %s (retcode=%d)", result,
+		comment, retcode);
+	return retcode;
+}
+
+
+/*
+ * DialModem - dial "numberToDial" after first sending some optional
+ * dial prefixes.
+ *
+ * "isLocal" is needed to make dialLDPrefix work right.
+ *
+ * NOTE: the UI restricts the fields as follows:
+ *	dial prefix		16 bytes (32-char buffer)
+ *	cw prefix		31 bytes (32-char buffer)
+ *	access number	31 bytes (32-char buffer)
+ *
+ * Returns 0 on success.
+ */
+DialModem(char* numberToDial, int isLocal)
+{
+	int settingsVersion;
+	char *settings = getphonesettings();
+	char *extendedSettings = GetPhoneSettings(&settingsVersion);
+	char *accessNumber = &settings[64];
+	char usePulseDialing = settings[96];
+	char brokenPBX = extendedSettings[106];			/* version >= 8 */
+	int isTollFree, dollarOffset;
+	char prefixBuffer[64];	/* see GetDialingPrefix for size recommendation */
+	char* prefixStr;		/* points into prefixBuffer */
+	char* afterDollar;
+	char buffer[32];
+
+	/*
+	 * Set the working number.  This is used by the phone logs and by
+	 * the "&phone;" tag.  We want to grab at most 32 chars (64 for
+	 * version >= 9), or setworkingnumber() blows up.
+	 *
+	 * (We hijack "buffer" for a little while.)
+	 */
+	if (gUsingOpenISP) {
+		strcpy(buffer, "ISP-");
+		StrnCpy(buffer+4, numberToDial, 31-4);
+	} else {
+		StrnCpy(buffer, numberToDial, 31);
+	}
+	buffer[31] = 0;
+	setworkingnumber(buffer);
+
+	/* is it toll free in this locale (needed for "visible dialing")? */
+	isTollFree = IsTollFree(numberToDial);
+
+	/* figure out if this is one of those fancy "dollar dialing" things */
+	dollarOffset = OStrChr(accessNumber, '$');
+	if (dollarOffset >= 0) {
+		/* copy accessNumber, and split it at the '$' */
+		strcpy(buffer, accessNumber);
+		afterDollar = buffer + dollarOffset +1;
+		buffer[dollarOffset] = '\0';
+	}
+
+	/* strip off the leading digit under certain circumstances */
+	if (settingsVersion >= 8 && brokenPBX &&
+		(!accessNumber[0] || dollarOffset >= 0))
+	{
+		if (DoStripLeadingDigit(numberToDial)) {
+			/*printf("TS: BrokenPBX set, stripping digit");*/
+			numberToDial++;
+		}
+	}
+
+	/*
+	 * Figure out what the dialing prefix should be.  This is a
+	 * combination of the "9," dialing prefix field and the "call
+	 * waiting disable" prefix field.  We also sneak the tone/pulse
+	 * dial command into the front of the buffer.
+	 */
+	if (usePulseDialing)
+		strcpy(prefixBuffer, "ATDP");
+	else
+		strcpy(prefixBuffer, "ATDT");
+	prefixStr = prefixBuffer + 4;
+
+	GetDialingPrefix(prefixStr, isLocal);
+
+	/* do "visible dialing" for version>=8 if it's not toll-free */
+	/*setstatus(3);				* kTellyDialing */
+	setstatus(7);				/* kTellyHandshake */
+	if (gUsingOpenISP) {
+		/* always show for OpenISP */
+		SP_DialingNumber(prefixStr, numberToDial, 26);
+	} else if (version() >= 8 /*&& audibleDialing*/) {
+		if (accessNumber[0] && dollarOffset < 0) {
+			SP_DialingAccessNumber(prefixStr, numberToDial, 26);
+		} else if (isTollFree) {
+			SP_DialingWebTV(26);
+		} else {
+			/* since this isn't an accessNumber, numberToDial should be short */
+			SP_DialingNumber(prefixStr, numberToDial, 26);
+		}
+	} else {
+		SP_DialingWebTV(26);
+	}
+
+	/*
+	 * Send the commands to the modem.
+	 *
+	 * Someday we may want to split "prefixBuffer" and "numberToDial"
+	 * so that we detect dialtone after the prefix.  This would help
+	 * avoid inadvertent 911 calls.
+	 */
+
+	/* 018647
+	 * Make sure that no 911 pattern is dialled, combination of prefix and number!
+	 */
+	if (1) {
+		if (PatternCmp("911", prefixStr, numberToDial)) {
+			/* 911 pattern.. inform user!*/
+			alert("Error 911: Your receiver cannot connect to WebTV. Please contact Customer Care at 1-800-469-3288.", "", 0);
+		}
+	}
+
+
+	if ((numberToDial[0] != 'A') && (numberToDial[0] != 'a')) {
+		sendstr(prefixBuffer);
+		printf("TS: SENT prefix '%s'", prefixBuffer);
+	}
+	if (dollarOffset < 0) {
+		sendstr(numberToDial);
+		printf("TS: SENT number '%s'", numberToDial);
+	} else {
+		sendstr(buffer);
+		sendstr(numberToDial);
+		sendstr(afterDollar);
+		printf("TS: SENT fancy '%s' '%s' '%s'",
+			buffer, numberToDial, afterDollar);
+	}
+
+	/* return to command mode after dialing */
+	sendstr(";\r");
+	flush();		/* this flushes data *from* the modem... needed here? */
+
+	return 0;
+}
+
+/*
+ * WaitForConnect - watch the modem result codes until we're connected.
+ *
+ * Returns 0 on success.  Returns nonzero and drops DTR on failure.
+ */
+WaitForConnect()
+{
+	char *settings = getphonesettings();
+	char audibleDialing = settings[97];
+	char buffer[32];
+	int i, result, count;
+
+	/* if we fail early, don't report the previous stats */
+	setconnectionstats(0, 0, 0, 0);
+
+	/*
+	 * Loop until we're connected.  We'll usually get four results, in this
+	 * order (but not always!):
+	 *	1: OK (dial string was accepted)
+	 *	2: DCE rate (modem speed)
+	 *	3: Compression and err correction (usually v.42bis, which implies v.42)
+	 *	4: DTE rate (serial port speed)
+	 */
+	i = 0;
+	gConnected = 0;
+	while (!gConnected && i < 6) {
+		count = getline(buffer, 31, 4200);
+		i++;	
+
+		if (count == 0) {
+			printf("TS: TIMEOUT waiting for modem result");
+			setdtr(0);
+			if (i == 1)
+				return 4;			/* kTellyDialingError */
+			else
+				return 8;			/* kTellyHandshakeFailure */
+		}
+
+		result = ParseResult(atoi(buffer));
+		if (result == 1) {			/* OK */
+			if (i == 1) {
+				sendstr("ATD\r");
+				if (!audibleDialing) {
+					/* keep it on screen long enough to see it */
+					delay(180);
+				}
+				/*setstatus(7);		* kTellyHandshake */
+				SP_WaitingToConnect(39);
+				result = 0;
+			} else {
+				/* probably garbage from modem that atoi() converted to zero */
+				setdtr(0);
+				printf("TS: got odd '%s'", buffer);
+				return 8;			/* kTellyHandshakeFailure */
+			}
+		}
+
+		if (result != 0) {
+			/* first one handles the NO ANSWER, NO DIALTONE, etc. */
+			setdtr(0);
+			if (result == 12 && i > 2) {
+				/* NO CARRIER after first result becomes "handshake failure" */
+				return 8;			/* kTellyHandshakeFailure */
+			}
+			return result;
+		}
+
+		if (i == 2) {
+			setstatus(2);			/* kTellyCarrier */
+			if (gUsingOpenISP)
+				SP_ISPAnswering(52);
+			else
+				SP_WebTVAnswering(52);
+		}
+	}
+
+	printf("TS: dterate=%d, dcerate=%d, prot=%d, comp=%d",
+			gDTERate, gDCERate, gProtocol, gCompression);
+
+	setconnectionstats(gDTERate, gDCERate, gProtocol, gCompression);
+
+	return 0;
+}
+
+
+/*
+ * DialIAP - init the modem, dial the IAP, and report errors as appropriate.
+ *
+ * Returns 0 on success, 1 on "roll over" failure, 2 on "stop now" failure.
+ * The actual failure code is placed into "*pResult".
+ *
+ * *pResult will always be set nonzero when the function returns nonzero.
+ */
+DialIAP(char* staticConfig, char* dynamicConfig, char* iapName, char* number,
+	int isLocal, int* pResult)
+{
+	*pResult = InitModem(staticConfig, dynamicConfig);
+	if (*pResult != 0)
+		return 2;	/* couldn't init, bail now */
+
+	/* reset globals before each attempt */
+	gDTERate = gDCERate = gProtocol = gCompression = 0;
+
+	printf("TS: Calling %s/%s", iapName, number);
+
+	DialModem(number, isLocal);
+	*pResult = WaitForConnect();
+
+	if (*pResult)
+		printf("TS: dialing failure, result=%d", *pResult);
+
+	if (*pResult == 4 || *pResult == 5) {
+		/* kTellyDialingError or kTellyNoDialtone, bail now */
+		return 2;	/* bail now */
+	} else if (*pResult) {
+		/* some other kind of failure; want to try next POP in line */
+		return 1;	/* bail later */
+	}
+
+	return 0;		/* success! */
+}
+
+
+/*
+ * ===========================================================================
+ *		Chatting
+ * ===========================================================================
+ */
+
+/*
+ * [ ScriptedChat has been excised to reclaim space ]
+ */
+
+/*
+ * CHPAPCHat - common CHAP/PAP chat function.
+ *
+ * Call setpapmode(1) or setpapmode(2), then call this with the fully-formed
+ * user name and password.
+ */
+CHPAPChat(char* username, char* password)
+{
+	setusername(username);
+	setpassword(password);
+
+	setstatus(5);							/* kNegotiatingPPP */
+	SP_Connecting(88);
+
+	if (!startppp()) {
+		setdtr(0);
+		if (getpppresult() == 3) {			/* authentication failure */
+			printf("TS: PAP/CHAP auth failure");
+			return 10;
+		}
+
+		printf("TS: PPP negotiation failed");
+		return 11;
+	}
+
+	printf("TS: Connected!");
+
+	/*printf("TS: DEBUG: %d bytes available on stack", stack());*/
+
+	setstatus(1);							/* kTellyConnected */
+
+	/*
+	 * Check free space remaining.  The one place we really need this -- 1.0
+	 * boxes -- is the one place that this trick won't work. :-(
+	 */
+	if (stack() < 512) {
+		printf("WARNING: TS stack low");
+		SP_StackLow(100);
+	} else if (gUsingOpenISP)
+		SP_ConnectedToISP(100);
+	else
+		SP_ConnectedToWebTV(100);
+
+	return 0;
+}
+
+/*
+ * PAPChat - do a PAP-based login.
+ *
+ * Pass in a format string to use for the username.  The result from
+ * getserialnumber() will be placed into the first "%s" in the format.
+ * If "fixedPassword" is nonzero, it will be used, otherwise the FCS
+ * of the serial number is sent.
+ *
+ * Examples:
+ *	WebTV 800 : PAPChat("wtv_%s", 0);
+ *	UUNET     : PAPChat("WTV/%s", 0);
+ *	CNC       : PAPChat("%s!webtv", 0);
+ *	CNC (old) : PAPChat("artemis1", "webtv!96");
+ *
+ * Returns 0 on success.  Returns nonzero and drops DTR on failure.
+ */
+PAPChat(char* userNameBase, char* fixedPassword)
+{
+	char username[48];
+	char password[48];
+
+	sprintf(username, userNameBase, gUsername);
+	if (fixedPassword == 0) {
+		sprintf(password, "%s", gPAPPassword);
+	} else if (fixedPassword == 1) {
+		/* pad out to 8 chars for PSI */
+		sprintf(password, "%08d", computefcs(gUsername));
+	} else {
+		strcpy(password, fixedPassword);
+	}
+
+	setpapmode(1);
+	printf("TS: Using PAP with '%s'/'%s'", username, password);
+
+	return CHPAPChat(username, password);
+}
+
+/*
+ * CHAPSupported - does the box support CHAP right now?
+ *
+ * Returns a boolean value, set to "true" if the box supports CHAP.
+ */
+CHAPSupported()
+{
+	int flags;
+
+	flags = system_getboxfeatureflags();
+	if (flags == 0x42554646)
+		return 0;	/* don't support feature flags, must not support CHAP */
+	/*printf("BoxFeatureFlags = %d", flags);*/
+
+	/* feature flag 0 (0x0001) is kBoxHasChap */
+	if (BitTest(flags, 0))
+		return 1;
+	else
+		return 0;
+}
+
+/*
+ * CHAPChat - do a CHAP-based login.
+ *
+ * For now, just use the user name and password passed in, without further
+ * processing.
+ */
+CHAPChat(char* userNameBase, char* fixedPassword)
+{
+	char username[48];
+	char password[48];
+
+	/* are we *sure* we support CHAP? */
+	if (!CHAPSupported()) {
+		printf("TS: CHAP not supported!");
+		return 1;
+	}
+
+	sprintf(username, userNameBase, gUsername);
+	if (fixedPassword == 0)
+		strcpy(password, gCHAPSecret);
+	else
+		strcpy(password, fixedPassword);
+
+	setpapmode(2);
+	printf("TS: Using CHAP with '%s'/'%s'", username, password);
+
+	return CHPAPChat(username, password);
+}
+
+
+/*
+ * ===========================================================================
+ *		Command & Control
+ * ===========================================================================
+ */
+
+/*
+ * WhatTimeIsIt - figure out what time it is.
+ *
+ * The fancy "poptimized" scripts can use different POP lists based on
+ * the month, day of the week, or hour of the day (useful for peak vs
+ * off-peak).
+ *
+ * This gets a little tricky because we don't know what time it is after
+ * we lose power, and if we're an FCS boot ROM we don't even have the
+ * intrinsics defined.
+ */
+WhatTimeIsIt(int* pMinute, int* pHour, int* pMonth, int* pYear, int* pDayOfWeek)
+{
+	int when, tmpyear;
+
+	parsesystemtime(7776000);	/* 90 days after Jan 1 1970 */
+	tmpyear = getyear();
+	when = getdatetimelocal();	/* time in seconds, adjusted for time zone */
+	parsesystemtime(when);
+	if (tmpyear != 1970 || when < 7776000) {
+		/* either the clock got reset by poweroff, or we're an FCS boot ROM */
+		printf("TS: time not avail %d/%d", tmpyear, when);
+		*pDayOfWeek = 3;		/* Wednesday */
+		*pHour = 19;			/* 7pm */
+		*pMinute = 0;
+		*pMonth = 1;			/* January, 1970 */
+		*pYear = 1970;
+		return 1;
+	}
+
+	*pDayOfWeek = getdayofweek();	/* 0-6 */
+	*pHour = gethour();				/* 0-23 */
+	*pMinute = getminute();			/* 0-60 */
+	*pMonth = getmonth();			/* 1-12 */
+	*pYear = getyear();				/* e.g. 1997 */
+	return 0;
+}
+
+/*
+ * DialByIndex - dial all numbers in a sequence.
+ *
+ * This is called from the generated PatternDial function (which has the
+ * sequence embedded in it), and calls two other generated functions that
+ * convert an index into data or a function call.
+ */
+DialByIndex(char* staticConfig, char* dynamicConfig, char* sequence)
+{
+	int status, err, nextNumber, sequenceLen, idx;
+
+	if (version() >= 8) {
+		nextNumber = getconnectretrycount();
+	} else {
+		nextNumber = 0;
+	}
+
+	sequenceLen = StrLen(sequence);
+	printf("TS: next=%d, seqLen=%d", nextNumber, sequenceLen);
+
+	/*
+	 * Loop through the (remaining) POPs in the sequence.
+	 */
+	err = 13;	/* kTellyBlackHole - only used if nextNumber >= sequenceLen */
+	for (idx = nextNumber; idx < sequenceLen; idx++) {
+		/*printf("TS: index dialing '%c' (attempt %d)",
+			sequence[idx], idx);*/
+		status = DialIndexedPOP(staticConfig, dynamicConfig, sequence[idx],
+					idx, &err);
+		/*printf("TS: index dial returned %d, err=%d", status, err);*/
+		if (status == 0) {
+			err = ChatWithIndexedProvider(sequence[idx]);
+			if (!err || idx == sequenceLen-1) {
+				return err;
+			} else {
+				dialerror(err);
+			}
+		} else if (status == 2 || idx == sequenceLen-1) {
+			return err;
+		} else /*status==1*/ {
+			dialerror(err);
+		}
+	}
+
+	return err;
+}
+
+/*
+ * main - tellyscript interpreter starts here.
+ *
+ * Initializes the world, then invokes AccessDial or PatternDial.  These
+ * are generated automatically right before the script is sent down.
+ *
+ * IMPORTANT: this script can be sent to a 1.2 or later client, and
+ * suddenly find itself executing on a 1.0 client (the boot ROM).  It's
+ * important that we don't base flow-of-control decisions on interpreter
+ * version without considering all the effects.
+ */
+main()
+{
+	char *settings = getphonesettings();
+	char *accessNumber = &settings[64];
+	char staticConfig[80];
+	char dynamicConfig[80];
+	int start = ticks();
+	int err, result = 0;
+	
+	/* init globals that might be overwritten by InitGeneratedValues */
+	gUsingOpenISP = 0;
+	gNVRAMMayBeInvalid = 0;
+	
+	/* do this BEFORE anything else, especially GetPhoneSettings */
+	err = InitGeneratedValues();
+	if (err)
+		return err;
+	
+	if(version()<9)
+		MaybePrereg();
+
+	err = Initialize(staticConfig, dynamicConfig);
+	if (err)
+		return err;
+
+	/* take control of the status bar (version >= 8) */
+	setprogressmode(1);
+
+	/* clear these out every time */
+	setfullpopnumber("");
+	setconnectionstats(0, 0, 0, 0);
+
+	/*printf("DEBUG: at start, num=%d", getconnectretrycount());*/
+
+	/*
+	 * If the user has set an access number, we use that to the exclusion
+	 * of all else, unless they're using the magic '$' feature.
+	 *
+	 * (AccessDial and PatternDial are generated automatically.)
+	 */
+	if (accessNumber[0] && OStrChr(accessNumber, '$') < 0) {
+		result = AccessDial(staticConfig, dynamicConfig, accessNumber);
+
+		/* don't blow up if the password is wrong (always want this) */
+		if (result == 10 && !gUsingOpenISP)	/* BadPassword */
+			result = 15;	/* BadPasswordNR */
+	} else {
+		result = PatternDial(staticConfig, dynamicConfig);
+	}
+
+	if (!result) {
+		printf("TS: success, in %d sec",
+			(ticks() - start)/60);
+		return 2;				/* kTellyLinkConnected */
+	} else {
+		setconnectretrycount(0);	/* temporary fix for 1.3.x */
+		printf("TS: failure #%d, in %d sec", result,
+			(ticks() - start)/60);
+		setdtr(0);
+		return result;
+	}
+}
+
+/*
+ * Locale-specific stuff for USA.
+ */
+
+
+/*
+ * ===========================================================================
+ *		Phone-system-specific stuff
+ * ===========================================================================
+ */
+
+/*
+ * Returns "true" if the number is toll free.  This is important because
+ * we don't want to display "Dialing xxx" when we're making toll free calls.
+ */
+IsTollFree(char* numberToDial)
+{
+	if ((numberToDial[1]=='8' && numberToDial[2]=='0' && numberToDial[3]=='0')||
+		(numberToDial[1]=='8' && numberToDial[2]=='8' && numberToDial[3]=='8')||
+		(numberToDial[1]=='8' && numberToDial[2]=='7' && numberToDial[3]=='7')||
+		(numberToDial[1]=='8' && numberToDial[2]=='6' && numberToDial[3]=='6')||
+		(numberToDial[1]=='8' && numberToDial[2]=='5' && numberToDial[3]=='5'))
+	{
+		/*printf("DEBUG: that looks like a toll-free number!");*/
+		return 1;
+	}
+	return 0;
+}
+
+/*
+ * Returns "true" if we want to strip off the leading digit.  This should
+ * only be called if the "brokenPBX" flag is set.
+ *
+ * This is in "locale.tsf" because we re-used the brokenPBX flag for Japan,
+ * where we want to strip off the leading 0 when doing testing from the US.
+ */
+DoStripLeadingDigit(char* numberToDial)
+{
+	if (*numberToDial == '1')
+		return 1;
+	else
+		return 0;
+}
+
+
+/*
+ * ===========================================================================
+ *		Progress bar messages
+ * ===========================================================================
+ */
+
+SP_PreparingToCall(int perc)
+{
+	SetProgress("Preparing to call", perc);
+}
+
+SP_DialingNumber(char* prefixStr, char* numberToDial, int perc)
+{
+	char buffer[128];	/* must hold number(32) + prefix(64) + "Dialing "(8) */
+
+	sprintf(buffer, "Dialing %s%s", prefixStr, numberToDial);
+	SetProgress(buffer, perc);
+}
+
+SP_DialingAccessNumber(char* prefixStr, char* numberToDial, int perc)
+{
+	char buffer[128];   /* must hold number(32)+prefix(64)+"Dialing A/N "(12) */
+
+	sprintf(buffer, "Dialing A/N %s%s", prefixStr, numberToDial);
+	SetProgress(buffer, perc);
+}
+
+SP_DialingWebTV(int perc)
+{
+	SetProgress("Dialing %ServiceName%...", perc);
+}
+
+SP_WaitingToConnect(int perc)
+{
+	SetProgress("Waiting to connect", perc);
+}
+
+SP_ISPAnswering(int perc)
+{
+	SetProgress("ISP answering", perc);
+}
+
+SP_WebTVAnswering(int perc)
+{
+	SetProgress("%ServiceName% answering", perc);
+}
+
+SP_Connecting(int perc)
+{
+	SetProgress("Connecting", perc);
+}
+
+SP_ConnectedToISP(int perc)
+{
+	SetProgress("Connecting to your ISP", perc);
+}
+
+SP_ConnectedToWebTV(int perc)
+{
+	SetProgress("Connecting to %ServiceName%", perc);
+}
+
+SP_StackLow(int perc)
+{
+	SetProgress("Warning: stack low", perc);
+}
