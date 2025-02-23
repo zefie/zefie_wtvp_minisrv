@@ -1039,7 +1039,6 @@ class WTVTellyScriptMinifier {
     minify(tellyscript) {
         // Tokenize the raw text
         let tokens = this.tokenize(tellyscript.raw_data);
-console.log(tokens)
         // Minify identifier names
         tokens = this.minifyIdentifiers(tokens);
         return this.detokenize(tokens);
