@@ -37,7 +37,7 @@ const TellyScriptType = {
 };
 
 const reservedKeywords = new Set([
-    'int', 'char', 'if', 'else', 'while', 'return', 'void', , 'delay', 'flush', 'break',
+    'int', 'char', 'if', 'else', 'while', 'return', 'void', 'for', 'delay', 'flush', 'break',
     'printf', 'atoi', 'main', 'setprogressmode', 'setprogresstext', 'setworkingnumber',
     'setprogresspercentage', 'setprogressdirty', 'strcpy', 'strcat', 'setwindowsize',
     'enablemodem', 'builtin_winkdtr', 'setflowcontrol', 'setbaud', 'setdtr', 'sendstr',
@@ -1275,7 +1275,7 @@ class WTVTellyScript {
     }
 
     // --- Packing ---
-    pack() {
+    pack(version_minor = 1) {
         // Compress tokenized data using LZSS.
         const comp = new LZSS();
         const compressed_data = comp.compress(this.tokenized_data);
@@ -1295,7 +1295,7 @@ class WTVTellyScript {
         this.packed_header = {
             magic: (this.tellyscript_type === TellyScriptType.DIALSCRIPT) ? "VKAT" : "ANDY",
             version_major: (this.packed_header && this.packed_header.version_major) ? this.packed_header.version_major : 1,
-            version_minor: (this.packed_header && this.packed_header.version_minor) ? this.packed_header.version_minor : 3,
+            version_minor: (this.packed_header && this.packed_header.version_minor) ? this.packed_header.version_minor : version_minor,
             script_id: script_id,
             script_mod: Math.floor(Date.now() / 1000),
             compressed_data_length: compressed_data.length,
