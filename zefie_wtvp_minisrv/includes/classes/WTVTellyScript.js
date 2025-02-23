@@ -47,7 +47,7 @@ const reservedKeywords = new Set([
     'getline', 'connectingwithvideoad', 'version', 'alert', 'system_getboxfeatureflags',
     'parsesystemtime', 'getdatetimelocal', 'getdayofweek', 'gethour', 'getminute',
     'getmonth', 'getyear', 'getconnectretrycount', 'dialerror', 'setfullpopnumber',
-    'setconnectretrycount', 'setani', 'setlocalpopcount', 'computefcs'
+    'setconnectretrycount', 'setani', 'setlocalpopcount', 'computefcs', 'modem_parseresult'
 ]);
 
 

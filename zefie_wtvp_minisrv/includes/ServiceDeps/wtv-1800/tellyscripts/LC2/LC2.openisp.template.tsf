@@ -1,0 +1,137 @@
+
+/*
+ * Dial the user-chosen ISP.  We retry once if the first attempt fails,
+ * on a second phone number if available.
+ *
+ * Returns 0 on success, nonzero error code on failure.
+ */
+OpenISPDial(char* staticConfig, char* dynamicConfig)
+{
+	char* settings;
+	int settingsVersion;
+	int status, err, nextNumber;
+	char* second;
+	char* phoneNumber;
+	char* phoneNumber2;
+	char* userName;
+	char* passwd;
+
+	/*printf("TS: DEBUG: using OpenISPDial (count=%d)", nextNumber);*/
+
+	setwindowsize(7);	/* be paranoid; we don't know what they have */
+
+	if (version() >= 8) {
+		nextNumber = getconnectretrycount();
+	} else {
+		nextNumber = 0;
+	}
+
+	settings = GetPhoneSettings(&settingsVersion);
+	if (settingsVersion < 9) {
+		/* can't have OpenISP options in a pre-1.2 phone settings field! */
+		printf("TS: bad settingsVersion (%d) for OpenISP",
+			settingsVersion);
+		return 1;	/* semi-defined error code */
+	}
+
+	/*
+	 * At this point we're guaranteed to have phone settings created by
+	 * a v1.2 or later box, no matter what version() we are.
+	 */
+	if (!settings[300]) {
+		alert("ERROR 0425", "Continue", 0);
+		return 1;	/* semi-defined error code */
+	}
+
+	phoneNumber = &settings[172];
+	passwd = &settings[204];
+	userName = &settings[236];
+	setfullpopnumber(&settings[268]);
+	phoneNumber2 = &settings[304];
+
+	if (nextNumber == 0) {
+		status = DialIAP(staticConfig, dynamicConfig,
+					"-OpenISP-", phoneNumber, 1, &err);
+		if (status == 0) {
+			if (!userName && !passwd) {
+				/* for "open" dialups */
+				setpapmode(0);
+				return 0;
+			} else {
+				err = PAPChat(userName, passwd);
+				/*if (err == 10)
+					err = 15;*/		/* don't reboot on "bad password" */
+				if (!err) {
+					return 0;
+				} else {
+					dialerror(err);
+				}
+			}
+		} else if (status == 1) {
+			dialerror(err);
+		} else /*status==2*/ {
+			return err;
+		}
+		nextNumber++;
+	}
+
+	second = phoneNumber2;
+	if (*phoneNumber2 == 0)
+		second = phoneNumber;
+
+	if (nextNumber == 1) {
+		status = DialIAP(staticConfig, dynamicConfig,
+					"-OpenISP-", second, 1, &err);
+		if (status == 0) {
+			if (!userName && !passwd) {
+				setpapmode(0);
+				return 0;
+			}
+			err = PAPChat(userName, passwd);
+			/*if (err == 10)
+				err = 15;*/		/* don't reboot on "bad password" */
+		}
+		return err;
+	} else {
+		return 13;		/* kTellyBlackHole */
+	}
+}
+
+InitGeneratedValues()
+{
+		printf("TS: %ServiceName% minisrv Generated OpenISP TellyScript");
+		setani("");
+		setlocalpopcount(1);
+		gNVRAMMayBeInvalid = 0;
+		gDisguiseRate = 1;
+
+
+		gEnable56K = UnknownFunc(1);
+        if (gEnable56K = 0x42554646 /* BUFF */) {
+                gEnable56K = 1;
+        }
+		printf("TS: Setting NameServers: %DNSIP1%, %DNSIP2%");
+		setnameservice(%DNS1%, %DNS2%);
+		gBlock911 = 1;
+		gWantsVideoAd = 1;
+			
+		gUsername = getserialnumber();
+		gPAPPassword = "dummy";
+		gCHAPSecret = "=1lpHL>=bTVKh1Z?26";
+		return 0;
+}
+
+MaybePrereg() {}
+
+PatternDial(char* staticConfig, char* dynamicConfig)
+{
+		gUsingOpenISP = 1;
+		return OpenISPDial(staticConfig, dynamicConfig);
+
+}
+
+AccessDial(char* staticConfig, char* dynamicConfig, char* accessNumber)
+{
+		gUsingOpenISP = 1;
+		return OpenISPDial(staticConfig, dynamicConfig);
+}

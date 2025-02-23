@@ -376,3 +376,6 @@ FodyWeavers.xsd
 # CodeQL
 codeql-custom-queries-javascript/
 codeql/
+/zefie_wtvp_minisrv/test_prereg.js
+/zefie_wtvp_minisrv/test_telly.js
+/zefie_wtvp_minisrv/test_telly2.js
