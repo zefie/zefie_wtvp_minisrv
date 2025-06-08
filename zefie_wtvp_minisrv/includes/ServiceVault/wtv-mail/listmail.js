@@ -3,7 +3,7 @@ var minisrv_service_file = true;
 var mailstore_exists = false;
 
 function mail_end_error(msg) {
-    var errpage = doErrorPage("400", msg);
+    var errpage = wtvshared.doErrorPage("400", msg);
     headers = errpage[0];
     data = errpage[1];
 }
