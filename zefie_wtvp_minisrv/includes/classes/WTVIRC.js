@@ -37,7 +37,7 @@ class WTVIRC {
                 };
             }
 
-            socket.write(':irc.local NOTICE AUTH :Welcome to minisrv IRC Server\r\n');
+            socket.write(':${this.servername} NOTICE AUTH :Welcome to minisrv IRC Server\r\n');
 
             socket.on('data', data => {
                 const lines = data.split(/\r\n|\n/).filter(Boolean);
