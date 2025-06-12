@@ -343,6 +343,13 @@ class WTVIRC {
         this.broadcast(`:${this.servername} NOTICE * :${message}\r\n`);
     }
 
+    sendWebTVNoticeTo(username, message) {
+        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === username);
+        if (socket) {
+            socket.write(`:${this.servername} NOTICE * :${message}\r\n`);
+        }
+    }
+
     sendToChannelAs(username, channel, message) {
         const users = this.getUsersInChannel(channel);
         for (const user of users) {

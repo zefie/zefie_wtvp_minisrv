@@ -235,7 +235,12 @@
     "wtv-chat": {
       // wtv-chat (used for IRC)
       "port": 1630,
-      "connections": 3
+      "connections": 3,
+      "run_irc_server": true,
+      "irc_port": 1667,
+      "modules": [
+        "WTVIRC"
+      ]
     },
     "wtvchat": {
       // wtvchat://server:port/channel passthrough (wni official)

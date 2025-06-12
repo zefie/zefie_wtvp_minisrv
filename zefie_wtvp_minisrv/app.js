@@ -23,10 +23,12 @@ const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
+const WTVIRC = require(classPath + "/WTVIRC.js");
 const vm = require('vm');
 const debug = require('debug')('minisrv_main');
 const express = require('express');
 
+var wtvirc = null;
 var wtvnewsserver = null;
 
 
@@ -2364,6 +2366,12 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     if (configureService(k, minisrv_config.services[k], true)) {
         var using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
         console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
+
+        if (minisrv_config.services[k].run_irc_server) {
+            var ircServer = new WTVIRC(minisrv_config, minisrv_config.config.bind_ip, minisrv_config.services[k].irc_port);
+            ircServer.start();
+            console.log(" * Configured Service: IRC Server on", minisrv_config.config.bind_ip + ":" + minisrv_config.services[k].irc_port);
+        }
 
         if (minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
