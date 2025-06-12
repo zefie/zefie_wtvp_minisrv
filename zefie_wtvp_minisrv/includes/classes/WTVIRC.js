@@ -1,6 +1,13 @@
 const net = require('net');
 
 class WTVIRC {
+    /*
+        * WTVIRC - A simple IRC server implementation for WebTV
+        * Tested with WebTV and KvIRC
+        * This is a basic implementation and does not cover all IRC features.
+        * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, and PING.
+        * TODO: KICK, BAN, MODE, WHOIS.
+    */ 
     constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
         this.minisrv_config = minisrv_config;
         this.version = 
@@ -37,7 +44,7 @@ class WTVIRC {
                 };
             }
 
-            socket.write(':${this.servername} NOTICE AUTH :Welcome to minisrv IRC Server\r\n');
+            socket.write(`:${this.servername} NOTICE AUTH :Welcome to minisrv IRC Server\r\n`);
 
             socket.on('data', data => {
                 const lines = data.split(/\r\n|\n/).filter(Boolean);
