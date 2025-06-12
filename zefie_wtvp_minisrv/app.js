@@ -290,6 +290,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
                     console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name, e)
                 }
                 if (vm_modules[k] === "WTVNews") contextObj['wtvnewsserver'] = wtvnewsserver;
+                if (vm_modules[k] === "WTVIRC") contextObj['wtvirc'] = wtvirc;
             })            
         }
     }
@@ -2368,9 +2369,11 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
 
         if (minisrv_config.services[k].run_irc_server) {
-            var ircServer = new WTVIRC(minisrv_config, minisrv_config.config.bind_ip, minisrv_config.services[k].irc_port);
-            ircServer.start();
-            console.log(" * Configured Service: IRC Server on", minisrv_config.config.bind_ip + ":" + minisrv_config.services[k].irc_port);
+            if (!wtvirc) {
+                wtvirc = new WTVIRC(minisrv_config, minisrv_config.config.bind_ip, minisrv_config.services[k].irc_port);
+                wtvirc.start();
+                console.log(" * Configured Service: IRC Server on", minisrv_config.config.bind_ip + ":" + minisrv_config.services[k].irc_port);
+            }
         }
 
         if (minisrv_config.services[k].local_nntp_port) {
