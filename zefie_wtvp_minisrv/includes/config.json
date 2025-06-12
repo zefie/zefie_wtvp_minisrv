@@ -237,10 +237,7 @@
       "port": 1630,
       "connections": 3,
       "run_irc_server": true,
-      "irc_port": 1667,
-      "modules": [
-        "WTVIRC"
-      ]
+      "irc_port": 1667
     },
     "wtvchat": {
       // wtvchat://server:port/channel passthrough (wni official)
