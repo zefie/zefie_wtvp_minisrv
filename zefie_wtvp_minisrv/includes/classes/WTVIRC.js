@@ -41,10 +41,12 @@ class WTVIRC {
         this.awaylen = 200;
         this.channelprefixes = ['#','&'];
         this.servername = 'irc.local';
+        this.server_start_time = Date.now();
         this.caps = `AWAYLEN=${this.awaylen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ov)@+ CHANMODES=beI,k,l,imnp SAFELIST MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`;
     }
 
     start() {
+        this.server_start_time = Date.now();
         this.server = net.createServer(socket => {
             socket.setEncoding('utf8');
             this.clients.push(socket);
@@ -80,6 +82,18 @@ class WTVIRC {
                     }
                     const [command, ...params] = line.trim().split(' ');
                     switch (command.toUpperCase()) {
+                        case 'UPTIME':
+                            if (!registered) {
+                                socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                                break;
+                            }
+                            const uptime = Math.floor((Date.now() - this.server_start_time) / 1000);
+                            const days = Math.floor(uptime / 86400);
+                            const hours = Math.floor((uptime % 86400) / 3600);
+                            const minutes = Math.floor((uptime % 3600) / 60);
+                            const seconds = uptime % 60;
+                            socket.write(`:${this.servername} 242 ${nickname} :Server uptime is ${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds\r\n`);
+                            break;
                         case 'KICK':
                             if (!registered) {
                                 socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
