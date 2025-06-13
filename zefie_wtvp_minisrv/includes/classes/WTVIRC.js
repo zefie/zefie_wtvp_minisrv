@@ -5,7 +5,7 @@ class WTVIRC {
         * WTVIRC - A simple IRC server implementation for WebTV
         * Tested with WebTV and KvIRC
         * This is a basic implementation and does not cover all IRC features.
-        * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, and PING.
+        * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, MODE, KICK, and PING.
         * TODO: Enforce Bans, channel mode support, enforce invite only channel mode.
     */ 
     constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
