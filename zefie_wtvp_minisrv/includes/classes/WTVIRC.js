@@ -237,6 +237,7 @@ class WTVIRC {
                                 }
                                 this.channelbans.get(channel).add(banMask);
                                 socket.write(`:${this.servername} 367 ${nickname} ${channel} ${banMask}\r\n`);
+                                break
                             } else if (mode.startsWith('-b')) {
                                 if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
                                     socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
@@ -255,8 +256,10 @@ class WTVIRC {
                                 if (this.channelbans.has(channel)) {
                                     this.channelbans.get(channel).delete(banMask);
                                     socket.write(`:${this.servername} 368 ${nickname} ${channel} ${banMask}\r\n`);
+                                    break
                                 } else {
                                     socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                                    break
                                 }
                             } else if (mode === 'b') {
                                 if (this.channelbans.has(channel)) {
@@ -347,6 +350,28 @@ class WTVIRC {
                                 var channels = [channel];
                             }
                             for (const ch of channels) {
+                                if (this.channelbans.has(ch)) {
+                                    const bans = this.channelbans.get(ch);
+                                    // Check if the user's mask matches any ban mask
+                                    // For simplicity, we'll use nickname as the mask (real IRC uses user@host)
+                                    let isBanned = false;
+                                    for (const banMask of bans) {
+                                        // Simple mask matching: * matches any, ? matches one char, otherwise exact
+                                        // Real IRC uses user!ident@host, here we just use nickname
+                                        // Convert mask to regex
+                                        let regex = '^' + banMask.replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&')
+                                            .replace(/\*/g, '.*')
+                                            .replace(/\?/g, '.') + '$';
+                                        if (new RegExp(regex, 'i').test(`${nickname}!${username}@${host}`)) {
+                                            isBanned = true;
+                                            break;
+                                        }
+                                    }
+                                    if (isBanned) {
+                                        socket.write(`:${this.servername} 474 ${nickname} ${ch} :Cannot join channel (+b)\r\n`);
+                                        continue; // Skip joining this channel
+                                    }
+                                }
                                 // Recursively process each channel join
                                 const joinLine = `JOIN ${ch}`;
                                 // Simulate a JOIN command for each channel
@@ -414,6 +439,11 @@ class WTVIRC {
                                 this.channels.get(channel).delete(nickname);
                                 if (this.channels.get(channel).size === 0) {
                                     this.channels.delete(channel);
+                                    this.channelops.delete(channel);
+                                    this.channelvoices.delete(channel);
+                                    this.channeltopics.delete(channel);
+                                    this.channelbans.delete(channel);
+                                    this.channelmodes.delete(channel);
                                 }
                             }
                             break;
