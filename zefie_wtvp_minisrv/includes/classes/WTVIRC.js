@@ -7,7 +7,8 @@ class WTVIRC {
         * Tested with WebTV and KvIRC
         * This is a basic implementation and does not cover all IRC features.
         * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, MODE, KICK, and PING.
-        * TODO: Proper channel mode support, implement invite, enforce invite only channel mode.
+        * TODO: Validate and fix (if needed) ALL existing functionality. Then maybe add more stuff.
+        * TODO: Masks (ban, invite, exempt, etc.) are not properly functional yet.
     */ 
     constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
         this.minisrv_config = minisrv_config;
@@ -1089,7 +1090,7 @@ class WTVIRC {
                             } else {
                                 channelsToList = Array.from(this.channels.keys());
                             }
-                            socket.write(`:${this.servername} 321 ${nickname} Channel :Users\r\n`);
+                            socket.write(`:${this.servername} 321 ${nickname} :Channel :Users :Topic\r\n`);
                             for (const channel of channelsToList) {
                                 if (this.channelmodes.has(channel)) {
                                     const modes = this.channelmodes.get(channel);
@@ -1150,7 +1151,13 @@ class WTVIRC {
                             this.usertimestamps.set(nickname, Date.now());                            
                             if (params[0]) {
                                 const target = params[0];
-                                if (target.startsWith('#')) {
+                                isChannel = false;
+                                this.channelprefixes.forEach(prefix => {
+                                    if (target.startsWith(prefix)) {
+                                        isChannel = true;
+                                    }
+                                });
+                                if (isChannel) {
                                     // Channel message
                                     if (this.channelmodes.has(target) && this.channelmodes.get(target).includes('m')) {
                                         // Channel is moderated (+m)
@@ -1160,12 +1167,28 @@ class WTVIRC {
                                         if (ops === true) ops = new Set();
                                         if (!(voices.has(nickname) || ops.has(nickname))) {
                                             socket.write(`:${this.servername} 404 ${nickname} ${target} :Cannot send to channel (+m)\r\n`);
-                                            return;
+                                            break;
                                         }
                                     }
                                 }
                                 const msg = line.slice(line.indexOf(':', 1) + 1);
-                                this.broadcast(`:${nickname}!${username}@${host} PRIVMSG ${params[0]} :${msg}\r\n`, socket);
+                                if (isChannel) {
+                                    if (!this.channels.has(target)) {
+                                        socket.write(`:${this.servername} 403 ${nickname} ${target} :No such channel\r\n`);
+                                        break;
+                                    }
+                                    this.broadcastChannel(target, `:${nickname}!${username}@${host} PRIVMSG ${target} :${msg}\r\n`, socket);
+                                    break;
+                                } else {
+                                    const targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === target);
+                                    if (!targetSock) {
+                                        socket.write(`:${this.servername} 401 ${nickname} ${target} :No such nick/channel\r\n`);
+                                        return;
+                                    }
+                                    const msg = line.slice(line.indexOf(':', 1) + 1);
+                                    targetSock.write(`:${nickname}!${username}@${host} PRIVMSG ${target} :${msg}\r\n`);
+                                    break;
+                                }
                             }
                             break;
                         case 'NOTICE':
