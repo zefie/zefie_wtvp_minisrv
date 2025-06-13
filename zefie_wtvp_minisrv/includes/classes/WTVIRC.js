@@ -21,6 +21,7 @@ class WTVIRC {
         this.channelops = new Map(); // channel -> Set of operators
         this.channelvoices = new Map(); // channel -> Set of voiced users
         this.channeltopics = new Map(); // channel -> topic
+        this.channelinvites = new Map(); // channel -> Set of invited users
         this.channelbans = new Map(); // channel -> Set of banned users
         this.channelmodes = new Map(); // channel -> modes
         this.nicknames = new Map(); // socket -> nickname
@@ -165,6 +166,66 @@ class WTVIRC {
                                 const modes = this.channelmodes.get(channel) || '';
                                 socket.write(`:${this.servername} 324 ${nickname} ${channel} ${modes}\r\n`);
                                 break;
+                            } else if (mode.startsWith('+m')) {
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '') + 'm');
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} +m\r\n`);
+                                break;
+                            } else if (mode.startsWith('-m')) {
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '').replace('m', ''));
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} -m\r\n`);
+                                break;
+                            } else if (mode.startsWith('+l')) {
+                                if (params.length < 3) {
+                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                                    break;
+                                }
+                                const limit = parseInt(params[2], 10);
+                                if (isNaN(limit) || limit < 0) {
+                                    socket.write(`:${this.servername} 501 ${nickname} :Invalid channel limit\r\n`);
+                                    break;
+                                }
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '') + `l${limit}`);
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} +l ${limit}\r\n`);
+                                break;
+                            } else if (mode.startsWith('-l')) {
+                                if (params.length < 3) {
+                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                                    break;
+                                }
+                                const limit = parseInt(params[2], 10);
+                                if (isNaN(limit) || limit < 0) {
+                                    socket.write(`:${this.servername} 501 ${nickname} :Invalid channel limit\r\n`);
+                                    break;
+                                }
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '').replace(`l${limit}`, ''));
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} -l ${limit}\r\n`);
+                                break;
+                            } else if (mode.startsWith('+k')) {
+                                if (params.length < 3) {
+                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                                    break;
+                                }
+                                const key = params[2];
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '') + `k${key}`);
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} +k ${key}\r\n`);
+                                break;
+                            } else if (mode.startsWith('-k')) {
+                                if (params.length < 3) {
+                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                                    break;
+                                }
+                                const key = params[2];
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '').replace(`k${key}`, ''));
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} -k ${key}\r\n`);
+                                break;
+                            } else if (mode.startsWith('+i')) {
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '') + 'i');
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} +i\r\n`);
+                                break;
+                            } else if (mode.startsWith('-i')) {
+                                this.channelmodes.set(channel, (this.channelmodes.get(channel) || '').replace('i', ''));
+                                socket.write(`:${this.servername} 324 ${nickname} ${channel} -i\r\n`); 
+                                break;                              
                             } else if (mode.startsWith('+o')) {
                                 if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
                                     socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
@@ -372,6 +433,34 @@ class WTVIRC {
                                         continue; // Skip joining this channel
                                     }
                                 }
+                                if (this.channelmodes.has(ch)) {
+                                    const modes = this.channelmodes.get(ch);
+                                    const keyMatch = modes.match(/k([^\s]+)/);
+                                    if (keyMatch) {
+                                        const channelKey = keyMatch[1];
+                                        // The key must be provided as the second parameter in the JOIN command
+                                        // params[1] is the key for the first channel, params[2] for the second, etc.
+                                        // For simplicity, assume only one channel per JOIN or the key is always params[1]
+                                        const providedKey = params[1];
+                                        if (!providedKey || providedKey !== channelKey) {
+                                            socket.write(`:${this.servername} 475 ${nickname} ${ch} :Cannot join channel (+k)\r\n`);
+                                            continue; // Skip joining this channel
+                                        }
+                                    }
+                                    if (this.channelmodes.has(ch) && this.channelmodes.get(ch).includes('i')) {
+                                        // Channel is invite-only (+i)
+                                        // For simplicity, let's assume you have an invited list per channel (not implemented yet)
+                                        // We'll use a Map: this.channelinvites = new Map(); // channel -> Set of invited nicks
+                                        if (!this.channelinvites) this.channelinvites = new Map();
+                                        const invited = this.channelinvites.get(ch) || new Set();
+                                        if (!invited.has(nickname)) {
+                                            socket.write(`:${this.servername} 473 ${nickname} ${ch} :Cannot join channel (+i)\r\n`);
+                                            continue; // Skip joining this channel
+                                        }
+                                        invited.delete(nickname);
+                                        this.channelinvites.set(ch, invited);
+                                    }
+                                }
                                 // Recursively process each channel join
                                 const joinLine = `JOIN ${ch}`;
                                 // Simulate a JOIN command for each channel
@@ -456,6 +545,51 @@ class WTVIRC {
                                 }
                             }
                             break;
+                        case 'INVITE':
+                            if (!registered) {
+                                socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                                break;
+                            }
+                            if (params.length < 2) {
+                                socket.write(`:${this.servername} 461 ${nickname} INVITE :Not enough parameters\r\n`);
+                                break;
+                            }
+                            const invitee = params[0];
+                            channel = params[1];
+                            if (!this.channels.has(channel)) {
+                                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                                break;
+                            }
+                            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                                break;
+                            } else {
+                                if (!this.channelops.get(channel).has(nickname)) {
+                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                                    break;
+                                }
+                            }
+                            if (!this.nicknames.has(socket)) {
+                                socket.write(`:${this.servername} 401 ${nickname} ${invitee} :No such nick/channel\r\n`);
+                                break;
+                            }
+                            const inviteeSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === invitee);
+                            if (!inviteeSocket) {
+                                socket.write(`:${this.servername} 401 ${nickname} ${invitee} :No such nick/channel\r\n`);
+                                break;
+                            }
+                            if (!this.channels.has(channel) || !this.channels.get(channel).has(invitee)) {
+                                if (!this.channelinvites) this.channelinvites = new Map();
+                                const invited = this.channelinvites.get(channel) || new Set();
+                                invited.add(invitee);
+                                this.channelinvites.set(channel, invited);
+                                socket.write(`:${this.servername} 341 ${nickname} ${invitee} ${channel} :Invited to channel\r\n`);
+                                inviteeSocket.write(`:${this.servername} 341 ${nickname} ${invitee} ${channel} :You have been invited to join ${channel}\r\n`);
+                                break;
+                            } else {
+                                socket.write(`:${this.servername} 443 ${nickname} ${invitee} ${channel} :${invitee} is already on that channel\r\n`);
+                                break;
+                            }
                         case 'LIST':
                             if (!registered) {
                                 socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
@@ -519,6 +653,19 @@ class WTVIRC {
                                 break;
                             }
                             if (params[0]) {
+                                const target = params[0];
+                                if (target.startsWith('#')) {
+                                    // Channel message
+                                    if (this.channelmodes.has(target) && this.channelmodes.get(target).includes('m')) {
+                                        // Channel is moderated (+m)
+                                        const voices = this.channelvoices.get(target) || new Set();
+                                        const ops = this.channelops.get(target) || new Set();
+                                        if (!(voices.has(nickname) || ops.has(nickname))) {
+                                            socket.write(`:${this.servername} 404 ${nickname} ${target} :Cannot send to channel (+m)\r\n`);
+                                            return;
+                                        }
+                                    }
+                                }
                                 const msg = line.slice(line.indexOf(':', 1) + 1);
                                 this.broadcast(`:${nickname}!${username}@${host} PRIVMSG ${params[0]} :${msg}\r\n`, socket);
                             }
