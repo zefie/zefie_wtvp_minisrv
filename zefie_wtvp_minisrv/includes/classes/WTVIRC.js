@@ -6,7 +6,7 @@ class WTVIRC {
         * Tested with WebTV and KvIRC
         * This is a basic implementation and does not cover all IRC features.
         * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, and PING.
-        * TODO: KICK, BAN, MODE, WHOIS.
+        * TODO: KICK, BAN, MODE.
     */ 
     constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
         this.minisrv_config = minisrv_config;
@@ -16,6 +16,7 @@ class WTVIRC {
         this.debug = debug;
         this.server = null;
         this.clients = [];
+        this.usernames = new Map(); // nickname -> username
         this.channels = new Map();
         this.channeltopics = new Map(); // channel -> topic
         this.nicknames = new Map(); // socket -> nickname
@@ -112,11 +113,19 @@ class WTVIRC {
                                 break; 
                             }
                             if (!nickname) {
+                                // If no nickname is set, set it now
                                 nickname = new_nickname;
                             }
+                            this.nicknames.set(socket, nickname);
+                            if (nickname && this.usernames.has(nickname)) {
+                                this.usernames.delete(nickname);
+                            }
+                            this.usernames.set(nickname, username);
                             if (nickname && nickname !== new_nickname) {
                                 socket.write(`:${nickname}!${username}@${host} NICK :${new_nickname}\r\n`);
-                                this.broadcast(`:${nickname}!${username}@${host} NICK :${new_nickname}\r\n`, socket);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} NICK :${new_nickname}\r\n`, socket);
+                                nickname = new_nickname;
+                                this.nicknames.set(socket, nickname);
                                 // Update nickname in all channels
                                 for (const [ch, users] of this.channels.entries()) {
                                     if (users.has(nickname)) {
@@ -131,8 +140,6 @@ class WTVIRC {
                                     this.awaymsgs.set(new_nickname, msg);
                                 }
                             }
-                            nickname = new_nickname;
-                            this.nicknames.set(socket, nickname);
                             if (!registered && nickname && username) {
                                 registered = true;
                                 socket.write(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
@@ -146,6 +153,7 @@ class WTVIRC {
                             username = params[0];                      
                             if (!registered && nickname && username) {
                                 registered = true;
+                                this.usernames.set(nickname, username);
                                 socket.write(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
                                 socket.write(`:${this.servername} 002 ${nickname} :Your host is ${this.servername}, running version minisrv ${this.minisrv_config.version}\r\n`);
                                 socket.write(`:${this.servername} 003 ${nickname} :This server is ready to accept commands\r\n`);
@@ -174,17 +182,17 @@ class WTVIRC {
                                 // (excluding the code before $PLACEHOLDER$ to avoid duplicate checks)
                                 // You can refactor this logic into a helper if needed
                                 socket.write(`:${nickname}!${username}@${host} JOIN ${ch}\r\n`);
-                                this.broadcast(`:${nickname}!${username}@${host} JOIN ${ch}\r\n`, socket);
+                                if (!this.channels.has(ch)) {
+                                    this.channels.set(ch, new Set());
+                                } 
+                                this.channels.get(ch).add(nickname);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} JOIN ${ch}\r\n`, socket);
                                 if (this.channeltopics.has(ch)) {
                                     const topic = this.channeltopics.get(ch);
                                     socket.write(`:${this.servername} 332 ${nickname} ${ch} :${topic}\r\n`);
                                 } else {
                                     socket.write(`:${this.servername} 331 ${nickname} ${ch} :No topic is set\r\n`);
-                                }
-                                if (!this.channels.has(ch)) {
-                                    this.channels.set(ch, new Set());
-                                }
-                                this.channels.get(ch).add(nickname);
+                                }                               
                                 var users = this.getUsersInChannel(ch);
                                 if (users.length > 0) {
                                     socket.write(`:${this.servername} 353 ${nickname} = ${ch} :${users.join(' ')}\r\n`);
@@ -223,7 +231,7 @@ class WTVIRC {
                                 break;
                             }
                             socket.write(`:${nickname}!${username}@${host} PART ${channel}\r\n`);
-                            this.broadcast(`:${nickname}!${username}@${host} PART ${channel}\r\n`, socket);
+                            this.broadcastUser(nickname, `:${nickname}!${username}@${host} PART ${channel}\r\n`, socket);
                             if (this.channels.has(channel)) {
                                 this.channels.get(channel).delete(nickname);
                                 if (this.channels.get(channel).size === 0) {
@@ -311,6 +319,37 @@ class WTVIRC {
                         case 'PING':
                             socket.write(`PONG ${params.join(' ')}\r\n`);
                             break;
+                        case 'WHOIS':
+                            if (!registered) {
+                                socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                                break;
+                            }
+                            if (params.length < 1) {
+                                socket.write(`:${this.servername} 461 ${nickname} WHOIS :Not enough parameters\r\n`);
+                                break;
+                            }
+                            const whoisNick = params[0];
+                            const whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === whoisNick);
+                            if (whoisSocket) {
+                                const whois_username = this.usernames.get(whoisNick);
+                                socket.write(`:${this.servername} 311 ${nickname} ${whoisNick} ${whois_username} ${whoisSocket.remoteAddress} * ${whoisNick}\r\n`);
+                                if (this.awaymsgs.has(whoisNick)) {
+                                    socket.write(`:${this.servername} 301 ${nickname} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
+                                }
+                                const userChannels = [];
+                                for (const [ch, users] of this.channels.entries()) {
+                                    if (users.has(whoisNick)) {
+                                        userChannels.push(ch);
+                                    }
+                                }
+                                if (userChannels.length > 0) {
+                                    socket.write(`:${this.servername} 319 ${nickname} ${whoisNick} :${userChannels.join(' ')}\r\n`);
+                                }
+                                socket.write(`:${this.servername} 318 ${nickname} ${whoisNick} :End of /WHOIS list\r\n`);
+                            } else {
+                                socket.write(`:${this.servername} 401 ${nickname} ${whoisNick} :No such nick/channel\r\n`);
+                            }
+                            break;
                         case 'QUIT':
                             socket.end();
                             break;
@@ -365,6 +404,19 @@ class WTVIRC {
             return Array.from(this.channels.get(channel));
         }
         return [];
+    }
+
+    broadcastUser(username, message, exceptSocket = null) {
+        for (const [channel, users] of this.channels.entries()) {
+            if (users.has(username)) {
+                for (const user of users) {
+                    const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                    if (sock && sock !== exceptSocket) {
+                        sock.write(message);
+                    }
+                }
+            }
+        }
     }
 
     broadcast(message, exceptSocket = null) {
