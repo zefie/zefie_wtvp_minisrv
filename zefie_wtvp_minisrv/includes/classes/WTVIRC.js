@@ -63,6 +63,7 @@ class WTVIRC {
             let nickname = '';
             let username = '';
             let channel = '';
+            let realhost = this.getHostname(socket);
             let host = this.getHostname(socket);
             let timestamp = Date.now();
 
@@ -995,7 +996,7 @@ class WTVIRC {
                                         // For simplicity, let's assume you have an invited list per channel (not implemented yet)
                                         // We'll use a Map: this.channelinvites = new Map(); // channel -> Set of invited nicks
                                         if (!this.channelinvites) this.channelinvites = new Map();
-                                        const invited = this.channelinvites.get(ch) || new Set();
+                                        const invited = this.channelinvites.get(ch) || new Set();                                        
                                         let isInvited = false;
                                         for (const inviteMask of invited) {
                                             // inviteMask can be nick!user@host or wildcards
@@ -1004,7 +1005,7 @@ class WTVIRC {
                                             const userPart = maskParts[1] || '*';
                                             const hostPart = maskParts[2] || '*';
                                             // Build user mask for this user
-                                            const userMask = `${nickname}!${username}@${host}`;
+                                            const userMask = `${nickname}!${username}@${realhost}`;
                                             // Convert mask to regex
                                             const maskRegex = new RegExp('^' +
                                                 inviteMask
@@ -1117,14 +1118,7 @@ class WTVIRC {
                             if (this.channels.has(channel)) {
                                 this.channels.get(channel).delete(nickname);
                                 if (this.channels.get(channel).size === 0) {
-                                    this.channels.delete(channel);
-                                    this.channelops.delete(channel);
-                                    this.channelvoices.delete(channel);
-                                    this.channeltopics.delete(channel);
-                                    this.channelbans.delete(channel);
-                                    this.channelexemptions.delete(channel);
-                                    this.channelinvites.delete(channel);
-                                    this.channelmodes.delete(channel);
+                                    this.deleteChannel(channel);
                                 }
                             }
                             break;
@@ -1430,7 +1424,7 @@ class WTVIRC {
 
                             // Broadcast the KILL message to all users
                             this.broadcastUser(target_nick, `:${nickname}!${username}@${host} KILL ${target_nick} :${cleanKillReason}\r\n`);
-                            this.terminateSession(targetSocket, target_nick);
+                            this.terminateSession(targetSocket, true);
                             break;
                         case 'QUIT':
                             if (!registered) {
@@ -1448,7 +1442,7 @@ class WTVIRC {
                                     this.broadcastUser(nickname, `:${nickname}!${username}@${host} QUIT\r\n`, socket);
                                 }
                             }
-                            this.terminateSession(socket, nickname);
+                            this.terminateSession(socket, true);
                             break;
                         default:
                             // Ignore unknown commands
@@ -1459,12 +1453,12 @@ class WTVIRC {
 
             socket.on('end', () => {
                 this.clients = this.clients.filter(c => c !== socket);
-                this.nicknames.delete(socket);
+                this.terminateSession(socket, false);
             });
 
             socket.on('error', () => {
                 this.clients = this.clients.filter(c => c !== socket);
-                this.nicknames.delete(socket);
+                this.terminateSession(socket, true);
             });
         });
 
@@ -1475,7 +1469,22 @@ class WTVIRC {
         });
     }
 
-    terminateSession(socket, nickname) {
+    deleteChannel(channel) {
+        this.channels.delete(channel);
+        this.channelops.delete(channel);
+        this.channelvoices.delete(channel);
+        this.channeltopics.delete(channel);
+        this.channelbans.delete(channel);
+        this.channelexemptions.delete(channel);
+        this.channelinvites.delete(channel);
+        this.channelmodes.delete(channel);
+        if (this.debug) {
+            console.log(`Channel ${channel} deleted`);
+        }       
+    }
+
+    terminateSession(socket, close = false) {
+        const nickname = this.nicknames.get(socket);
         if (nickname) {
             this.usertimestamps.delete(nickname);
             this.usersignontimestamps.delete(nickname);
@@ -1499,19 +1508,15 @@ class WTVIRC {
                 if (users.has(nickname)) {
                     users.delete(nickname);
                     if (users.size === 0) {
-                        this.channels.delete(ch);
-                        this.channelops.delete(ch);
-                        this.channelvoices.delete(ch);
-                        this.channeltopics.delete(ch);
-                        this.channelbans.delete(ch);
-                        this.channelexemptions.delete(ch);
-                        this.channelinvites.delete(ch);
-                        this.channelmodes.delete(ch);
+                        this.deleteChannel(ch);
                     }
                 }
             });
+            this.nicknames.delete(socket);
         }
-        socket.end();
+        if (close) {
+            socket.end();
+        }
     }
 
     isBanned(nickname, channel) {
@@ -1648,45 +1653,50 @@ class WTVIRC {
 
     getHostname(socket) {
         const username = this.nicknames.get(socket);
-        const modes = this.usermodes.get(username);
-        var hostname = '';
+        var modes = null;
+        if (username) {
+            modes = this.usermodes.get(username);
+        }
+        var hostname = 'unknown.host';
         if (socket && socket.remoteAddress) {
             try {
-                // Synchronously resolve the hostname (not recommended for production, but simple for this context)
-                // For async, you'd need to refactor the call site to handle promises/callbacks
                 let resolved = socket.remoteAddress;
                 dns.reverse(socket.remoteAddress, (err, hostnames) => {
                     if (!err && hostnames && hostnames.length > 0) {
                         resolved = hostnames[0];
-                    }
+                    } else if (this.debug) {
+                        console.error(`DNS reverse lookup failed for ${socket.remoteAddress}:`, err);
+                    }                   
                 });
                 hostname = resolved;
             } catch (e) {
+                if (this.debug) {
+                    console.error(`Error resolving hostname for ${socket.remoteAddress}:`, e);
+                }
                 hostname = socket.remoteAddress;
             }
         }
 
-        if (Array.isArray(modes) && modes.includes('h')) {
-            // Masked hostname for +h users
-            if (typeof hostname === 'string') {
-                // Mask everything except the first and last octet for IPv4
-                const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-                if (ipv4Match) {
-                    return `${ipv4Match[1]}.x.x.${ipv4Match[4]}`;
+        if (modes) {
+            if (Array.isArray(modes) && modes.includes('h')) {
+                // Masked hostname for +h users
+                if (typeof hostname === 'string') {
+                    // Mask everything except the first and last octet for IPv4
+                    const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+                    if (ipv4Match) {
+                        return `${ipv4Match[1]}.x.x.${ipv4Match[4]}`;
+                    }
+                    // For hostnames, mask all but the first and last label
+                    const parts = hostname.split('.');
+                    if (parts.length > 2) {
+                        return `${parts[0]}.x.${parts[parts.length - 1]}`;
+                    }
+                    // Otherwise, just return 'hidden.host'
+                    return 'hidden.host';
                 }
-                // For hostnames, mask all but the first and last label
-                const parts = hostname.split('.');
-                if (parts.length > 2) {
-                    return `${parts[0]}.x.${parts[parts.length - 1]}`;
-                }
-                // Otherwise, just return 'hidden.host'
-                return 'hidden.host';
             }
         }
-        if (hostname) {
-            return hostname;
-        }
-        return 'unknown.host';
+        return hostname;
     }
 
     doLogin(nickname, socket) {
