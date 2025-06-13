@@ -6,7 +6,7 @@ class WTVIRC {
         * Tested with WebTV and KvIRC
         * This is a basic implementation and does not cover all IRC features.
         * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, MODE, KICK, and PING.
-        * TODO: Enforce Bans, channel mode support, enforce invite only channel mode.
+        * TODO: Proper channel mode support, implement invite, enforce invite only channel mode.
     */ 
     constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
         this.minisrv_config = minisrv_config;
@@ -433,8 +433,17 @@ class WTVIRC {
                                 socket.write(`:${this.servername} 442 ${nickname} ${channel} :You're not on that channel\r\n`);
                                 break;
                             }
-                            socket.write(`:${nickname}!${username}@${host} PART ${channel}\r\n`);
-                            this.broadcastUser(nickname, `:${nickname}!${username}@${host} PART ${channel}\r\n`, socket);
+                            if (params.length == 2) {
+                                let reason = params.join(' ');
+                                if (reason.startsWith(':')) {
+                                    reason = reason.slice(1);
+                                }
+                                socket.write(`:${nickname}!${username}@${host} PART ${channel} :${reason}\r\n`);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} PART ${channel} :${reason}\r\n`, socket);
+                            } else {
+                                socket.write(`:${nickname}!${username}@${host} PART ${channel}\r\n`);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} PART ${channel}\r\n`, socket);
+                            }
                             if (this.channels.has(channel)) {
                                 this.channels.get(channel).delete(nickname);
                                 if (this.channels.get(channel).size === 0) {
@@ -565,6 +574,21 @@ class WTVIRC {
                             }
                             break;
                         case 'QUIT':
+                            if (!registered) {
+                                socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                            } else {
+                                if (params.length > 0) {
+                                    let reason = params.join(' ');
+                                    if (reason.startsWith(':')) {
+                                        reason = reason.slice(1);
+                                    }
+                                    socket.write(`:${nickname}!${username}@${host} QUIT :${reason}\r\n`);
+                                    this.broadcastUser(nickname, `:${nickname}!${username}@${host} QUIT :${reason}\r\n`, socket);
+                                } else {
+                                    socket.write(`:${nickname}!${username}@${host} QUIT\r\n`);
+                                    this.broadcastUser(nickname, `:${nickname}!${username}@${host} QUIT\r\n`, socket);
+                                }
+                            }
                             socket.end();
                             break;
                         default:
