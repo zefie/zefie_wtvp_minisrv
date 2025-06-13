@@ -122,7 +122,7 @@ class WTVIRC {
                                 }
                                 this.channeltopics.set(channel, topic);
                                 socket.write(`:${this.servername} 332 ${nickname} ${channel} :${topic}\r\n`);
-                                this.broadcast(`:${nickname}!${username}@${host} TOPIC ${channel} :${topic}\r\n`, socket);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} TOPIC ${channel} :${topic}\r\n`, socket);
                             } else {
                                 const topic = this.channeltopics.get(channel) || 'No topic set';
                                 socket.write(`:${this.servername} 331 ${nickname} ${channel} :${topic}\r\n`);
@@ -641,10 +641,11 @@ class WTVIRC {
                                         break;
                                     }
                                 }
-                                socket.write(`:${this.servername} 315 ${nickname} ${target} :End of /WHO list\r\n`);
                                 if (!found) {
-                                    // Optionally, could send no such nick/channel
-                                }
+                                    socket.write(`:${this.servername} 401 ${nickname} ${target} :No such nick/channel\r\n`);
+                                }                                    
+                                socket.write(`:${this.servername} 315 ${nickname} ${target} :End of /WHO list\r\n`);
+                                break;
                             }
                             break;
                         case 'PRIVMSG':
