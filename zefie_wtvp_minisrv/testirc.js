@@ -8,5 +8,5 @@ const wtvshared = new WTVShared(); // creates minisrv_config
 
 var minisrv_config = wtvshared.readMiniSrvConfig(true, false, true);
 minisrv_config.version = require('./package.json').version;
-const ircServer = new WTVIRC(minisrv_config, '192.168.11.8', 1667, true);
+const ircServer = new WTVIRC(minisrv_config, '0.0.0.0', 1667, true);
 ircServer.start();
