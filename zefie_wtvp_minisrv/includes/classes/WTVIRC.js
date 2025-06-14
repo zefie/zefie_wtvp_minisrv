@@ -1324,9 +1324,13 @@ class WTVIRC {
             'o': true, // op
             'v': true  // voice
         };
-
         for (let i = 0; i < modeFlags.length; i++) {
             let c = modeFlags[i];
+            // If the mode is 'b', 'e', or 'I', allow it with or without a param
+            if ((c === 'b' || c === 'e' || c === 'I') && paramIndex >= params.length) {
+                this.processChannelModeCommand(nickname, channel, c, null);
+                continue;
+            }
             if (c === '+') {
                 adding = true;
             } else if (c === '-') {
