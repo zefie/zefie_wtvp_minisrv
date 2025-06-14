@@ -1857,6 +1857,7 @@ class WTVIRC {
                     if (userSocket && !userSocket.secure) {
                         userSocket.write(`:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +z (SSL-only)\r\n`);
                         this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +z (SSL-only)\r\n`, userSocket);
+                        this.channels.get(channel).delete(user);
                     }
                 }                
             }
@@ -1951,7 +1952,7 @@ class WTVIRC {
         socket.write(`:${this.servername} 251 ${nickname} :There are ${visibleClients.length} visible users and ${invisibleClients.length} invisible users on this server\r\n`);
         socket.write(`:${this.servername} 252 ${nickname} ${operClients.length} :operator(s) online\r\n`);
         socket.write(`:${this.servername} 253 ${nickname} ${this.channels.size} :channels formed\r\n`);
-        socket.write(`:${this.servername} 255 ${nickname} :I have ${this.clients.length} clients and 1 servers\r\n`);
+        socket.write(`:${this.servername} 255 ${nickname} :I have ${this.clients.length} clients and 1 server\r\n`);
         socket.write(`:${this.servername} 265 ${nickname} :Current Local Users: ${this.clients.length}  Max: ${this.clientpeak}\r\n`);
         for (const mode of this.default_user_modes) {
             var usermodes = this.usermodes.get(nickname);
