@@ -75,9 +75,10 @@ class WTVIRC {
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_ssl = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
+        this.kick_insecure_on_z = this.irc_config.kick_insecure_on_z || true; // If true, users without SSL connections will be kicked from a channel when +z is applied
         this.clientpeak = 0;
         this.caps = [
-            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=beI,k,l,itmnpz CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ov)@+ USERMODES=oxiws MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
+            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=beI,k,l,itmnpz CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ov)@+ USERMODES=oxizws MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
             `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
         ];
     }
@@ -971,14 +972,22 @@ class WTVIRC {
                                 if (this.awaymsgs.has(t)) {
                                     socket.write(`:${this.servername} 301 ${socket.nickname} ${t} :${this.awaymsgs.get(t)}\r\n`);
                                 }
-                                const targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === t);
+                                var targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === t);
                                 if (!targetSock) {
                                     socket.write(`:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
                                     continue;
                                 }
-                                const targetUserModes = this.usermodes.get(t) || [];
+                                var targetUserModes = this.usermodes.get(t) || [];
                                 if (targetUserModes.includes('Z') && !socket.secure) {
                                     socket.write(`:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to user (+Z)\r\n`);
+                                    continue;
+                                }
+                                var usermodes = this.usermodes.get(socket.nickname);
+                                if (!usermodes || usermodes === true) {
+                                    usermodes = [];
+                                }
+                                if (usermodes.includes('Z') && !targetUserModes.includes('Z')) {
+                                    socket.write(`:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to non-+Z user while you are +Z\r\n`);
                                     continue;
                                 }
                                 targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${t} :${msg}\r\n`);
@@ -1024,9 +1033,22 @@ class WTVIRC {
                                 this.broadcastChannel(t, `:${socket.nickname}!${socket.username}@${socket.host} NOTICE ${t} :${msg}\r\n`, socket);
                             } else {
                                 // Assume it's a nick, check if it exists
-                                const targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === t);
+                                var targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === t);
                                 if (!targetSock) {
                                     socket.write(`:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
+                                    continue;
+                                }
+                                var targetUserModes = this.usermodes.get(t) || [];
+                                if (targetUserModes.includes('Z') && !socket.secure) {
+                                    socket.write(`:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to user (+Z)\r\n`);
+                                    continue;
+                                }
+                                var usermodes = this.usermodes.get(socket.nickname);
+                                if (!usermodes || usermodes === true) {
+                                    usermodes = [];
+                                }
+                                if (usermodes.includes('Z') && !targetUserModes.includes('Z')) {
+                                    socket.write(`:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to non-+Z user while you are +Z\r\n`);
                                     continue;
                                 }
                                 targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} NOTICE ${t} :${msg}\r\n`);
@@ -1828,6 +1850,16 @@ class WTVIRC {
                 chan_modes = [];
             }
             this.channelmodes.set(channel, [...chan_modes, 'z']);
+            if (this.kick_insecure_on_z) {
+                const usersInChannel = this.channels.get(channel) || new Set();
+                for (const user of usersInChannel) {
+                    const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                    if (userSocket && !userSocket.secure) {
+                        userSocket.write(`:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +z (SSL-only)\r\n`);
+                        this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +z (SSL-only)\r\n`, userSocket);
+                    }
+                }                
+            }
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +z\r\n`);
             return;
         } else if (mode.startsWith('-z')) {
@@ -1897,7 +1929,7 @@ class WTVIRC {
         socket.write(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
         socket.write(`:${this.servername} 002 ${nickname} :Your host is ${this.servername}, running version minisrv ${this.minisrv_config.version}\r\n`);
         socket.write(`:${this.servername} 003 ${nickname} :This server is ready to accept commands\r\n`);
-        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} oxiws obtkmeIlvn beIklov\r\n`);
+        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} oxizws obtkmeZIlvn beIklov\r\n`);
         for (const caps of this.caps) {
             socket.write(`:${this.servername} 005 ${caps}\r\n`);
         }   
