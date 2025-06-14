@@ -119,9 +119,7 @@ class WTVIRC {
                             cert: certBuffer,
                         }),
                     });
-                    socket.push(firstChunk);
-
-   
+                    socket.push(firstChunk);   
 
                     secureSocket.on('error', (err) => {
                         if (this.debug) {
@@ -132,9 +130,7 @@ class WTVIRC {
                     
                     secureSocket.on('close', () => {
                         this.terminateSession(secureSocket, false);
-                    });
-
-                    
+                    });                    
 
                     // Only start processing after handshake is complete
                     secureSocket.on('secure', () => {
@@ -180,8 +176,7 @@ class WTVIRC {
                         secureSocket.on('end', () => {
                             this.terminateSession(secureSocket, false);
                         });
-                    });
-                    
+                    });                    
                     secureSocket.resume();              
                     return;
                 } else {
@@ -241,6 +236,16 @@ class WTVIRC {
     }
 
     processSocketData(socket, data) {
+        // Ensure data is a string
+        if (typeof data !== 'string') {
+            if (Buffer.isBuffer(data)) {
+                data = data.toString('utf8');
+            } else if (data && typeof data.toString === 'function') {
+                data = data.toString();
+            } else {
+                return; // Invalid data, ignore
+            }
+        }
         const lines = data.split(/\r\n|\n/).filter(Boolean);
         for (let line of lines) {
             if (this.debug) {
