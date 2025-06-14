@@ -60,6 +60,15 @@
         "includes/reservedWords.json"
       ]
     },
+    "irc": {
+      "enabled": true,
+      "port": 1667,
+      "motd": "Welcome to the minisrv WebTV IRC Server!",
+      "oper_username": "minisrv",
+      "oper_password": "changeme573",
+      "oper_enabled": false, // Don't enable with default credentials!
+      "channel_limit": 10
+    },
     "pc_admin": {
       "enabled": false,
       "ip_whitelist": [
@@ -235,9 +244,7 @@
     "wtv-chat": {
       // wtv-chat (used for IRC)
       "port": 1630,
-      "connections": 3,
-      "run_irc_server": true,
-      "irc_port": 1667
+      "connections": 3
     },
     "wtvchat": {
       // wtvchat://server:port/channel passthrough (wni official)

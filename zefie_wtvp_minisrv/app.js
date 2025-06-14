@@ -2368,14 +2368,6 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         var using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
         console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
 
-        if (minisrv_config.services[k].run_irc_server) {
-            if (!wtvirc) {
-                wtvirc = new WTVIRC(minisrv_config, minisrv_config.config.bind_ip, minisrv_config.services[k].irc_port);
-                wtvirc.start();
-                console.log(" * Configured Service: IRC Server on", minisrv_config.config.bind_ip + ":" + minisrv_config.services[k].irc_port);
-            }
-        }
-
         if (minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
                 const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
@@ -2406,6 +2398,16 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     }
 
 })
+
+if (minisrv_config.config.irc) {
+    if (minisrv_config.config.irc.enabled && minisrv_config.config.irc.port > 0) {
+        if (!wtvirc) {
+            wtvirc = new WTVIRC(minisrv_config, minisrv_config.config.bind_ip, minisrv_config.config.irc.port);
+            wtvirc.start();
+            console.log(" * Configured Service: IRC Server on", minisrv_config.config.bind_ip + ":" + minisrv_config.config.irc.port);
+        }
+    }
+}
 if (minisrv_config.config.hide_ssid_in_logs) console.log(" * Masking SSIDs in console logs for security");
 else console.log(" * Full SSIDs will be shown in console logs");
 

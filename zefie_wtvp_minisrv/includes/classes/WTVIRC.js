@@ -1,5 +1,6 @@
 const net = require('net');
 const dns = require('dns');
+const { crc16 } = require('easy-crc');
 
 class WTVIRC {
     /*
@@ -20,6 +21,7 @@ class WTVIRC {
         this.clients = [];
         this.usernames = new Map(); // nickname -> username
         this.channels = new Map();
+        this.channeltimestamps = new Map(); // channel -> timestamp of creation
         this.channelops = new Map(); // channel -> Set of operators
         this.channelvoices = new Map(); // channel -> Set of voiced users
         this.channeltopics = new Map(); // channel -> topic
@@ -33,24 +35,33 @@ class WTVIRC {
         this.usersignontimestamps = new Map(); // nickname -> timestamp since user signed on
         this.nicknames = new Map(); // socket -> nickname
         this.awaymsgs = new Map(); // nickname -> away message        
-        this.nicklen = 30;
-        this.maxbans = 100;
-        this.maxlimit = 50;
-        this.maxexcept = 100;
-        this.maxinvite = 100;
-        this.maxkeylen = 50;
-        this.channellimit = 50;
-        this.topiclen = 390;
-        this.kicklen = 390;
-        this.awaylen = 200;
         this.channelprefixes = ['#','&'];
         this.default_channel_modes = ['n','t'];
+        this.default_user_modes = ['x'];
         this.servername = 'irc.local';
         this.server_start_time = Date.now();
         this.allowed_characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_[]{}\\|^-';
-        this.oper_username = minisrv_config.config.irc_oper_username || 'minisrv';
-        this.oper_password = minisrv_config.config.irc_oper_password || 'changeme573';
-        this.caps = `AWAYLEN=${this.awaylen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ov)@+ USERMODES=ohiws CHANMODES=beI,k,l,itmnp MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`;
+        this.irc_config = minisrv_config.config.irc || {};
+        this.oper_username = this.irc_config.oper_username || 'minisrv';
+        this.oper_password = this.irc_config.oper_password || 'changeme573';
+        this.oper_enabled = this.irc_config.oper_enabled || this.debug || false; // Default to off to prevent accidental use with default credentials
+        this.irc_motd = this.irc_config.motd || 'Welcome to the minisrv WebTV IRC server!';
+        this.nicklen = this.irc_config.nick_len || 31;
+        this.maxbans = this.irc_config.max_bans || 100;
+        this.maxlimit = this.irc_config.max_limit || 50;
+        this.maxexcept = this.irc_config.max_except || 100;
+        this.maxinvite = this.irc_config.max_invite || 100;
+        this.maxkeylen = this.irc_config.max_keylen || 24;
+        this.channellimit = this.irc_config.channel_limit || 10;
+        this.channellen = this.irc_config.channel_len || 32;
+        this.topiclen = this.irc_config.topic_len || 255;
+        this.kicklen = this.irc_config.kick_len || 255;
+        this.awaylen = this.irc_config.away_len || 200;
+        this.clientpeak = 0;
+        this.caps = [
+            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=beI,k,l,itmnp CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ov)@+ USERMODES=oxiws MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
+            `CHARSET=ascii EXCEPTS=e INVEX=I CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
+        ];
     }
 
     start() {
@@ -63,9 +74,11 @@ class WTVIRC {
             let nickname = '';
             let username = '';
             let channel = '';
-            let realhost = this.getHostname(socket);
-            let host = this.getHostname(socket);
+            socket.realhost = this.getHostname(socket);
+            socket.host = this.getHostname(socket);
             let timestamp = Date.now();
+            this.clientpeak = Math.max(this.clientpeak, this.clients.length);
+            socket.uniqueId = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
 
             if (this.debug) {
                 const originalWrite = socket.write;
@@ -96,6 +109,10 @@ class WTVIRC {
                                 socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
                                 break;
                             }
+                            if (!this.oper_enabled) {
+                                socket.write(`:${this.servername} 491 ${nickname} :This server does not support IRC operators\r\n`);
+                                break;
+                            }
                             if (params.length < 2) {
                                 socket.write(`:${this.servername} 461 ${nickname} OPER :Not enough parameters\r\n`);
                                 break;
@@ -115,7 +132,7 @@ class WTVIRC {
                             }
                             this.usermodes.set(nickname, [...usermodes, 'o']);
                             socket.write(`:${this.servername} 381 ${nickname} :You are now an IRC operator\r\n`);
-                            socket.write(`:${nickname}!${username}@${host} MODE ${nickname} +o\r\n`);
+                            socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} +o\r\n`);
                             break;
                         case 'UPTIME':
                             if (!registered) {
@@ -159,8 +176,8 @@ class WTVIRC {
                                 break;
                             }
                             this.channels.get(channel).delete(targetNick);
-                            socket.write(`:${nickname}!${username}@${host} KICK ${channel} ${targetNick}\r\n`);
-                            this.broadcastUser(nickname, `:${nickname}!${username}@${host} KICK ${channel} ${targetNick}\r\n`, socket);
+                            socket.write(`:${nickname}!${username}@${socket.host} KICK ${channel} ${targetNick}\r\n`);
+                            this.broadcastUser(nickname, `:${nickname}!${username}@${socket.host} KICK ${channel} ${targetNick}\r\n`, socket);
                             break;
                         case 'TOPIC':
                             if (!registered) {
@@ -171,8 +188,8 @@ class WTVIRC {
                                 socket.write(`:${this.servername} 461 ${nickname} TOPIC :Not enough parameters\r\n`);
                                 break;
                             }
-                            const chanmodes = this.channelmodes.get(channel) || [];
-                            if (chanmodes.includes('t')) {
+                            var chan_modes = this.channelmodes.get(channel) || [];
+                            if (chan_modes.includes('t')) {
                                 // Only allow channel operators to change the topic if +t is set
                                 if (!this.channelops.has(channel) || !this.channelops.get(channel).has(nickname)) {
                                     socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
@@ -192,7 +209,7 @@ class WTVIRC {
                                 }
                                 this.channeltopics.set(channel, topic);
                                 socket.write(`:${this.servername} 332 ${nickname} ${channel} :${topic}\r\n`);
-                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} TOPIC ${channel} :${topic}\r\n`, socket);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${socket.host} TOPIC ${channel} :${topic}\r\n`, socket);
                             } else {
                                 const topic = this.channeltopics.get(channel) || 'No topic set';
                                 socket.write(`:${this.servername} 331 ${nickname} ${channel} :${topic}\r\n`);
@@ -268,31 +285,52 @@ class WTVIRC {
                                             const modes = usermodes.map(m => (m.startsWith('+') ? m : '+' + m)).join(' ');
                                             socket.write(`:${this.servername} 324 ${nickname} ${channel} :${modes}\r\n`);
                                         }
-                                    } else if (mode.startsWith('+h')) {
-                                        this.usermodes.set(nickname, [...usermodes, 'h']);
-                                        host = this.getHostname(socket);
-                                        socket.write(`:${nickname}!${username}@${host} MODE ${nickname} +h\r\n`);
-                                    } else if (mode.startsWith('-h')) {
-                                        this.usermodes.set(nickname, (usermodes).filter(m => m !== 'h'));
-                                        host = this.getHostname(socket);
-                                        socket.write(`:${nickname}!${username}@${host} MODE ${nickname} -h\r\n`);
+                                    } else if (mode.startsWith('+x')) {
+                                        this.usermodes.set(nickname, [...usermodes, 'x']);
+                                        socket.host = this.getHostname(socket);
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} +x\r\n`);
+                                        socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your displayed host\r\n`);
+                                    } else if (mode.startsWith('-x')) {
+                                        this.usermodes.set(nickname, (usermodes).filter(m => m !== 'x'));
+                                        socket.host = this.getHostname(socket);
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} -x\r\n`);
+                                        socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your displayed host\r\n`);
                                     } else if (mode.startsWith('+w')) {
                                         this.usermodes.set(nickname, [...usermodes, 'w']);
-                                        socket.write(`:${nickname}!${username}@${host} MODE ${nickname} +w\r\n`);
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} +w\r\n`);
                                     } else if (mode.startsWith('-w')) {
                                         this.usermodes.set(nickname, (usermodes).filter(m => m !== 'w'));
-                                        socket.write(`:${nickname}!${username}@${host} MODE ${nickname} -w\r\n`);
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} -w\r\n`);
                                     } else if (mode.startsWith('+i')) {
                                         this.usermodes.set(nickname, [...usermodes, 'i']);
-                                        socket.write(`:${nickname}!${username}@${host} MODE ${nickname} +i\r\n`);
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} +i\r\n`);
                                     } else if (mode.startsWith('-i')) {
                                         this.usermodes.set(nickname, (usermodes).filter(m => m !== 'i'));
-                                        socket.write(`:${nickname}!${username}@${host} MODE ${nickname} -i\r\n`);
-                                    }
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} -i\r\n`);
+                                    } else if (mode.startsWith('+s')) {
+                                        this.usermodes.set(nickname, [...usermodes, 's']);
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} +s\r\n`);
+                                    } else if (mode.startsWith('-s')) {
+                                        this.usermodes.set(nickname, (usermodes).filter(m => m !== 's'));
+                                        socket.write(`:${nickname}!${username}@${socket.host} MODE ${nickname} -s\r\n`);
+                                    }                                    
                                 }
                                 break;
                             }
                             if (!mode) {
+                                if (!registered) {
+                                    socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                                    break;
+                                }
+                                let validPrefix = this.channelprefixes.some(prefix => channel.startsWith(prefix));
+                                if (!validPrefix) {
+                                    socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                                    break;
+                                }
+                                if (!this.channels.has(channel)) {
+                                    socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                                    break;
+                                }
                                 var chan_modes = this.channelmodes.get(channel);
                                 if (!chan_modes || chan_modes === true) {
                                     chan_modes = [];
@@ -307,536 +345,12 @@ class WTVIRC {
                                 chan_modes.forEach(m => {
                                     socket.write(`:${this.servername} 324 ${nickname} ${channel} ${m}\r\n`);
                                 });
-                                break;
-                            } else if (mode.startsWith('+m')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                if (!chan_modes.includes('m')) {
-                                    this.channelmodes.set(channel, [...chan_modes, 'm']);
-                                }                                
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +m\r\n`);
-                                break;
-                            } else if (mode.startsWith('-m')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'm'));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -m\r\n`);
-                                break;
-                            } else if (mode.startsWith("+I")) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                const inviteMask = params[2];
-                                if (!inviteMask) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (!this.inviteexceptions.has(channel)) {
-                                    this.inviteexceptions.set(channel, new Set());
-                                }
-                                this.inviteexceptions.get(channel).add(inviteMask);
-                                socket.write(`:${this.servername} 346 ${nickname} ${channel} ${inviteMask}\r\n`);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +I ${inviteMask}\r\n`, socket);
-                                break;
-                            } else if (mode.startsWith("-I")) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                const inviteMask = params[2];
-                                if (!inviteMask) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (this.inviteexceptions.has(channel)) {
-                                    this.inviteexceptions.get(channel).delete(inviteMask);
-                                    socket.write(`:${this.servername} 347 ${nickname} ${channel} ${inviteMask}\r\n`);
-                                    this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -I ${inviteMask}\r\n`, socket);
-                                    break;
-                                } else {
-                                    socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
-                                    break;
-                                }                                
-                            } else if (mode.startsWith('+l')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                const limit = parseInt(params[2], 10);
-                                if (isNaN(limit) || limit < 0) {
-                                    socket.write(`:${this.servername} 501 ${nickname} :Invalid channel limit\r\n`);
-                                    break;
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                    if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                // replace limit mode if it exists
-                                chan_modes = chan_modes.filter(m => !/^l\d+$/.test(m));
-                                this.channelmodes.set(channel, [...chan_modes, `l${limit}`]);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +l ${limit}\r\n`);
-                                break;
-                            } else if (mode.startsWith('-l')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                if (params.length < 2) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chan_modes).filter(m => !/^l\d+$/.test(m)));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -l\r\n`);
-                                break;
-                            } else if (mode.startsWith('+k')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                const key = params[2];
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, [...chan_modes, `k ${key}`]);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +k ${key}\r\n`);
-                                break;
-                            } else if (mode.startsWith('-k')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                if (params.length < 2) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chan_modes).filter(m => !/^k.*$/.test(m)));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -k\r\n`);
-                                break;
-                            } else if (mode.startsWith('+i')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, [...chan_modes, 'i']);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +i\r\n`);
-                                break;
-                            } else if (mode.startsWith('-i')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chanmodes).filter(m => m !== 'i'));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -i\r\n`);
-                                break;
-                            } else if (mode.startsWith('+o')) {
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                 
-                                const target_nickname = params[2];
-                                this.channelops.set(channel, (this.channelops.get(channel) || new Set()).add(target_nickname));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +o ${target_nickname}\r\n`);
-                                break;
-                            } else if (mode.startsWith('-o')) {
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                    
-                                const target_nickname = params[2];                                
-                                this.channelops.set(channel, (this.channelops.get(channel) || new Set()).delete(target_nickname));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -o ${target_nickname}\r\n`);
-                                break;
-                            } else if (mode.startsWith('+v')) {
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                const target_nickname = params[2];
-                                this.channelvoices.set(channel, (this.channelvoices.get(channel) || new Set()).add(target_nickname));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +v ${target_nickname}\r\n`);
-                                break;
-                            } else if (mode.startsWith('-v')) {
-                                if (params.length < 3) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                   
-                                const target_nickname = params[2];
-                                this.channelvoices.set(channel, (this.channelvoices.get(channel) || new Set()).delete(target_nickname));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -v ${target_nickname}\r\n`, socket);
-                                break;
-                            } else if (mode.startsWith('+b')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                    
-                                const banMask = params[2];
-                                if (!banMask) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (!this.channelbans.has(channel)) {
-                                    this.channelbans.set(channel, new Set());
-                                }
-                                this.channelbans.get(channel).add(banMask);
-                                socket.write(`:${this.servername} 367 ${nickname} ${channel} ${banMask}\r\n`);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +b ${banMask}\r\n`, socket);
-                                break
-                            } else if (mode.startsWith('-b')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }                                 
-                                const banMask = params[2];
-                                if (!banMask) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (this.channelbans.has(channel)) {
-                                    this.channelbans.get(channel).delete(banMask);
-                                    socket.write(`:${this.servername} 368 ${nickname} ${channel} ${banMask}\r\n`);
-                                    this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -b ${banMask}\r\n`, socket);
-                                    break
-                                } else {
-                                    socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
-                                    break
-                                }
-                            } else if (mode.startsWith('+e')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                const exemptMask = params[2];
-                                if (!exemptMask) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (!this.channelexemptions.has(channel)) {
-                                    this.channelexemptions.set(channel, new Set());
-                                }
-                                this.channelexemptions.get(channel).add(exemptMask);
-                                socket.write(`:${this.servername} 347 ${nickname} ${channel} ${exemptMask}\r\n`);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +e ${exemptMask}\r\n`, socket);
-                                break;
-                            } else if (mode.startsWith('-e')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                const exemptMask = params[2];
-                                if (!exemptMask) {
-                                    socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                                    break;
-                                }
-                                if (this.channelexemptions.has(channel)) {
-                                    this.channelexemptions.get(channel).delete(exemptMask);
-                                    socket.write(`:${this.servername} 348 ${nickname} ${channel} ${exemptMask}\r\n`);
-                                    this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -e ${exemptMask}\r\n`, socket);
-                                    break;
-                                } else {
-                                    socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
-                                    break;
-                                }
-                            } else if (mode.startsWith("+n")) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, [...chan_modes, 'n']);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +n\r\n`);
-                                break;
-                            } else if (mode.startsWith("-n")) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'n'));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -n\r\n`);
-                                break;
-                            } else if (mode.startsWith('+s')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, [...chan_modes, 's']);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +s\r\n`);
-                                break;
-                            } else if (mode.startsWith('-s')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chan_modes).filter(m => m !== 's'));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -s\r\n`);
-                                break;
-                            } else if (mode.startsWith('+p')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, [...chan_modes, 'p']);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +p\r\n`);
-                                break;
-                            } else if (mode.startsWith('-p')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'p'));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -p\r\n`);
-                                break;
-                            } else if (mode.startsWith('+t')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, [...chan_modes, 't']);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} +t\r\n`);
-                                break;
-                            } else if (mode.startsWith('-t')) {
-                                if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
-                                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                    break;
-                                } else {
-                                    if (!this.channelops.get(channel).has(nickname)) {
-                                        socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-                                        break;
-                                    }
-                                }
-                                var chan_modes = this.channelmodes.get(channel);
-                                if (!chan_modes || chan_modes === true) {
-                                    chan_modes = [];
-                                }
-                                this.channelmodes.set(channel, (chan_modes).filter(m => m !== 't'));
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} MODE ${channel} -t\r\n`);
-                                break;
-                            } else if (mode === 'b') {
-                                if (this.channelbans.has(channel)) {
-                                    const bans = Array.from(this.channelbans.get(channel));
-                                    for (const ban of bans) {
-                                        socket.write(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
-                                    }
-                                }
-                                socket.write(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
+                                socket.write(`:${this.servername} 329 ${nickname} ${channel} ${this.channeltimestamps.get(channel) || Date.now()}\r\n`);
                                 break;
                             } else {
-                                socket.write(`:${this.servername} 501 ${nickname} :Unknown MODE flag\r\n`);
+                                this.processChannelModeBatch(nickname, channel, mode, params.slice(2));
                                 break;
-                            }
+                            } 
                         case 'NICK':
                             var new_nickname = params[0];
                             if (!new_nickname || new_nickname.length < 1) {
@@ -874,8 +388,8 @@ class WTVIRC {
                             }
                             this.usernames.set(nickname, username);
                             if (nickname && nickname !== new_nickname) {
-                                socket.write(`:${nickname}!${username}@${host} NICK :${new_nickname}\r\n`);
-                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} NICK :${new_nickname}\r\n`, socket);
+                                socket.write(`:${nickname}!${username}@${socket.host} NICK :${new_nickname}\r\n`);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${socket.host} NICK :${new_nickname}\r\n`, socket);
                                 nickname = new_nickname;
                                 this.nicknames.set(socket, nickname);
                                 // Update nickname in all channels
@@ -969,7 +483,7 @@ class WTVIRC {
                                     this.createChannel(ch, nickname);
                                 }
                                 if (this.channelbans.has(ch)) {
-                                    if (this.isBanned(nickname, ch)) {
+                                    if (this.isBanned(ch, socket)) {
                                         socket.write(`:${this.servername} 474 ${nickname} ${ch} :Cannot join channel (+b)\r\n`);
                                         continue; // Skip joining this channel
                                     }
@@ -999,23 +513,9 @@ class WTVIRC {
                                         const invited = this.channelinvites.get(ch) || new Set();                                        
                                         let isInvited = false;
                                         for (const inviteMask of invited) {
-                                            // inviteMask can be nick!user@host or wildcards
-                                            const maskParts = inviteMask.split(/[!@]/);
-                                            const nickPart = maskParts[0] || '*';
-                                            const userPart = maskParts[1] || '*';
-                                            const hostPart = maskParts[2] || '*';
-                                            // Build user mask for this user
-                                            const userMask = `${nickname}!${username}@${realhost}`;
-                                            // Convert mask to regex
-                                            const maskRegex = new RegExp('^' +
-                                                inviteMask
-                                                    .replace(/\./g, '\\.')
-                                                    .replace(/\*/g, '.*')
-                                                    .replace(/\?/g, '.') +
-                                                '$');
-                                            if (maskRegex.test(userMask)) {
-                                                isInvited = true;
-                                                break;
+                                            isInvited = checkMask(inviteMask, socket);
+                                            if (isInvited) {
+                                                break; // Stop checking if we found a match
                                             }
                                         }
                                         if (!invited.has(nickname) && !isInvited) {
@@ -1050,7 +550,7 @@ class WTVIRC {
                                 // (excluding the code before $PLACEHOLDER$ to avoid duplicate checks)
                                 // You can refactor this logic into a helper if needed
                                 this.usertimestamps.set(nickname, Date.now());                            
-                                socket.write(`:${nickname}!${username}@${host} JOIN ${ch}\r\n`);
+                                socket.write(`:${nickname}!${username}@${socket.host} JOIN ${ch}\r\n`);
                                 if (!this.channels.has(ch)) {
                                     this.channels.set(ch, new Set());
                                 }
@@ -1059,7 +559,7 @@ class WTVIRC {
                                     this.channelops.set(ch, new Set());
                                     this.channelops.get(ch).add(nickname);
                                 }                                
-                                this.broadcastUser(nickname, `:${nickname}!${username}@${host} JOIN ${ch}\r\n`, socket);
+                                this.broadcastUser(nickname, `:${nickname}!${username}@${socket.host} JOIN ${ch}\r\n`, socket);
                                 if (this.channeltopics.has(ch)) {
                                     const topic = this.channeltopics.get(ch);
                                     socket.write(`:${this.servername} 332 ${nickname} ${ch} :${topic}\r\n`);
@@ -1109,11 +609,11 @@ class WTVIRC {
                                 if (reason.startsWith(':')) {
                                     reason = reason.slice(1);
                                 }
-                                socket.write(`:${nickname}!${username}@${host} PART ${channel} :${reason}\r\n`);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} PART ${channel} :${reason}\r\n`, socket);
+                                socket.write(`:${nickname}!${username}@${socket.host} PART ${channel} :${reason}\r\n`);
+                                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} PART ${channel} :${reason}\r\n`, socket);
                             } else {
-                                socket.write(`:${nickname}!${username}@${host} PART ${channel}\r\n`);
-                                this.broadcastChannel(channel, `:${nickname}!${username}@${host} PART ${channel}\r\n`, socket);
+                                socket.write(`:${nickname}!${username}@${socket.host} PART ${channel}\r\n`);
+                                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} PART ${channel}\r\n`, socket);
                             }
                             if (this.channels.has(channel)) {
                                 this.channels.get(channel).delete(nickname);
@@ -1180,6 +680,9 @@ class WTVIRC {
                             }
                             socket.write(`:${this.servername} 321 ${nickname} :Channel :Users :Topic\r\n`);
                             for (const channel of channelsToList) {
+                                if (!this.channelprefixes.some(prefix => channel.startsWith(prefix))) {
+                                    continue; // Skip invalid channel names
+                                }
                                 if (this.channelmodes.has(channel)) {
                                     var modes = this.channelmodes.get(channel);
                                     if (modes === true) {
@@ -1289,7 +792,7 @@ class WTVIRC {
                                         socket.write(`:${this.servername} 403 ${nickname} ${target} :No such channel\r\n`);
                                         break;
                                     }
-                                    this.broadcastChannel(target, `:${nickname}!${username}@${host} PRIVMSG ${target} :${msg}\r\n`, socket);
+                                    this.broadcastChannel(target, `:${nickname}!${username}@${socket.host} PRIVMSG ${target} :${msg}\r\n`, socket);
                                     break;
                                 } else {
                                     const targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === target);
@@ -1298,7 +801,7 @@ class WTVIRC {
                                         return;
                                     }
                                     const msg = line.slice(line.indexOf(':', 1) + 1);
-                                    targetSock.write(`:${nickname}!${username}@${host} PRIVMSG ${target} :${msg}\r\n`);
+                                    targetSock.write(`:${nickname}!${username}@${socket.host} PRIVMSG ${target} :${msg}\r\n`);
                                     break;
                                 }
                             }
@@ -1330,7 +833,7 @@ class WTVIRC {
                                         socket.write(`:${this.servername} 403 ${nickname} ${params[0]} :No such channel\r\n`);
                                         break;
                                     }
-                                    this.broadcastChannel(params[0], `:${nickname}!${username}@${host} NOTICE ${params[0]} :${msg}\r\n`, socket);
+                                    this.broadcastChannel(params[0], `:${nickname}!${username}@${socket.host} NOTICE ${params[0]} :${msg}\r\n`, socket);
                                     break;
                                 } else {
                                     // Assume it's a nick, check if it exists
@@ -1339,7 +842,7 @@ class WTVIRC {
                                         socket.write(`:${this.servername} 401 ${nickname} ${params[0]} :No such nick/channel\r\n`);
                                         return;
                                     }
-                                    targetSock.write(`:${nickname}!${username}@${host} NOTICE ${params[0]} :${msg}\r\n`);
+                                    targetSock.write(`:${nickname}!${username}@${socket.host} NOTICE ${params[0]} :${msg}\r\n`);
                                 }                                
                             }
                             break;
@@ -1423,7 +926,7 @@ class WTVIRC {
                             }
 
                             // Broadcast the KILL message to all users
-                            this.broadcastUser(target_nick, `:${nickname}!${username}@${host} KILL ${target_nick} :${cleanKillReason}\r\n`);
+                            this.broadcastUser(target_nick, `:${nickname}!${username}@${socket.host} KILL ${target_nick} :${cleanKillReason}\r\n`);
                             this.terminateSession(targetSocket, true);
                             break;
                         case 'QUIT':
@@ -1435,15 +938,47 @@ class WTVIRC {
                                     if (reason.startsWith(':')) {
                                         reason = reason.slice(1);
                                     }
-                                    socket.write(`:${nickname}!${username}@${host} QUIT :${reason}\r\n`);
-                                    this.broadcastUser(nickname, `:${nickname}!${username}@${host} QUIT :${reason}\r\n`, socket);
+                                    socket.write(`:${nickname}!${username}@${socket.host} QUIT :${reason}\r\n`);
+                                    this.broadcastUser(nickname, `:${nickname}!${username}@${socket.host} QUIT :${reason}\r\n`, socket);
                                 } else {
-                                    socket.write(`:${nickname}!${username}@${host} QUIT\r\n`);
-                                    this.broadcastUser(nickname, `:${nickname}!${username}@${host} QUIT\r\n`, socket);
+                                    socket.write(`:${nickname}!${username}@${socket.host} QUIT\r\n`);
+                                    this.broadcastUser(nickname, `:${nickname}!${username}@${socket.host} QUIT\r\n`, socket);
                                 }
                             }
                             this.terminateSession(socket, true);
                             break;
+                        case 'MOTD':
+                            if (!registered) {
+                                socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                                break;
+                            }
+                            this.doMOTD(nickname, socket);
+                            break;
+                        case 'VERSION':
+                            if (!registered) {
+                                socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                                break;
+                            }
+                            socket.write(`:${this.servername} 351 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} :minisrv IRC server\r\n`);
+                            break;
+                        case 'WALLOPS':
+                            if (!registered) {
+                                socket.write(`:${this.servername} 451 ${nickname} :You have not registered\r\n`);
+                                break;
+                            }
+                            if (!this.isIRCOp(nickname)) {
+                                socket.write(`:${this.servername} 481 ${nickname} :Permission denied - you are not an IRC operator\r\n`);
+                                break;
+                            }
+                            if (params.length < 1) {
+                                socket.write(`:${this.servername} 461 ${nickname} WALLOPS :Not enough parameters\r\n`);
+                                break;
+                            }
+                            var wallopsMessage = params.join(' ');
+                            if (wallopsMessage.startsWith(':')) {
+                                wallopsMessage = wallopsMessage.slice(1);
+                            }
+                            this.broadcastWallops(`:${nickname}!${username}@${socket.host} WALLOPS :${wallopsMessage}\r\n`);
                         default:
                             // Ignore unknown commands
                             break;
@@ -1478,6 +1013,7 @@ class WTVIRC {
         this.channelexemptions.delete(channel);
         this.channelinvites.delete(channel);
         this.channelmodes.delete(channel);
+        this.channeltimestamps.delete(channel);
         if (this.debug) {
             console.log(`Channel ${channel} deleted`);
         }       
@@ -1488,6 +1024,9 @@ class WTVIRC {
         if (nickname) {
             this.usertimestamps.delete(nickname);
             this.usersignontimestamps.delete(nickname);
+            this.usernames.delete(nickname);
+            this.usermodes.delete(nickname);
+            this.awaymsgs.delete(nickname);            
             for (const [ch, ops] of this.channelops.entries()) {
                 if (ops && ops !== true && ops.has(nickname)) {
                     ops.delete(nickname);
@@ -1517,35 +1056,6 @@ class WTVIRC {
         if (close) {
             socket.end();
         }
-    }
-
-    isBanned(nickname, channel) {
-        if (this.channelbans.has(channel)) {
-            const bans = this.channelbans.get(channel);
-            // Check if the user's mask matches any ban mask
-            let isBanned = false;
-            for (const banMask of bans) {
-                // Simple mask matching: * matches any, ? matches one char, otherwise exact
-                // IRC uses user!ident@host
-                const regex = new RegExp('^' + banMask.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
-                if (regex.test(nickname)) {
-                    isBanned = true;
-                    break;
-                }
-                if (this.channelexemptions.has(channel)) {
-                    const exemptions = this.channelexemptions.get(channel);
-                    for (const exemptMask of exemptions) {
-                        const exemptRegex = new RegExp('^' + exemptMask.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
-                        if (exemptRegex.test(nickname)) {
-                            isBanned = false;
-                            break;
-                        }
-                    }
-                }
-            }
-            return isBanned;
-        }
-        return false;
     }
 
     sendWebTVNotice(message) {
@@ -1620,6 +1130,15 @@ class WTVIRC {
         }
     }
 
+    broadcastWallops(message) {
+        for (const [socket, nickname] of this.nicknames.entries()) {
+            const usermodes = this.usermodes.get(nickname) || [];
+            if (usermodes.includes('w') || usermodes.includes('o')) {
+                socket.write(message);
+            }
+        }
+    }
+
     broadcast(message, exceptSocket = null) {
         for (const client of this.clients) {
             if (client !== exceptSocket) {
@@ -1648,7 +1167,49 @@ class WTVIRC {
             this.channelexemptions.set(channel, new Set());
             this.channelinvites.set(channel, new Set());
             this.channelmodes.set(channel, this.default_channel_modes.slice());
+            this.channeltimestamps.set(channel, Math.floor(Date.now() / 1000));
         }
+    }
+
+    checkMask(mask, socket) {
+        const username = this.nicknames.get(socket);
+        if (!username) return false;
+        console.log
+        const userIdent = this.usernames.get(username) || username;
+        const host = socket.host
+        const realhost = socket.realhost
+        const fullMask = `${username}!${userIdent}@${host}`;
+        const fullMask2 = `${username}!${userIdent}@${realhost}`;
+
+        // If mask does not contain '!', treat as nickname or username only
+        if (!mask.includes('!')) {
+            // Wildcard match for just the nickname or username
+            // Try matching against both nickname and username
+            const maskRegex = new RegExp('^' + mask.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+            return maskRegex.test(username) || maskRegex.test(userIdent);
+        }
+
+        // If mask contains '!', match against full mask (nick!user@host)
+        // Split mask into nick, user, host
+        const [maskNick, rest] = mask.split('!', 2);
+        const [maskUser, maskHost] = (rest || '').split('@', 2);
+
+        // Split fullMask into nick, user, host
+        const [fullNick, fullRest] = fullMask.split('!', 2);
+        const [fullUser, fullHost] = (fullRest || '').split('@', 2);
+
+        // Build regex for each part, defaulting to '*' if missing
+        const nickRegex = new RegExp('^' + (maskNick || '*').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+        const userRegex = new RegExp('^' + (maskUser || '*').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+        const hostRegex = new RegExp('^' + (maskHost || '*').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+        var matches = nickRegex.test(fullNick) && userRegex.test(fullUser) && hostRegex.test(fullHost);
+        if (!matches && fullMask2) {
+            // Try matching against the real host if available
+            const [fullNick2, fullRest2] = fullMask2.split('!', 2);
+            const [fullUser2, fullHost2] = (fullRest2 || '').split('@', 2);
+            matches = nickRegex.test(fullNick2) && userRegex.test(fullUser2) && hostRegex.test(fullHost2);
+        }
+        return matches;
     }
 
     getHostname(socket) {
@@ -1678,8 +1239,8 @@ class WTVIRC {
         }
 
         if (modes) {
-            if (Array.isArray(modes) && modes.includes('h')) {
-                // Masked hostname for +h users
+            if (Array.isArray(modes) && modes.includes('x')) {
+                // Masked hostname for +x users
                 if (typeof hostname === 'string') {
                     // Mask everything except the first and last octet for IPv4
                     const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
@@ -1699,12 +1260,696 @@ class WTVIRC {
         return hostname;
     }
 
+    isBanned(channel, socket) {
+        const nickname = this.nicknames.get(socket);
+        if (this.channelbans.has(channel)) {
+            const bans = this.channelbans.get(channel);
+            // Check if the user's mask matches any ban mask
+            let isUserBanned = false;
+            for (const banMask of bans) {
+                isUserBanned = this.checkMask(banMask, socket);
+                if (isUserBanned) {
+                    if (this.channelexemptions.has(channel)) {
+                        const exemptions = this.channelexemptions.get(channel);
+                        for (const exemptMask of exemptions) {
+                            isUserBanned = !this.checkMask(exemptMask, socket);
+                            if (!isUserBanned) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return isUserBanned;
+        }
+        return false;
+    }
+
+    findSocketByUniqueId(uniqueId) {
+        for (const [socket, nickname] of this.nicknames.entries()) {
+            if (socket.uniqueId === uniqueId) {
+                return socket;
+            }
+        }
+        return null;
+    }
+
+    getSocketUniqueId(socket) {
+        return socket.uniqueId;
+    }
+
+    // Enhanced MODE command: support multiple mode flags and parameters in a single command
+    // Example: /mode #chan +mik password
+    // This method parses and applies multiple channel mode changes in one call.
+    processChannelModeBatch(nickname, channel, modeString, params) {
+        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === nickname);
+        const username = this.usernames.get(nickname);
+
+        if (!this.channelops.has(channel) || this.channelops.get(channel) === true || !this.channelops.get(channel).has(nickname)) {
+            socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+            return;
+        }
+
+        // Parse mode string and parameters
+        let adding = true;
+        let paramIndex = 0;
+        let modeChanges = [];
+        let modeFlags = modeString.replace(/^:/, '').split('');
+        let paramModes = {
+            'k': true, // key
+            'l': true, // limit
+            'b': true, // ban
+            'e': true, // exception
+            'I': true, // invite-exception
+            'o': true, // op
+            'v': true  // voice
+        };
+
+        for (let i = 0; i < modeFlags.length; i++) {
+            let c = modeFlags[i];
+            if (c === '+') {
+                adding = true;
+            } else if (c === '-') {
+                adding = false;
+            } else {
+                let param = null;
+                if (paramModes[c]) {
+                    // Only consume a param if available
+                    if (paramIndex < params.length) {
+                        param = params[paramIndex++];
+                    }
+                }
+                modeChanges.push({ adding, mode: c, param });
+            }
+        }
+
+        // Now apply each mode change
+        for (const change of modeChanges) {
+            let modeFlag = (change.adding ? '+' : '-') + change.mode;
+            let modeParam = change.param ? [null, null, change.param] : [];
+            // Use the existing single-mode handler for each
+            this.processChannelModeCommand(nickname, channel, modeFlag, modeParam);
+        }
+    }
+
+    processChannelModeCommand(nickname, channel, mode, params) {
+        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === nickname);
+        const username = this.usernames.get(nickname);
+        if (mode.startsWith('+m')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            if (!chan_modes.includes('m')) {
+                this.channelmodes.set(channel, [...chan_modes, 'm']);
+            }                                
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +m\r\n`);
+            return;
+        } else if (mode.startsWith('-m')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'm'));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -m\r\n`);
+            return;
+        } else if (mode.startsWith("+I")) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            const inviteMask = params[2];
+            if (!inviteMask) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (!this.inviteexceptions.has(channel)) {
+                this.inviteexceptions.set(channel, new Set());
+            }
+            this.inviteexceptions.get(channel).add(inviteMask);
+            socket.write(`:${this.servername} 346 ${nickname} ${channel} ${inviteMask}\r\n`);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +I ${inviteMask}\r\n`, socket);
+            return;
+        } else if (mode.startsWith("-I")) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            const inviteMask = params[2];
+            if (!inviteMask) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (this.inviteexceptions.has(channel)) {
+                this.inviteexceptions.get(channel).delete(inviteMask);
+                socket.write(`:${this.servername} 347 ${nickname} ${channel} ${inviteMask}\r\n`);
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -I ${inviteMask}\r\n`, socket);
+                return;
+            } else {
+                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                return;
+            }                                
+        } else if (mode.startsWith('+l')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            const limit = parseInt(params[2], 10);
+            if (isNaN(limit) || limit < 0) {
+                socket.write(`:${this.servername} 501 ${nickname} :Invalid channel limit\r\n`);
+                return;
+            }
+            var chan_modes = this.channelmodes.get(channel);
+                if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            // replace limit mode if it exists
+            chan_modes = chan_modes.filter(m => !/^l\d+$/.test(m));
+            this.channelmodes.set(channel, [...chan_modes, `l${limit}`]);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +l ${limit}\r\n`);
+            return;
+        } else if (mode.startsWith('-l')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                
+            if (params.length < 2) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => !/^l\d+$/.test(m)));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -l\r\n`);
+            return;
+        } else if (mode.startsWith('+k')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            const key = params[2];
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, [...chan_modes, `k ${key}`]);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +k ${key}\r\n`);
+            return;
+        } else if (mode.startsWith('-k')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                
+            if (params.length < 2) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => !/^k.*$/.test(m)));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -k\r\n`);
+            return;
+        } else if (mode.startsWith('+i')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, [...chan_modes, 'i']);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +i\r\n`);
+            return;
+        } else if (mode.startsWith('-i')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'i'));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -i\r\n`);
+            return;
+        } else if (mode.startsWith('+o')) {
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                 
+            const target_nickname = params[2];
+            this.channelops.set(channel, (this.channelops.get(channel) || new Set()).add(target_nickname));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +o ${target_nickname}\r\n`);
+            return;
+        } else if (mode.startsWith('-o')) {
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                    
+            const target_nickname = params[2];                                
+            this.channelops.set(channel, (this.channelops.get(channel) || new Set()).delete(target_nickname));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -o ${target_nickname}\r\n`);
+            return;
+        } else if (mode.startsWith('+v')) {
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            const target_nickname = params[2];
+            this.channelvoices.set(channel, (this.channelvoices.get(channel) || new Set()).add(target_nickname));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +v ${target_nickname}\r\n`);
+            return;
+        } else if (mode.startsWith('-v')) {
+            if (params.length < 3) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                   
+            const target_nickname = params[2];
+            this.channelvoices.set(channel, (this.channelvoices.get(channel) || new Set()).delete(target_nickname));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -v ${target_nickname}\r\n`, socket);
+            return;
+        } else if (mode.startsWith('+b')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                    
+            const banMask = params[2];
+            if (!banMask) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (!this.channelbans.has(channel)) {
+                this.channelbans.set(channel, new Set());
+            }
+            this.channelbans.get(channel).add(banMask);
+            socket.write(`:${this.servername} 367 ${nickname} ${channel} ${banMask}\r\n`);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +b ${banMask}\r\n`, socket);
+            return
+        } else if (mode.startsWith('-b')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }                                 
+            const banMask = params[2];
+            if (!banMask) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (this.channelbans.has(channel)) {
+                this.channelbans.get(channel).delete(banMask);
+                socket.write(`:${this.servername} 368 ${nickname} ${channel} ${banMask}\r\n`);
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -b ${banMask}\r\n`, socket);
+                return
+            } else {
+                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                return
+            }
+        } else if (mode.startsWith('+e')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            const exemptMask = params[2];
+            if (!exemptMask) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (!this.channelexemptions.has(channel)) {
+                this.channelexemptions.set(channel, new Set());
+            }
+            this.channelexemptions.get(channel).add(exemptMask);
+            socket.write(`:${this.servername} 347 ${nickname} ${channel} ${exemptMask}\r\n`);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +e ${exemptMask}\r\n`, socket);
+            return;
+        } else if (mode.startsWith('-e')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            const exemptMask = params[2];
+            if (!exemptMask) {
+                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
+                return;
+            }
+            if (this.channelexemptions.has(channel)) {
+                this.channelexemptions.get(channel).delete(exemptMask);
+                socket.write(`:${this.servername} 348 ${nickname} ${channel} ${exemptMask}\r\n`);
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -e ${exemptMask}\r\n`, socket);
+                return;
+            } else {
+                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                return;
+            }
+        } else if (mode.startsWith("+n")) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, [...chan_modes, 'n']);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +n\r\n`);
+            return;
+        } else if (mode.startsWith("-n")) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'n'));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -n\r\n`);
+            return;
+        } else if (mode.startsWith('+s')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, [...chan_modes, 's']);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +s\r\n`);
+            return;
+        } else if (mode.startsWith('-s')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 's'));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -s\r\n`);
+            return;
+        } else if (mode.startsWith('+p')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, [...chan_modes, 'p']);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +p\r\n`);
+            return;
+        } else if (mode.startsWith('-p')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'p'));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -p\r\n`);
+            return;
+        } else if (mode.startsWith('+t')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, [...chan_modes, 't']);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +t\r\n`);
+            return;
+        } else if (mode.startsWith('-t')) {
+            if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                return;
+            } else {
+                if (!this.channelops.get(channel).has(nickname)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
+                    return;
+                }
+            }
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 't'));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -t\r\n`);
+            return;
+        } else if (mode === 'b') {
+            if (this.channelbans.has(channel)) {
+                const bans = Array.from(this.channelbans.get(channel));
+                for (const ban of bans) {
+                    socket.write(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
+                }
+            }
+            socket.write(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
+            return;
+        } else if (mode === 'e') {
+            if (this.channelexemptions.has(channel)) {
+                const exemptions = Array.from(this.channelexemptions.get(channel));
+                for (const exemption of exemptions) {
+                    socket.write(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
+                }
+            }
+            socket.write(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
+            return;
+        } else if (mode === 'I') {
+            if (this.channelinvites.has(channel)) {
+                const invites = Array.from(this.channelinvites.get(channel));
+                for (const invite of invites) {
+                    socket.write(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
+                }
+            }
+            socket.write(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
+            return;
+        } else {
+            socket.write(`:${this.servername} 501 ${nickname} :Unknown MODE flag\r\n`);
+            return;
+        }
+    }
+
+    doMOTD(nickname, socket) {
+        socket.write(`:${this.servername} 375 ${nickname} :- minisrv ${this.minisrv_config.version} Message of the Day\r\n`);
+        socket.write(`:${this.servername} 372 ${nickname} :${this.irc_motd}\r\n`);
+        socket.write(`:${this.servername} 376 ${nickname} :End of /MOTD command\r\n`);
+    }
+
     doLogin(nickname, socket) {
         socket.write(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
         socket.write(`:${this.servername} 002 ${nickname} :Your host is ${this.servername}, running version minisrv ${this.minisrv_config.version}\r\n`);
         socket.write(`:${this.servername} 003 ${nickname} :This server is ready to accept commands\r\n`);
-        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} ohiws obtkmeIlvn beIklov\r\n`);
-        socket.write(`:${this.servername} 005 ${this.caps}\r\n`);
+        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} oxiws obtkmeIlvn beIklov\r\n`);
+        for (const caps of this.caps) {
+            socket.write(`:${this.servername} 005 ${caps}\r\n`);
+        }   
+        socket.write(`:${this.servername} 042 ${nickname} ${socket.uniqueId} :your unique ID\r\n`);
+
+        const visibleClients = Array.from(this.nicknames.values()).filter(nick => {
+            const modes = this.usermodes.get(nick) || [];
+            return !modes.includes('i');
+        });
+        const invisibleClients = Array.from(this.nicknames.values()).filter(nick => {
+            const modes = this.usermodes.get(nick) || [];
+            return modes.includes('i');
+        });
+        const operClients = Array.from(this.nicknames.values()).filter(nick => {
+            const modes = this.usermodes.get(nick) || [];
+            return modes.includes('o');
+        });        
+
+        socket.write(`:${this.servername} 251 ${nickname} :There are ${visibleClients.length} visible users and ${invisibleClients.length} invisible users on this server\r\n`);
+        socket.write(`:${this.servername} 252 ${nickname} ${operClients.length} :operator(s) online\r\n`);
+        socket.write(`:${this.servername} 253 ${nickname} ${this.channels.size} :channels formed\r\n`);
+        socket.write(`:${this.servername} 255 ${nickname} :I have ${this.clients.length} clients and 1 servers\r\n`);
+        socket.write(`:${this.servername} 265 ${nickname} :Current Local Users: ${this.clients.length}  Max: ${this.clientpeak}\r\n`);
+        for (const mode of this.default_user_modes) {
+            let usermodes = this.usermodes.get(nickname) || [];
+            if (!usermodes.includes(mode)) {
+                usermodes.push(mode);
+                this.usermodes.set(nickname, usermodes);
+                socket.write(`:${nickname}!${nickname}@${this.getHostname(socket)} MODE ${nickname} +${mode}\r\n`);
+                if (mode === 'x') {
+                    socket.host = this.getHostname(socket);
+                    socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your displayed host\r\n`);
+                }
+            }
+        }
     }
 }
 
