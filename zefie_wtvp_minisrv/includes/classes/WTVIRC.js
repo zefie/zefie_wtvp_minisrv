@@ -896,7 +896,7 @@ class WTVIRC {
                             for (const user of users) {
                                 const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                                 if (sock) {
-                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${user} ${sock.remoteAddress} ${this.servername} ${user} H :0 ${user}\r\n`);
+                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${user} ${sock.host} ${this.servername} ${user} H :0 ${user}\r\n`);
                                 }
                             }
                         }
@@ -907,7 +907,7 @@ class WTVIRC {
                         for (const [sock, nick] of this.nicknames.entries()) {
                             if (nick === target) {
                                 found = true;
-                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.remoteAddress} ${this.servername} ${nick} H :0 ${nick}\r\n`);
+                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} H :0 ${nick}\r\n`);
                                 break;
                             }
                         }
@@ -1940,6 +1940,7 @@ class WTVIRC {
             this.usermodes.set(nickname, usermodes);
         }
         socket.write(`:${this.servername} 221 ${nickname} :+${this.usermodes.get(nickname).join('')}\r\n`);
+        socket.host = this.getHostname(socket);
         socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your displayed host\r\n`);
     }
 }
