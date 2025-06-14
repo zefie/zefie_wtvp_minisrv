@@ -160,8 +160,13 @@ class WTVIRC {
                         secureSocket.registered = false;
                         secureSocket.nickname = '';
                         secureSocket.username = '';
-                        secureSocket.realhost = this.getHostname(secureSocket);
-                        secureSocket.host = this.getHostname(secureSocket);
+                        secureSocket.realhost = socket.remoteAddress
+                        secureSocket.host = this.filterHostname(secureSocket, socket.remoteAddress);
+                        this.getHostname(secureSocket, (hostname) => {
+                            secureSocket.realhost = hostname;
+                            secureSocket.host = this.filterHostname(secureSocket, hostname);
+                        });
+
                         secureSocket.timestamp = Date.now();
                         secureSocket.secure = true;
                         secureSocket.uniqueId = parseInt(crc16('CCITT-FALSE', Buffer.from(String(secureSocket.remoteAddress) + String(secureSocket.remotePort), "utf8")).toString(16), 16);
@@ -198,8 +203,12 @@ class WTVIRC {
                     socket.registered = false;
                     socket.nickname = '';
                     socket.username = '';
-                    socket.realhost = this.getHostname(socket);
-                    socket.host = this.getHostname(socket);
+                    socket.realhost = socket.remoteAddress;
+                    socket.host = this.filterHostname(socket, socket.remoteAddress);
+                    this.getHostname(socket, (hostname) => {
+                        socket.realhost = hostname;
+                        socket.host = this.filterHostname(socket, hostname);
+                    });
                     socket.timestamp = Date.now();                    
                     socket.secure = false; 
                     socket.uniqueId = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
@@ -434,12 +443,12 @@ class WTVIRC {
                                 }
                             } else if (mode.startsWith('+x')) {
                                 this.usermodes.set(socket.nickname, [...usermodes, 'x']);
-                                socket.host = this.getHostname(socket);
+                                socket.host = this.filterHostname(socket, socket.realhost);
                                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +x\r\n`);
                                 socket.write(`:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your displayed host\r\n`);
                             } else if (mode.startsWith('-x')) {
                                 this.usermodes.set(socket.nickname, (usermodes).filter(m => m !== 'x'));
-                                socket.host = this.getHostname(socket);
+                                socket.host = socket.realhost
                                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -x\r\n`);
                                 socket.write(`:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your displayed host\r\n`);
                             } else if (mode.startsWith('+w')) {
@@ -1073,7 +1082,7 @@ class WTVIRC {
                     const whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === whoisNick);
                     if (whoisSocket) {
                         const whois_username = this.usernames.get(whoisNick);
-                        socket.write(`:${this.servername} 311 ${socket.nickname} ${whoisNick} ${whois_username} ${this.getHostname(whoisSocket)} * ${whoisNick}\r\n`);
+                        socket.write(`:${this.servername} 311 ${socket.nickname} ${whoisNick} ${whois_username} ${this.filterHostname(whoisSocket, whoisSocket.realhost)} * ${whoisNick}\r\n`);
                         if (this.awaymsgs.has(whoisNick)) {
                             socket.write(`:${this.servername} 301 ${socket.nickname} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
                         }
@@ -1410,32 +1419,32 @@ class WTVIRC {
         return matches;
     }
 
-    getHostname(socket) {
+    getHostname(socket, callback) {
+        if (socket && socket.remoteAddress) {
+            try {
+                dns.reverse(socket.remoteAddress, (err, hostnames) => {
+                    if (!err && hostnames && hostnames.length > 0) {
+                        callback(hostnames[0]);
+                    } else if (this.debug) {
+                        console.error(`DNS reverse lookup failed for ${socket.remoteAddress}:`, err);
+                        callback(socket.remoteAddress);
+                    }
+                });
+            } catch (e) {
+                if (this.debug) {
+                    console.error(`Error resolving hostname for ${socket.remoteAddress}:`, e);
+                }
+                callback(socket.remoteAddress);
+            }
+        }
+    }
+
+    filterHostname(socket, hostname) {
         const username = this.nicknames.get(socket);
         var modes = null;
         if (username) {
             modes = this.usermodes.get(username);
         }
-        var hostname = 'unknown.host';
-        if (socket && socket.remoteAddress) {
-            try {
-                let resolved = socket.remoteAddress;
-                dns.reverse(socket.remoteAddress, (err, hostnames) => {
-                    if (!err && hostnames && hostnames.length > 0) {
-                        resolved = hostnames[0];
-                    } else if (this.debug) {
-                        console.error(`DNS reverse lookup failed for ${socket.remoteAddress}:`, err);
-                    }                   
-                });
-                hostname = resolved;
-            } catch (e) {
-                if (this.debug) {
-                    console.error(`Error resolving hostname for ${socket.remoteAddress}:`, e);
-                }
-                hostname = socket.remoteAddress;
-            }
-        }
-
         if (modes) {
             if (Array.isArray(modes) && modes.includes('x')) {
                 // Masked hostname for +x users
@@ -1973,8 +1982,11 @@ class WTVIRC {
             this.usermodes.set(nickname, usermodes);
         }
         socket.write(`:${this.servername} 221 ${nickname} :+${this.usermodes.get(nickname).join('')}\r\n`);
-        socket.host = this.getHostname(socket);
-        socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your displayed host\r\n`);
+        this.getHostname(socket, (hostname) => {
+            socket.host = this.filterHostname(socket, hostname);
+            socket.realhost = hostname;
+            socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your displayed host\r\n`);
+        });        
     }
 }
 
