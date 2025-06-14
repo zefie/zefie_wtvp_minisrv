@@ -67,7 +67,13 @@
       "oper_username": "minisrv",
       "oper_password": "changeme573",
       "oper_enabled": false, // Don't enable with default credentials!
-      "channel_limit": 10
+      "channel_limit": 10,
+      "enable_ssl": true,
+      "ssl_cert": {
+          /* self-signed, can be replaced with another cert */
+          "cert": "%ServiceDeps%/irc/selfsigned_cert.pem",
+          "key": "%ServiceDeps%/irc/selfsigned_key.pem"
+      }
     },
     "pc_admin": {
       "enabled": false,
