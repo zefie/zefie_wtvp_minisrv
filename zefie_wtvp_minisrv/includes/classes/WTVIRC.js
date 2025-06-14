@@ -122,9 +122,6 @@ class WTVIRC {
                     socket.push(firstChunk);   
 
                     secureSocket.on('error', (err) => {
-                        if (this.debug) {
-                            console.error('TLS error:', err);
-                        }
                         this.terminateSession(secureSocket, true);
                     });
                     
@@ -1862,6 +1859,10 @@ class WTVIRC {
             var chan_modes = this.channelmodes.get(channel);
             if (!chan_modes || chan_modes === true) {
                 chan_modes = [];
+            }
+            if (!socket.secure) {
+                socket.write(`:${this.servername} 484 ${nickname} ${channel} :You must be connected via SSL/TLS to set +z\r\n`);
+                return;
             }
             this.channelmodes.set(channel, [...chan_modes, 'z']);
             if (this.kick_insecure_on_z) {
