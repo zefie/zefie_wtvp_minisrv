@@ -589,7 +589,7 @@ class WTVIRC {
                         if (this.usersignontimestamps.has(socket.nickname)) {
                             this.usersignontimestamps.delete(socket.nickname);
                         }
-                        this.usersignontimestamps.set(new_nickname, timestamp);
+                        this.usersignontimestamps.set(new_nickname, socket.timestamp);
                     }
                     if (!socket.registered && socket.nickname && socket.username) {
                         socket.registered = true;
