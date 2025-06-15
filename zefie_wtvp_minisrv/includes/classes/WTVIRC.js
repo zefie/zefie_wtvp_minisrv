@@ -75,6 +75,7 @@ class WTVIRC {
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_ssl = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
+        this.allow_public_vhosts = this.irc_config.allow_public_vhosts || true; // If true, users can set their vhost to a public IP address
         this.kick_insecure_on_z = this.irc_config.kick_insecure_on_z || true; // If true, users without SSL connections will be kicked from a channel when +z is applied
         this.clientpeak = 0;
         this.caps = [
@@ -1245,6 +1246,29 @@ class WTVIRC {
                         wallopsMessage = wallopsMessage.slice(1);
                     }
                     this.broadcastWallops(`:${socket.nickname}!${socket.username}@${socket.host} WALLOPS :${wallopsMessage}\r\n`);
+                case 'VHOST':
+                    if (!socket.registered) {
+                        socket.write(`:${this.servername} 451 ${socket.nickname} :You have not registered\r\n`);
+                        break;
+                    }
+                    if (!this.isIRCOp(socket.nickname) && !this.allow_public_vhosts) {
+                        socket.write(`:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
+                        break;
+                    }
+                    if (params.length < 1) {
+                        socket.write(`:${this.servername} 461 ${socket.nickname} VHOST :Not enough parameters\r\n`);
+                        break;
+                    }
+                    const newVHost = params[0];
+                    if (!newVHost || !/^[a-zA-Z0-9.-]+$/.test(newVHost)) {
+                        socket.write(`:${this.servername} 501 ${socket.nickname} :Invalid VHost format\r\n`);
+                        break;
+                    }
+                    // Set the new VHost for the socket
+                    socket.host = newVHost;
+                    socket.write(`:${this.servername} 396 ${socket.nickname} :Your VHost has been changed to ${newVHost}\r\n`);
+                    break;
+
                 default:
                     // Ignore unknown commands
                     break;
