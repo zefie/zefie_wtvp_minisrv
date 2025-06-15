@@ -529,6 +529,9 @@ class WTVIRC {
                     } 
                 case 'NICK':
                     var new_nickname = params[0];
+                    if (new_nickname.startsWith(':')) {
+                        new_nickname = new_nickname.slice(1);
+                    }
                     if (!new_nickname || new_nickname.length < 1) {
                         socket.write(`:${this.servername} 431 * :No nickname\r\n`);
                         break;
