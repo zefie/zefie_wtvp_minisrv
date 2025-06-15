@@ -475,14 +475,14 @@ class WTVIRC {
                                 socket.write(`:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :is set by the server and cannot be changed\r\n`);
                             } else if (mode.startsWith('+Z')) {
                                 if (!socket.secure) {
-                                    socket.write(`:${this.servername} 482 ${socket.nickname} :You must be secure to set this mode\r\n`);
+                                    socket.write(`:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :You must be secure to set this mode\r\n`);
                                     break;
                                 }
                                 this.usermodes.set(socket.nickname, [...usermodes, 'Z']);
                                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +Z\r\n`);
                             } else if (mode.startsWith('-Z')) {
                                 if (!socket.secure) {
-                                    socket.write(`:${this.servername} 482 ${socket.nickname} :You must be secure to set this mode\r\n`);
+                                    socket.write(`:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :You must be secure to set this mode\r\n`);
                                     break;
                                 }
                                 this.usermodes.set(socket.nickname, (usermodes).filter(m => m !== 'Z'));
