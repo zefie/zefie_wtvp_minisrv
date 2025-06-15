@@ -1125,7 +1125,7 @@ class WTVIRC {
                     const whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === whoisNick);
                     if (whoisSocket) {
                         const whois_username = this.usernames.get(whoisNick);
-                        socket.write(`:${this.servername} 311 ${socket.nickname} ${whoisNick} ${whois_username} ${this.filterHostname(whoisSocket, whoisSocket.realhost)} * ${whoisNick}\r\n`);
+                        socket.write(`:${this.servername} 311 ${socket.nickname} ${whoisNick} ${whois_username} ${whoisSocket.host} * ${whoisNick}\r\n`);
                         if (this.awaymsgs.has(whoisNick)) {
                             socket.write(`:${this.servername} 301 ${socket.nickname} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
                         }
@@ -1264,11 +1264,16 @@ class WTVIRC {
                         socket.write(`:${this.servername} 501 ${socket.nickname} :Invalid VHost format\r\n`);
                         break;
                     }
-                    // Set the new VHost for the socket
-                    socket.host = newVHost;
-                    socket.write(`:${this.servername} 396 ${socket.nickname} :Your VHost has been changed to ${newVHost}\r\n`);
-                    break;
-
+                    dns.lookup(newVHost, (err, address) => {
+                        if (!err && address) {
+                            socket.write(`:${this.servername} 501 ${socket.nickname} :VHost must not resolve to a real IP (resolved to: ${address})\r\n`);
+                            return;
+                        }
+                        // Set the new VHost for the socket
+                        socket.host = newVHost;
+                        socket.write(`:${this.servername} 396 ${socket.nickname} :Your VHost has been changed to ${socket.host}\r\n`);
+                    });
+                    return;
                 default:
                     // Ignore unknown commands
                     break;
