@@ -1264,6 +1264,13 @@ class WTVIRC {
                         socket.write(`:${this.servername} 501 ${socket.nickname} :Invalid VHost format\r\n`);
                         break;
                     }
+                    // Prevent setting VHost to an IP address (IPv4 or IPv6)
+                    const ipv4Pattern = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+                    const ipv6Pattern = /^([a-fA-F0-9:]+:+)+[a-fA-F0-9]+$/;
+                    if (ipv4Pattern.test(newVHost) || ipv6Pattern.test(newVHost)) {
+                        socket.write(`:${this.servername} 501 ${socket.nickname} :VHost cannot be an IP address\r\n`);
+                        break;
+                    }
                     dns.lookup(newVHost, (err, address) => {
                         if (!err && address) {
                             socket.write(`:${this.servername} 501 ${socket.nickname} :VHost must not resolve to a real IP (resolved to: ${address})\r\n`);
