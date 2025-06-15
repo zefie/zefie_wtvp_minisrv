@@ -73,7 +73,17 @@
           /* self-signed, can be replaced with another cert */
           "cert": "%ServiceDeps%/irc/selfsigned_cert.pem",
           "key": "%ServiceDeps%/irc/selfsigned_key.pem"
-      }
+      },
+      "channels": [
+        {
+          "name": "#general",
+          "modes": ["n","t"],
+          "topic": "General Chat Channel",
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        }
+      ]
     },
     "pc_admin": {
       "enabled": false,

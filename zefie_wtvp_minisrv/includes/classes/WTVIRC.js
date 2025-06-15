@@ -84,6 +84,17 @@ class WTVIRC {
     }
 
     start() {
+        if (this.irc_config.channels) {
+            for (const channel of this.irc_config.channels) {                
+                this.createChannel(channel.name);
+                if (channel.modes && Array.isArray(channel.modes)) {
+                    this.channelmodes.set(channel.name, channel.modes.slice());
+                }
+                if (channel.topic) {
+                    this.channeltopics.set(channel.name, channel.topic);
+                }
+            }
+        }
         this.server_start_time = Date.now();
         this.server = net.createServer((socket) => {            
             // Detect SSL handshake and wrap socket if needed
@@ -773,6 +784,16 @@ class WTVIRC {
                             socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
                         }
                         socket.write(`:${this.servername} 366 ${socket.nickname} ${ch} :End of /NAMES list\r\n`);
+                        if (this.isReservedChannel(ch)) {
+                            if (this.checkIfReservedChannelOp(socket, ch)) {
+                                if (!this.channelops.has(ch) || this.channelops.get(ch) === true) {
+                                    this.channelops.set(ch, new Set());
+                                }
+                                this.channelops.get(ch).add(socket.nickname);
+                                this.broadcastChannel(ch, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${ch} +o ${socket.nickname}\r\n`);
+                            }
+                        }
+                        
                     }
                     break;
                 case 'NAMES':
@@ -1236,18 +1257,24 @@ class WTVIRC {
     }
 
     deleteChannel(channel) {
-        this.channels.delete(channel);
-        this.channelops.delete(channel);
-        this.channelvoices.delete(channel);
-        this.channeltopics.delete(channel);
-        this.channelbans.delete(channel);
-        this.channelexemptions.delete(channel);
-        this.channelinvites.delete(channel);
-        this.channelmodes.delete(channel);
-        this.channeltimestamps.delete(channel);
-        if (this.debug) {
-            console.log(`Channel ${channel} deleted`);
-        }       
+        if (!this.isReservedChannel(channel)) {
+            this.channels.delete(channel);
+            this.channelops.delete(channel);
+            this.channelvoices.delete(channel);
+            this.channeltopics.delete(channel);
+            this.channelbans.delete(channel);
+            this.channelexemptions.delete(channel);
+            this.channelinvites.delete(channel);
+            this.channelmodes.delete(channel);
+            this.channeltimestamps.delete(channel);
+            if (this.debug) {
+                console.log(`Channel ${channel} deleted`);
+            }       
+        } else {
+            if (this.debug) {
+                console.warn(`Attempted to delete reserved channel ${channel}, operation ignored.`);
+            }
+        }
     }
 
     terminateSession(socket, close = false) {
@@ -1408,10 +1435,12 @@ class WTVIRC {
         if (!username) return false;
         console.log
         const userIdent = this.usernames.get(username) || username;
-        const host = socket.host
-        const realhost = socket.realhost
+        const host = socket.host;
+        const realhost = socket.realhost;
+        const realaddress = socket.remoteAddress;
         const fullMask = `${username}!${userIdent}@${host}`;
         const fullMask2 = `${username}!${userIdent}@${realhost}`;
+        const fullMask3 = `${username}!${userIdent}@${realaddress}`;
 
         // If mask does not contain '!', treat as nickname or username only
         if (!mask.includes('!')) {
@@ -1440,6 +1469,12 @@ class WTVIRC {
             const [fullNick2, fullRest2] = fullMask2.split('!', 2);
             const [fullUser2, fullHost2] = (fullRest2 || '').split('@', 2);
             matches = nickRegex.test(fullNick2) && userRegex.test(fullUser2) && hostRegex.test(fullHost2);
+        }
+        if (!matches && fullMask3) {
+            // Try matching against the real host if available
+            const [fullNick3, fullRest3] = fullMask3.split('!', 2);
+            const [fullUser3, fullHost3] = (fullRest3 || '').split('@', 2);
+            matches = nickRegex.test(fullNick3) && userRegex.test(fullUser3) && hostRegex.test(fullHost3);
         }
         return matches;
     }
@@ -1962,6 +1997,28 @@ class WTVIRC {
         socket.write(`:${this.servername} 375 ${nickname} :- minisrv ${this.minisrv_config.version} Message of the Day\r\n`);
         socket.write(`:${this.servername} 372 ${nickname} :${this.irc_motd}\r\n`);
         socket.write(`:${this.servername} 376 ${nickname} :End of /MOTD command\r\n`);
+    }
+
+    isReservedChannel(channel) {
+        if (this.irc_config.channels && Array.isArray(this.irc_config.channels)) {
+            return this.irc_config.channels.some(ch => ch.name === channel);
+        }
+        return false;
+    }
+
+    checkIfReservedChannelOp(socket, channel) {
+        if (this.isReservedChannel(channel)) {
+            const reservedChannel = this.irc_config.channels.find(ch => ch.name === channel);
+            // reservedChannel.ops is an array of masks
+            if (reservedChannel && reservedChannel.ops && Array.isArray(reservedChannel.ops)) {
+                for (const mask of reservedChannel.ops) {
+                    if (this.checkMask(mask, socket)) {
+                        return true; // User is an operator for this reserved channel
+                    }
+                }
+            }
+        }
+        return false; // User is not an operator for this reserved channel
     }
 
     doLogin(nickname, socket) {
