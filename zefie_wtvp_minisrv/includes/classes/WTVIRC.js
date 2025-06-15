@@ -119,9 +119,6 @@ class WTVIRC {
                     // SSL detected, upgrade socket to TLS
                     const keyBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.key));
                     const certBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.cert));
-
-                    // Upgrade the socket to TLS (SSL handshake)
-
                     const secureSocket = new tls.TLSSocket(socket, {
                         isServer: true,
                         ALPNProtocols: ['irc'],
@@ -158,7 +155,6 @@ class WTVIRC {
                                 return originalWrite.apply(secureSocket, args);
                             };
                         }                           
-                        // Feed the first chunk into the TLS socket for handshake
                         socket.removeAllListeners('error');
                         secureSocket.setEncoding('ascii');
                         secureSocket.registered = false;
@@ -1433,7 +1429,6 @@ class WTVIRC {
     checkMask(mask, socket) {
         const username = this.nicknames.get(socket);
         if (!username) return false;
-        console.log
         const userIdent = this.usernames.get(username) || username;
         const host = socket.host;
         const realhost = socket.realhost;
@@ -1471,7 +1466,7 @@ class WTVIRC {
             matches = nickRegex.test(fullNick2) && userRegex.test(fullUser2) && hostRegex.test(fullHost2);
         }
         if (!matches && fullMask3) {
-            // Try matching against the real host if available
+            // Try matching against the real IP if available
             const [fullNick3, fullRest3] = fullMask3.split('!', 2);
             const [fullUser3, fullHost3] = (fullRest3 || '').split('@', 2);
             matches = nickRegex.test(fullNick3) && userRegex.test(fullUser3) && hostRegex.test(fullHost3);
