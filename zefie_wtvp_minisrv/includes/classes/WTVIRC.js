@@ -518,9 +518,21 @@ class WTVIRC {
                             }
                             return mode;
                         });
-                        chan_modes.forEach(m => {
-                            socket.write(`:${this.servername} 324 ${socket.nickname} ${channel} ${m}\r\n`);
-                        });
+                        if (chan_modes.length > 0) {
+                            // Batch all modes into a single 324 reply
+                            const modeString = chan_modes
+                                .map(m => {
+                                    // For modes with parameters (like k <key> or l<limit>)
+                                    if (typeof m === 'string' && (m.startsWith('k ') || /^l\d+$/.test(m))) {
+                                        return m;
+                                    }
+                                    return m;
+                                })
+                                .join('').replace(/\+/g, '');
+                            socket.write(`:${this.servername} 324 ${socket.nickname} ${channel} +${modeString}\r\n`);
+                        } else {
+                            socket.write(`:${this.servername} 324 ${socket.nickname} ${channel}\r\n`);
+                        }
                         socket.write(`:${this.servername} 329 ${socket.nickname} ${channel} ${this.channeltimestamps.get(channel) || Date.now()}\r\n`);
                         break;
                     } else {
