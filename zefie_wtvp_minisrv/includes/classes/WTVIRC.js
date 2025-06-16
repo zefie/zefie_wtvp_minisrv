@@ -1213,6 +1213,8 @@ class WTVIRC {
                             socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
                         }
                         socket.write(`:${this.servername} 366 ${socket.nickname} ${ch} :End of /NAMES list\r\n`);
+                        const ops = this.channelops.get(ch) || new Set();
+                        const halfops = this.channelhalfops.get(ch) || new Set();
                         if (this.isReservedChannel(ch)) {
                             if (this.checkIfReservedChannelOp(socket, ch)) {
                                 if (!this.channelops.has(ch) || this.channelops.get(ch) === true) {
@@ -1384,6 +1386,14 @@ class WTVIRC {
                             const users = this.getUsersInChannel(target);
                             for (const user of users) {
                                 const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                                let prefix = '';
+                                var chanops = this.channelops.get(target) || new Set();
+                                var chanhalfops = this.channelhalfops.get(target) || new Set();
+                                if (chanops.has(user)) {
+                                    prefix = '@';
+                                } else if (chanhalfops.has(user)) {
+                                    prefix = '%';
+                                }
                                 if (sock) {
                                     socket.write(`:${this.servername} 352 ${socket.nickname} * ${user} ${sock.host} ${this.servername} ${user} H :0 ${user}\r\n`);
                                 }
@@ -1671,7 +1681,10 @@ class WTVIRC {
                         // Check if whoisNick is a remote server user
                         let foundRemote = false;
                         for (const [srvSocket, users] of this.serverusers.entries()) {
-                            if (users && typeof users.has === 'function' ? users.has(whoisNick) : Array.isArray(users) && users.includes(whoisNick)) {
+                            if (users && typeof users.has === 'function'
+                                ? Array.from(users).some(u => typeof u === 'string' && u.toLowerCase() === whoisNick.toLowerCase())
+                                : Array.isArray(users) && users.some(u => typeof u === 'string' && u.toLowerCase() === whoisNick.toLowerCase())
+                            ) {
                                 // Found remote user
                                 const sender_id = this.getUniqueId(socket.nickname);
                                 const unique_id = this.getUniqueIDForRemoteUser(whoisNick);
