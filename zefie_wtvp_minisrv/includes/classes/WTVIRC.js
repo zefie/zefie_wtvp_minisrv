@@ -423,6 +423,23 @@ class WTVIRC {
                     this.usermodes.set(nickname, [...(usermodes), mode]);
                 }
                 break;
+            case 'SVSHOST':
+                // Handle SVSHOST command from server
+                if (parts.length < 4) {
+                    console.warn('Invalid SVSHOST command from server');
+                    break;
+                }
+                var uniqueId = parts[1];
+                var hostname = parts[3];
+                var targetSocket = this.findSocketByUniqueId(uniqueId);
+                if (!targetSocket) {
+                    console.warn(`No socket found for unique ID ${uniqueId}`);
+                    break;
+                }
+                this.hostnames.set(this.findUserByUniqueId(uniqueId), hostname);
+                targetSocket.host = hostname;
+                targetSocket.write(`:${this.servername} 396 ${targetSocket.nickname} ${targetSocket.host} :is now your displayed host\r\n`);
+                break;
             case 'SVSNICK':
                 // Handle SVSNICK command from server
                 if (parts.length < 5) {
@@ -453,7 +470,7 @@ class WTVIRC {
                 if (!this.channels.get(channel).has(nickname)) {
                     this.channels.get(channel).add(nickname);
                 }
-                this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, userSocket);                
+                this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, userSocket);
                 break;
             case 'SQUIT':            
                 this.servers.delete(socket);
