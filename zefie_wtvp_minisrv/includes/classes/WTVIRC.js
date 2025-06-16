@@ -643,6 +643,22 @@ class WTVIRC {
                             var nickname = this.findUserByUniqueId(sourceUniqueId);
                             this.broadcastChannel(channel, `:${nickname} TOPIC ${channel} :${topic}\r\n`);
                             break;
+                        case 'KILL':
+                            // Handle KILL command from server
+                            if (parts.length < 3) {
+                                console.warn(`Invalid KILL command from server: ${line}`);
+                                break;
+                            }
+                            var targetUniqueId = parts[2];
+                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
+                            var sourceNickname = this.findUserByUniqueId(sourceUniqueId);
+                            var targetNickname = this.findUserByUniqueId(targetUniqueId);
+                            var sourceUsername = this.usernames.get(sourceNickname) || sourceNickname;
+                            targetSocket.write(`:${sourceNickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${parts.slice(3).join(' ')}\r\n`);
+                            this.broadcastUser(targetNickname, `:${sourceNickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${parts.slice(3).join(' ')}\r\n`, targetSocket);
+                            this.broadcastToAllServers(`:${sourceUniqueId} KILL ${targetUniqueId} :${parts.slice(3).join(' ')}\r\n`, socket);
+                            this.terminateSession(targetSocket, true);
+                            break;
                         case 'MODE':
                             var targetUniqueId = parts[2];
                             if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
