@@ -633,7 +633,7 @@ class WTVIRC {
                                 break;
                             }
                             var channel = parts[3];
-                            var topic = parts[6];
+                            var topic = parts.slice(6).join(' ');
                             if (topic.startsWith(':')) {
                                 topic = topic.slice(1);
                             }
