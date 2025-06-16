@@ -888,6 +888,27 @@ class WTVIRC {
                             targetSocket.write(`:${nickname}!${username}@${hostname} JOIN ${channelName}\r\n`);
                             this.broadcastChannel(channelName, `:${nickname}!${username}@${hostname} JOIN ${channelName}\r\n`, targetSocket);
                             this.broadcastToAllServers(`:${sourceUniqueId} SVSJOIN ${channelName} ${targetUniqueId}\r\n`, socket);
+                            var chan_modes = this.channelmodes.get(channelName) || [];
+                            if (chan_modes === true) {
+                                chan_modes = [];
+                            }
+                            let modeString = '';
+                            let modeParams = [];
+                            for (const m of chan_modes) {
+                                if (m === 'k' && this.channelkeys.has(channelName)) {
+                                    modeString += 'k';
+                                    modeParams.push(this.channelkeys.get(channelName));
+                                } else if (m === 'l' && this.channellimits.has(channelName)) {
+                                    modeString += 'l';
+                                    modeParams.push(this.channellimits.get(channelName));
+                                } else if (typeof m === 'string' && m.length === 1 && m !== 'k' && m !== 'l') {
+                                    modeString += m;
+                                }
+                            }
+                            if (modeString.length > 0) {
+                                targetSocket.write(`:${this.servername} 324 ${nickname} ${channelName} +${modeString}${modeParams.length ? ' ' + modeParams.join(' ') : ''}\r\n`);
+                            }
+                            this.broadcastToAllServers(`:${this.serverId} SJOIN ${Math.floor(Date.now() / 1000)} ${channelName} +${modeString}${modeParams.length ? ' ' + modeParams.join(' ') : ''} ${targetUniqueId}\r\n`);
                             break;
                         case "SVSMODE":
                             if (parts.length < 4) {
