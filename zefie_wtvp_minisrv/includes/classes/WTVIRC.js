@@ -1097,7 +1097,7 @@ class WTVIRC {
                     chan_modes = this.channelmodes.get(channel) || [];
                     if (chan_modes.includes('t')) {
                         // Only allow channel operators to change the topic if +t is set
-                        if (!this.channelops.has(channel) || !this.channelops.get(channel).has(socket.nickname)) {
+                        if (!this.channelops.has(channel) || !this.channelops.get(channel).has(socket.nickname) || !this.channelhalfops.has(channel) || !this.channelhalfops.get(channel).has(socket.nickname)) {
                             socket.write(`:${this.servername} 482 ${socket.nickname} ${channel} :You're not channel operator\r\n`);
                             break;
                         }
