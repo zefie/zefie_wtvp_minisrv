@@ -3464,6 +3464,8 @@ class WTVIRC {
         }   
         socket.write(`:${this.servername} 042 ${nickname} ${socket.uniqueId} :your unique ID\r\n`);
 
+        this.doMOTD(nickname, socket);
+
         const visibleClients = Array.from(this.nicknames.values()).filter(nick => {
             const modes = this.usermodes.get(nick) || [];
             return !modes.includes('i');
