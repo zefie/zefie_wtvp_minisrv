@@ -165,7 +165,7 @@ class WTVIRC {
                                     }
                                     return arg;
                                 });
-                                console.log('<', ...log_args);
+                                console.log('<', ...log_args);                                
                                 return originalWrite.apply(secureSocket, args);
                             };
                         }                           
@@ -189,8 +189,8 @@ class WTVIRC {
                         this.clients.push(secureSocket);
                         this.clientpeak = Math.max(this.clientpeak, this.clients.length);                                                
                         //secureSocket.write(`:${this.servername} NOTICE AUTH :Welcome to minisrv IRC Server\r\n`);
-                        secureSocket.on('data', data => {
-                            this.processSocketData(secureSocket, data);
+                        secureSocket.on('data', async data => {
+                            await this.processSocketData(secureSocket, data);
                         });
                         secureSocket.on('end', () => {
                             this.terminateSession(secureSocket, false);
@@ -229,8 +229,8 @@ class WTVIRC {
                     socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
 
                     //socket.write(`:${this.servername} NOTICE AUTH :Welcome to minisrv IRC Server\r\n`);
-                    socket.on('data', data => {
-                        this.processSocketData(socket, data);
+                    socket.on('data', async data => {
+                        await this.processSocketData(socket, data);
                     });
 
                     socket.on('end', () => {
@@ -255,7 +255,7 @@ class WTVIRC {
         });        
     }
 
-    processServerData(socket, line) {
+    async processServerData(socket, line) {
         // Handle server-specific commands
         const parts = line.split(' ');
         if (parts[0] == `:${socket.uniqueId}`) {
@@ -847,7 +847,8 @@ class WTVIRC {
                                     for (const user of users) {
                                         const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                                         if (userSocket && userSocket.uniqueId !== sourceUniqueId) {
-                                            userSocket.write(`:${sourceNickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetUniqueId} :${message}\r\n`);
+                                            await this.sendThrottled(userSocket, [`:${sourceNickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetUniqueId} :${message}`], 30);
+                                            this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                                         }
                                     }
                                 }
@@ -862,7 +863,8 @@ class WTVIRC {
                             if (message.startsWith(':')) {
                                 message = message.slice(1); // Remove leading ':'
                             }
-                            targetSocket.write(`:${sourceNickname}!${sourceUsername}@${sourceSocket.serverinfo.name} ${srvCommand} ${targetNickname} :${message}\r\n`);
+                            await this.sendThrottled(targetSocket, [`:${sourceNickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetNickname} :${message}`], 30);                            
+                            this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                             break;
                         case "SVSJOIN":
                             if (parts.length < 3) {
@@ -923,7 +925,7 @@ class WTVIRC {
         }
     }
 
-    processSocketData(socket, data) {
+    async processSocketData(socket, data) {
         // Ensure data is a string
         if (typeof data !== 'string') {
             if (Buffer.isBuffer(data)) {
@@ -940,7 +942,7 @@ class WTVIRC {
                 console.log(`> ${line}`);
             }
             if (socket.isserver) {
-                this.processServerData(socket, line);
+                await this.processServerData(socket, line);
                 continue;
             }            
             // Check for server prefix (e.g., :00B) and extract command
@@ -1281,7 +1283,6 @@ class WTVIRC {
                             var modeString = chan_modes
                                 .map(m => {
                                     // For modes with parameters (like k <key> or l<limit>)
-                                    console.log(m);
                                     if (typeof m === 'string' && (m === '+k' || m === '+l')) {
                                         if (m === '+l') {
                                             params2.push(this.channellimits.get(channel));                                             
@@ -1737,18 +1738,23 @@ class WTVIRC {
                         if (this.channels.has(target)) {
                             const users = this.getUsersInChannel(target);
                             for (const user of users) {
-                                const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                                let cleanUser = user;
+                                if (['@', '%', '+'].includes(cleanUser[0])) {
+                                    cleanUser = cleanUser.slice(1);
+                                }
+                                var hostname = this.hostnames.get(cleanUser);
                                 let prefix = '';
                                 var chanops = this.channelops.get(target) || new Set();
                                 var chanhalfops = this.channelhalfops.get(target) || new Set();
-                                if (chanops.has(user)) {
+                                var chanvoices = this.channelvoices.get(target) || new Set();
+                                if (chanops.has(cleanUser)) {
                                     prefix = '@';
-                                } else if (chanhalfops.has(user)) {
+                                } else if (chanhalfops.has(cleanUser)) {
                                     prefix = '%';
+                                } else if (chanvoices.has(cleanUser)) {
+                                    prefix = '+';
                                 }
-                                if (sock) {
-                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${user} ${sock.host} ${this.servername} ${user} H :0 ${user}\r\n`);
-                                }
+                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${prefix}${cleanUser} ${hostname} ${this.servername} ${cleanUser} H :0 ${cleanUser}\r\n`);
                             }
                         }
                         socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
@@ -3058,6 +3064,7 @@ class WTVIRC {
                     if (userSocket && !userSocket.secure) {
                         userSocket.write(`:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +Z (SSL-only)\r\n`);
                         this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +Z (SSL-only)\r\n`, userSocket);
+                        this.broadcastToAllServers(`:${socket.uniqueId} KICK ${channel} ${userSocket.uniqueId} :Channel is now +Z (SSL-only)\r\n`);
                         this.channels.get(channel).delete(user);
                     }
                 }                
@@ -3242,6 +3249,13 @@ class WTVIRC {
         const uniqueId = `${socket.remoteAddr}-${socket.port}-${timestamp}-${randomPart}`;
         const hash = crypto.createHash('sha256').update(uniqueId).digest('hex').slice(0, 6).toUpperCase();
         return hash;
+    }
+
+    async sendThrottled(socket, lines, delayMs = 30) {
+        for (const line of lines) {
+            socket.write(line + '\r\n');
+            await new Promise(res => setTimeout(res, delayMs));
+        }
     }
 
     doLogin(nickname, socket) {         
