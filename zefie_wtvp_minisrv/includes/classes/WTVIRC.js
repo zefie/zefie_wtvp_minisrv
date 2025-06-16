@@ -12,16 +12,16 @@ class WTVIRC {
         * @constructor
         * @class WTVIRC
         * WTVIRC - A small IRC server implementation for WebTV
-        * Tested with WebTV and KvIRC
-        * This is a basic implementation and does not cover all IRC features.
+        * Tested with WebT, KvIRC and mIRC.
         * Supports unencrypted and encrypted (SSL) connections on the same port.
         * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, MODE, KICK, and PING.
-        * Basic IRCOp functionality is included, you can basically be an channel operator in every channel, or /kill users.
-        * Channel modes are supported, including invite-only, topic protection, password protection, and user modes (op/voice).
+        * Basic IRCOp functionality is included.
+        * hybridircd compatible server link protocol (tested with Anope IRC Services, and partially with hybridircd itself).
+        * Channel modes are supported, including invite-only, topic protection, password protection, and user modes (op/halfop/voice), and more.
         * SSL only channel mode +z is supported. As is usermode +Z (no DMs from non-SSL users)
         * 
-        * TODO: k-line? probably not, but maybe in a different format.
-        * TODO: Test for crashes with arbitrary data, or malformed commands (especially SSL handshake).
+        * TODO: k-line? other "lines"?
+        * TODO: Test for crashes with arbitrary data, or malformed commands (especially SSL handshake, or server interface).
         * 
         * @param {Object} minisrv_config - The configuration object for minisrv.
         * @param {string} [host='localhost'] - The host to bind the IRC server to.
@@ -176,6 +176,7 @@ class WTVIRC {
                         secureSocket.nickname = '';
                         secureSocket.username = '';
                         secureSocket.isserver = false;
+                        secureSocket.is_srv_authorized = false; 
                         secureSocket.realhost = socket.remoteAddress
                         secureSocket.host = this.filterHostname(secureSocket, socket.remoteAddress);
                         this.getHostname(secureSocket, (hostname) => {
@@ -219,6 +220,7 @@ class WTVIRC {
                     socket.nickname = '';
                     socket.username = '';
                     socket.isserver = false;
+                    socket.is_srv_authorized = false;
                     socket.realhost = socket.remoteAddress;
                     socket.host = this.filterHostname(socket, socket.remoteAddress);
                     this.getHostname(socket, (hostname) => {
@@ -281,6 +283,7 @@ class WTVIRC {
                             console.log(`Server ${serverObj.name || key} matched with provided password`);
                         }
                         socket.write(`PASS ${serverObj.password}\r\n`);
+                        socket.is_srv_authorized = true;
                         return;
                     }
                 });
@@ -291,6 +294,10 @@ class WTVIRC {
                 socket.serverinfo = matchedServer
                 break;
             case 'CAPAB':
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 // Handle CAPAB command from server
                 if (parts.length < 2) {
                     console.warn('Invalid CAPAB command from server');
@@ -303,6 +310,10 @@ class WTVIRC {
                 socket.write(`CAP * ACK :${capabilities.join(' ')}\r\n`);
                 break;
             case 'SERVER':
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 // Handle SERVER command from server
                 if (parts.length < 6) {
                     console.warn('Invalid SERVER command from server');
@@ -365,6 +376,10 @@ class WTVIRC {
                 // Ignore PONG from server
                 break;
             case 'RESV':
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 // Handle RESV command from server
                 if (parts.length < 2) {
                     console.warn('Invalid RESV command from server');
@@ -388,6 +403,10 @@ class WTVIRC {
                 }
                 break;
             case 'UID':
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 // Handle UID command from server
                 if (parts.length < 10) {
                     console.warn('Invalid UID command from server');
@@ -423,6 +442,10 @@ class WTVIRC {
                 }
                 break;
             case 'SVSHOST':
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 // Handle SVSHOST command from server
                 if (parts.length < 4) {
                     console.warn('Invalid SVSHOST command from server');
@@ -440,6 +463,10 @@ class WTVIRC {
                 targetSocket.write(`:${this.servername} 396 ${targetSocket.nickname} ${targetSocket.host} :is now your displayed host\r\n`);
                 break;
             case 'SVSNICK':
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 // Handle SVSNICK command from server
                 if (parts.length < 5) {
                     console.warn('Invalid SVSNICK command from server');
@@ -453,6 +480,10 @@ class WTVIRC {
                 this.broadcastToAllServers(line, socket);
                 break;
             case 'SJOIN':
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 var channel = parts[2];
                 var modes = parts[3];
                 var uniqueId = parts[4].slice(1); 
@@ -475,6 +506,10 @@ class WTVIRC {
                 this.servers.delete(socket);
                 break;
             case (command.match(/^\d{3}$/) || {}).input:
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 // Numeric reply from server
                 // Numeric replies are usually in the format: <numeric> <nickname> :<message>
                 var senderID = parts[1]
@@ -570,7 +605,6 @@ class WTVIRC {
                 }
                 const numericCode = parts[0];
                 const targetID = parts[1];
-                const senderName = parts[2]; // Remove server ID prefix
                 var numericMessage = parts.slice(3).join(' ');
                 if (numericMessage.startsWith(':')) {
                     numericMessage = numericMessage.slice(1); // Remove leading ':'
@@ -611,6 +645,10 @@ class WTVIRC {
                             this.uniqueids.delete(nick_name);
                             break;
                         case 'JOIN':
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             var channel = parts[3];
                             if (!this.channels.has(channel)) {
                                 this.createChannel(channel);
@@ -628,6 +666,10 @@ class WTVIRC {
                             this.broadcastChannel(channel, `:${nickname}!${username}@${userSocket.host} JOIN ${channel}\r\n`, userSocket);
                             break;
                         case 'PART':
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             var channel = parts[2];
                             var nickname = this.findUserByUniqueId(sourceUniqueId);
                             var username = this.usernames.get(nickname) || nickname;
@@ -638,10 +680,18 @@ class WTVIRC {
                             }                        
                             break;
                         case 'GLOBOPS':
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             var message = parts.slice(3).join(' ');
                             this.broadcastToAllServers(`:${sourceUniqueId} GLOBOPS :${message}`, socket);
                             break;
                         case 'TBURST':
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             // Handle TBURST command from server
                             if (parts.length < 6) {
                                 console.warn(`Invalid TBURST command from server: ${line}`);
@@ -660,6 +710,10 @@ class WTVIRC {
                             this.broadcastChannel(channel, `:${nickname} TOPIC ${channel} :${topic}\r\n`);
                             break;
                         case 'KILL':
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${socket.servername} 481 :Permission denied\r\n`);
+                                return;
+                            }
                             // Handle KILL command from server
                             if (parts.length < 3) {
                                 console.warn(`Invalid KILL command from server: ${line}`);
@@ -676,6 +730,10 @@ class WTVIRC {
                             this.terminateSession(targetSocket, true);
                             break;
                         case 'MODE':
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             var targetUniqueId = parts[2];
                             if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
                                 // It's a channel, broadcast to all users in the channel
@@ -867,6 +925,10 @@ class WTVIRC {
                             break;              
                         case 'PRIVMSG':
                         case 'NOTICE':
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             var targetUniqueId = parts[2];
                             var message = parts.slice(3).join(' ');
 
@@ -904,6 +966,10 @@ class WTVIRC {
                             this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                             break;
                         case "SVSJOIN":
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             if (parts.length < 3) {
                                 console.warn('Invalid SVSJOIN command from server');
                                 break;
@@ -944,6 +1010,10 @@ class WTVIRC {
                             this.broadcastToAllServers(`:${this.serverId} SJOIN ${this.getDate()} ${channelName} +${modeString}${modeParams.length ? ' ' + modeParams.join(' ') : ''} ${targetUniqueId}\r\n`);
                             break;
                         case "SVSMODE":
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                                return;
+                            }
                             if (parts.length < 4) {
                                 console.warn('Invalid SVSMODE command from server');
                                 break;
@@ -975,6 +1045,9 @@ class WTVIRC {
                             this.broadcastToAllServers(`:${sourceUniqueId} SVSMODE ${targetUniqueId} ${modes.join('')}\r\n`, socket);
                             break;                    
                         default:
+                            if (!socket.is_srv_authorized) {
+                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                            }
                             if (this.debug) {
                                 console.log(`Unhandled server command from ${sourceUniqueId} to ${targetUniqueId}: ${srvCommand} ${message}`);                        
                             }
