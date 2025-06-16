@@ -2527,7 +2527,7 @@ pc_bind_ports.every(function (v) {
             socket_sessions[req.socket.id] = []; 
 
             if (getServiceEnabled(service_name)) {
-                if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
+                if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));                
                 else debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
 
                 if (!ssl && minisrv_config.services[service_name].force_https && minisrv_config.services[service_name].https_cert) {
@@ -2539,7 +2539,7 @@ Content-type: text/html`;
                     processURL(req.socket, request_headers, true)
                 }
             } else {
-                var errpage = wtvshared.doErrorPage(404, "Service Not Found ("+service_name+")");
+                var errpage = wtvshared.doErrorPage(404, "Service Not Found ("+service_name+")", null, true);
                 sendToClient(req.socket, errpage[0], errpage[1]);
             }
         })
@@ -2578,7 +2578,7 @@ Content-type: text/html`;
                         request_headers.post_data = req.body;
                     } else if (req.body.length) {
                         if (req.body.length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
-                            errpage = wtvshared.doErrorPage("400", "POST size too large");
+                            errpage = wtvshared.doErrorPage("400", "POST size too large", null, true);
                         } else {
                             var data = "";
                             for (var i = 0; i < req.body.length; i++) {
@@ -2605,7 +2605,7 @@ Content-type: text/html`;
                     processURL(req.socket, request_headers, true)
                 }
             } else {
-                var errpage = wtvshared.doErrorPage(404, "Service Not Found (" + service_name +")");
+                var errpage = wtvshared.doErrorPage(404, "Service Not Found (" + service_name +")", null, true);
                 sendToClient(req.socket, errpage[0], errpage[1]);
             }
         })
