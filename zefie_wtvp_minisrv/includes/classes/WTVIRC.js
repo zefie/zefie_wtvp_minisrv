@@ -2544,6 +2544,11 @@ class WTVIRC {
                 // Masked hostname for +x users
                 if (typeof hostname === 'string') {
                     // Mask everything except the first and last octet for IPv4
+                    // Mask IP-like subdomains (e.g., 1-1-1-1.domain.com)
+                    const ipSubdomainMatch = hostname.match(/^(\d+)-(\d+)-(\d+)-(\d+)\./);
+                    if (ipSubdomainMatch) {
+                        return `${ipSubdomainMatch[1]}-x-x-${ipSubdomainMatch[4]}.${hostname.split('.').slice(1).join('.')}`;
+                    }
                     const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
                     if (ipv4Match) {
                         return `${ipv4Match[1]}.x.x.${ipv4Match[4]}`;
