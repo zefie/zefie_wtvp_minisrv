@@ -39,6 +39,8 @@ class WTVIRC {
         this.clients = [];
         this.usernames = new Map(); // nickname -> username
         this.channels = new Map();
+        this.channelkeys = new Map(); // channel -> password
+        this.channellimits = new Map(); // channel -> limit of users
         this.channeltimestamps = new Map(); // channel -> timestamp of creation
         this.channelops = new Map(); // channel -> Set of operators
         this.channelhalfops = new Map(); // channel -> Set of half-operators
@@ -779,29 +781,33 @@ class WTVIRC {
                                             } else if (flags[i] === '+l' || flags[i] === '-l') {
                                                 // Check if 'l' mode is already present, if not, add it with the limit
                                                 let chan_modes = this.channelmodes.get(targetUniqueId) || [];
-                                                if (!chan_modes.some(m => /^l\d+$/.test(m))) {
-                                                    // Remove any old l modes, then update if it exists, else add new
-                                                    const limitValue = target;
-                                                    const existingIndex = chan_modes.findIndex(m => /^l\d+$/.test(m));
-                                                    if (existingIndex !== -1) {
-                                                        chan_modes[existingIndex] = `l${limitValue}`;
-                                                    } else {
-                                                        chan_modes.push(`l${limitValue}`);
+                                                if (chan_modes === true) {
+                                                    chan_modes = [];
+                                                }
+                                                // Check if 'l' mode is already present
+                                                if (flags[i] === '+l') {
+                                                    if (!chan_modes.includes('l')) {
+                                                        chan_modes.push('l');
+                                                        this.channelmodes.set(targetUniqueId, chan_modes);
+                                                        this.channellimits.set(targetUniqueId, target);
                                                     }
-                                                    this.channelmodes.set(targetUniqueId, chan_modes);
+                                                } else {
+                                                    chan_modes = chan_modes.filter(mode => mode !== 'l');
+                                                    this.channellimits.delete(targetUniqueId);
                                                 }
                                             } else if (flags[i] === '+k' || flags[i] === '-k') {
                                                 let chan_modes = this.channelmodes.get(targetUniqueId) || [];
                                                 if (!chan_modes || chan_modes === true) {
                                                     chan_modes = [];
                                                 }
-                                                const keyModeIndex = chan_modes.findIndex(m => typeof m === 'string' && m.startsWith('k '));
-                                                if (keyModeIndex !== -1) {
-                                                    // Update existing key
-                                                    chan_modes[keyModeIndex] = `k ${target}`;
+                                                if (flags[i] === '+k') {
+                                                    if (!chan_modes.includes('k')) {
+                                                        chan_modes.push('k');
+                                                        this.channelkeys.set(targetUniqueId, target);
+                                                    }
                                                 } else {
-                                                    // Add new key mode
-                                                    chan_modes.push(`k ${target}`);
+                                                    chan_modes = chan_modes.filter(mode => mode !== 'k');
+                                                    this.channelkeys.delete(targetUniqueId);
                                                 }
                                                 this.channelmodes.set(targetUniqueId, chan_modes);
                                             }
@@ -1270,16 +1276,28 @@ class WTVIRC {
                             return mode;
                         });
                         if (chan_modes.length > 0) {
+                            var params2 = [];
                             // Batch all modes into a single 324 reply
-                            const modeString = chan_modes
+                            var modeString = chan_modes
                                 .map(m => {
                                     // For modes with parameters (like k <key> or l<limit>)
-                                    if (typeof m === 'string' && (m.startsWith('k ') || /^l\d+$/.test(m))) {
-                                        return m;
+                                    console.log(m);
+                                    if (typeof m === 'string' && (m === '+k' || m === '+l')) {
+                                        if (m === '+l') {
+                                            params2.push(this.channellimits.get(channel));                                             
+                                        } else if (m === '+k') {
+                                            params2.push(this.channelkeys.get(channel));
+                                        }
+                                        return m.replace(/^\+/, '');
                                     }
-                                    return m;
+                                    return m.replace(/^\+/, ''); // Remove leading '+' for other modes
                                 })
-                                .join('').replace(/\+/g, '');
+                                .join('');
+                            params2.forEach(param => {
+                                if (param) {
+                                    modeString += ` ${param}`;
+                                }
+                            });
                             socket.write(`:${this.servername} 324 ${socket.nickname} ${channel} +${modeString}\r\n`);
                         } else {
                             socket.write(`:${this.servername} 324 ${socket.nickname} ${channel}\r\n`);
@@ -1453,15 +1471,22 @@ class WTVIRC {
                                 continue; // Skip if no modes are set
                             }
                             // Check if the user is in too many channels                       
-                            const keyMode = modes.find(m => typeof m === 'string' && m.startsWith('k '));
-                            if (keyMode) {
-                                const channelKey = keyMode.split(' ')[1];
+                            if (this.channelmodes.has(ch) && this.channelmodes.get(ch).includes('k')) {
+                                const channelKey = this.channelkeys.get(ch);
                                 // The key must be provided as the second parameter in the JOIN command
                                 // params[1] is the key for the first channel, params[2] for the second, etc.
                                 // For simplicity, assume only one channel per JOIN or the key is always params[1]
                                 const providedKey = params[1];
                                 if (!providedKey || providedKey !== channelKey) {
                                     socket.write(`:${this.servername} 475 ${socket.nickname} ${ch} :Cannot join channel (+k)\r\n`);
+                                    continue; // Skip joining this channel
+                                }
+                            }
+                            if (this.channelmodes.has(ch) && this.channelmodes.get(ch).includes('l')) {
+                                // Channel has a user limit (+l)
+                                const limit = this.channellimits.get(ch) || null;
+                                if (limit !== null && this.channels.get(ch).size >= limit) {
+                                    socket.write(`:${this.servername} 471 ${socket.nickname} ${ch} :Cannot join channel (+l)\r\n`);
                                     continue; // Skip joining this channel
                                 }
                             }
@@ -1501,17 +1526,7 @@ class WTVIRC {
                                 }
                             }
                         }
-                        // Check if the channel user limit has been reached
-                        if (this.channelmodes.has(ch) && this.channelmodes.get(ch).includes('l')) {
-                            const limitMatch = this.channelmodes.get(ch).match(/l(\d+)/);
-                            if (limitMatch) {
-                                const limit = parseInt(limitMatch[1], 10);
-                                if (this.channels.has(ch) && this.channels.get(ch).size >= limit) {
-                                    socket.write(`:${this.servername} 471 ${socket.nickname} ${ch} :Cannot join channel (+l)\r\n`);
-                                    continue; // Skip joining this channel
-                                }
-                            }
-                        }
+
                         // If we reach here, the user can join the channel
                         // Reuse the JOIN logic for each channel
                         // Only run the code after $PLACEHOLDER$ for each channel
@@ -2678,9 +2693,8 @@ class WTVIRC {
                 if (!chan_modes || chan_modes === true) {
                 chan_modes = [];
             }
-            // replace limit mode if it exists
-            chan_modes = chan_modes.filter(m => !/^l\d+$/.test(m));
-            this.channelmodes.set(channel, [...chan_modes, `l${limit}`]);
+            this.channellimits.set(channel, limit);
+            this.channelmodes.set(channel, [...chan_modes, 'l']);
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +l ${limit}\r\n`);
             return;
         } else if (mode.startsWith('-l')) {                            
@@ -2692,7 +2706,8 @@ class WTVIRC {
             if (!chan_modes || chan_modes === true) {
                 chan_modes = [];
             }
-            this.channelmodes.set(channel, (chan_modes).filter(m => !/^l\d+$/.test(m)));
+            this.channellimits.delete(channel);
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'l'));
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -l\r\n`);
             return;
         } else if (mode.startsWith('+k')) {                            
@@ -2709,7 +2724,9 @@ class WTVIRC {
             if (!chan_modes || chan_modes === true) {
                 chan_modes = [];
             }
-            this.channelmodes.set(channel, [...chan_modes, `k ${key}`]);
+            // replace key mode if it exists
+            this.channelkeys.set(channel, key);
+            this.channelmodes.set(channel, [...chan_modes, 'k']);
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +k ${key}\r\n`);
             return;
         } else if (mode.startsWith('-k')) {                            
@@ -2717,7 +2734,8 @@ class WTVIRC {
             if (!chan_modes || chan_modes === true) {
                 chan_modes = [];
             }
-            this.channelmodes.set(channel, (chan_modes).filter(m => !/^k.*$/.test(m)));
+            this.channelkeys.delete(channel);
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'k'));
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -k\r\n`);
             return;
         } else if (mode.startsWith('+i')) {                               
