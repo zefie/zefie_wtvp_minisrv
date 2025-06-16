@@ -634,6 +634,9 @@ class WTVIRC {
                             }
                             var channel = parts[3];
                             var topic = parts[6];
+                            if (topic.startsWith(':')) {
+                                topic = topic.slice(1);
+                            }
                             if (!this.channels.has(channel)) {
                                 this.createChannel(channel);
                             }
