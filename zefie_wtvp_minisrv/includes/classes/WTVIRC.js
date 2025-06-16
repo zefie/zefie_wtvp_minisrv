@@ -330,8 +330,7 @@ class WTVIRC {
                 }
                 for (const [channel, users] of this.channels.entries()) {
                     const modes = this.channelmodes.get(channel) || [];
-                    for (const user of users) {
-                        console.log(`Sending SJOIN for user ${user} in channel ${channel}`);
+                    for (const user of users) {                        
                         let userPrefix = '';
                         if ((this.channelops.get(channel) || new Set()).has(user)) {
                             userPrefix = '@';
@@ -1018,7 +1017,9 @@ class WTVIRC {
                             socket.uniqueId = prefix;
                         } else {
                             console.warn(`Socket uniqueId mismatch: ${socket.uniqueId} !== ${prefix}`);
-                            console.log(line);
+                            if (this.debug) {
+                                console.log(line);
+                            }
                             continue;
                         }
                     }
