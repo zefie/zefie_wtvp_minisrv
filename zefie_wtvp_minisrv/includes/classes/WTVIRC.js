@@ -65,7 +65,8 @@ class WTVIRC {
         this.channelprefixes = ['#','&'];
         this.default_channel_modes = ['n','t'];
         this.default_user_modes = ['x'];
-        this.servername = 'irc.local';
+        this.servername = this.irc_config.server_hostname || 'irc.local';
+        this.network = this.irc_config.network || 'minisrv';
         this.server_start_time = Date.now();
         this.allowed_characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_[]{}\\|^-';
         this.irc_config = minisrv_config.config.irc || {};
@@ -93,7 +94,7 @@ class WTVIRC {
         this.globalpeak = 0;
         this.caps = [
             `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=beI,k,l,itmnpcTVZRrNQO CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ohv)@%+ USERMODES=oxirzZws MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
-            `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
+            `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I NETWORK=${this.network} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
         ];
     }
 
