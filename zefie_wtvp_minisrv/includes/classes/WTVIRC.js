@@ -1976,9 +1976,20 @@ class WTVIRC {
                                     continue;
                                 }
                                 this.broadcastChannel(t, `:${socket.nickname}!${socket.username}@${socket.host} NOTICE ${t} :${msg}\r\n`, socket);
+                                this.broadcastToAllServers(`:${socket.uniqueId} NOTICE ${t} :${msg}\r\n`);
                             } else {
                                 // Assume it's a nick, check if it exists
                                 var targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === t.toLowerCase());
+                                if (!targetSock) {
+                                    // check remote servers
+                                    targetSock = this.getRemoteServerUserSocket(t);
+                                    if (targetSock) {
+                                        const sender_id = this.getUniqueId(socket.nickname);
+                                        const unique_id = this.getUniqueIDForRemoteUser(t);
+                                        targetSock.write(`:${sender_id} PRIVMSG ${unique_id} :${msg}\r\n`);
+                                        break;
+                                    }
+                                }                                
                                 if (!targetSock) {
                                     socket.write(`:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
                                     continue;
