@@ -1,10 +1,11 @@
 const net = require('net');
 const dns = require('dns');
-const { crc16 } = require('easy-crc');
 const tls = require('tls');
 const fs = require('fs');
 const { get } = require('http');
 const WTVShared = require('./WTVShared.js').WTVShared;
+const crypto = require('crypto');
+const { mode } = require('crypto-js');
 
 class WTVIRC {
     /*
@@ -30,7 +31,7 @@ class WTVIRC {
     constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
-        this.version = 
+        this.version = '';
         this.host = host;
         this.port = port;
         this.debug = debug;
@@ -56,6 +57,8 @@ class WTVIRC {
         this.servers = new Map(); // socket -> server information
         this.serverusers = new Map(); // server -> Set of users connected to this server
         this.reservednicks = [];
+        this.hostnames = new Map(); // nickname -> hostname
+        this.realhosts = new Map(); // nickname -> real IP address  
         this.uniqueids = new Map(); // nickname -> unique ID mapping
         this.channelprefixes = ['#','&'];
         this.default_channel_modes = ['n','t'];
@@ -179,7 +182,7 @@ class WTVIRC {
 
                         secureSocket.timestamp = Date.now();
                         secureSocket.secure = true;
-                        secureSocket.uniqueId = `${this.serverId}${parseInt(crc16('CCITT-FALSE', Buffer.from(String(secureSocket.remoteAddress) + String(secureSocket.remotePort), "utf8")).toString(16), 16)}`;
+                        secureSocket.uniqueId = `${this.serverId}${this.generateUniqueId(secureSocket)}`;
                         // Push the secure socket to clients
                         this.clients.push(secureSocket);
                         this.clientpeak = Math.max(this.clientpeak, this.clients.length);                                                
@@ -221,7 +224,7 @@ class WTVIRC {
                     });
                     socket.timestamp = Date.now();                    
                     socket.secure = false; 
-                    socket.uniqueId = `${this.serverId}${parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16)}`;
+                    socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
 
                     //socket.write(`:${this.servername} NOTICE AUTH :Welcome to minisrv IRC Server\r\n`);
                     socket.on('data', data => {
@@ -311,9 +314,38 @@ class WTVIRC {
                 this.clients = this.clients.filter(c => c !== socket);
                 this.clientpeak = this.clientpeak - 1;
                 socket.servername = serverName;
-                socket.serverId = serverId;
+                socket.uniqueId = serverId;
                 this.servers.set(socket, serverName)
                 socket.write(`SERVER ${this.servername} 1 ${this.serverId} + :${this.irc_motd}\r\n`);
+                for (const [sock, nickname] of this.nicknames.entries()) {
+                    if (!sock || !nickname) continue;
+                    const uniqueId = sock.uniqueId;
+                    const signonTime = Math.floor(this.usersignontimestamps.get(nickname) || Date.now() / 1000);
+                    const userModes = (this.usermodes.get(nickname) || []).join('');
+                    const username = this.usernames.get(nickname) || '';
+                    socket.write(`:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${sock.host} ${sock.realhost} ${sock.remoteAddress} ${uniqueId} * :${sock.userinfo}\r\n`);
+                }
+                for (const [channel, users] of this.channels.entries()) {
+                    const modes = this.channelmodes.get(channel) || [];
+                    for (const user of users) {
+                        console.log(`Sending SJOIN for user ${user} in channel ${channel}`);
+                        let userPrefix = '';
+                        if ((this.channelops.get(channel) || new Set()).has(user)) {
+                            userPrefix = '@';
+                        } else if ((this.channelhalfops.get(channel) || new Set()).has(user)) {
+                            userPrefix = '%';
+                        } else if ((this.channelvoices.get(channel) || new Set()).has(user)) {
+                            userPrefix = '+';
+                        }
+                        const userUniqueId = this.uniqueids.get(user);
+                        if (userUniqueId) {
+                            socket.write(`:${this.serverId} SJOIN ${Math.floor(Date.now() / 1000)} ${channel} +${modes.join('')} :${userPrefix}${userUniqueId}\r\n`);
+                        }
+                    }
+                }
+                // Send EOB to the server
+                socket.write(`:${this.serverId} EOB \r\n`);
+                break;
             case 'SVINFO':
                 // Handle SVINFO command from server
                 if (parts.length < 4) {
@@ -341,6 +373,17 @@ class WTVIRC {
                 const reservedNick = parts[3];
                 const reason = parts.slice(4).join(' ') || '';
                 this.reservednicks.push(reservedNick);
+                if (expiry > 0) {
+                    setTimeout(() => {
+                        const index = this.reservednicks.indexOf(reservedNick);
+                        if (index !== -1) {
+                            this.reservednicks.splice(index, 1);
+                            if (this.debug) {
+                                console.log(`Reservation for ${reservedNick} expired`);
+                            }
+                        }
+                    }, expiry * 1000);
+                }
                 break;
             case 'UID':
                 // Handle UID command from server
@@ -348,14 +391,14 @@ class WTVIRC {
                     console.warn('Invalid UID command from server');
                     break;
                 }
-                const nickname = parts[1];
+                var nickname = parts[1];
                 const server_Id = parts[2];
                 const timestamp = parseInt(parts[3]) || 0;
                 const userModes = parts[4].replace("/+/","").split('');
-                const username = parts[5];
-                const servername = parts[6];
-                const servername2 = parts[7];
-                const address = parts[8];
+                var username = parts[5];
+                var hostname = parts[6];
+                const ipaddress = parts[7];
+                const ipaddress2 = parts[8];
                 const userUniqueId = parts[9];
                 var serverUsers = this.serverusers.get(socket) || new Set();
                 if (serverUsers === true) {
@@ -367,6 +410,8 @@ class WTVIRC {
                 this.globalpeak = Math.max(this.globalpeak, this.countGlobalUsers());
                 this.usersignontimestamps.set(nickname, timestamp);
                 this.usernames.set(nickname, username);
+                this.hostnames.set(nickname, hostname);
+                this.realhosts.set(nickname, ipaddress2);
                 for (const mode of userModes) {
                     var usermodes = this.usermodes.get(nickname) || [];
                     if (usermodes === true) {
@@ -374,18 +419,6 @@ class WTVIRC {
                     }                    
                     this.usermodes.set(nickname, [...(usermodes), mode]);
                 }
-                break;
-            case 'EOB':
-                for (const [sock, nickname] of this.nicknames.entries()) {
-                    if (!sock || !nickname) continue;
-                    const uniqueId = sock.uniqueId;
-                    const signonTime = this.usersignontimestamps.get(nickname) || Math.floor(Date.now() / 1000);
-                    const userModes = (this.usermodes.get(nickname) || []).join('');
-                    const username = this.usernames.get(nickname) || '';
-                    socket.write(`:${socket.uniqueId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${sock.host} ${sock.realhost} ${sock.remoteAddress} ${uniqueId} * ${nickname} :${sock.userinfo}\r\n`);
-                }
-                // Send EOB to the server
-                socket.write(`:${this.serverId} EOB \r\n`);
                 break;
             case 'SVSNICK':
                 // Handle SVSNICK command from server
@@ -401,7 +434,26 @@ class WTVIRC {
                 this.processNickChange(targetSocket, newNick);
                 this.broadcastToAllServers(line, socket);
                 break;
-            case 'SQUIT':
+            case 'SJOIN':
+                var channel = parts[2];
+                var modes = parts[3];
+                var uniqueId = parts[4].slice(1); 
+                if (['@', '%', '+'].includes(uniqueId[0])) {
+                    uniqueId = uniqueId.slice(1);
+                }
+                var userSocket = this.findSocketByUniqueId(uniqueId);
+                var nickname = this.findUserByUniqueId(uniqueId);
+                var username = this.usernames.get(nickname) || nickname;
+                var hostname = this.hostnames.get(nickname)
+                if (!this.channels.has(channel)) {
+                    this.createChannel(channel);
+                }
+                if (!this.channels.get(channel).has(nickname)) {
+                    this.channels.get(channel).add(nickname);
+                }
+                this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, userSocket);                
+                break;
+            case 'SQUIT':            
                 this.servers.delete(socket);
                 break;
             case (command.match(/^\d{3}$/) || {}).input:
@@ -436,6 +488,9 @@ class WTVIRC {
                         var whoisHost = parts[4];
                         var whoisServer = parts[5];
                         var whoisRealname = parts.slice(6).join(' ');
+                        if (whoisRealname.startsWith(':')) {
+                            whoisRealname = whoisRealname.slice(1);
+                        }                        
                         targetSocket.write(`:${socket.servername} 311 ${whoisNick} ${whoisNick} ${whoisUser} ${whoisHost} ${whoisServer} :${whoisRealname}\r\n`);
                         responded = true;
                         break;
@@ -445,6 +500,9 @@ class WTVIRC {
                         var whoisNick = parts[2];
                         var serverName = parts[2];
                         var serverInfo = parts.slice(3).join(' ');
+                        if (serverInfo.startsWith(':')) {
+                            serverInfo = serverInfo.slice(1);
+                        }
                         targetSocket.write(`:${socket.servername} 312 ${whoisNick} ${serverName} :${serverInfo}\r\n`);
                         responded = true;
                         break;
@@ -495,7 +553,11 @@ class WTVIRC {
                 const numericCode = parts[0];
                 const targetID = parts[1];
                 const senderName = parts[2]; // Remove server ID prefix
-                const numericMessage = parts.slice(3).join(' ');
+                var numericMessage = parts.slice(3).join(' ');
+                if (numericMessage.startsWith(':')) {
+                    numericMessage = numericMessage.slice(1); // Remove leading ':'
+                }
+
                 if (!targetSocket) {
                     console.warn(`No socket found for uniqueID ${targetID}`);
                     break;
@@ -507,88 +569,351 @@ class WTVIRC {
                     // part out the line to "sourceUniqueId command targetUniqueId :message"
                     var sourceUniqueId = parts[0].slice(1); // Remove the leading ':'
                     var srvCommand = parts[1];
-                    if (srvCommand === 'QUIT') {
-                        var nick_name = this.findUserByUniqueId(sourceUniqueId);
-                        var user_name = this.usernames.get(nick_name) || nick_name;
-                        for (const [channel, users] of this.channels.entries()) {
-                            if (users.has(nick_name)) {
-                                this.broadcastChannel(channel, `:${nick_name}!${user_name}@${this.servername} QUIT :Remote server disconnected\r\n`);
-                            }
-                        }                        
-                        // Remove user from the server's user list
-                        const serverUsers = this.serverusers.get(socket);
-                        if (serverUsers && typeof serverUsers.delete === 'function') {
-                            const nickToRemove = this.findUserByUniqueId(sourceUniqueId);
-                            serverUsers.delete(nickToRemove);
-                            this.serverusers.set(socket, serverUsers);
-                        }
-                        this.usermodes.delete(nick_name);
-                        this.usernames.delete(nick_name);
-                        this.uniqueids.delete(nick_name);
-                        break;
-                    } else if (srvCommand === "GLOBOPS") {
-                        var message = parts.slice(3).join(' ');
-                        this.broadcastToAllServers(`:${sourceUniqueId} GLOBOPS :${message}`, socket);
-                        break;
-                    } else if (srvCommand === 'PRIVMSG' || srvCommand === 'NOTICE') {
-                        var targetUniqueId = parts[2];
-                        var message = parts.slice(3).join(' ');
-
-                        var sourceSocket = this.findSocketByUniqueId(sourceUniqueId);
-                        var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                        if (!sourceSocket) {
-                            console.warn(`No socket found for source unique ID ${sourceUniqueId}`);
-                            break;
-                        }
-                        if (!targetSocket) {
-                            console.warn(`No socket found for target unique ID ${targetUniqueId}`);
-                            break;
-                        }
-                        var sourceNickname = this.getUsernameFromUniqueId(sourceUniqueId);
-                        var sourceUsername = this.usernames.get(sourceNickname) || sourceNickname;
-                        var targetNickname = this.getUsernameFromUniqueId(targetUniqueId); 
-                        if (message.startsWith(':')) {
-                            message = message.slice(1); // Remove leading ':'
-                        }
-                        targetSocket.write(`:${sourceNickname}!${sourceUsername}@${sourceSocket.serverinfo.name} ${srvCommand} ${targetNickname} :${message}\r\n`);
-                        break;
-                    } else if (srvCommand === "SVSMODE") {
-                        if (parts.length < 4) {
-                            console.warn('Invalid SVSMODE command from server');
-                            break;
-                        }
-                        var targetUniqueId = parts[2];
-                        var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                        var modes = parts[4].split('');
-                        let adding = true;
-                        for (const char of modes.join('')) {
-                            if (char === '+') {
-                                adding = true;
-                            } else if (char === '-') {
-                                adding = false;
-                            } else {
-                                let usermodes = this.usermodes.get(targetNickname) || [];
-                                if (usermodes === true) usermodes = [];
-                                if (adding) {
-                                    if (!usermodes.includes(char)) {
-                                        usermodes.push(char);
-                                    }
-                                } else {
-                                    usermodes = usermodes.filter(m => m !== char);
+                    switch (srvCommand) {
+                        case 'QUIT':
+                            var nick_name = this.findUserByUniqueId(sourceUniqueId);
+                            var user_name = this.usernames.get(nick_name) || nick_name;
+                            for (const [channel, users] of this.channels.entries()) {
+                                if (users.has(nick_name)) {
+                                    this.broadcastChannel(channel, `:${nick_name}!${user_name}@${this.servername} QUIT :Remote server disconnected\r\n`);
                                 }
-                                this.usermodes.set(targetNickname, usermodes);
+                                if (this.channels.has(channel) && this.channels.get(channel).size === 0) {
+                                    this.deleteChannel(channel);
+                                }
+                            }                        
+                            // Remove user from the server's user list
+                            const serverUsers = this.serverusers.get(socket);
+                            if (serverUsers && typeof serverUsers.delete === 'function') {
+                                const nickToRemove = this.findUserByUniqueId(sourceUniqueId);
+                                serverUsers.delete(nickToRemove);
+                                this.serverusers.set(socket, serverUsers);
                             }
-                        }
-                        targetSocket.write(`:${socket.servername} MODE ${targetSocket.nickname} ${modes.join('')}\r\n`);
-                        this.broadcastToAllServers(`:${sourceUniqueId} SVSMODE ${targetUniqueId} ${modes.join('')}\r\n`, socket);
-                        break;
-                    }
+                            this.usermodes.delete(nick_name);
+                            this.usernames.delete(nick_name);
+                            this.uniqueids.delete(nick_name);
+                            break;
+                        case 'JOIN':
+                            var channel = parts[3];
+                            if (!this.channels.has(channel)) {
+                                this.createChannel(channel);
+                            }
+                            var userSocket = this.findSocketByUniqueId(sourceUniqueId);
+                            if (!userSocket) {
+                                console.warn(`No socket found for source unique ID ${sourceUniqueId}`);
+                                break;
+                            }
+                            var nickname = this.findUserByUniqueId(sourceUniqueId);
+                            var username = this.usernames.get(nickname) || nickname;
+                            if (!this.channels.get(channel).has(nickname)) {
+                                this.channels.get(channel).add(nickname);
+                            }
+                            this.broadcastChannel(channel, `:${nickname}!${username}@${userSocket.host} JOIN ${channel}\r\n`, userSocket);
+                            break;
+                        case 'PART':
+                            var channel = parts[2];
+                            var nickname = this.findUserByUniqueId(sourceUniqueId);
+                            var username = this.usernames.get(nickname) || nickname;
+                            var hostname = this.hostnames.get(nickname);
+                            this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} PART ${channel} :${parts.slice(4).join(' ')}\r\n`, userSocket);
+                            if (this.channels.has(channel) && this.channels.get(channel).size === 0) {
+                                this.deleteChannel(channel);
+                            }                        
+                            break;
+                        case 'GLOBOPS':
+                            var message = parts.slice(3).join(' ');
+                            this.broadcastToAllServers(`:${sourceUniqueId} GLOBOPS :${message}`, socket);
+                            break;
+                        case 'TBURST':
+                            // Handle TBURST command from server
+                            if (parts.length < 6) {
+                                console.warn(`Invalid TBURST command from server: ${line}`);
+                                break;
+                            }
+                            var channel = parts[3];
+                            var topic = parts[6];
+                            if (!this.channels.has(channel)) {
+                                this.createChannel(channel);
+                            }
+                            this.channeltopics.set(channel, topic);
+                            var nickname = this.findUserByUniqueId(sourceUniqueId);
+                            this.broadcastChannel(channel, `:${nickname} TOPIC ${channel} :${topic}\r\n`);
+                            break;
+                        case 'MODE':
+                            var targetUniqueId = parts[2];
+                            if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
+                                // It's a channel, broadcast to all users in the channel
+                                if (this.channels.has(targetUniqueId)) {
+                                    var nickname = this.findUserByUniqueId(sourceUniqueId);
+                                    var username = this.usernames.get(nickname) || nickname;
+                                    var hostname = socket.serverinfo.name;
 
-                    if (this.debug) {
-                        console.log(`Unhandled server command from ${sourceUniqueId} to ${targetUniqueId}: ${srvCommand} ${message}`);
-                    }
-                }
-                console.warn(`Unknown server command: ${command}`);
+                                    var modes = parts[3];
+                                    // Split modes into array and process each character
+                                    let modeChars = modes.split('');
+    
+                                    let modeMsg = `:${nickname}!${username}@${hostname} MODE ${targetUniqueId} `;
+                                    let addingFlag = false;
+                                    let prevAdding = false;
+                                    let paramIndex = 4; // Start after the modes
+                                    let params = 0;
+                                    let flags = [];
+
+                                    for (let j = 0; j < modeChars.length; j++) {
+                                        let param = null;
+                                        let modeStr = '';
+                                        let mc = modeChars[j];
+                                        if (mc === '+') {
+                                            addingFlag = true;
+                                            modeMsg += '+';
+                                            prevAdding = true;
+                                            continue;
+                                        } else if (mc === '-') {
+                                            addingFlag = false;
+                                            modeMsg += '-';
+                                            prevAdding = false;
+                                            continue;
+                                        }
+                                        modeStr += mc;
+                                        // Modes that require a parameter
+                                        if (['o', 'I', 'b', 'e', 'v', 'h', 'l', 'k'].includes(mc)) {
+                                            var plusminus = (addingFlag) ? "+" : "-";
+                                            flags.push(plusminus + mc);
+                                            params++;
+                                        } else {
+                                            var channelmodes = this.channelmodes.get(targetUniqueId) || [];
+                                            if (channelmodes === true) {
+                                                channelmodes = [];
+                                            }
+                                            if (addingFlag) {
+                                                channelmodes.push(mc);
+                                            } else {
+                                                channelmodes = channelmodes.filter(mode => mode !== mc);
+                                            }
+                                            this.channelmodes.set(targetUniqueId, channelmodes);
+                                        }
+
+                                        if (modeStr.length > 0) {
+                                            modeMsg += modeStr;
+                                        }
+                                        if (param) {
+                                            modeMsg += ` ${param}`;
+                                        }
+                                    }
+                                    if (params > 0 && parts.length > paramIndex) {
+                                        for (let i = 0; i < params; i++) {
+                                            var target = this.findUserByUniqueId(parts[paramIndex]);
+                                            if (!target) {
+                                                target = parts[paramIndex];
+                                            }
+                                            if (!target) {
+                                                console.warn(`No target found for unique ID ${parts[paramIndex]}`);
+                                                break;
+                                            }
+                                            modeMsg += ` ${target}`;
+                                            if (flags[i] === '+o' || flags[i] === '-o') {
+                                                var channelOps = this.channelops.get(targetUniqueId) || new Set();
+                                                if (channelOps === true) {
+                                                    channelOps = new Set();
+                                                }
+                                                if (flags[i] === '+o') {
+                                                    channelOps.add(target);
+                                                } else if (flags[i] === '-o') {
+                                                    channelOps.delete(target);
+                                                }                                                
+                                                this.channelops.set(targetUniqueId, channelOps);
+                                            } else if (flags[i] === '+h' || flags[i] === '-h') {
+                                                var channelHalfOps = this.channelhalfops.get(targetUniqueId) || new Set();
+                                                if (channelHalfOps === true) {
+                                                    channelHalfOps = new Set();
+                                                }
+                                                if (flags[i] === '+h') {
+                                                    channelHalfOps.add(target);
+                                                } else if (flags[i] === '-h') {
+                                                    channelHalfOps.delete(target);
+                                                }
+                                                this.channelhalfops.set(targetUniqueId, channelHalfOps);
+                                            } else if (flags[i] === '+v' || flags[i] === '-v') {
+                                                var channelVoices = this.channelvoices.get(targetUniqueId) || new Set();
+                                                if (channelVoices === true) {
+                                                    channelVoices = new Set();
+                                                }
+                                                if (flags[i] === '+v') {
+                                                    channelVoices.add(target);
+                                                } else if (flags[i] === '-v') {
+                                                    channelVoices.delete(target);
+                                                }
+                                                this.channelvoices.set(targetUniqueId, channelVoices);
+                                            } else if (flags[i] === '+b' || flags[i] === '-b') {
+                                                var channelBans = this.channelbans.get(targetUniqueId) || [];
+                                                if (channelBans === true) {
+                                                    channelBans = [];
+                                                }
+                                                if (flags[i] === '+b') {
+                                                    channelBans.push(target);
+                                                } else if (flags[i] === '-b') {
+                                                    channelBans = channelBans.filter(ban => ban !== target);
+                                                }
+                                                this.channelbans.set(targetUniqueId, channelBans);
+                                            } else if (flags[i] === '+e' || flags[i] === '-e') {
+                                                var channelExemptions = this.channelexemptions.get(targetUniqueId) || [];
+                                                if (channelExemptions === true) {
+                                                    channelExemptions = [];
+                                                }
+                                                if (flags[i] === '+e') {
+                                                    channelExemptions.push(target);
+                                                } else if (flags[i] === '-e') {
+                                                    channelExemptions = channelExemptions.filter(exception => exception !== target);
+                                                }
+                                                this.channelexemptions.set(targetUniqueId, channelExemptions);
+                                            } else if (flags[i] === '+I' || flags[i] === '-I') {
+                                                var channelInvites = this.channelinvites.get(targetUniqueId) || [];
+                                                if (channelInvites === true) {
+                                                    channelInvites = [];
+                                                }
+                                                if (flags[i] === '+I') {
+                                                    channelInvites.push(target);
+                                                } else if (flags[i] === '-I') {
+                                                    channelInvites = channelInvites.filter(invite => invite !== target);
+                                                }
+                                                this.channelinvites.set(targetUniqueId, channelInvites);
+                                            } else if (flags[i] === '+l' || flags[i] === '-l') {
+                                                // Check if 'l' mode is already present, if not, add it with the limit
+                                                let chan_modes = this.channelmodes.get(targetUniqueId) || [];
+                                                if (!chan_modes.some(m => /^l\d+$/.test(m))) {
+                                                    // Remove any old l modes, then update if it exists, else add new
+                                                    const limitValue = target;
+                                                    const existingIndex = chan_modes.findIndex(m => /^l\d+$/.test(m));
+                                                    if (existingIndex !== -1) {
+                                                        chan_modes[existingIndex] = `l${limitValue}`;
+                                                    } else {
+                                                        chan_modes.push(`l${limitValue}`);
+                                                    }
+                                                    this.channelmodes.set(targetUniqueId, chan_modes);
+                                                }
+                                            } else if (flags[i] === '+k' || flags[i] === '-k') {
+                                                let chan_modes = this.channelmodes.get(targetUniqueId) || [];
+                                                if (!chan_modes || chan_modes === true) {
+                                                    chan_modes = [];
+                                                }
+                                                const keyModeIndex = chan_modes.findIndex(m => typeof m === 'string' && m.startsWith('k '));
+                                                if (keyModeIndex !== -1) {
+                                                    // Update existing key
+                                                    chan_modes[keyModeIndex] = `k ${target}`;
+                                                } else {
+                                                    // Add new key mode
+                                                    chan_modes.push(`k ${target}`);
+                                                }
+                                                this.channelmodes.set(targetUniqueId, chan_modes);
+                                            }
+                                            paramIndex++;
+                                        }
+                                    }
+                                    modeMsg += '\r\n';
+                                    this.broadcastChannel(targetUniqueId, modeMsg);
+                                    this.broadcastToAllServers(modeMsg, socket);
+                                }
+                                break;
+                            }                        
+                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
+                            if (!targetSocket) {
+                                console.warn(`No socket found for target unique ID ${targetUniqueId}`);
+                                break;
+                            }
+                            targetSocket.write(`:${targetSocket.nickname} MODE ${targetSocket.nickname} ${parts.slice(2).join(' ')}\r\n`);
+                            this.broadcastToAllServers(`:${sourceUniqueId} MODE ${targetUniqueId} ${parts.slice(3).join(' ')}\r\n`, socket);                        
+                            break;              
+                        case 'PRIVMSG':
+                        case 'NOTICE':
+                            var targetUniqueId = parts[2];
+                            var message = parts.slice(3).join(' ');
+
+                            var sourceSocket = this.findSocketByUniqueId(sourceUniqueId);
+                            if (!sourceSocket) {
+                                console.warn(`No socket found for source unique ID ${sourceUniqueId}`);
+                                break;
+                            }
+                            var sourceNickname = this.getUsernameFromUniqueId(sourceUniqueId);
+                            var sourceUsername = this.usernames.get(sourceNickname) || sourceNickname;
+                            if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
+                                // It's a channel, broadcast to all users in the channel except the source
+                                if (this.channels.has(targetUniqueId)) {
+                                    const users = this.channels.get(targetUniqueId);
+                                    for (const user of users) {
+                                        const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                                        if (userSocket && userSocket.uniqueId !== sourceUniqueId) {
+                                            userSocket.write(`:${sourceNickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetUniqueId} :${message}\r\n`);
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
+                            if (!targetSocket) {
+                                console.warn(`No socket found for target unique ID ${targetUniqueId}`);
+                                break;
+                            }
+                            var targetNickname = this.getUsernameFromUniqueId(targetUniqueId); 
+                            if (message.startsWith(':')) {
+                                message = message.slice(1); // Remove leading ':'
+                            }
+                            targetSocket.write(`:${sourceNickname}!${sourceUsername}@${sourceSocket.serverinfo.name} ${srvCommand} ${targetNickname} :${message}\r\n`);
+                            break;
+                        case "SVSJOIN":
+                            if (parts.length < 3) {
+                                console.warn('Invalid SVSJOIN command from server');
+                                break;
+                            }
+                            var targetUniqueId = parts[2];
+                            var channelName = parts[3];
+                            var nickname = this.findUserByUniqueId(targetUniqueId);
+                            var username = this.usernames.get(nickname) || nickname;
+                            var hostname = this.hostnames.get(nickname) || '';
+                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
+                            if (!this.channels.has(channelName)) {
+                                this.createChannel(channelName);
+                            }
+                            this.channels.get(channelName).add(nickname);
+                            targetSocket.write(`:${nickname}!${username}@${hostname} JOIN ${channelName}\r\n`);
+                            this.broadcastChannel(channelName, `:${nickname}!${username}@${hostname} JOIN ${channelName}\r\n`, targetSocket);
+                            this.broadcastToAllServers(`:${sourceUniqueId} SVSJOIN ${channelName} ${targetUniqueId}\r\n`, socket);
+                            break;
+                        case "SVSMODE":
+                            if (parts.length < 4) {
+                                console.warn('Invalid SVSMODE command from server');
+                                break;
+                            }
+                            var targetUniqueId = parts[2];
+                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
+                            var targetNickname = targetSocket.nickname;
+                            var modes = parts[4].split('');
+                            let adding = true;
+                            for (const char of modes.join('')) {
+                                if (char === '+') {
+                                    adding = true;
+                                } else if (char === '-') {
+                                    adding = false;
+                                } else {
+                                    let usermodes = this.usermodes.get(targetNickname) || [];
+                                    if (usermodes === true) usermodes = [];
+                                    if (adding) {
+                                        if (!usermodes.includes(char)) {
+                                            usermodes.push(char);
+                                        }
+                                    } else {
+                                        usermodes = usermodes.filter(m => m !== char);
+                                    }
+                                    this.usermodes.set(targetNickname, usermodes);
+                                }
+                            }
+                            targetSocket.write(`:${socket.servername} MODE ${targetSocket.nickname} ${modes.join('')}\r\n`);
+                            this.broadcastToAllServers(`:${sourceUniqueId} SVSMODE ${targetUniqueId} ${modes.join('')}\r\n`, socket);
+                            break;                    
+                        default:
+                            if (this.debug) {
+                                console.log(`Unhandled server command from ${sourceUniqueId} to ${targetUniqueId}: ${srvCommand} ${message}`);                        
+                            }
+                    }            
+            } 
         }
     }
 
@@ -638,7 +963,7 @@ class WTVIRC {
             // initial commands before we assign socket.isserver = true
             const serverCommands = ['PASS', 'CAPAB', 'SERVER', 'SVINFO'];
             const firstWord = line.trim().split(' ')[0].toUpperCase();
-            if (prefix && serverCommands.includes(firstWord)) {
+            if (!prefix && serverCommands.includes(firstWord)) {
                 this.processServerData(socket, line);
                 continue;
             }
@@ -894,6 +1219,8 @@ class WTVIRC {
                                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -s\r\n`);
                                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -s\r\n`);
                             } else if (mode.startsWith('+z') || mode.startsWith('-z')) {
+                                socket.write(`:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :is set by the server and cannot be changed\r\n`);
+                            } else if (mode.startsWith('+r') || mode.startsWith('-r')) {
                                 socket.write(`:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :is set by the server and cannot be changed\r\n`);
                             } else if (mode.startsWith('+Z')) {
                                 if (!socket.secure) {
@@ -1201,7 +1528,16 @@ class WTVIRC {
                             this.channelops.get(ch).add(socket.nickname);
                         }
                         this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} JOIN ${ch}\r\n`, socket);
-                        this.broadcastToAllServers(`:${socket.uniqueId} JOIN ${ch}\r\n`);
+                        let modes = this.channelmodes.get(ch) || [];
+                        let prefix = '';
+                        if ((this.channelops.get(ch) || new Set()).has(socket.nickname)) {
+                            prefix = '@';
+                        } else if ((this.channelhalfops.get(ch) || new Set()).has(socket.nickname)) {
+                            prefix = '%';
+                        } else if ((this.channelvoices.get(ch) || new Set()).has(socket.nickname)) {
+                            prefix = '+';
+                        }
+                        this.broadcastToAllServers(`:${this.serverId} SJOIN ${Math.floor(Date.now() / 1000)} ${ch} +${modes.join('')} :${prefix}${socket.uniqueId}\r\n`);
                         if (this.channeltopics.has(ch)) {
                             const topic = this.channeltopics.get(ch);
                             socket.write(`:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`);
@@ -1275,6 +1611,7 @@ class WTVIRC {
                             this.deleteChannel(channel);
                         }
                     }
+                    this.broadcastToAllServers(`:${socket.uniqueId} PART ${channel}\r\n`);
                     break;
                 case 'INVITE':
                     if (!socket.registered) {
@@ -1492,6 +1829,7 @@ class WTVIRC {
                                     continue;
                                 }
                                 this.broadcastChannel(t, `:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${t} :${msg}\r\n`, socket);
+                                this.broadcastToAllServers(`:${socket.uniqueId} PRIVMSG ${t} :${msg}\r\n`);
                             } else {
                                 if (this.awaymsgs.has(t)) {
                                     socket.write(`:${this.servername} 301 ${socket.nickname} ${t} :${this.awaymsgs.get(t)}\r\n`);
@@ -1512,6 +1850,8 @@ class WTVIRC {
                                     continue;
                                 }
                                 var targetUserModes = this.usermodes.get(t) || [];
+                                if (this.usermodes.has(t) && this.usermodes.get(t).includes('r')) {
+                                }
                                 if (targetUserModes.includes('Z') && !socket.secure) {
                                     socket.write(`:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to user (+Z)\r\n`);
                                     continue;
@@ -1524,7 +1864,7 @@ class WTVIRC {
                                     socket.write(`:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to non-+Z user while you are +Z\r\n`);
                                     continue;
                                 }
-                                targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${targetSock.nickname} :${msg}\r\n`);
+                                targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${targetSock.nickname} :${msg}\r\n`);                                
                             }
                         }
                         return;
@@ -1669,6 +2009,9 @@ class WTVIRC {
                         if (usermodes && usermodes.includes('s')) {
                             socket.write(`:${this.servername} 671 ${socket.nickname} ${whoisNick} :is using a secure connection\r\n`);
                         }
+                        if (usermodes && usermodes.includes('r')) {
+                            socket.write(`:${this.servername} 307 ${socket.nickname} ${whoisNick} :is a registered nick\r\n`);
+                        }                        
                         var now = Date.now();
                         var userTimestamp = this.usertimestamps.get(whoisNick) || now;
                         var idleTime = Math.floor((now - userTimestamp) / 1000);
@@ -1688,7 +2031,7 @@ class WTVIRC {
                                 // Found remote user
                                 const sender_id = this.getUniqueId(socket.nickname);
                                 const unique_id = this.getUniqueIDForRemoteUser(whoisNick);
-                                srvSocket.write(`:${sender_id} WHOIS ${unique_id}\r\n`);
+                                srvSocket.write(`:${sender_id} WHOIS :${unique_id}\r\n`);
                                 foundRemote = true;
                                 break;
                             }
@@ -1880,7 +2223,15 @@ class WTVIRC {
             });
             this.nicknames.delete(socket);
         }
-        this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`, socket);
+        var serverSocket = null;
+        for (const [srvSocket, users] of this.serverusers.entries()) {
+            if (users && typeof users.has === 'function' && users.has(nickname)) {
+                // Don't send QUIT to this server, as it owns the user
+                serverSocket = srvSocket;
+                continue;
+            }
+        }
+        this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`, serverSocket);
         this.clients = this.clients.filter(c => c !== socket);
         if (close) {
             socket.end();
@@ -2844,7 +3195,6 @@ class WTVIRC {
     }
 
     processNickChange(socket, newNick) {
-        this.addUserUniqueId(socket.nickname, socket.uniqueId);
         // Update nickname in all channels
         for (const [ch, users] of this.channels.entries()) {
             if (users.has(socket.nickname)) {
@@ -2868,13 +3218,20 @@ class WTVIRC {
         socket.nickname = newNick;
     }
 
+    generateUniqueId(socket) {
+        const timestamp = Date.now();
+        const randomPart = Math.floor(Math.random() * 1000000);
+        const uniqueId = `${socket.remoteAddr}-${socket.port}-${timestamp}-${randomPart}`;
+        const hash = crypto.createHash('sha256').update(uniqueId).digest('hex').slice(0, 6).toUpperCase();
+        return hash;
+    }
+
     doLogin(nickname, socket) {         
         for (const [srvSocket, serverName] of this.servers.entries()) {
             if (srvSocket) {
                 // Compose UID message for this client
-                const nickname = socket.nickname
-                const username = socket.username || 'unknown';
-                const host = socket.host || socket.remoteAddress;
+                const nickname = socket.nickname;
+                const username = socket.username || this.usernames.get(socket.nickname) || socket.nickname;
                 const uniqueId = socket.uniqueId;
                 const signonTime = Math.floor(socket.timestamp / 1000);
                 const userModes = (this.usermodes.get(nickname) || []).join('');
@@ -2882,7 +3239,9 @@ class WTVIRC {
                 srvSocket.write(`:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${socket.host} ${socket.realhost} ${socket.remoteAddress} ${uniqueId} * ${nickname} :${userinfo}\r\n`);
             }
         }
-
+        this.addUserUniqueId(nickname, socket.uniqueId);
+        this.hostnames.set(nickname, socket.host);
+        this.realhosts.set(nickname, socket.realhost);
         socket.write(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
         socket.write(`:${this.servername} 002 ${nickname} :Your host is ${this.servername}, running version minisrv ${this.minisrv_config.version}\r\n`);
         socket.write(`:${this.servername} 003 ${nickname} :This server is ready to accept commands\r\n`);
