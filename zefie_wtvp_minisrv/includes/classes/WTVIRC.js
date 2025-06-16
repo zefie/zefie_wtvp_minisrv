@@ -65,11 +65,11 @@ class WTVIRC {
         this.channelprefixes = ['#','&'];
         this.default_channel_modes = ['n','t'];
         this.default_user_modes = ['x'];
-        this.servername = this.irc_config.server_hostname || 'irc.local';
-        this.network = this.irc_config.network || 'minisrv';
         this.server_start_time = Date.now();
         this.allowed_characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_[]{}\\|^-';
         this.irc_config = minisrv_config.config.irc || {};
+        this.servername = this.irc_config.server_hostname || 'irc.local';
+        this.network = this.irc_config.network || 'minisrv';
         this.oper_username = this.irc_config.oper_username || 'minisrv';
         this.oper_password = this.irc_config.oper_password || 'changeme573';
         this.oper_enabled = this.irc_config.oper_enabled || this.debug || false; // Default to off to prevent accidental use with default credentials
