@@ -2116,19 +2116,22 @@ class WTVIRC {
                         socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
                     } else {
                         // WHO for nickname
-                        let found = false;
-                        for (const [sock, nick] of this.nicknames.entries()) {
-                            if (nick.toLowerCase() === target.toLowerCase()) {
-                                found = true;
-                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} H :0 ${nick}\r\n`);
-                                break;
+                        if (target.includes('*') || target.includes('?')) {
+                            // Wildcard mask search for nicknames
+                            const maskRegex = new RegExp('^' + target.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+                            let found = false;
+                            for (const [sock, nick] of this.nicknames.entries()) {
+                                if (maskRegex.test(nick)) {
+                                    found = true;
+                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} H :0 ${nick}\r\n`);
+                                }
                             }
+                            if (!found) {
+                                socket.write(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);
+                            }
+                            socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
+                            break;
                         }
-                        if (!found) {
-                            socket.write(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);
-                        }                                    
-                        socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
-                        break;
                     }
                     break;
                 case 'PRIVMSG':
