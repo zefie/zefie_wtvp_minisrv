@@ -1662,7 +1662,7 @@ async function sendToClient(socket, headers_obj, data = null) {
 
     // send to client
     if (socket.res) {
-        var resCode = parseInt(headers_obj.Status.substr(0, 3));        
+        var resCode = parseInt(headers_obj.Status.substr(0, 3) || 500);        
         socket.res.writeHead(resCode, headers_obj);
         socket.res.end(data);
         if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Outgoing PC headers on " + socket.service_name + " socket ID", socket.id, headers_obj);
