@@ -93,6 +93,8 @@ class WTVIRC {
         this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_on_z || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
         this.clientpeak = 0;
         this.globalpeak = 0;
+        this.socketpeak = 0;
+        this.totalConnections = 0;
         this.supported_channel_modes = "Ibe,k,l,NOQRSTVZcimnprt";
         this.supported_user_modes = "BZciorswxz";
         this.supported_prefixes = ["ohv", "@%+"];
@@ -120,6 +122,7 @@ class WTVIRC {
         this.server = net.createServer((socket) => {            
             // Detect SSL handshake and wrap socket if needed
             socket.once('data', (firstChunk) => {
+                this.totalConnections++;
                 socket.removeAllListeners('data');
                 socket.pause();
                 socket.on('error', (err) => {
@@ -297,7 +300,9 @@ class WTVIRC {
                             console.log(`Server ${serverObj.name || key} matched with provided password`);
                         }
                         socket.write(`PASS ${serverObj.password}\r\n`);
-                        socket.is_srv_authorized = true;
+                        socket.is_srv_authorized = true;                        
+                        var totalSockets = this.clients.length + this.servers.size;
+                        this.socketpeak = Math.max(this.socketpeak, totalSockets);
                         return;
                     }
                 });
@@ -1887,6 +1892,8 @@ class WTVIRC {
                     }
                     if (!socket.registered && socket.nickname && socket.username) {
                         socket.registered = true;                        
+                        var totalSockets = this.clients.length + this.servers.size;
+                        this.socketpeak = Math.max(this.socketpeak, totalSockets);
                         this.usertimestamps.set(socket.nickname, this.getDate());
                         this.usersignontimestamps.set(new_nickname, socket.timestamp);
                         this.doLogin(socket.nickname, socket);
@@ -1905,6 +1912,8 @@ class WTVIRC {
                     this.userinfo.set(socket.nickname, socket.userinfo);
                     if (!socket.registered && socket.nickname && socket.username) {
                         socket.registered = true;
+                        var totalSockets = this.clients.length + this.servers.size;
+                        this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
                         this.usernames.set(socket.nickname, socket.username);
                         this.usertimestamps.set(socket.nickname, this.getDate());
                         this.usersignontimestamps.set(socket.nickname, socket.timestamp);
@@ -4409,13 +4418,21 @@ class WTVIRC {
         });        
         const serverCount = this.servers.size + 1; // Include this server
         socket.write(`:${this.servername} 251 ${nickname} :There are ${visibleClients.length} visible users and ${invisibleClients.length} invisible users on this server\r\n`);
-        socket.write(`:${this.servername} 252 ${nickname} ${operClients.length} :operator(s) online\r\n`);
-        socket.write(`:${this.servername} 253 ${nickname} ${this.channels.size} :channels formed\r\n`);
+        if (operClients.length > 0) {
+            socket.write(`:${this.servername} 252 ${nickname} ${operClients.length} :operator(s) online\r\n`);
+        }
+        if (this.channels.size > 0) {
+            socket.write(`:${this.servername} 253 ${nickname} ${this.channels.size} :channels formed\r\n`);
+        }
         socket.write(`:${this.servername} 255 ${nickname} :I have ${this.clients.length} clients and ${serverCount} servers\r\n`);
         socket.write(`:${this.servername} 265 ${nickname} :Current Local Users: ${this.clients.length}  Max: ${this.clientpeak}\r\n`);
         const globalUsers = this.countGlobalUsers();
         this.globalpeak = Math.max(this.globalpeak, this.countGlobalUsers());
+        var totalSockets = this.clients.length + this.servers.size;
+        this.socketpeak = Math.max(this.socketpeak, totalSockets);
+
         socket.write(`:${this.servername} 266 ${nickname} :Current Global Users: ${globalUsers}  Max: ${this.globalpeak}\r\n`);
+        socket.write(`:${this.servername} 250 ${nickname} :Highest connection count: ${this.socketpeak} (${this.clientpeak} clients) (${this.totalConnections} connections received)\r\n`);
         var usermodes = this.usermodes.get(nickname);
         if (!usermodes || usermodes === true) {
             usermodes = [];
