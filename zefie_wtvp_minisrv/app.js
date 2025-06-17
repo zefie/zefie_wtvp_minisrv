@@ -557,7 +557,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     if (minisrv_catchall) {
                         if (service_path_request_file == minisrv_catchall) {
                             request_is_async = true;
-                            var errpage = wtvshared.doErrorPage(401);
+                            var errpage = wtvshared.doErrorPage(401, null, null, pc_services);
                             sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
@@ -645,14 +645,14 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                 handlePHP(socket, request_headers, service_vault_file_path, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
                                 return;
                             } else if (service_vault_dir == vaults_to_scan[vaults_to_scan.length - 1]) {
-                                var errpage = wtvshared.doErrorPage(404);
+                                var errpage = wtvshared.doErrorPage(404, null, null, pc_services);
                                 sendToClient(socket, errpage[0], errpage[1]);
                                 return;    
                             }
                         }
                     } else {
                         // php is not enabled, don't expose source code
-                        var errpage = wtvshared.doErrorPage(403);
+                        var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
@@ -672,14 +672,14 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                 handleCGI(service_vault_file_path, service_vault_file_path, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
                                 return;
                             } else if (service_vault_dir == vaults_to_scan[vaults_to_scan.length - 1]) {
-                                var errpage = wtvshared.doErrorPage(404);
+                                var errpage = wtvshared.doErrorPage(404, null, null, pc_services);
                                 sendToClient(socket, errpage[0], errpage[1]);
                                 return;    
                             }
                         }
                     } else {
                         // php is not enabled, don't expose source code
-                        var errpage = wtvshared.doErrorPage(403);
+                        var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     }
@@ -729,7 +729,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                 if (!status) {
                                     if (line.match(/minisrv\_service\_file.*true/i)) {
                                         request_is_async = true;
-                                        var errpage = wtvshared.doErrorPage(403);
+                                        var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                         return;
                                     } else {
@@ -737,7 +737,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     }
                                 } else {
                                     request_is_async = true;
-                                    var errpage = wtvshared.doErrorPage(400);
+                                    var errpage = wtvshared.doErrorPage(400, null, null, pc_services);
                                     sendToClient(socket, errpage[0], errpage[1]);
                                     return;
                                 }
@@ -749,7 +749,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                 if (!status) {
                                     if (line.match(/^#!minisrv/i)) {
                                         request_is_async = true;
-                                        var errpage = wtvshared.doErrorPage(403);
+                                        var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                         return;
                                     } else {
@@ -757,7 +757,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                     }
                                 } else {
                                     request_is_async = true;
-                                    var errpage = wtvshared.doErrorPage(400);
+                                    var errpage = wtvshared.doErrorPage(400, null, null, pc_services);
                                     sendToClient(socket, errpage[0], errpage[1]);
                                     return;
                                 }
@@ -804,7 +804,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                             handlePHP(socket, request_headers, catchall_file, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
                                         } else {
                                             // php is not enabled, don't expose source code
-                                            var errpage = wtvshared.doErrorPage(403);
+                                            var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                                             sendToClient(socket, errpage[0], errpage[1]);
                                             return;
                                         }
@@ -816,7 +816,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                             handleCGI(catchall_file, catchall_file, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
                                         } else {
                                             // cgi is not enabled, don't expose source code
-                                            var errpage = wtvshared.doErrorPage(403);
+                                            var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                                             sendToClient(socket, errpage[0], errpage[1]);
                                             return;
                                         }
@@ -835,7 +835,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
             // either `request_is_async`, or `headers` and `data` MUST be defined by this point!
         });
     } catch (e) {
-        var errpage = wtvshared.doErrorPage(400);
+        var errpage = wtvshared.doErrorPage(400, null, null, pc_services);
         headers = errpage[0];
         data = errpage[1];
         if (pc_services) {
