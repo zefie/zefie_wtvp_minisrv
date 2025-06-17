@@ -18,7 +18,7 @@ class WTVIRC {
         * Basic IRCOp functionality is included.
         * hybridircd compatible server link protocol (tested with Anope IRC Services, and partially with hybridircd itself).
         * Channel modes are supported, including invite-only, topic protection, password protection, and user modes (op/halfop/voice), and more.
-        * SSL only channel mode +z is supported. As is usermode +Z (no DMs from non-SSL users)
+        * SSL only channel mode +Z is supported. As is usermode +Z (no DMs from non-SSL users)
         * 
         * TODO: k-line? other "lines"?
         * TODO: Test for crashes with arbitrary data, or malformed commands (especially SSL handshake, or server interface).
@@ -89,11 +89,11 @@ class WTVIRC {
         this.maxtargets = this.irc_config.max_targets || 4;
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
         this.allow_public_vhosts = this.irc_config.allow_public_vhosts || true; // If true, users can set their host to a virtual host that is not a real hostname or IP address, if false, only opers can.
-        this.kick_insecure_on_z = this.irc_config.kick_insecure_on_z || true; // If true, users without SSL connections will be kicked from a channel when +z is applied
+        this.kick_insecure_on_z = this.irc_config.kick_insecure_on_z || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
         this.clientpeak = 0;
         this.globalpeak = 0;
         this.caps = [
-            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=beI,k,l,itmnpcTVZRrNQO CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ohv)@%+ USERMODES=oxirzZws MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
+            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=beI,k,l,itmnpcTVZRrNQOZ CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ohv)@%+ USERMODES=oxirzZws MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
             `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I NETWORK=${this.network} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
         ];
     }
@@ -471,7 +471,10 @@ class WTVIRC {
                 }
                 this.hostnames.set(this.findUserByUniqueId(uniqueId), hostname);
                 targetSocket.host = hostname;
-                targetSocket.write(`:${this.servername} 396 ${targetSocket.nickname} ${targetSocket.host} :is now your displayed host\r\n`);
+                if (targetSocket.client_caps && targetSocket.client_caps.includes('CHGHOST')) {
+                    targetSocket.write(`:${targetSocket.nickname}!${targetSocket.username}@${targetSocket.host} CHGHOST ${targetSocket.username} ${targetSocket.host}\r\n`);
+                }
+                targetSocket.write(`:${this.servername} 396 ${targetSocket.nickname} ${targetSocket.host} :is now your visible host\r\n`);
                 this.broadcastToAllServers(`:${socket.servername} SVSHOST ${uniqueId} ${hostname}\r\n`, socket);
                 break;
             case 'SVSNICK':
@@ -498,7 +501,11 @@ class WTVIRC {
                 }
                 var channel = parts[2];
                 var modes = parts[3];
-                var uniqueId = parts[4].slice(1); 
+                var uniqueId = parts[4].slice(1);
+                if (!uniqueId) {
+                    this.broadcastToAllServers(`:${socket.servername} SJOIN ${this.getDate()} ${channel} +${modes} :\r\n`, socket);
+                    break;
+                }
                 if (['@', '%', '+'].includes(uniqueId[0])) {
                     uniqueId = uniqueId.slice(1);
                 }
@@ -1427,9 +1434,21 @@ class WTVIRC {
                 case 'CAP':
                     // Minimal CAP support: just acknowledge LS
                     if (params[0] && params[0].toUpperCase() === 'LS') {
-                        socket.write('CAP * LS :\r\n');
+                        socket.write('CAP * LS :chghost\r\n');
                     }
-                    break;
+                    if (params[0] && params[0].toUpperCase() === 'REQ') {
+                        socket.client_caps = params.slice(1).map(cap => {
+                            if (cap.startsWith(':')) {
+                                return cap.slice(1).toUpperCase();
+                            }
+                            return cap.toUpperCase();
+                        });
+                        socket.write(`CAP * ACK :${socket.client_caps.join(' ')}\r\n`);
+                        if (this.debug) {
+                            console.log(`Client capabilities for ${socket.uniqueId}: ${socket.client_caps.join(', ')}`);
+                        }
+                    }                    
+                    break;                
                 case 'MODE':
                     if (!socket.registered) {
                         socket.write(`:${this.servername} 451 ${socket.nickname} :You have not registered\r\n`);
@@ -1461,7 +1480,7 @@ class WTVIRC {
                     const mode = params[1];
                     if (isUser) {
                         if (!this.isIRCOp(socket.nickname) && channel !== socket.nickname) {
-                            socket.write(`:${this.servername} 501 ${socket.nickname} :Cannot set modes on other users\r\n`);
+                            socket.write(`:${this.servername} 502 ${socket.nickname} :Cannot set modes on other users\r\n`);
                         } else {
 
                             var usermodes = this.usermodes.get(socket.nickname) || [];
@@ -1480,13 +1499,19 @@ class WTVIRC {
                                 this.usermodes.set(socket.nickname, [...usermodes, 'x']);
                                 socket.host = this.filterHostname(socket, socket.realhost);
                                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +x\r\n`);
-                                socket.write(`:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your displayed host\r\n`);
+                                if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
+                                    socket.write(`:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
+                                }
+                                socket.write(`:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your visible host\r\n`);
                                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +x\r\n`);
                             } else if (mode.startsWith('-x')) {
                                 this.usermodes.set(socket.nickname, (usermodes).filter(m => m !== 'x'));
                                 socket.host = socket.realhost
                                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -x\r\n`);
-                                socket.write(`:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your displayed host\r\n`);
+                                if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
+                                    socket.write(`:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
+                                }
+                                socket.write(`:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your visible host\r\n`);
                                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -x\r\n`);
                             } else if (mode.startsWith('+w')) {
                                 this.usermodes.set(socket.nickname, [...usermodes, 'w']);
@@ -1545,7 +1570,7 @@ class WTVIRC {
                         }
                         let validPrefix = this.channelprefixes.some(prefix => channel.startsWith(prefix));
                         if (!validPrefix) {
-                            socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
+                            socket.write(`:${this.servername} 476 ${socket.nickname} ${channel} :Bad channel mask\r\n`);
                             break;
                         }
                         if (!this.channels.has(channel)) {
@@ -1710,14 +1735,14 @@ class WTVIRC {
                         // Simulate a JOIN command for each channel
                         for (let i = 0; i < ch.length; i++) {
                             if (i == 0 && !this.channelprefixes.includes(ch[i])) {
-                                socket.write(`:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
+                                socket.write(`:${this.servername} 476 ${socket.nickname} ${ch} :Bad channel mask\r\n`);
                                 return;
                             } 
                             if (i == 0) {
                                 continue;
                             }
                             if (!this.allowed_characters.includes(ch[i])) {
-                                socket.write(`:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
+                                socket.write(`:${this.servername} 476 ${socket.nickname} ${ch} :Bad channel mask\r\n`);
                                 return;
                             }
                         }
@@ -1819,7 +1844,7 @@ class WTVIRC {
                             if (this.channelmodes.has(ch) && this.channelmodes.get(ch).includes('Z')) {
                                 // Channel is restricted to users with a secure connection (+Z)
                                 if (!socket.secure) {
-                                    socket.write(`:${this.servername} 474 ${socket.nickname} ${ch} :Cannot join channel (+Z)\r\n`);
+                                    socket.write(`:${this.servername} 468 ${socket.nickname} ${ch} :Cannot join channel (+Z)\r\n`);
                                     continue; // Skip joining this channel
                                 }
                             }
@@ -2493,6 +2518,9 @@ class WTVIRC {
                         }
                         // Set the new VHost for the socket
                         socket.host = newVHost;
+                        if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
+                            socket.write(`:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
+                        }                        
                         socket.write(`:${this.servername} 396 ${socket.nickname} :Your VHost has been changed to ${socket.host}\r\n`);
                     });
                     break;
@@ -2514,6 +2542,8 @@ class WTVIRC {
             this.channelexemptions.delete(channel);
             this.channelinvites.delete(channel);
             this.channelmodes.delete(channel);
+            this.channellimits.delete(channel);
+            this.channelkeys.delete(channel);
             this.channeltimestamps.delete(channel);
             if (this.debug) {
                 console.log(`Channel ${channel} deleted`);
@@ -3056,7 +3086,7 @@ class WTVIRC {
             }
             const key = params[2];
             if (key.length < 1 || key.length > this.max_keylen) {
-                socket.write(`:${this.servername} 501 ${nickname} :Invalid channel key\r\n`);
+                socket.write(`:${this.servername} 525 ${nickname} :Invalid channel key\r\n`);
                 return;
             }
             var chan_modes = this.channelmodes.get(channel);
@@ -3448,7 +3478,7 @@ class WTVIRC {
                 chan_modes = [];
             }
             if (!socket.secure) {
-                socket.write(`:${this.servername} 484 ${nickname} ${channel} :You must be connected via SSL/TLS to set +z\r\n`);
+                socket.write(`:${this.servername} 484 ${nickname} ${channel} :You must be connected via SSL/TLS to set +Z\r\n`);
                 return;
             }
             if (!chan_modes.includes('Z')) {
@@ -3684,7 +3714,7 @@ class WTVIRC {
         socket.write(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
         socket.write(`:${this.servername} 002 ${nickname} :Your host is ${this.servername}, running version minisrv ${this.minisrv_config.version}\r\n`);
         socket.write(`:${this.servername} 003 ${nickname} :This server is ready to accept commands\r\n`);
-        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} oxizrZws obtkmeZIlhvTVROQrnc beIklohv\r\n`);
+        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} oxizrZws obtkmeZIlhvTVROQrncZ beIklohv\r\n`);
         for (const caps of this.caps) {
             socket.write(`:${this.servername} 005 ${caps}\r\n`);
         }   
@@ -3735,7 +3765,10 @@ class WTVIRC {
         this.getHostname(socket, (hostname) => {
             socket.host = this.filterHostname(socket, hostname);
             socket.realhost = hostname;
-            socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your displayed host\r\n`);
+            if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
+                socket.write(`:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
+            }
+            socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your visible host\r\n`);
         });        
     }
 }
