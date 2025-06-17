@@ -3790,6 +3790,26 @@ class WTVIRC {
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -c\r\n`);
             this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -c\r\n`);
             return;
+        } else if (mode.startsWith('+C')) {
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            if (!chan_modes.includes('C')) {
+                this.channelmodes.set(channel, [...chan_modes, 'C']);
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +C\r\n`);
+                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +C\r\n`);
+            }
+            return;
+        } else if (mode.startsWith('-C')) {
+            var chan_modes = this.channelmodes.get(channel);
+            if (!chan_modes || chan_modes === true) {
+                chan_modes = [];
+            }
+            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'C'));
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -C\r\n`);
+            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -C\r\n`);
+            return;
         } else if (mode.startsWith('+R')) {
             var chan_modes = this.channelmodes.get(channel);
             if (!chan_modes || chan_modes === true) {
