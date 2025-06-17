@@ -2097,16 +2097,8 @@ class WTVIRC {
                         this.broadcastToAllServers(`:${this.serverId} SJOIN ${this.getDate()} ${ch} +${modes.join('')} :${prefix}${socket.uniqueId}\r\n`);
                         if (this.channeltopics.has(ch)) {
                             const topic = this.channeltopics.get(ch);
-                            if (this.clientIsWebTV(socket)) {
-                                await this.sendThrottled(socket, [`:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`]);
-                            } else {
+                            if (topic) {
                                 socket.write(`:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`);
-                            }
-                        } else {
-                            if (this.clientIsWebTV(socket)) {
-                                await this.sendThrottled(socket, [`:${this.servername} 331 ${socket.nickname} ${ch} :\r\n`]);
-                            } else {
-                                socket.write(`:${this.servername} 331 ${socket.nickname} ${ch} :\r\n`);
                             }
                         }
                         var users = this.getUsersInChannel(ch);
@@ -2140,11 +2132,7 @@ class WTVIRC {
                                 });
                                 socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${userHosts.join(' ')}\r\n`);
                             } else {
-                                if (this.clientIsWebTV(socket)) {
-                                    await this.sendThrottled(socket, [`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`]);
-                                } else {
-                                    socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
-                                }
+                                socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
                             }
                         }
                         socket.write(`:${this.servername} 366 ${socket.nickname} ${ch} :End of /NAMES list\r\n`);
