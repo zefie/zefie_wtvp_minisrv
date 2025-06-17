@@ -2439,8 +2439,10 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} WHOIS :Not enough parameters\r\n`);
                         break;
                     }
-                    var whoisNick = this.findUser(params[0]);
-                    if (whoisNick) {
+                    var whoisNick = params[0];
+                    var nickCheck = this.findUser(whoisNick);
+                    if (nickCheck) {
+                        whoisNick = nickCheck;
                         socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
                         var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s)=== whoisNick);
                         const whois_username = this.usernames.get(whoisNick);
