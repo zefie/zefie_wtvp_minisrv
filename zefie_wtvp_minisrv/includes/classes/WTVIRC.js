@@ -185,6 +185,7 @@ class WTVIRC {
                         secureSocket.is_srv_authorized = false;
                         secureSocket.signedoff = false;
                         secureSocket.client_version = '';
+                        secureSocket.client_caps = [];
                         secureSocket.realhost = socket.remoteAddress
                         secureSocket.host = this.filterHostname(secureSocket, socket.remoteAddress);
                         this.getHostname(secureSocket, (hostname) => {
@@ -232,6 +233,7 @@ class WTVIRC {
                     socket.signedoff = false;
                     socket.realhost = socket.remoteAddress;
                     socket.client_version = '';
+                    socket.client_caps = [];
                     socket.host = this.filterHostname(socket, socket.remoteAddress);
                     this.getHostname(socket, (hostname) => {
                         socket.realhost = hostname;
@@ -1151,7 +1153,7 @@ class WTVIRC {
                             if (this.clientIsWebTV(targetSocket)) {
                                 srvCommand = 'PRIVMSG';
                             }
-                            await this.sendThrottled(targetSocket, [`:${nickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetNickname} :${message}`], 30);                            
+                            await this.sendThrottled(targetSocket, [`:${nickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetNickname} :${message}`], 30);
                             this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                             break;
                         case "WHOIS":
@@ -2095,9 +2097,17 @@ class WTVIRC {
                         this.broadcastToAllServers(`:${this.serverId} SJOIN ${this.getDate()} ${ch} +${modes.join('')} :${prefix}${socket.uniqueId}\r\n`);
                         if (this.channeltopics.has(ch)) {
                             const topic = this.channeltopics.get(ch);
-                            socket.write(`:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`);
+                            if (this.clientIsWebTV(socket)) {
+                                await this.sendThrottled(socket, [`:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`]);
+                            } else {
+                                socket.write(`:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`);
+                            }
                         } else {
-                            socket.write(`:${this.servername} 331 ${socket.nickname} ${ch} :No topic is set\r\n`);
+                            if (this.clientIsWebTV(socket)) {
+                                await this.sendThrottled(socket, [`:${this.servername} 331 ${socket.nickname} ${ch} :\r\n`]);
+                            } else {
+                                socket.write(`:${this.servername} 331 ${socket.nickname} ${ch} :\r\n`);
+                            }
                         }
                         var users = this.getUsersInChannel(ch);
                         if (users.length > 0) {
@@ -2130,7 +2140,11 @@ class WTVIRC {
                                 });
                                 socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${userHosts.join(' ')}\r\n`);
                             } else {
-                                socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
+                                if (this.clientIsWebTV(socket)) {
+                                    await this.sendThrottled(socket, [`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`]);
+                                } else {
+                                    socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
+                                }
                             }
                         }
                         socket.write(`:${this.servername} 366 ${socket.nickname} ${ch} :End of /NAMES list\r\n`);
@@ -2297,7 +2311,7 @@ class WTVIRC {
                             }
                         }
                         const users = this.getUsersInChannel(channel);
-                        const topic = this.channeltopics.get(channel) || 'No topic is set';
+                        const topic = this.channeltopics.get(channel) || '';
                         socket.write(`:${this.servername} 322 ${socket.nickname} ${channel} ${users.length} :${topic}\r\n`);
                     }
                     socket.write(`:${this.servername} 323 ${socket.nickname} :End of /LIST\r\n`);
@@ -3189,7 +3203,7 @@ class WTVIRC {
             this.channelops.set(channel, new Set([creator]));
             this.channelhalfops.set(channel, new Set());
             this.channelvoices.set(channel, new Set());
-            this.channeltopics.set(channel, 'No topic set');
+            this.channeltopics.set(channel, '');
             this.channelbans.set(channel, new Set());
             this.channelexemptions.set(channel, new Set());
             this.channelinvites.set(channel, new Set());
