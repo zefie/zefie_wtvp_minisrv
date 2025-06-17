@@ -93,10 +93,11 @@ class WTVIRC {
         this.clientpeak = 0;
         this.globalpeak = 0;
         this.supported_channel_modes = "Ibe,k,l,NOQRTVZcimnprt";
-        this.supported_user_modes = "Ziorswxz";
+        this.supported_user_modes = "BZiorswxz";
         this.supported_prefixes = ["ohv", "@%+"];
+        this.supported_capabilities = ['TBURST', 'EOB', 'IE', 'EX'];
         this.caps = [
-            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=${this.supported_channel_modes} CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(${this.supported_prefixes[0]})${this.supported_prefixes[1]} USERMODES=${this.supported_user_modes} MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
+            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 BOT=B CHANMODES=${this.supported_channel_modes} CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(${this.supported_prefixes[0]})${this.supported_prefixes[1]} USERMODES=${this.supported_user_modes} MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
             `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I NETWORK=${this.network} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
         ];
     }
@@ -306,11 +307,19 @@ class WTVIRC {
                     console.warn('Invalid CAPAB command from server');
                     break;
                 }
-                const capabilities = parts.slice(1).join(' ').split(',');
+                const capabilities = parts.slice(1);
                 if (this.debug) {
-                    console.log(`Server capabilities: ${capabilities.join(', ')}`);
+                    console.log(`Server capabilities: ${capabilities.join(' ')}`);
+                }                
+                var output_reply = [];
+                for (const cap of capabilities) {
+                    if (this.supported_capabilities.includes(cap)) {
+                        output_reply.push(cap);
+                    } else {
+                        console.warn(`Unsupported capability: ${cap}`);
+                    }
                 }
-                socket.write(`CAP * ACK :${capabilities.join(' ')}\r\n`);
+                socket.write(`CAPAB :${output_reply.join(' ')}\r\n`);
                 break;
             case 'SERVER':
                 if (!socket.is_srv_authorized) {
@@ -1540,6 +1549,14 @@ class WTVIRC {
                                 this.usermodes.set(socket.nickname, (usermodes).filter(m => m !== 's'));
                                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -s\r\n`);
                                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -s\r\n`);
+                            } else if (mode.startsWith('+B')) {
+                                this.usermodes.set(socket.nickname, [...usermodes, 'B']);
+                                socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +B\r\n`);
+                                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +B\r\n`);
+                            } else if (mode.startsWith('-B')) {
+                                this.usermodes.set(socket.nickname, (usermodes).filter(m => m !== 'B'));
+                                socket.write(`:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -B\r\n`);
+                                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -B\r\n`);                                
                             } else if (mode.startsWith('+z') || mode.startsWith('-z')) {
                                 socket.write(`:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :is set by the server and cannot be changed\r\n`);
                             } else if (mode.startsWith('+r') || mode.startsWith('-r')) {
@@ -2380,7 +2397,10 @@ class WTVIRC {
                         }
                         if (usermodes && usermodes.includes('r')) {
                             socket.write(`:${this.servername} 307 ${socket.nickname} ${whoisNick} :is a registered nick\r\n`);
-                        }                        
+                        }
+                        if (usermodes && usermodes.includes('B')) {
+                            socket.write(`:${this.servername} 320 ${socket.nickname} ${whoisNick} :is a bot\r\n`);
+                        }
                         var now = this.getDate();
                         var userTimestamp = this.usertimestamps.get(whoisNick) || now;
                         var idleTime = now - userTimestamp;
@@ -3751,7 +3771,8 @@ class WTVIRC {
             modesToSort.sort();
             var sortedModesWithParams = modesToSort.join('');
         }
-        var sortedChannelModes = sortModesAlphaCapsFirst(this.supported_channel_modes).replace(/,/g, '');
+        var channelModes = this.supported_channel_modes.split(',').join('') + this.supported_prefixes[0];
+        var sortedChannelModes = sortModesAlphaCapsFirst(channelModes).replace(/,/g, '');
         var sortedUserModes = sortModesAlphaCapsFirst(this.supported_user_modes);
         socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} ${sortedUserModes} ${sortedChannelModes} ${sortedModesWithParams}\r\n`);
         for (const caps of this.caps) {
