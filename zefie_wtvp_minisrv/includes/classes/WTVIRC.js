@@ -182,6 +182,7 @@ class WTVIRC {
                         secureSocket.isserver = false;
                         secureSocket.is_srv_authorized = false;
                         secureSocket.signedoff = false;
+                        secureSocket.client_version = '';
                         secureSocket.realhost = socket.remoteAddress
                         secureSocket.host = this.filterHostname(secureSocket, socket.remoteAddress);
                         this.getHostname(secureSocket, (hostname) => {
@@ -228,6 +229,7 @@ class WTVIRC {
                     socket.is_srv_authorized = false;
                     socket.signedoff = false;
                     socket.realhost = socket.remoteAddress;
+                    socket.client_version = '';
                     socket.host = this.filterHostname(socket, socket.remoteAddress);
                     this.getHostname(socket, (hostname) => {
                         socket.realhost = hostname;
@@ -1064,6 +1066,9 @@ class WTVIRC {
                             var targetNickname = this.getUsernameFromUniqueId(targetUniqueId); 
                             if (message.startsWith(':')) {
                                 message = message.slice(1); // Remove leading ':'
+                            }
+                            if (this.clientIsWebTV(targetSocket)) {
+                                srvCommand = 'PRIVMSG';
                             }
                             await this.sendThrottled(targetSocket, [`:${sourceNickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetNickname} :${message}`], 30);                            
                             this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
@@ -2330,6 +2335,14 @@ class WTVIRC {
                         }
                         for (const t of targets) {
                             let isChan = false;
+                            if (t === this.servername) { 
+                                // client responding to a system message
+                                var msg = line.slice(line.indexOf(':', 1) + 1);
+                                if (msg.startsWith('\x01VERSION')) {
+                                    socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
+                                    break;
+                                }
+                            }
                             for (const prefix of this.channelprefixes) {
                                 if (t.startsWith(prefix)) {
                                     isChan = true;
@@ -3894,6 +3907,13 @@ class WTVIRC {
         return null;
     }
 
+    clientIsWebTV(socket) {
+        if (socket.client_version.includes('WebTV')) {
+            return true;
+        }
+        return false;
+    }
+
 
     doLogin(nickname, socket) {         
         for (const [srvSocket, serverName] of this.servers.entries()) {
@@ -4006,7 +4026,8 @@ class WTVIRC {
                 socket.write(`:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
             }
             socket.write(`:${this.servername} 396 ${nickname} ${socket.host} :is now your visible host\r\n`);
-        });        
+        });
+        socket.write(`:${this.servername} PRIVMSG ${socket.nickname} :\x01VERSION\x01\r\n`);
     }
 }
 
