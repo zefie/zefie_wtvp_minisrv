@@ -924,6 +924,19 @@ class WTVIRC {
                                                     this.channelkeys.delete(targetUniqueId);
                                                 }
                                                 this.channelmodes.set(targetUniqueId, chan_modes);
+                                            } else if (flags[i] === '+Z' && this.kick_insecure_on_z) {
+                                                // Kick users who do not have user mode +z
+                                                const usersInChannel = this.channels.get(targetUniqueId) || new Set();
+                                                for (const user of usersInChannel) {
+                                                    const userModes = this.usermodes.get(user) || [];
+                                                    const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                                                    if (userSocket && !userModes.includes('z')) {
+                                                        userSocket.write(`:${nickname}!${username}@${socket.host} KICK ${targetUniqueId} ${userSocket.nickname} :Channel is now +Z (SSL-only, +z usermode required)\r\n`);
+                                                        this.broadcastChannel(targetUniqueId, `:${nickname}!${username}@${socket.host} KICK ${targetUniqueId} ${userSocket.nickname} :Channel is now +Z (SSL-only, +z usermode required)\r\n`, userSocket);
+                                                        this.broadcastToAllServers(`:${socket.uniqueId} KICK ${targetUniqueId} ${userSocket.uniqueId} :Channel is now +Z (SSL-only, +z usermode required)\r\n`);
+                                                        this.channels.get(targetUniqueId).delete(user);
+                                                    }
+                                                }
                                             }
                                             paramIndex++;
                                         }
