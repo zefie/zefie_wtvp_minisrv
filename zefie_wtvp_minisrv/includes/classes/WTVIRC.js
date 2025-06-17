@@ -1893,9 +1893,11 @@ class WTVIRC {
                     if (!socket.registered && socket.nickname && socket.username) {
                         socket.registered = true;                        
                         var totalSockets = this.clients.length + this.servers.size;
-                        this.socketpeak = Math.max(this.socketpeak, totalSockets);
+                        var totalSockets = this.clients.length + this.servers.size;
+                        this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
+                        this.usernames.set(socket.nickname, socket.username);
                         this.usertimestamps.set(socket.nickname, this.getDate());
-                        this.usersignontimestamps.set(new_nickname, socket.timestamp);
+                        this.usersignontimestamps.set(socket.nickname, socket.timestamp);
                         this.doLogin(socket.nickname, socket);
                     }
                     break;
@@ -1906,10 +1908,6 @@ class WTVIRC {
                         break;
                     }
                     socket.userinfo = params.slice(3).join(' ');
-                    if (socket.userinfo && socket.userinfo.startsWith(':')) {
-                        socket.userinfo = socket.userinfo.slice(1);
-                    }
-                    this.userinfo.set(socket.nickname, socket.userinfo);
                     if (!socket.registered && socket.nickname && socket.username) {
                         socket.registered = true;
                         var totalSockets = this.clients.length + this.servers.size;
@@ -2363,7 +2361,7 @@ class WTVIRC {
                                     cleanUser = cleanUser.slice(1);
                                 }
                                 var hostname = this.hostnames.get(cleanUser);
-                                var username = this.usernames.get(cleanUser);
+                                var username = this.usernames.get(cleanUser) || cleanUser;
                                 var whoisSocket = Array.from(this.nicknames.keys()).find(
                                     s => this.nicknames.get(s).toLowerCase() === cleanUser.toLowerCase()
                                 );
@@ -2391,9 +2389,10 @@ class WTVIRC {
                                 } else if (chanvoices.has(cleanUser)) {
                                     prefix = '+';
                                 }
-                                var userinfo = this.userinfo.get(cleanUser) || 'unknown';
+                                var userinfo = this.userinfo.get(cleanUser) || cleanUser;
                                 var flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(whoisSocket.secure) ? 'z' : ''}`
-                                socket.write(`:${this.servername} 352 ${socket.nickname} ${target} ${username} ${hostname} ${this.servername} ${cleanUser} ${flags} :0 ${userinfo}\r\n`);
+                                var secondsIdle = (this.getDate() - this.usertimestamps.get(cleanUser));
+                                socket.write(`:${this.servername} 352 ${socket.nickname} ${target} ${username} ${hostname} ${this.servername} ${cleanUser} ${flags} 0 ${secondsIdle} 0 :${userinfo}\r\n`);
                             }
                         }
                         socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
