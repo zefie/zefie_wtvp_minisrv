@@ -4321,9 +4321,9 @@ class WTVIRC {
         for (const [index, socket] of this.clients.entries()) {
             if (socket !== clientSocket && this.isSpyingOnConnections(socket.nickname)) {
                 if (quitMsg) {
-                    this.sendWebTVNoticeTo(socket, `*** Notice --- Client exiting: ${clientSocket.nickname} (${clientSocket.username}!@${clientSocket.host}) [${clientSocket.realhost}] [${quitMsg}]`);
+                    this.sendWebTVNoticeTo(socket, `*** Notice --- Client exiting: ${clientSocket.nickname} (${clientSocket.username}@${clientSocket.host}) [${clientSocket.realhost}] [${quitMsg}]`);
                 } else {
-                    this.sendWebTVNoticeTo(socket, `*** Notice --- Client connecting: ${clientSocket.nickname} (${clientSocket.username}!@${clientSocket.host}) [${clientSocket.realhost} {users} [${clientSocket.userinfo}] <${clientSocket.uniqueId}>`);
+                    this.sendWebTVNoticeTo(socket, `*** Notice --- Client connecting: ${clientSocket.nickname} (${clientSocket.username}@${clientSocket.host}) [${clientSocket.realhost} {users} [${clientSocket.userinfo}] <${clientSocket.uniqueId}>`);
                 }
             }
         } 
