@@ -90,7 +90,7 @@ class WTVIRC {
         this.enable_eval = this.debug || false; // Enable eval in debug mode only
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
         this.allow_public_vhosts = this.irc_config.allow_public_vhosts || true; // If true, users can set their host to a virtual host that is not a real hostname or IP address, if false, only opers can.
-        this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_on_z || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
+        this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_users_on_secure || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
         this.clientpeak = 0;
         this.globalpeak = 0;
         this.socketpeak = 0;
@@ -2145,8 +2145,6 @@ class WTVIRC {
                             }
                         }
                         socket.write(`:${this.servername} 366 ${socket.nickname} ${ch} :End of /NAMES list\r\n`);
-                        const ops = this.channelops.get(ch) || new Set();
-                        const halfops = this.channelhalfops.get(ch) || new Set();
                         if (this.isReservedChannel(ch)) {
                             if (this.checkIfReservedChannelOp(socket, ch)) {
                                 if (!this.channelops.has(ch) || this.channelops.get(ch) === true) {
@@ -2171,14 +2169,24 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} NAMES :Not enough parameters\r\n`);
                         break;
                     }
-                    channel = params[0];
-                    if (!this.channels.has(channel)) {
+                    channel = this.findChannel(params[0]);
+                    if (!channel || !this.channels.has(channel)) {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                         break;
                     }
                     var users = this.getUsersInChannel(channel);
                     if (users.length > 0) {
-                        socket.write(`:${this.servername} 353 ${socket.nickname} = ${channel} :${users.join(' ')}\r\n`);
+                        if (socket.client_caps.includes('userhost-in-names')) {
+                            const userHosts = users.map(user => {
+                                var nick = this.findUser(user.replace(/^[@%+]/, ''));
+                                var username = this.usernames.get(nick) || 'unknown';
+                                var host = this.hostnames.get(nick) || 'unknown';
+                                return `${user}!${username}@${host}`;
+                            });
+                            socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${userHosts.join(' ')}\r\n`);
+                        } else {
+                            socket.write(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
+                        }
                     }
                     socket.write(`:${this.servername} 366 ${socket.nickname} ${channel} :End of /NAMES list\r\n`);
                     break;
@@ -2355,6 +2363,7 @@ class WTVIRC {
                                     cleanUser = cleanUser.slice(1);
                                 }
                                 var hostname = this.hostnames.get(cleanUser);
+                                var username = this.usernames.get(cleanUser);
                                 var whoisSocket = Array.from(this.nicknames.keys()).find(
                                     s => this.nicknames.get(s).toLowerCase() === cleanUser.toLowerCase()
                                 );
@@ -2383,7 +2392,8 @@ class WTVIRC {
                                     prefix = '+';
                                 }
                                 var userinfo = this.userinfo.get(cleanUser) || 'unknown';
-                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${prefix}${cleanUser} ${hostname} ${this.servername} ${cleanUser} ${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(whoisSocket.secure) ? 'z' : ''} :0 ${userinfo}\r\n`);
+                                var flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(whoisSocket.secure) ? 'z' : ''}`
+                                socket.write(`:${this.servername} 352 ${socket.nickname} ${target} ${username} ${hostname} ${this.servername} ${cleanUser} ${flags} :0 ${userinfo}\r\n`);
                             }
                         }
                         socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
@@ -2569,6 +2579,9 @@ class WTVIRC {
                                 var msg = line.slice(line.indexOf(':', 1) + 1);
                                 if (msg.startsWith('\x01VERSION')) {
                                     socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
+                                    if (this.clientIsWebTV(socket)) {
+                                        this.sendWebTVNoticeTo(socket, "Welcome, WebTV user! You are now connected to the server.");
+                                    }
                                     break;
                                 }
                                 break;
