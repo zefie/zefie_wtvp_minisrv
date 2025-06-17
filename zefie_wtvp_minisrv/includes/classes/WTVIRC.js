@@ -656,28 +656,36 @@ class WTVIRC {
                 targetSocket.write(`:${socket.serverinfo.name} ${numericCode} ${targetID} :${numericMessage}\r\n`);
                 break;
             default:
+                if (!socket.is_srv_authorized) {
+                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                    return;
+                }
                 if (command.startsWith(':')) {
                     // part out the line to "sourceUniqueId command targetUniqueId :message"
                     var sourceUniqueId = parts[0].slice(1); // Remove the leading ':'
+                    var nickname = this.findUserByUniqueId(sourceUniqueId);
+                    if (!nickname) {
+                        console.warn(`No user found for uniqueID ${sourceUniqueId}`);
+                        break;
+                    }
                     var srvCommand = parts[1];
                     switch (srvCommand) {
                         case 'QUIT':
-                            var nick_name = this.findUserByUniqueId(sourceUniqueId);
-                            var user_name = this.usernames.get(nick_name) || nick_name;
+                            var user_name = this.usernames.get(nickname) || nickname;
                             var message = parts.slice(2).join(' ').slice(1); // Remove leading ':'
                             for (const [channel, users] of this.channels.entries()) {
                                 if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set) {
-                                    this.channelops.get(channel).delete(nick_name);
+                                    this.channelops.get(channel).delete(nickname);
                                 }
                                 if (this.channelhalfops.has(channel) && this.channelhalfops.get(channel) instanceof Set) {
-                                    this.channelhalfops.get(channel).delete(nick_name);
+                                    this.channelhalfops.get(channel).delete(nickname);
                                 }
                                 if (this.channelvoices.has(channel) && this.channelvoices.get(channel) instanceof Set) {
-                                    this.channelvoices.get(channel).delete(nick_name);
+                                    this.channelvoices.get(channel).delete(nickname);
                                 }
 
-                                if (users.has(nick_name)) {
-                                    this.broadcastChannel(channel, `:${nick_name}!${user_name}@${this.servername} QUIT :${message}\r\n`);
+                                if (users.has(nickname)) {
+                                    this.broadcastChannel(channel, `:${nickname}!${user_name}@${this.servername} QUIT :${message}\r\n`);
                                 }
                                 if (this.channels.has(channel) && this.channels.get(channel).size === 0) {
                                     this.deleteChannel(channel);
@@ -690,10 +698,10 @@ class WTVIRC {
                                 serverUsers.delete(nickToRemove);
                                 this.serverusers.set(socket, serverUsers);
                             }
-                            this.usermodes.delete(nick_name);
-                            this.usernames.delete(nick_name);
-                            this.uniqueids.delete(nick_name);
-                            this.broadcastToAllServers(`:${nick_name}!${user_name}@${this.servername} QUIT :${message}\r\n`, socket);
+                            this.usermodes.delete(nickname);
+                            this.usernames.delete(nickname);
+                            this.uniqueids.delete(nickname);
+                            this.broadcastToAllServers(`:${nickname}!${user_name}@${this.servername} QUIT :${message}\r\n`, socket);
                             break;
                         case 'JOIN':
                             if (!socket.is_srv_authorized) {
@@ -709,7 +717,6 @@ class WTVIRC {
                                 console.warn(`No socket found for source unique ID ${sourceUniqueId}`);
                                 break;
                             }
-                            var nickname = this.findUserByUniqueId(sourceUniqueId);
                             var username = this.usernames.get(nickname) || nickname;
                             if (!this.channels.get(channel).has(nickname)) {
                                 this.channels.get(channel).add(nickname);
@@ -723,7 +730,6 @@ class WTVIRC {
                                 return;
                             }
                             var channel = parts[2];
-                            var nickname = this.findUserByUniqueId(sourceUniqueId);
                             if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set) {
                                 this.channelops.get(channel).delete(nickname);
                             }
@@ -769,7 +775,6 @@ class WTVIRC {
                                 this.createChannel(channel);
                             }
                             this.channeltopics.set(channel, topic);
-                            var nickname = this.findUserByUniqueId(sourceUniqueId);
                             this.broadcastChannel(channel, `:${nickname} TOPIC ${channel} :${topic}\r\n`);
                             this.broadcastToAllServers(`:${sourceUniqueId} TBURST ${channel} :${topic}\r\n`, socket);
                             break;
@@ -785,11 +790,10 @@ class WTVIRC {
                             }
                             var targetUniqueId = parts[2];
                             var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            var sourceNickname = this.findUserByUniqueId(sourceUniqueId);
                             var targetNickname = this.findUserByUniqueId(targetUniqueId);
-                            var sourceUsername = this.usernames.get(sourceNickname) || sourceNickname;
-                            targetSocket.write(`:${sourceNickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${parts.slice(3).join(' ')}\r\n`);
-                            this.broadcastUser(targetNickname, `:${sourceNickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${parts.slice(3).join(' ')}\r\n`, targetSocket);
+                            var sourceUsername = this.usernames.get(nickname) || nickname;
+                            targetSocket.write(`:${nickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${parts.slice(3).join(' ')}\r\n`);
+                            this.broadcastUser(targetNickname, `:${nickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${parts.slice(3).join(' ')}\r\n`, targetSocket);
                             this.broadcastToAllServers(`:${sourceUniqueId} KILL ${targetUniqueId} :${parts.slice(3).join(' ')}\r\n`, socket);
                             this.terminateSession(targetSocket, true);
                             break;
@@ -802,7 +806,6 @@ class WTVIRC {
                             if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
                                 // It's a channel, broadcast to all users in the channel
                                 if (this.channels.has(targetUniqueId)) {
-                                    var nickname = this.findUserByUniqueId(sourceUniqueId);
                                     var username = this.usernames.get(nickname) || nickname;
                                     var hostname = socket.serverinfo.name;
 
@@ -1042,7 +1045,6 @@ class WTVIRC {
                                 this.createChannel(channel);
                             }
                             this.channeltopics.set(channel, topic);
-                            var nickname = this.findUserByUniqueId(sourceUniqueId);
                             var username = this.usernames.get(nickname) || nickname;
                             var hostname = this.hostnames.get(nickname) || '';
                             this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} TOPIC ${channel} :${topic}\r\n`, targetSocket);
@@ -1064,8 +1066,7 @@ class WTVIRC {
                                 console.warn(`No socket found for source unique ID ${sourceUniqueId}`);
                                 break;
                             }
-                            var sourceNickname = this.getUsernameFromUniqueId(sourceUniqueId);
-                            var sourceUsername = this.usernames.get(sourceNickname) || sourceNickname;
+                            var sourceUsername = this.usernames.get(nickname) || nickname;
                             if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
                                 // It's a channel, broadcast to all users in the channel except the source
                                 if (this.channels.has(targetUniqueId)) {
@@ -1073,7 +1074,7 @@ class WTVIRC {
                                     for (const user of users) {
                                         const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                                         if (userSocket && userSocket.uniqueId !== sourceUniqueId) {
-                                            await this.sendThrottled(userSocket, [`:${sourceNickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetUniqueId} :${message}`], 30);
+                                            await this.sendThrottled(userSocket, [`:${nickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetUniqueId} :${message}`], 30);
                                             this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                                         }
                                     }
@@ -1092,7 +1093,7 @@ class WTVIRC {
                             if (this.clientIsWebTV(targetSocket)) {
                                 srvCommand = 'PRIVMSG';
                             }
-                            await this.sendThrottled(targetSocket, [`:${sourceNickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetNickname} :${message}`], 30);                            
+                            await this.sendThrottled(targetSocket, [`:${nickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetNickname} :${message}`], 30);                            
                             this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                             break;
                         case "WHOIS":
@@ -1173,7 +1174,6 @@ class WTVIRC {
                             }
                             var targetUniqueId = parts[2];
                             var channelName = parts[3];
-                            var nickname = this.findUserByUniqueId(targetUniqueId);
                             var username = this.usernames.get(nickname) || nickname;
                             var hostname = this.hostnames.get(nickname) || '';
                             var targetSocket = this.findSocketByUniqueId(targetUniqueId);
