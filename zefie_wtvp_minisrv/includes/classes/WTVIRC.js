@@ -2073,7 +2073,7 @@ class WTVIRC {
                             this.channelops.set(ch, new Set());
                             this.channelops.get(ch).add(socket.nickname);
                         }
-                        this.broadcastChannelJoin(channel, socket);
+                        this.broadcastChannelJoin(ch, socket);
                         let modes = this.channelmodes.get(ch) || [];
                         let prefix = '';
                         if ((this.channelops.get(ch) || new Set()).has(socket.nickname)) {
