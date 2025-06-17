@@ -2444,7 +2444,7 @@ class WTVIRC {
                         socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
                         break;
                     }                    
-                    var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === whoisNick.toLowerCase());
+                    var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s)=== whoisNick);
                     if (whoisSocket) {
                         whoisNick = whoisSocket.nickname;
                         const whois_username = this.usernames.get(whoisNick);
@@ -3886,7 +3886,7 @@ class WTVIRC {
         let foundUser = null;
         for (const [socket, nick] of this.nicknames.entries()) {
             if (nick.toLowerCase() === username.toLowerCase()) {
-                foundUser = socket;
+                foundUser = nick;
                 break;
             }
         }
