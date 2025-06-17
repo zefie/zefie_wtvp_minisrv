@@ -2342,8 +2342,12 @@ class WTVIRC {
                                 var msg = line.slice(line.indexOf(':', 1) + 1);
                                 if (msg.startsWith('\x01VERSION')) {
                                     socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
+                                    if (this.clientIsWebTV(socket)) {
+                                        this.sendWebTVNoticeTo(socket.nickname, "Welcome, WebTV user! You are now connected to the server.");
+                                    }
                                     break;
                                 }
+                                break;
                             }
                             for (const prefix of this.channelprefixes) {
                                 if (t.startsWith(prefix)) {
@@ -2436,7 +2440,11 @@ class WTVIRC {
                                     socket.write(`:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to non-+Z user while you are +Z\r\n`);
                                     continue;
                                 }
-                                targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} NOTICE ${targetSock.nickname} :${msg}\r\n`);
+                                var cmd = 'NOTICE';
+                                if (this.clientIsWebTV(targetSock)) {
+                                    cmd = 'PRIVMSG'; // WebTV clients do not support NOTICE, use PRIVMSG instead
+                                }
+                                targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} ${cmd} ${targetSock.nickname} :${msg}\r\n`);
                             }
                         }
                         return;                   
@@ -2744,7 +2752,7 @@ class WTVIRC {
     }
 
     sendWebTVNoticeTo(username, message) {
-        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === username);
+        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === username.toLowerCase());
         if (socket) {
             socket.write(`:${this.servername} NOTICE * :${message}\r\n`);
         }
