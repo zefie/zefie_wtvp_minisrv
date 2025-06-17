@@ -2916,14 +2916,6 @@ class WTVIRC {
                 }
             }
         });
-        var serverSocket = null;
-        for (const [srvSocket, users] of this.serverusers.entries()) {
-            if (users && typeof users.has === 'function' && users.has(nickname)) {
-                // Don't send QUIT to this server, as it owns the user
-                serverSocket = srvSocket;
-                continue;
-            }
-        }
     }
         
 
@@ -2935,6 +2927,14 @@ class WTVIRC {
         }
         this.nicknames.delete(socket);
         if (!socket.signedoff) {
+            var serverSocket = null;
+            for (const [srvSocket, users] of this.serverusers.entries()) {
+                if (users && typeof users.has === 'function' && users.has(nickname)) {
+                    // Don't send QUIT to this server, as it owns the user
+                    serverSocket = srvSocket;
+                    continue;
+                }
+            }
             this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`, serverSocket);
             socket.signedoff = true; // Just in case
         }
