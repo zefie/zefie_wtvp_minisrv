@@ -2569,9 +2569,6 @@ class WTVIRC {
                                 var msg = line.slice(line.indexOf(':', 1) + 1);
                                 if (msg.startsWith('\x01VERSION')) {
                                     socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
-                                    if (this.clientIsWebTV(socket)) {
-                                        this.sendWebTVNoticeTo(socket, "Welcome, WebTV user! You are now connected to the server.");
-                                    }
                                     break;
                                 }
                                 break;
