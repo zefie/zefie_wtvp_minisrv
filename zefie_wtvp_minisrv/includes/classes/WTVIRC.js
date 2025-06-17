@@ -535,7 +535,9 @@ class WTVIRC {
                 if (!this.channels.get(channel).has(nickname)) {
                     this.channels.get(channel).add(nickname);
                 }
-                this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, userSocket);
+                if (nickname && username && hostname) {
+                    this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, userSocket);
+                }
                 this.broadcastToAllServers(`:${socket.servername} SJOIN ${this.getDate()} ${channel} +${modes} :${uniqueId}\r\n`, socket);
                 break;
             case 'SQUIT':
