@@ -3075,7 +3075,17 @@ class WTVIRC {
             if (this.inviteexceptions.get(channel).length >= this.maxinvite) {
                 socket.write(`:${this.servername} 478 ${nickname} ${channel} :Too many invite exceptions\r\n`);
                 return;
-            }            
+            } 
+            var found = false;
+            for (const mask of this.inviteexceptions.get(channel)) {
+                if (mask === inviteMask) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                return;
+            }       
             this.inviteexceptions.get(channel).add(inviteMask);
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +I ${inviteMask}\r\n`);
             this.broadcastToAllServers(`${socket.uniqueId} MODE ${channel} +I ${inviteMask}\r\n`);
@@ -3091,6 +3101,18 @@ class WTVIRC {
                 return;
             }
             if (this.inviteexceptions.has(channel)) {
+                // Only remove if there is an exact match (no mask/wildcard logic)
+                var found = false;
+                for (const mask of this.inviteexceptions.get(channel)) {
+                    if (mask === inviteMask) {
+                        this.inviteexceptions.get(channel).delete(mask);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    return;
+                }
                 this.inviteexceptions.get(channel).delete(inviteMask);
                 this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -I ${inviteMask}\r\n`);
                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -I ${inviteMask}\r\n`);
@@ -3265,7 +3287,16 @@ class WTVIRC {
             if (this.channelbans.get(channel).length >= this.maxbans) {
                 socket.write(`:${this.servername} 478 ${nickname} ${channel} :Channel ban list is full\r\n`);
                 return;
-            }            
+            }
+            for (const mask of this.channelbans.get(channel)) {
+                if (mask === banMask) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                return;
+            }                          
             this.channelbans.get(channel).add(banMask);            
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +b ${banMask}\r\n`);
             this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +b ${banMask}\r\n`);
@@ -3277,6 +3308,17 @@ class WTVIRC {
                 return;
             }
             if (this.channelbans.has(channel)) {
+                var found = false;
+                for (const mask of this.channelbans.get(channel)) {
+                    if (mask === banMask) {
+                        this.channelbans.get(channel).delete(mask);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    return;
+                }           
                 this.channelbans.get(channel).delete(banMask);
                 this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -b ${banMask}\r\n`);
                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -b ${banMask}\r\n`);
@@ -3296,7 +3338,16 @@ class WTVIRC {
             if (this.channelexemptions.get(channel).size >= this.maxexemptions) {
                 socket.write(`:${this.servername} 478 ${nickname} ${channel} :Channel exemption list is full\r\n`);
                 return;
-            }            
+            }
+            for (const mask of this.channelexemptions.get(channel)) {
+                if (mask === exemptMask) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                return;
+            }                         
             this.channelexemptions.get(channel).add(exemptMask);
             this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +e ${exemptMask}\r\n`);
             this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +e ${exemptMask}\r\n`);
@@ -3308,6 +3359,17 @@ class WTVIRC {
                 return;
             }
             if (this.channelexemptions.has(channel)) {
+                var found = false;
+                for (const mask of this.channelexemptions.get(channel)) {
+                    if (mask === exemptMask) {
+                        this.channelexemptions.get(channel).delete(mask);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    return;
+                }           
                 this.channelexemptions.get(channel).delete(exemptMask);                
                 this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -e ${exemptMask}\r\n`);
                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -e ${exemptMask}\r\n`);
