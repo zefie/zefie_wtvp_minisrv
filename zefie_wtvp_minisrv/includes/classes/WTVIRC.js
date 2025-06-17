@@ -180,7 +180,8 @@ class WTVIRC {
                         secureSocket.nickname = '';
                         secureSocket.username = '';
                         secureSocket.isserver = false;
-                        secureSocket.is_srv_authorized = false; 
+                        secureSocket.is_srv_authorized = false;
+                        secureSocket.signedoff = false;
                         secureSocket.realhost = socket.remoteAddress
                         secureSocket.host = this.filterHostname(secureSocket, socket.remoteAddress);
                         this.getHostname(secureSocket, (hostname) => {
@@ -225,6 +226,7 @@ class WTVIRC {
                     socket.username = '';
                     socket.isserver = false;
                     socket.is_srv_authorized = false;
+                    socket.signedoff = false;
                     socket.realhost = socket.remoteAddress;
                     socket.host = this.filterHostname(socket, socket.remoteAddress);
                     this.getHostname(socket, (hostname) => {
@@ -2470,9 +2472,13 @@ class WTVIRC {
                             }
                             socket.write(`:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`);
                             this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`, socket);
+                            this.broadcastToAllServers(`:${socket.uniqueId} QUIT :${reason}\r\n`);
+                            socket.signedoff = true;
                         } else {
                             socket.write(`:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`);
                             this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`, socket);
+                            this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`);
+                            socket.signedoff = true;
                         }
                     }
                     this.terminateSession(socket, true);
@@ -2625,7 +2631,9 @@ class WTVIRC {
                 continue;
             }
         }
-        this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`, serverSocket);
+        if (!socket.signedoff) {
+            this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`, serverSocket);
+        }
         this.clients = this.clients.filter(c => c !== socket);
         if (close) {
             socket.end();
