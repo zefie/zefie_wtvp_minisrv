@@ -3077,8 +3077,7 @@ class WTVIRC {
                 return;
             }            
             this.inviteexceptions.get(channel).add(inviteMask);
-            socket.write(`:${this.servername} 346 ${nickname} ${channel} ${inviteMask}\r\n`);
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +I ${inviteMask}\r\n`, socket);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +I ${inviteMask}\r\n`);
             this.broadcastToAllServers(`${socket.uniqueId} MODE ${channel} +I ${inviteMask}\r\n`);
             return;
         } else if (mode.startsWith("-I")) {
@@ -3093,8 +3092,7 @@ class WTVIRC {
             }
             if (this.inviteexceptions.has(channel)) {
                 this.inviteexceptions.get(channel).delete(inviteMask);
-                socket.write(`:${this.servername} 347 ${nickname} ${channel} ${inviteMask}\r\n`);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -I ${inviteMask}\r\n`, socket);
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -I ${inviteMask}\r\n`);
                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -I ${inviteMask}\r\n`);
                 return
             } else {
@@ -3268,9 +3266,8 @@ class WTVIRC {
                 socket.write(`:${this.servername} 478 ${nickname} ${channel} :Channel ban list is full\r\n`);
                 return;
             }            
-            this.channelbans.get(channel).add(banMask);
-            socket.write(`:${this.servername} 367 ${nickname} ${channel} ${banMask}\r\n`);
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +b ${banMask}\r\n`, socket);
+            this.channelbans.get(channel).add(banMask);            
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +b ${banMask}\r\n`);
             this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +b ${banMask}\r\n`);
             return
         } else if (mode.startsWith('-b')) {                                
@@ -3281,8 +3278,7 @@ class WTVIRC {
             }
             if (this.channelbans.has(channel)) {
                 this.channelbans.get(channel).delete(banMask);
-                socket.write(`:${this.servername} 368 ${nickname} ${channel} ${banMask}\r\n`);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -b ${banMask}\r\n`, socket);
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -b ${banMask}\r\n`);
                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -b ${banMask}\r\n`);
             } else {
                 socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
@@ -3302,8 +3298,7 @@ class WTVIRC {
                 return;
             }            
             this.channelexemptions.get(channel).add(exemptMask);
-            socket.write(`:${this.servername} 347 ${nickname} ${channel} ${exemptMask}\r\n`);
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +e ${exemptMask}\r\n`, socket);
+            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +e ${exemptMask}\r\n`);
             this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +e ${exemptMask}\r\n`);
             return;
         } else if (mode.startsWith('-e')) {
@@ -3313,9 +3308,8 @@ class WTVIRC {
                 return;
             }
             if (this.channelexemptions.has(channel)) {
-                this.channelexemptions.get(channel).delete(exemptMask);
-                socket.write(`:${this.servername} 348 ${nickname} ${channel} ${exemptMask}\r\n`);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -e ${exemptMask}\r\n`, socket);
+                this.channelexemptions.get(channel).delete(exemptMask);                
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -e ${exemptMask}\r\n`);
                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -e ${exemptMask}\r\n`);
             } else {
                 socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
