@@ -2090,6 +2090,9 @@ class WTVIRC {
                                     cleanUser = cleanUser.slice(1);
                                 }
                                 var hostname = this.hostnames.get(cleanUser);
+                                var whoisSocket = Array.from(this.nicknames.keys()).find(
+                                    s => this.nicknames.get(s).toLowerCase() === cleanUser.toLowerCase()
+                                );
                                 let prefix = '';
                                 var chanops = this.channelops.get(target)
                                 if (!chanops || chanops === true) {
@@ -2110,7 +2113,7 @@ class WTVIRC {
                                 } else if (chanvoices.has(cleanUser)) {
                                     prefix = '+';
                                 }
-                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${prefix}${cleanUser} ${hostname} ${this.servername} ${cleanUser} H :0 ${cleanUser}\r\n`);
+                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${prefix}${cleanUser} ${hostname} ${this.servername} ${cleanUser} ${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(whoisSocket.secure) ? 'z' : ''} :0 ${whoisSocket.userinfo}\r\n`);
                             }
                         }
                         socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
@@ -2127,7 +2130,7 @@ class WTVIRC {
                                         continue;
                                     }
                                     found = true;
-                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} H${(sock.secure) ? 'z' : ''} :0 ${nick}\r\n`);
+                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} ${(this.awaymsgs.has(nick)) ? 'G' : 'H'}${(sock.secure) ? 'z' : ''} :0 ${sock.userinfo}\r\n`);
                                 }
                             }
                             if (!found) {
@@ -2136,7 +2139,7 @@ class WTVIRC {
                             socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
                             break;
                         } else {
-                            const whoisSocket = Array.from(this.nicknames.keys()).find(
+                            var whoisSocket = Array.from(this.nicknames.keys()).find(
                                 s => this.nicknames.get(s).toLowerCase() === target.toLowerCase()
                             );
                             if (whoisSocket) {
@@ -2146,7 +2149,7 @@ class WTVIRC {
                                     socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
                                     break;
                                 }
-                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${whoisSocket.nickname} ${whoisSocket.host} ${this.servername} ${whoisSocket.nickname} H${(whoisSocket.secure) ? 'z' : ''} :0 ${whoisSocket.nickname}\r\n`);
+                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${whoisSocket.nickname} ${whoisSocket.host} ${this.servername} ${whoisSocket.nickname} ${(this.awaymsgs.has(target)) ? 'G' : 'H'}${(whoisSocket.secure) ? 'z' : ''} :0 ${whoisSocket.userinfo}\r\n`);
                             } else {
                                 socket.write(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);                                
                             }
@@ -2387,7 +2390,7 @@ class WTVIRC {
                         break;
                     }
                     var whoisNick = params[0];
-                    const whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === whoisNick.toLowerCase());
+                    var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === whoisNick.toLowerCase());
                     if (whoisSocket) {
                         whoisNick = whoisSocket.nickname;
                         const whois_username = this.usernames.get(whoisNick);
