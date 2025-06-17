@@ -62,12 +62,12 @@ class WTVIRC {
         this.hostnames = new Map(); // nickname -> hostname
         this.realhosts = new Map(); // nickname -> real IP address  
         this.uniqueids = new Map(); // nickname -> unique ID mapping
-        this.channelprefixes = ['#','&'];
         this.default_channel_modes = ['n','t'];
         this.default_user_modes = ['x'];
         this.server_start_time = this.getDate();
         this.allowed_characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_[]{}\\|^-';
         this.irc_config = minisrv_config.config.irc || {};
+        this.channelprefixes = this.irc_config.channel_prefixes || ['#'];
         this.servername = this.irc_config.server_hostname || 'irc.local';
         this.network = this.irc_config.network || 'minisrv';
         this.oper_username = this.irc_config.oper_username || 'minisrv';
@@ -92,8 +92,11 @@ class WTVIRC {
         this.kick_insecure_on_z = this.irc_config.kick_insecure_on_z || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
         this.clientpeak = 0;
         this.globalpeak = 0;
+        this.supported_channel_modes = "Ibe,k,l,NOQRTVZcimnprt";
+        this.supported_user_modes = "Ziorswxz";
+        this.supported_prefixes = ["ohv", "@%+"];
         this.caps = [
-            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=beI,k,l,itmnpcTVZRrNQOZ CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(ohv)@%+ USERMODES=oxirzZws MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
+            `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 CHANMODES=${this.supported_channel_modes} CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(${this.supported_prefixes[0]})${this.supported_prefixes[1]} USERMODES=${this.supported_user_modes} MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
             `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I NETWORK=${this.network} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
         ];
     }
@@ -3714,7 +3717,43 @@ class WTVIRC {
         socket.write(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
         socket.write(`:${this.servername} 002 ${nickname} :Your host is ${this.servername}, running version minisrv ${this.minisrv_config.version}\r\n`);
         socket.write(`:${this.servername} 003 ${nickname} :This server is ready to accept commands\r\n`);
-        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} oxizrZws obtkmeZIlhvTVROQrncZ beIklohv\r\n`);
+        // Sort supported_channel_modes and supported_user_modes alphabetically with capitals first
+        function sortModesAlphaCapsFirst(modes) {
+            // Remove commas, split to chars, sort, then re-insert commas if needed
+            // If input is comma-separated groups, sort each group
+            return modes
+            .split(',')
+            .map(group => {
+                return group
+                .split('')
+                .sort((a, b) => {
+                    // Capital letters first, then lowercase, then numbers/symbols
+                    if (a === b) return 0;
+                    const isACap = a >= 'A' && a <= 'Z';
+                    const isBCap = b >= 'A' && b <= 'Z';
+                    const isALower = a >= 'a' && a <= 'z';
+                    const isBLower = b >= 'a' && b <= 'z';
+                    if (isACap && !isBCap) return -1;
+                    if (!isACap && isBCap) return 1;
+                    if (isALower && !isBLower) return -1;
+                    if (!isALower && isBLower) return 1;
+                    return a.localeCompare(b);
+                })
+                .join('');
+            })
+            .join(',');
+        }
+        let channelModesParts = this.supported_channel_modes.split(',');
+        if (channelModesParts.length > 1) {
+            let modesToSort = channelModesParts.slice(0, -1).join('').split('');
+            modesToSort.push(...this.supported_prefixes[0].split(''));
+            modesToSort = Array.from(new Set(modesToSort)); // remove duplicates
+            modesToSort.sort();
+            var sortedModesWithParams = modesToSort.join('');
+        }
+        var sortedChannelModes = sortModesAlphaCapsFirst(this.supported_channel_modes).replace(/,/g, '');
+        var sortedUserModes = sortModesAlphaCapsFirst(this.supported_user_modes);
+        socket.write(`:${this.servername} 004 ${nickname} ${this.servername} minisrv ${this.minisrv_config.version} ${sortedUserModes} ${sortedChannelModes} ${sortedModesWithParams}\r\n`);
         for (const caps of this.caps) {
             socket.write(`:${this.servername} 005 ${caps}\r\n`);
         }   
