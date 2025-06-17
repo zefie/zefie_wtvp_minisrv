@@ -933,7 +933,7 @@ class WTVIRC {
                                                     if (userSocket && !userModes.includes('z')) {
                                                         userSocket.write(`:${nickname}!${username}@${socket.host} KICK ${targetUniqueId} ${userSocket.nickname} :Channel is now +Z (SSL-only, +z usermode required)\r\n`);
                                                         this.broadcastChannel(targetUniqueId, `:${nickname}!${username}@${socket.host} KICK ${targetUniqueId} ${userSocket.nickname} :Channel is now +Z (SSL-only, +z usermode required)\r\n`, userSocket);
-                                                        this.broadcastToAllServers(`:${socket.uniqueId} KICK ${targetUniqueId} ${userSocket.uniqueId} :Channel is now +Z (SSL-only, +z usermode required)\r\n`);
+                                                        this.broadcastToAllServers(`:${sourceUniqueId} KICK ${targetUniqueId} ${userSocket.uniqueId} :Channel is now +Z (SSL-only, +z usermode required)\r\n`);
                                                         this.channels.get(targetUniqueId).delete(user);
                                                     }
                                                 }
