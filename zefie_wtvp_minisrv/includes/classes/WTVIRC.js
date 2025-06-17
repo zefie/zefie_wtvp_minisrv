@@ -1330,8 +1330,12 @@ class WTVIRC {
                         socket.write(`:${this.servername} 451 ${socket.nickname} :You have not registered\r\n`);
                         break;
                     }
-                    var channel = params[0];
-                    var targetNick = params[1];
+                    var channel = this.findChannel(params[0]);                    
+                    var targetNick = this.findUser(params[1]);
+                    if  (!channel || !targetNick) {
+                        socket.write(`:${this.servername} 401 ${socket.nickname} ${params[1]} :No such nick/channel\r\n`);
+                        break;
+                    }
                     // Check if the user is a channel operator
                     if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set && this.channelops.get(channel).has(socket.nickname)) {
                         // Allow kick
@@ -1393,7 +1397,11 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} TOPIC :Not enough parameters\r\n`);
                         break;
                     }
-                    var channel = params[0];
+                    var channel = this.findChannel(params[0]);
+                    if (!channel) {
+                        socket.write(`:${this.servername} 403 ${socket.nickname} ${params[0]} :No such channel\r\n`);
+                        break;
+                    }
                     chan_modes = this.channelmodes.get(channel)
                     if (!chan_modes || chan_modes === true) {
                         chan_modes = [];
@@ -1472,8 +1480,16 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} MODE :Not enough parameters\r\n`);
                         break;
                     }
-                    channel = params[0];
                     var isChannel = true;
+                    channel = this.findChannel(params[0]);
+                    if (!channel) {
+                        isChannel = false;
+                        channel = this.findUser(params[0]);
+                    }
+                    if (!channel) {
+                        socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
+                        break;
+                    }
                     if (!this.channels.has(channel)) {
                         isChannel = false;
                     }
@@ -1982,8 +1998,12 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} INVITE :Not enough parameters\r\n`);
                         break;
                     }
-                    const invitee = params[0];
-                    channel = params[1];
+                    const invitee = this.findUser(params[0]);
+                    channel = this.findChannel(params[1]);
+                    if (!invitee || !channel) {
+                        socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
+                        break;
+                    }
                     if (!this.channels.has(channel)) {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                         break;
@@ -2069,8 +2089,20 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} WHO :Not enough parameters\r\n`);
                         break;
                     }
-                    const target = params[0];
-                    if (target.startsWith('#')) {
+                    const target = this.findChannel(params[0]);
+                    if (!target) {
+                        socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
+                        break;
+                    }
+
+                    var isChannel = false;
+                    for (const prefix of this.channelprefixes) {
+                        if (target.startsWith(prefix)) {
+                            isChannel = true;
+                            break;
+                        }
+                    }
+                    if (isChannel) {
                         // WHO for channel
                         if (this.channelmodes.has(target)) {
                             const modes = this.channelmodes.get(target);
@@ -2171,13 +2203,22 @@ class WTVIRC {
                             socket.write(`:${this.servername} 407 ${socket.nickname} :Too many targets. Maximum allowed is ${this.maxtargets}\r\n`);
                             return;
                         }
-                        for (const t of targets) {
+                        for (var t of targets) {
                             let isChan = false;
                             for (const prefix of this.channelprefixes) {
                                 if (t.startsWith(prefix)) {
                                     isChan = true;
+                                    t = this.findChannel(t);
                                     break;
                                 }
+                            }
+                            if (!t) {
+                                t = this.findUser(t);
+                                isChan = false;
+                            }                            
+                            if (!t) {
+                                socket.write(`:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
+                                continue;
                             }
                             var msg = line.slice(line.indexOf(':', 1) + 1);
                             if (isChan) {
@@ -2292,8 +2333,17 @@ class WTVIRC {
                             for (const prefix of this.channelprefixes) {
                                 if (t.startsWith(prefix)) {
                                     isChan = true;
+                                    t = this.findChannel(t);
                                     break;
                                 }
+                            }
+                            if (!t) {
+                                t = this.findUser(t);
+                                isChan = false;
+                            }                            
+                            if (!t) {
+                                socket.write(`:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
+                                continue;
                             }
                             var msg = line.slice(line.indexOf(':', 1) + 1);
                             if (isChan) {
@@ -2389,7 +2439,11 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} WHOIS :Not enough parameters\r\n`);
                         break;
                     }
-                    var whoisNick = params[0];
+                    var whoisNick = this.findUser(params[0]);
+                    if (!whoisNick) {
+                        socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
+                        break;
+                    }                    
                     var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === whoisNick.toLowerCase());
                     if (whoisSocket) {
                         whoisNick = whoisSocket.nickname;
@@ -2472,7 +2526,12 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} KILL :Not enough parameters\r\n`);
                         break;
                     }
-                    const target_nick = params[0];
+                    const target_nick = this.findUser(params[0]);
+                    if (!target_nick) {
+                        socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
+                        break;
+                    }
+
                     const killReason = params.slice(1).join(' ');
                     let cleanKillReason = killReason;
                     if (cleanKillReason.startsWith(':')) {
@@ -3808,6 +3867,35 @@ class WTVIRC {
     getDate() {
         return Math.floor(Date.now() / 1000)
     }
+
+    findChannel(channel) {
+        let foundChannel = null;
+        for (const existingChannel of this.channels.keys()) {
+            if (existingChannel.toLowerCase() === channel.toLowerCase()) {
+                foundChannel = existingChannel;
+                break;
+            }
+        }
+        if (foundChannel) {
+            return foundChannel;
+        }
+        return null;
+    }
+
+    findUser(username) {
+        let foundUser = null;
+        for (const [socket, nick] of this.nicknames.entries()) {
+            if (nick.toLowerCase() === username.toLowerCase()) {
+                foundUser = socket;
+                break;
+            }
+        }
+        if (foundUser) {
+            return foundUser;
+        }
+        return null;
+    }
+
 
     doLogin(nickname, socket) {         
         for (const [srvSocket, serverName] of this.servers.entries()) {
