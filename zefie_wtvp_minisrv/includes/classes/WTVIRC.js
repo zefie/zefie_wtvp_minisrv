@@ -2122,12 +2122,33 @@ class WTVIRC {
                             let found = false;
                             for (const [sock, nick] of this.nicknames.entries()) {
                                 if (maskRegex.test(nick)) {
+                                    const usermodes = this.usermodes.get(nick) || [];
+                                    if (usermodes.includes('s')) {
+                                        continue;
+                                    }
                                     found = true;
                                     socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} H :0 ${nick}\r\n`);
                                 }
                             }
                             if (!found) {
                                 socket.write(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);
+                            }
+                            socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
+                            break;
+                        } else {
+                            const whoisSocket = Array.from(this.nicknames.keys()).find(
+                                s => this.nicknames.get(s).toLowerCase() === target.toLowerCase()
+                            );
+                            if (whoisSocket) {
+                                const usermodes = this.usermodes.get(whoisSocket.nickname) || [];
+                                if (usermodes.includes('s')) {
+                                    // Skip invisible users
+                                    socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
+                                    break;
+                                }
+                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${whoisSocket.nickname} ${whoisSocket.host} ${this.servername} ${whoisSocket.nickname} H :0 ${whoisSocket.nickname}\r\n`);
+                            } else {
+                                socket.write(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);                                
                             }
                             socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
                             break;
