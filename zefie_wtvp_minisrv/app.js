@@ -2402,7 +2402,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
 if (minisrv_config.config.irc) {
     if (minisrv_config.config.irc.enabled && minisrv_config.config.irc.port > 0) {
         if (!wtvirc) {
-            wtvirc = new WTVIRC(minisrv_config, minisrv_config.config.bind_ip, minisrv_config.config.irc.port);
+            wtvirc = new WTVIRC(minisrv_config, minisrv_config.config.bind_ip, minisrv_config.config.irc.port, minisrv_config.config.irc.debug || false);
             wtvirc.start();
             console.log(" * Configured Service: IRC Server on", minisrv_config.config.bind_ip + ":" + minisrv_config.config.irc.port);
         }

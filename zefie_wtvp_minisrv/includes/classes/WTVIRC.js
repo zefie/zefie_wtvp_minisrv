@@ -666,6 +666,16 @@ class WTVIRC {
                             var user_name = this.usernames.get(nick_name) || nick_name;
                             var message = parts.slice(2).join(' ').slice(1); // Remove leading ':'
                             for (const [channel, users] of this.channels.entries()) {
+                                if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set) {
+                                    this.channelops.get(channel).delete(nick_name);
+                                }
+                                if (this.channelhalfops.has(channel) && this.channelhalfops.get(channel) instanceof Set) {
+                                    this.channelhalfops.get(channel).delete(nick_name);
+                                }
+                                if (this.channelvoices.has(channel) && this.channelvoices.get(channel) instanceof Set) {
+                                    this.channelvoices.get(channel).delete(nick_name);
+                                }
+
                                 if (users.has(nick_name)) {
                                     this.broadcastChannel(channel, `:${nick_name}!${user_name}@${this.servername} QUIT :${message}\r\n`);
                                 }
@@ -714,8 +724,18 @@ class WTVIRC {
                             }
                             var channel = parts[2];
                             var nickname = this.findUserByUniqueId(sourceUniqueId);
+                            if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set) {
+                                this.channelops.get(channel).delete(nickname);
+                            }
+                            if (this.channelhalfops.has(channel) && this.channelhalfops.get(channel) instanceof Set) {
+                                this.channelhalfops.get(channel).delete(nickname);
+                            }
+                            if (this.channelvoices.has(channel) && this.channelvoices.get(channel) instanceof Set) {
+                                this.channelvoices.get(channel).delete(nickname);
+                            }
+
                             var username = this.usernames.get(nickname) || nickname;
-                            var hostname = this.hostnames.get(nickname);
+                            var hostname = this.hostnames.get(nickname);                            
                             this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} PART ${channel} :${parts.slice(4).join(' ')}\r\n`, userSocket);
                             if (this.channels.has(channel) && this.channels.get(channel).size === 0) {
                                 this.deleteChannel(channel);
@@ -1971,10 +1991,19 @@ class WTVIRC {
                         socket.write(`:${this.servername} 451 ${socket.nickname} :You have not registered\r\n`);
                         break;
                     }
-                    channel = params[0];
+                    channel = this.findChannel(params[0]);
                     if (!this.channels.has(channel) || !this.channels.get(channel).has(socket.nickname)) {
                         socket.write(`:${this.servername} 442 ${socket.nickname} ${channel} :You're not on that channel\r\n`);
                         break;
+                    }
+                    if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set) {
+                        this.channelops.get(channel).delete(socket.nickname);
+                    }
+                    if (this.channelhalfops.has(channel) && this.channelhalfops.get(channel) instanceof Set) {
+                        this.channelhalfops.get(channel).delete(socket.nickname);
+                    }
+                    if (this.channelvoices.has(channel) && this.channelvoices.get(channel) instanceof Set) {
+                        this.channelvoices.get(channel).delete(socket.nickname);
                     }
                     this.usertimestamps.set(socket.nickname, this.getDate());
                     if (params.length == 2) {
@@ -2343,7 +2372,7 @@ class WTVIRC {
                                 if (msg.startsWith('\x01VERSION')) {
                                     socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
                                     if (this.clientIsWebTV(socket)) {
-                                        this.sendWebTVNoticeTo(socket.nickname, "Welcome, WebTV user! You are now connected to the server.");
+                                        this.sendWebTVNoticeTo(socket, "Welcome, WebTV user! You are now connected to the server.");
                                     }
                                     break;
                                 }
@@ -2572,6 +2601,19 @@ class WTVIRC {
                     if (!socket.registered) {
                         socket.write(`:${this.servername} 451 ${socket.nickname} :You have not registered\r\n`);
                     } else {
+                        for (const [ch, users] of this.channels.entries()) {
+                            if (users.has(socket.nickname)) {
+                                if (this.channelops.has(ch) && this.channelops.get(ch) instanceof Set) {
+                                    this.channelops.get(ch).delete(socket.nickname);
+                                }
+                                if (this.channelhalfops.has(ch) && this.channelhalfops.get(ch) instanceof Set) {
+                                    this.channelhalfops.get(ch).delete(socket.nickname);
+                                }
+                                if (this.channelvoices.has(ch) && this.channelvoices.get(ch) instanceof Set) {
+                                    this.channelvoices.get(ch).delete(socket.nickname);
+                                }
+                            }
+                        }
                         if (params.length > 0) {
                             let reason = params.join(' ');
                             if (reason.startsWith(':')) {
@@ -2751,11 +2793,8 @@ class WTVIRC {
         this.broadcast(`:${this.servername} NOTICE * :${message}\r\n`);
     }
 
-    sendWebTVNoticeTo(username, message) {
-        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === username.toLowerCase());
-        if (socket) {
-            socket.write(`:${this.servername} NOTICE * :${message}\r\n`);
-        }
+    sendWebTVNoticeTo(socket, message) {
+        socket.write(`:${this.servername} NOTICE * :${message}\r\n`);
     }
 
     sendToChannelAs(username, channel, message) {
