@@ -2127,7 +2127,7 @@ class WTVIRC {
                                         continue;
                                     }
                                     found = true;
-                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} H :0 ${nick}\r\n`);
+                                    socket.write(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} H${(sock.secure) ? 'z' : ''} :0 ${nick}\r\n`);
                                 }
                             }
                             if (!found) {
@@ -2146,7 +2146,7 @@ class WTVIRC {
                                     socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
                                     break;
                                 }
-                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${whoisSocket.nickname} ${whoisSocket.host} ${this.servername} ${whoisSocket.nickname} H :0 ${whoisSocket.nickname}\r\n`);
+                                socket.write(`:${this.servername} 352 ${socket.nickname} * ${whoisSocket.nickname} ${whoisSocket.host} ${this.servername} ${whoisSocket.nickname} H${(whoisSocket.secure) ? 'z' : ''} :0 ${whoisSocket.nickname}\r\n`);
                             } else {
                                 socket.write(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);                                
                             }
