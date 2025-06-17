@@ -2440,13 +2440,9 @@ class WTVIRC {
                         break;
                     }
                     var whoisNick = this.findUser(params[0]);
-                    if (!whoisNick) {
+                    if (whoisNick) {
                         socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
-                        break;
-                    }                    
-                    var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s)=== whoisNick);
-                    if (whoisSocket) {
-                        whoisNick = whoisSocket.nickname;
+                        var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s)=== whoisNick);
                         const whois_username = this.usernames.get(whoisNick);
                         socket.write(`:${this.servername} 311 ${socket.nickname} ${whoisNick} ${whois_username} ${whoisSocket.host} * :${whoisSocket.userinfo}\r\n`);
                         if (this.awaymsgs.has(whoisNick)) {
