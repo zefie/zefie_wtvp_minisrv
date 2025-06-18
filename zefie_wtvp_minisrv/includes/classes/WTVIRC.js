@@ -2,9 +2,9 @@ const net = require('net');
 const dns = require('dns');
 const tls = require('tls');
 const fs = require('fs');
+const path = require('path');
 const { get } = require('http');
 const WTVShared = require('./WTVShared.js').WTVShared;
-const { Duplex } = require('stream');
 
 class WTVIRC {
     /*
@@ -58,6 +58,7 @@ class WTVIRC {
         this.servers = new Map(); // socket -> server information
         this.serverusers = new Map(); // server -> Set of users connected to this server
         this.reservednicks = [];
+        this.klines = [];
         this.accounts = new Map(); // nickname -> account name
         this.hostnames = new Map(); // nickname -> hostname
         this.realhosts = new Map(); // nickname -> real IP address  
@@ -108,6 +109,8 @@ class WTVIRC {
         this.supported_prefixes = ["ohv", "@%+"];
         this.supported_client_caps = ['chghost', 'away-notify', 'echo-message', 'invite-notify', 'multi-prefix', 'userhost-in-names', 'account-notify', 'extended-join'];
         this.supported_server_caps = ['TBURST', 'EOB', 'IE', 'EX'];
+        this.session_store_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + path.sep + 'minisrv_internal_irc');
+        this.klines_path = this.session_store_path + path.sep + 'klines.json';
         this.caps = [
             `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 BOT=B CHANMODES=${this.supported_channel_modes} CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(${this.supported_prefixes[0]})${this.supported_prefixes[1]} USERMODES=${this.supported_user_modes} MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
             `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I NETWORK=${this.network} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
@@ -115,6 +118,7 @@ class WTVIRC {
     }
 
     start() {
+        this.loadKLinesFromFile();
         if (this.enable_tls) {
             this.supported_client_caps.push('tls');
         }
@@ -1294,6 +1298,9 @@ class WTVIRC {
     }
 
     async processSocketData(socket, data) {
+        if (socket.signedoff) {
+            return;
+        }
         if (socket.upgrading_to_tls) {
             socket.removeAllListeners()
             socket.pause();
@@ -2785,6 +2792,70 @@ class WTVIRC {
                     }
                     socket.write(`PONG ${params.join(' ')}\r\n`);
                     break;
+                case 'KLINE':
+                    if (!socket.registered) {
+                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                        break;
+                    }
+                    if (!this.isIRCOp(socket.nickname)) {
+                        socket.write(`:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
+                        break;
+                    }
+                    if (params.length < 1) {
+                        socket.write(`:${this.servername} 461 ${socket.nickname} KLINE :Not enough parameters\r\n`);
+                        break;
+                    }
+                    var targetMask = params[0];
+                    var expiry = this.getDate() + 3600;
+                    var reasonParam = 1;
+                    if (!isNaN(parseInt(targetMask))) {
+                        expiry = this.getDate() + parseInt(targetMask);
+                        targetMask = params[1];
+                        reasonParam = 2;
+                    }
+                    if (this.klines.findIndex(k => k.mask === targetMask) !== -1) {
+                        socket.write(`:${this.servername} 200 ${socket.nickname} ${targetMask} :KLINE already exists for this mask\r\n`);
+                        break;
+                    }
+                    var reason = params.slice(reasonParam).join(' ') || '';
+                    var kline = {
+                        "mask": targetMask,
+                        "expiry": expiry,
+                        "reason": reason
+                    }
+                    this.klines.push(kline);
+                    this.saveKLinesToFile();
+                    if (reason) {
+                        socket.write(`:${this.servername} 381 ${socket.nickname} :KLINE added for ${targetMask} (duration ${expiry - this.getDate()} seconds) [${reason}]\r\n`);
+                    } else {
+                        socket.write(`:${this.servername} 381 ${socket.nickname} :KLINE added for ${targetMask} (duration ${expiry - this.getDate()} seconds)\r\n`);
+                    }
+                    await this.scanUsersForKLines();
+                    break;
+                case 'UNKLINE':
+                    if (!socket.registered) {
+                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                        break;
+                    }
+                    if (!this.isIRCOp(socket.nickname)) {
+                        socket.write(`:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
+                        break;
+                    }
+                    if (params.length < 1) {
+                        socket.write(`:${this.servername} 461 ${socket.nickname} UNKLINE :Not enough parameters\r\n`);
+                        break;
+                    }
+                    var targetMask = params[0];
+                    if (this.klines.findIndex(k => k.mask === targetMask) == -1) {
+                        socket.write(`:${this.servername} 200 ${socket.nickname} ${targetMask} :No such KLINE\r\n`);
+                        break;
+                    }
+                    const klineIndex = this.klines.findIndex(k => k.mask === targetMask);
+                    if (klineIndex !== -1) {
+                        this.klines.splice(klineIndex, 1);
+                    }
+                    socket.write(`:${this.servername} 381 ${socket.nickname} :KLINE removed for ${targetMask}\r\n`);
+                    break;
                 case 'WHOIS':
                     if (!socket.registered) {
                         socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
@@ -3322,22 +3393,27 @@ class WTVIRC {
 
     checkMask(mask, socket) {
         // Check if a mask matches a user's socket
-        const username = this.nicknames.get(socket);
-        if (!username) return false;
-        const userIdent = this.usernames.get(username) || username;
         const host = socket.host;
         const realhost = socket.realhost;
         const realaddress = socket.remoteAddress;
-        const fullMask = `${username}!${userIdent}@${host}`;
-        const fullMask2 = `${username}!${userIdent}@${realhost}`;
-        const fullMask3 = `${username}!${userIdent}@${realaddress}`;
+        const nickname = this.nicknames.get(socket);
+        var fullMask = `*!*@${host}`;
+        var fullMask2 = `*!*@${realhost}`;
+        var fullMask3 = `*!*@${realaddress}`;
+        if (nickname) {
+            const userIdent = this.usernames.get(nickname) || nickname;
+            fullMask = `${nickname}!${userIdent}@${host}`;
+            fullMask2 = `${nickname}!${userIdent}@${realhost}`;
+            fullMask3 = `${nickname}!${userIdent}@${realaddress}`;
+        }
+        
 
         // If mask does not contain '!', treat as nickname or username only
         if (!mask.includes('!')) {
             // Wildcard match for just the nickname or username
             // Try matching against both nickname and username
             const maskRegex = new RegExp('^' + mask.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
-            return maskRegex.test(username) || maskRegex.test(userIdent);
+            return maskRegex.test(nickname) || maskRegex.test(userIdent);
         }
 
         // If mask contains '!', match against full mask (nick!user@host)
@@ -4439,7 +4515,74 @@ class WTVIRC {
         socket.pause();
         socket.host = await this.getHostname(socket);
         socket.resume();
-        socket.realhost = socket.host;        
+        socket.realhost = socket.host;
+        await this.scanSocketForKLine(socket);
+    }
+
+    async scanSocketForKLine(socket) {
+        for (const kline of this.klines) {
+            if (this.checkMask(kline.mask, socket)) {
+                if (kline.expiry && kline.expiry > this.getDate()) {
+                    if (kline.reason) {
+                        socket.write(`:${this.servername} KILL ${socket.nickname} :K-lined: ${kline.reason}\r\n`);
+                        this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined: ${kline.reason}\r\n`, socket);
+                    } else {
+                        socket.write(`:${this.servername} KILL ${socket.nickname} :K-lined\r\n`);
+                        this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined\r\n`, socket);
+                    }
+                    this.terminateSession(socket, true);
+                } else {
+                    const klineIndex = this.klines.findIndex(k => k.mask === kline.mask);
+                    if (klineIndex !== -1) {
+                        this.klines.splice(klineIndex, 1);
+                    }
+                    this.saveKLinesToFile();
+                }
+            }
+        }        
+    }
+
+    async scanUsersForKLines() {
+        for (const kline of this.klines) {
+            for (const socket of this.nicknames.keys()) {
+                if (this.checkMask(kline.mask, socket)) {
+                    if (kline.expiry && kline.expiry > this.getDate()) {
+                        if (kline.reason) {
+                            socket.write(`:${this.servername} KILL ${socket.nickname} :K-lined: ${kline.reason}\r\n`);
+                            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} KILL :K-lined: ${kline.reason}\r\n`);
+                        } else {
+                            socket.write(`:${this.servername} KILL ${socket.nickname} :K-lined\r\n`);
+                            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} KILL :K-lined\r\n`);
+                        }
+                        this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined: ${kline.reason}\r\n`, socket);
+                        this.terminateSession(socket, true);
+                    } else {
+                        const klineIndex = this.klines.findIndex(k => k.mask === kline.mask);
+                        if (klineIndex !== -1) {
+                            this.klines.splice(klineIndex, 1);
+                        }
+                        this.saveKLinesToFile();
+                    }
+                }
+            }
+        }
+    }
+
+    saveKLinesToFile() {
+        // Ensure the session store directory exists
+        if (!fs.existsSync(this.session_store_path)) {
+            fs.mkdirSync(this.session_store_path, { recursive: true });
+        }
+        // Save the KLines to a file
+        fs.writeFileSync(this.klines_path, JSON.stringify(this.klines, null, 2));        
+    }
+
+    loadKLinesFromFile() {
+        // Load KLines from a file if it exists
+        if (fs.existsSync(this.klines_path)) {
+            const data = fs.readFileSync(this.klines_path, 'utf8');
+            this.klines = JSON.parse(data);
+        }
     }
 
     async doLogin(nickname, socket) {
