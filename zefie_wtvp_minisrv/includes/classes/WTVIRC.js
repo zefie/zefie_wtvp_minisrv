@@ -557,6 +557,7 @@ class WTVIRC {
                 if (targetSocket.client_caps && targetSocket.client_caps.includes('account-notify')) {
                     targetSocket.write(`:${targetSocket.nickname}!${targetSocket.username}@${targetSocket.host} ACCOUNT ${accountName}\r\n`);
                 }
+                break;
             case 'SVSNICK':
                 if (!socket.is_srv_authorized) {
                     socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
@@ -769,8 +770,9 @@ class WTVIRC {
                             this.broadcastToAllServers(`:${nickname}!${user_name}@${this.servername} QUIT :${message}\r\n`, socket);
                             break;
                         case 'JOIN':
-                            var channel = parts[3];
-                            if (!this.channels.has(channel)) {
+                            var channel = this.findChannel(parts[3]);
+                            if (!channel || !this.channels.has(channel)) {
+                                channel = parts[3];
                                 this.createChannel(channel);
                             }
                             var userSocket = this.findSocketByUniqueId(sourceUniqueId);
@@ -1101,13 +1103,14 @@ class WTVIRC {
                                 }
                                 break;
                             }
-                            var channel = parts[2];
+                            var channel = this.findChannel(parts[2]);
+                            if (!channel || !this.channels.has(channel)) {
+                                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
+                                break;
+                            }                            
                             var topic = parts.slice(3).join(' ');
                             if (topic.startsWith(':')) {
                                 topic = topic.slice(1); // Remove leading ':'
-                            }
-                            if (!this.channels.has(channel)) {
-                                this.createChannel(channel);
                             }
                             this.channeltopics.set(channel, topic);
                             var username = this.usernames.get(nickname) || nickname;
@@ -1237,17 +1240,19 @@ class WTVIRC {
                                 break;
                             }
                             var targetUniqueId = parts[2];
-                            var channelName = parts[3];
-                            var username = this.usernames.get(nickname) || nickname;
-                            var hostname = this.hostnames.get(nickname) || '';
+                            var channelName = this.findChannel(parts[3]);
                             var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            if (!this.channels.has(channelName)) {
+                            var username = this.usernames.get(targetSocket.nickname) || socket.nickname;
+                            var hostname = this.hostnames.get(targetSocket.nickname) || '';
+                            if (!channelName ||!this.channels.has(channelName)) {
+                                channelName = parts[3];
                                 this.createChannel(channelName);
                             }
-                            this.channels.get(channelName).add(nickname);
-                            targetSocket.write(`:${nickname}!${username}@${hostname} JOIN ${channelName}\r\n`);
-                            this.broadcastChannel(channelName, `:${nickname}!${username}@${hostname} JOIN ${channelName}\r\n`, targetSocket);
-                            this.broadcastToAllServers(`:${sourceUniqueId} SVSJOIN ${channelName} ${targetUniqueId}\r\n`, socket);
+                            if (!this.channels.get(channelName).has(targetSocket.nickname)) {
+                                this.channels.get(channelName).add(targetSocket.nickname);
+                            }
+                            this.broadcastChannelJoin(channelName, targetSocket);
+                            //this.broadcastToAllServers(`:${sourceUniqueId} SVSJOIN ${channelName} ${targetUniqueId}\r\n`, socket);
                             var chan_modes = this.channelmodes.get(channelName) || [];
                             if (chan_modes === true) {
                                 chan_modes = [];
@@ -3127,6 +3132,9 @@ class WTVIRC {
         // Broadcast a channel join message to all users in the channel, except the one specified
         channel = this.findChannel(channel);
         if (!channel) {
+            if (this.debug) {
+                console.warn(`Attempted to broadcast join to non-existent channel: ${channel}`);
+            }
             return;
         }
         if (this.channels.has(channel)) {
@@ -3142,6 +3150,10 @@ class WTVIRC {
                         sock.write(`:${sourceSocket.nickname}!${sourceSocket.username}@${sourceSocket.host} JOIN ${channel}\r\n`);
                     }
                 }
+            }
+        } else {
+            if (this.debug) {
+                console.warn(`Attempted to broadcast join to non-existent channel: ${channel}`);
             }
         }
     }
