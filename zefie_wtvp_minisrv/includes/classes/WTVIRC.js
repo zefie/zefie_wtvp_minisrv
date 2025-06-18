@@ -4073,9 +4073,11 @@ class WTVIRC {
             if (!chan_modes || chan_modes === true) {
                 chan_modes = [];
             }
-            this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'S'));
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -S\r\n`);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -S\r\n`);
+            if (chan_modes.includes('S')) {
+                this.channelmodes.set(channel, (chan_modes).filter(m => m !== 'S'));
+                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -S\r\n`);
+                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -S\r\n`);
+            }
             return;
         } else if (mode.startsWith('+t')) {
             var chan_modes = this.channelmodes.get(channel);
