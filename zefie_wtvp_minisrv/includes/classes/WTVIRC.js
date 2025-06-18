@@ -2097,7 +2097,7 @@ class WTVIRC {
                             }
                         }
                         if ((this.channelvoices.get(ch) || new Set()).has(socket.nickname)) {
-                            if (socket.client_caps.includes('multi-prefix')) {'
+                            if (socket.client_caps.includes('multi-prefix')) {
                                 prefix += '+';
                             } else {
                                 if (!prefix) {
