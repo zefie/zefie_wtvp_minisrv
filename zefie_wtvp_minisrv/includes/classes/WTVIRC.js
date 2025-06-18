@@ -48,7 +48,7 @@ class WTVIRC {
         this.channelbans = new Map(); // channel -> Set of banned users
         this.channelexemptions = new Map(); // channel -> Set of exempted users
         this.inviteexceptions = new Map(); // channel -> Set of users who can bypass invite only mode
-        this.channelmodes = new Map(); // channel -> Array of modes (e.g. ['m', 'i', 'l10', 'k secret'])
+        this.channelmodes = new Map(); // channel -> Array of modes (e.g. ['m', 'i', 'l', 'k'])
         this.usertimestamps = new Map(); // nickname -> timestamp since last message
         this.usermodes = new Map(); // nickname -> Array of modes (e.g. ['w', 'i'])
         this.usersignontimestamps = new Map(); // nickname -> timestamp since user signed on
