@@ -2791,7 +2791,6 @@ class WTVIRC {
                     var nickCheck = this.findUser(whoisNick);
                     if (nickCheck) {
                         whoisNick = nickCheck;
-                        socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
                         var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s)=== whoisNick);
                         const whois_username = this.usernames.get(whoisNick);
                         var userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || 'unknown';
