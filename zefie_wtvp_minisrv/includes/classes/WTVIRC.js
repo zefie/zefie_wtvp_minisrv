@@ -879,7 +879,6 @@ class WTVIRC {
     
                                     let modeMsg = `:${nickname}!${username}@${hostname} MODE ${targetChannel} `;
                                     let addingFlag = false;
-                                    let prevAdding = false;
                                     let paramIndex = 4; // Start after the modes
                                     let params = 0;
                                     let flags = [];
@@ -891,12 +890,10 @@ class WTVIRC {
                                         if (mc === '+') {
                                             addingFlag = true;
                                             modeMsg += '+';
-                                            prevAdding = true;
                                             continue;
                                         } else if (mc === '-') {
                                             addingFlag = false;
                                             modeMsg += '-';
-                                            prevAdding = false;
                                             continue;
                                         }
                                         modeStr += mc;
@@ -906,8 +903,8 @@ class WTVIRC {
                                             flags.push(plusminus + mc);
                                             params++;
                                         } else {
-                                            var channelmodes = this.channelmodes.get(targetChannel) || [];
-                                            if (channelmodes === true) {
+                                            var channelmodes = this.channelmodes.get(targetChannel);
+                                            if (!channelmodes || channelmodes === true) {
                                                 channelmodes = [];
                                             }
                                             if (addingFlag) {
@@ -1057,7 +1054,7 @@ class WTVIRC {
                                     }
                                     modeMsg += '\r\n';
                                     this.broadcastChannel(targetChannel, modeMsg);
-                                    this.broadcastToAllServers(modeMsg, socket);
+                                    this.broadcastToAllServers(line, socket);
                                 }
                                 break;
                             }                        
@@ -1304,8 +1301,10 @@ class WTVIRC {
                                     }
                                     this.usermodes.set(targetNickname, usermodes);
                                 }
-                            }
-                            targetSocket.write(`:${socket.servername} MODE ${targetSocket.nickname} ${modes.join('')}\r\n`);
+                            }                            
+                            var username = this.usernames.get(nickname);
+                            var hostname = this.hostnames.get(nickname);
+                            targetSocket.write(`:${nickname}!${username}@${hostname} MODE ${targetSocket.nickname} ${modes.join('')}\r\n`);
                             this.broadcastToAllServers(`:${sourceUniqueId} SVSMODE ${targetUniqueId} ${modes.join('')}\r\n`, socket);
                             break;                    
                         default:
@@ -2098,7 +2097,7 @@ class WTVIRC {
                             }
                         }
                         if ((this.channelvoices.get(ch) || new Set()).has(socket.nickname)) {
-                            if (socket.client_caps.includes('multi-prefix')) {
+                            if (socket.client_caps.includes('multi-prefix')) {'
                                 prefix += '+';
                             } else {
                                 if (!prefix) {
@@ -3496,8 +3495,7 @@ class WTVIRC {
                 this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +m\r\n`);
             }                        
             return;
-        } else if (mode.startsWith('-m')) {
-                          
+        } else if (mode.startsWith('-m')) {                          
             var chan_modes = this.channelmodes.get(channel);
             if (!chan_modes || chan_modes === true) {
                 chan_modes = [];
