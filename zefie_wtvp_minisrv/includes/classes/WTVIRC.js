@@ -74,7 +74,12 @@ class WTVIRC {
         this.oper_username = this.irc_config.oper_username || 'minisrv';
         this.oper_password = this.irc_config.oper_password || 'changeme573';
         this.oper_enabled = this.irc_config.oper_enabled || this.debug || false; // Default to off to prevent accidental use with default credentials
-        this.irc_motd = this.irc_config.motd || 'Welcome to the minisrv WebTV IRC server!';
+        this.irc_motd = this.irc_config.motd || [
+            'Welcome to the zefIRCd IRC server, powered by minisrv.',
+            'This server is powered by Node.js, and the minisrv project.',
+            'For more information, visit:',
+            'https://github.com/zefie/zefie_wtvp_minisrv'
+        ];
         this.nicklen = this.irc_config.nick_len || 31;
         this.maxbans = this.irc_config.max_bans || 100;
         this.maxlimit = this.irc_config.max_limit || 50;
@@ -88,10 +93,12 @@ class WTVIRC {
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_tls = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
+        this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
         this.enable_eval = this.debug || false; // Enable eval in debug mode only
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
         this.allow_public_vhosts = this.irc_config.allow_public_vhosts || true; // If true, users can set their host to a virtual host that is not a real hostname or IP address, if false, only opers can.
         this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_users_on_secure || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
+        this.hide_version = this.irc_config.hide_version || false; // If true, the server will not send its version in the MOTD
         this.clientpeak = 0;
         this.globalpeak = 0;
         this.socketpeak = 0;
@@ -365,7 +372,7 @@ class WTVIRC {
                 socket.uniqueId = serverId;
                 socket.serverIdent = line;
                 this.servers.set(socket, serverName)
-                socket.write(`SERVER ${this.servername} 1 ${this.serverId} + :${this.irc_motd}\r\n`);
+                socket.write(`SERVER ${this.servername} 1 ${this.serverId} + :${this.server_hello}\r\n`);
                 for (const [sock, nickname] of this.nicknames.entries()) {
                     if (!sock || !nickname) continue;
                     const uniqueId = sock.uniqueId;
@@ -1183,7 +1190,7 @@ class WTVIRC {
                                         userChannels.push(prefix + ch);
                                     }
                                 }
-                                output_lines.push(`:${this.serverId} 312 ${targetUniqueId} ${whoisNick} :${this.servername} :minisrv-${this.minisrv_config.version}\r\n`);
+                                output_lines.push(`:${this.serverId} 312 ${targetUniqueId} ${whoisNick} :${this.servername} :zefIRCd v${this.version}\r\n`);
                                 if (this.isIRCOp(whoisNick)) {
                                     output_lines.push(`:${this.serverId} 313 ${targetUniqueId} ${whoisNick} :is an IRC operator\r\n`);
                                 }
@@ -2978,14 +2985,14 @@ class WTVIRC {
                         socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
                         break;
                     }
-                    this.doMOTD(socket.nickname, socket);
+                    await this.doMOTD(socket.nickname, socket);
                     break;
                 case 'VERSION':
                     if (!socket.registered) {
                         socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
                         break;
                     }
-                    socket.write(`:${this.servername} 351 ${socket.nickname} ${this.servername} minisrv ${this.minisrv_config.version} :minisrv IRC server\r\n`);
+                    socket.write(`:${this.servername} 351 ${socket.nickname} ${this.servername} zefIRCd ${this.version} :zefIRCd IRC server\r\n`);
                     break;
                 case 'WALLOPS':
                     if (!socket.registered) {
@@ -4072,31 +4079,40 @@ class WTVIRC {
             }
             return;
         } else if (mode === 'b') {
+            // Get the list of channel bans
+            var output_lines = [];
             if (this.channelbans.has(channel)) {
                 const bans = Array.from(this.channelbans.get(channel));
                 for (const ban of bans) {
-                    socket.write(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
+                    output_lines.push(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
                 }
             }
-            socket.write(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
+            output_lines.push(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
+            this.sendThrottled(socket, output_lines);
             return;
         } else if (mode === 'e') {
+            // Get the list of channel exemptions
+            var output_lines = [];
             if (this.channelexemptions.has(channel)) {
                 const exemptions = Array.from(this.channelexemptions.get(channel));
                 for (const exemption of exemptions) {
-                    socket.write(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
+                    output_lines.push(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
                 }
             }
-            socket.write(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
+            output_lines.push(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
+            this.sendThrottled(socket, output_lines);
             return;
         } else if (mode === 'I') {
+            // Get the list of channel invites masks
+            var output_lines = [];
             if (this.channelinvites.has(channel)) {
                 const invites = Array.from(this.channelinvites.get(channel));
                 for (const invite of invites) {
-                    socket.write(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
+                    output_lines.push(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
                 }
             }
-            socket.write(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
+            output_lines.push(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
+            this.sendThrottled(socket, output_lines);
             return;
         } else {
             socket.write(`:${this.servername} 472 ${nickname} ${mode} :is unknown mode char to me\r\n`);
@@ -4104,12 +4120,24 @@ class WTVIRC {
         }
     }
 
-    doMOTD(nickname, socket) {
+    async doMOTD(nickname, socket) {
         // Sends the Message of the Day (MOTD) to the user
-        socket.write(`:${this.servername} 375 ${nickname} :${this.servername} message of the day\r\n`);
-        socket.write(`:${this.servername} 372 ${nickname} :This is zefIRCd v${this.version}, running on minisrv ${this.minisrv_config.version}\r\n`);
-        socket.write(`:${this.servername} 372 ${nickname} :${this.irc_motd}\r\n`);
-        socket.write(`:${this.servername} 376 ${nickname} :End of /MOTD command\r\n`);
+        var output_lines = [];
+        output_lines.push(`:${this.servername} 375 ${nickname} :${this.servername} message of the day\r\n`);
+        if (!this.irc_config.hide_version) {
+            output_lines.push(`:${this.servername} 372 ${nickname} :This is zefIRCd v${this.version}, running on minisrv v${this.minisrv_config.version}\r\n`);
+        }
+        if (typeof this.irc_motd === 'string' && this.irc_motd.length > 0) {
+            output_lines.push(`:${this.servername} 372 ${nickname} :${this.irc_motd}\r\n`);
+        } else if (Array.isArray(this.irc_motd) && this.irc_motd.length > 0) {
+            for (const line of this.irc_motd) {
+                output_lines.push(`:${this.servername} 372 ${nickname} :${line}\r\n`);
+            }
+        } else {
+            output_lines.push(`:${this.servername} 372 ${nickname} :No message of the day is set\r\n`);
+        }
+        output_lines.push(`:${this.servername} 376 ${nickname} :End of /MOTD command\r\n`);
+        await this.sendThrottled(socket, output_lines);
     }
 
     isReservedChannel(channel) {
@@ -4475,7 +4503,7 @@ class WTVIRC {
         }
         output_lines.push(`:${this.servername} 042 ${nickname} ${socket.uniqueId} :your unique ID\r\n`);
 
-        this.doMOTD(nickname, socket);
+        await this.doMOTD(nickname, socket);
 
         const visibleClients = Array.from(this.nicknames.values()).filter(nick => {
             const modes = this.usermodes.get(nick) || [];
