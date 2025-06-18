@@ -1876,7 +1876,7 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} USER :Not enough parameters\r\n`);
                         break;
                     }
-                    socket.userinfo = params.slice(3).join(' ');
+                    socket.userinfo = params.slice(3).join(' ').replace(/^:/, '');
                     if (!socket.registered && socket.nickname && socket.username) {
                         socket.registered = true;
                         var totalSockets = this.clients.length + this.servers.size;
