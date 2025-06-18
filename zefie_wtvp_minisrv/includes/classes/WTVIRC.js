@@ -4225,7 +4225,7 @@ class WTVIRC {
     }
 
     getChannelModes(channel) {
-        const modes = Array.isArray(this.channelmodes.get(channel))
+        var modes = Array.isArray(this.channelmodes.get(channel))
             ? [...this.channelmodes.get(channel)]
             : this.channelmodes.get(channel);
         if (!modes || modes === true) {
@@ -4251,7 +4251,7 @@ class WTVIRC {
 
     getUserModes(nickname) {
         // Returns the user modes for a given nickname
-        const modes = Array.isArray(this.usermodes.get(nickname))
+        var modes = Array.isArray(this.usermodes.get(nickname))
             ? [...this.usermodes.get(nickname)]
             : this.usermodes.get(nickname);
         if (!modes || modes === true) {
