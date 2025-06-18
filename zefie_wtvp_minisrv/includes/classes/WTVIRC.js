@@ -4130,8 +4130,11 @@ class WTVIRC {
         if (typeof this.irc_motd === 'string' && this.irc_motd.length > 0) {
             output_lines.push(`:${this.servername} 372 ${nickname} :${this.irc_motd}\r\n`);
         } else if (Array.isArray(this.irc_motd) && this.irc_motd.length > 0) {
-            for (const line of this.irc_motd) {
-                output_lines.push(`:${this.servername} 372 ${nickname} :${line}\r\n`);
+            for (var line of this.irc_motd) {
+                if (line === '') {
+                    line = '-';
+                }
+                output_lines.push(`:${this.servername} 372 ${nickname} :- ${line}\r\n`);
             }
         } else {
             output_lines.push(`:${this.servername} 372 ${nickname} :No message of the day is set\r\n`);
