@@ -10,8 +10,8 @@ class WTVIRC {
     /*
         * @constructor
         * @class WTVIRC
-        * WTVIRC - A small IRC server implementation for WebTV
-        * Tested with WebT, KvIRC and mIRC.
+        * zefIRCd - A node.js IRC server implementation
+        * Tested with WebTV, KvIRC and mIRC.
         * Supports unencrypted and encrypted (SSL) connections on the same port.
         * It supports basic commands like NICK, USER, JOIN, PART, PRIVMSG, NOTICE, TOPIC, AWAY, MODE, KICK, and PING.
         * Basic IRCOp functionality is included.
@@ -30,7 +30,12 @@ class WTVIRC {
     constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
-        this.version = '0.2.6';        
+        this.version = '0.2.7';
+        // Try to get git commit from environment variable or file, fallback to null if not available
+        this.git_commit = this.getGitRevision();
+        if (this.git_commit) {
+            this.version += `-${this.git_commit}`;
+        }
         this.host = host;
         this.port = port;
         this.debug = debug;
@@ -78,6 +83,7 @@ class WTVIRC {
         this.irc_motd = this.irc_config.motd || [
             'Welcome to the zefIRCd IRC server, powered by minisrv.',
             'This server is powered by Node.js, and the minisrv project.',
+            '',
             'For more information, visit:',
             'https://github.com/zefie/zefie_wtvp_minisrv'
         ];
@@ -119,6 +125,7 @@ class WTVIRC {
 
     start() {
         this.loadKLinesFromFile();
+
         if (this.enable_tls) {
             this.supported_client_caps.push('tls');
         }
@@ -184,92 +191,16 @@ class WTVIRC {
                         if (this.debug) {
                             console.log('Secure connection established');
                         }
-                        if (this.debug) {
-                            const originalWrite = secureSocket.write;
-                            secureSocket.write = function (...args) {
-                                var log_args = args.map(arg => {
-                                    if (typeof arg === 'string') {
-                                        return arg.replace(/\r\n/g, '').replace(/\n/g, '');
-                                    }
-                                    return arg;
-                                });
-                                console.log('<', ...log_args);                                
-                                return originalWrite.apply(secureSocket, args);
-                            };
-                        }                           
-                        socket.removeAllListeners('error');
-                        secureSocket.registered = false;
-                        secureSocket.nickname = '';
-                        secureSocket.username = '';
-                        secureSocket.isserver = false;
-                        secureSocket.is_srv_authorized = false;
-                        secureSocket.signedoff = false;
-                        secureSocket.client_version = '';
-                        secureSocket.client_caps = [];
-                        secureSocket.hostname_resolved = false;
-                        secureSocket.realhost = socket.remoteAddress
-                        secureSocket.upgrading_to_tls = false;
-                        secureSocket.host = this.filterHostname(secureSocket, socket.remoteAddress);
-                        secureSocket.timestamp = this.getDate();
-                        secureSocket.secure = true;
-                        secureSocket.uniqueId = `${this.serverId}${this.generateUniqueId(secureSocket)}`;
-                        await this.doInitialHandshake(secureSocket);
-                        // Push the secure socket to clients
-                        this.clients.push(secureSocket);
-                        this.clientpeak = Math.max(this.clientpeak, this.clients.length);                                                
-                        secureSocket.on('data', async data => {
-                            await this.processSocketData(secureSocket, data);
-                        });
-                        secureSocket.on('end', () => {
-                            this.terminateSession(secureSocket, false);
-                        });
+                        
+                        socket.removeAllListeners();
+                        await this.initializeSocket(secureSocket);
                         
                     });                    
                     secureSocket.resume();              
                     return;
                 } else {
-                    // Not SSL, re-emit the data event for normal processing
-                    if (this.debug) {
-                        const originalWrite = socket.write;
-                        socket.write = function (...args) {
-                            var log_args = args.map(arg => {
-                                if (typeof arg === 'string') {
-                                    return arg.replace(/\r\n/g, '').replace(/\n/g, '');
-                                }
-                                return arg;
-                            });
-                            console.log('<', ...log_args);
-                            return originalWrite.apply(socket, args);
-                        };
-                    }            
-                    socket.registered = false;
-                    socket.nickname = '';
-                    socket.username = '';
-                    socket.isserver = false;
-                    socket.is_srv_authorized = false;
-                    socket.signedoff = false;
-                    socket.hostname_resolved = false;
-                    socket.realhost = socket.remoteAddress;
-                    socket.upgrading_to_tls = false;
-                    socket.client_version = '';
-                    socket.client_caps = [];
-                    this.filterHostname(socket, socket.remoteAddress);
-                    socket.timestamp = this.getDate();
-                    socket.secure = false;
-                    socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
-                    await this.doInitialHandshake(socket);
-
-                    socket.on('data', async data => {
-                        await this.processSocketData(socket, data);
-                    });
-
-                    socket.on('end', () => {
-                        this.terminateSession(socket, false);
-                    });
-
-                    socket.on('error', () => {
-                        this.terminateSession(socket, true);
-                    });
+                    // Not SSL, re-emit the data event for normal processing       
+                    await this.initializeSocket(socket);
                     socket.emit('data', firstChunk.toString('ascii'));
                     socket.resume();
                     this.clients.push(socket);
@@ -280,10 +211,62 @@ class WTVIRC {
         });
         this.server.listen(this.port, this.host, () => {
             if (this.debug) {
-                console.log(`IRC server started on port ${this.host}:${this.port}`);
+                console.log(`zefIRCd ${this.version} server started on port ${this.host}:${this.port}`);
             }
         });        
     }
+
+    async initializeSocket(socket) {
+        if (this.debug) {
+            // debug output for socket data
+            const originalWrite = socket.write;
+            socket.write = function (...args) {
+                var log_args = args.map(arg => {
+                    if (typeof arg === 'string') {
+                        return arg.replace(/\r\n/g, '').replace(/\n/g, '');
+                    }
+                    return arg;
+                });
+                console.log('<', ...log_args);
+                return originalWrite.apply(socket, args);
+            };
+        }
+                
+        socket.registered = false;
+        socket.nickname = '';
+        socket.username = '';
+        socket.isserver = false;
+        socket.is_srv_authorized = false;
+        socket.signedoff = false;
+        socket.hostname_resolved = false;
+        socket.realhost = socket.remoteAddress;
+        socket.upgrading_to_tls = false;
+        socket.client_version = '';
+        socket.client_caps = [];
+        this.filterHostname(socket, socket.remoteAddress);
+        socket.timestamp = this.getDate();
+        socket.secure = false;
+        socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
+        await this.doInitialHandshake(socket);
+
+        socket.on('data', async data => {
+            await this.processSocketData(socket, data);
+        });
+
+        socket.on('end', () => {
+            this.terminateSession(socket, false);
+        });
+
+        socket.on('error', () => {
+            this.terminateSession(socket, true);
+        });
+
+        socket.on('close', () => {
+            this.terminateSession(socket, false);
+        });
+        this.clients.push(socket);
+        this.clientpeak = Math.max(this.clientpeak, this.clients.length);
+    }        
 
     async processServerData(socket, line) {
         // Handle server-specific commands
@@ -1016,8 +999,6 @@ class WTVIRC {
                                                 }
                                                 this.channelinvites.set(targetChannel, channelInvites);
                                             } else if (flags[i] === '+l' || flags[i] === '-l') {
-                                                // Check if 'l' mode is already present, if not, add it with the limit
-                                                // Check if 'l' mode is already present
                                                 if (flags[i] === '+l') {
                                                     this.setChannelMode(targetChannel, 'l', true);
                                                     this.channellimits.set(targetChannel, parseInt(target));
@@ -4589,6 +4570,21 @@ class WTVIRC {
             this.klines = JSON.parse(data);
         }
     }
+
+    getGitRevision() {
+        console.log(__dirname)
+        try {
+            var gitPath = __dirname + path.sep + ".." + path.sep + ".." + path.sep + ".." + path.sep + ".git" + path.sep
+            const rev = fs.readFileSync(gitPath + "HEAD").toString().trim();
+            if (rev.indexOf(':') === -1) {
+                return rev;
+            } else {
+                return fs.readFileSync(gitPath + rev.substring(5)).toString().trim().substring(0, 8) + "-" + rev.split('/').pop();
+            }
+        } catch (e) {
+            return null;
+        }
+    }    
 
     async doLogin(nickname, socket) {
         if (await this.scanSocketForKLine(socket)) {
