@@ -4148,7 +4148,6 @@ class WTVIRC {
                 } else {
                     target = this.findUser(param);
                 }
-                console.log(target, param);
                 var result = this.processChannelModeParams(channel, plusminus + mc, target, socket);
                 paramIndex++;
             } else {
