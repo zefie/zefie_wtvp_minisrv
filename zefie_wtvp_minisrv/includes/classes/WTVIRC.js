@@ -4196,7 +4196,7 @@ class WTVIRC {
         }
     }
 
-    async doMOTD(nickname, socket) {
+    async doMOTD(nickname, socket = null) {
         // Sends the Message of the Day (MOTD) to the user
         var output_lines = [];
         output_lines.push(`:${this.servername} 375 ${nickname} :${this.servername} message of the day\r\n`);
@@ -4216,7 +4216,11 @@ class WTVIRC {
             output_lines.push(`:${this.servername} 372 ${nickname} :No message of the day is set\r\n`);
         }
         output_lines.push(`:${this.servername} 376 ${nickname} :End of /MOTD command\r\n`);
-        await this.sendThrottled(socket, output_lines);
+        if (socket) {
+            await this.sendThrottled(socket, output_lines);
+        } else {
+            return output_lines;
+        }
     }
 
     isReservedChannel(channel) {
@@ -4350,10 +4354,10 @@ class WTVIRC {
         return id;
     }
 
-    async sendThrottled(socket, lines, delayMs = 10) {
+    async sendThrottled(socket, lines, delayMs = 1) {
         for (const line of lines) {
-            socket.write(line);
             await new Promise(res => setTimeout(res, delayMs));
+            socket.write(line);
         }
     }
 
@@ -4649,7 +4653,7 @@ class WTVIRC {
         }
         output_lines.push(`:${this.servername} 042 ${nickname} ${socket.uniqueId} :your unique ID\r\n`);
 
-        await this.doMOTD(nickname, socket);
+        output_lines.push(...(await this.doMOTD(nickname)));        
 
         const visibleClients = Array.from(this.nicknames.values()).filter(nick => {
             const modes = this.usermodes.get(nick) || [];
