@@ -318,7 +318,8 @@ class WTVIRC {
                     }
                     break;
                 }
-                const capabilities = parts.slice(1);
+                var capabilities = parts.slice(1).join(' ').slice(1); // Remove leading ':'
+                capabilities = capabilities.split(' ');
                 if (this.debug) {
                     console.log(`Server capabilities: ${capabilities.join(' ')}`);
                 }                
@@ -328,7 +329,7 @@ class WTVIRC {
                         output_reply.push(cap);
                     } else {
                         if (this.debug) {
-                            console.warn(`Unsupported capability: ${cap}`);
+                            console.warn(`Unsupported server capability: ${cap}`);
                         }
                     }
                 }
@@ -463,12 +464,7 @@ class WTVIRC {
                 const ipaddress2 = parts[8];
                 const userUniqueId = parts[9];
                 var userinfo = parts.slice(10).join(' ').slice(1); // Remove leading ':'
-                var serverUsers = this.serverusers.get(socket) || new Set();
-                if (serverUsers === true) {
-                    serverUsers = new Set();
-                }
-                serverUsers.add(nickname);
-                this.serverusers.set(socket, serverUsers);
+                this.addRemoteServerUser(socket, nickname);
                 this.addUserUniqueId(nickname, userUniqueId);
                 this.globalpeak = Math.max(this.globalpeak, this.countGlobalUsers());
                 this.usersignontimestamps.set(nickname, timestamp);
@@ -754,7 +750,6 @@ class WTVIRC {
                             if (serverUsers && typeof serverUsers.delete === 'function') {
                                 const nickToRemove = this.findUserByUniqueId(sourceUniqueId);
                                 serverUsers.delete(nickToRemove);
-                                this.serverusers.set(socket, serverUsers);
                             }
                             this.cleanupUserSession(user_name);
                             this.broadcastToAllServers(`:${nickname}!${user_name}@${this.servername} QUIT :${message}\r\n`, socket);
@@ -854,172 +849,15 @@ class WTVIRC {
                                 var targetChannel = this.findChannel(targetUniqueId)
                                 if (!targetChannel) {
                                     if (this.debug) {
-                                        console.warn(`Invalid MODE command from server: ${line}`);
+                                        console.warn('MODE command for non-existant channel received from server:');
+                                        console.warn(` ${line}`);
                                     }
                                     break;
                                 }
                                 // It's a channel, broadcast to all users in the channel
                                 if (this.channels.has(targetChannel)) {
-                                    var username = this.usernames.get(nickname);
-                                    var hostname = this.hostnames.get(nickname);
-
                                     var modes = parts[3];
-                                    // Split modes into array and process each character
-                                    let modeChars = modes.split('');
-    
-                                    let modeMsg = `:${nickname}!${username}@${hostname} MODE ${targetChannel} `;
-                                    let addingFlag = false;
-                                    let paramIndex = 4; // Start after the modes
-                                    let params = 0;
-                                    let flags = [];
-
-                                    for (let j = 0; j < modeChars.length; j++) {
-                                        let param = null;
-                                        let modeStr = '';
-                                        let mc = modeChars[j];
-                                        if (mc === '+') {
-                                            addingFlag = true;
-                                            modeMsg += '+';
-                                            continue;
-                                        } else if (mc === '-') {
-                                            addingFlag = false;
-                                            modeMsg += '-';
-                                            continue;
-                                        }
-                                        modeStr += mc;
-                                        // Modes that require a parameter
-                                        if (['o', 'I', 'b', 'e', 'v', 'h', 'l', 'k'].includes(mc)) {
-                                            var plusminus = (addingFlag) ? "+" : "-";
-                                            flags.push(plusminus + mc);
-                                            params++;
-                                        } else {
-                                            this.setChannelMode(targetChannel, mc, addingFlag);
-                                            if (addingFlag) {
-                                                if (mc === 'S' && this.kick_insecure_users_on_secure) {
-                                                    // Kick users who do not have user mode +z
-                                                    const usersInChannel = this.channels.get(targetChannel) || new Set();
-                                                    for (const user of usersInChannel) {
-                                                        const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
-                                                        if (userSocket && !this.getUserModes(user).includes('z')) {
-                                                            userSocket.write(`:${nickname}!${username}@${socket.host} KICK ${targetChannel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
-                                                            this.broadcastChannel(targetChannel, `:${nickname}!${username}@${socket.host} KICK ${targetChannel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`, userSocket);
-                                                            this.broadcastToAllServers(`:${sourceUniqueId} KICK ${targetChannel} ${userSocket.uniqueId} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
-                                                            this.channels.get(targetChannel).delete(user);
-                                                        }
-                                                    }
-                                                }                                                    
-                                            }
-                                        }
-
-                                        if (modeStr.length > 0) {
-                                            modeMsg += modeStr;
-                                        }
-                                        if (param) {
-                                            modeMsg += ` ${param}`;
-                                        }
-                                    }
-                                    if (params > 0 && parts.length > paramIndex) {
-                                        for (let i = 0; i < params; i++) {
-                                            var target = this.findUserByUniqueId(parts[paramIndex]);
-                                            if (!target) {
-                                                target = parts[paramIndex];
-                                            }
-                                            if (!target) {
-                                                if (this.debug) {
-                                                    console.warn(`No target found for unique ID ${parts[paramIndex]}`);
-                                                }
-                                                break;
-                                            }
-                                            modeMsg += ` ${target}`;
-                                            if (flags[i] === '+o' || flags[i] === '-o') {
-                                                var channelOps = this.channelops.get(targetChannel) || new Set();
-                                                if (channelOps === true) {
-                                                    channelOps = new Set();
-                                                }
-                                                if (flags[i] === '+o') {
-                                                    channelOps.add(target);
-                                                } else if (flags[i] === '-o') {
-                                                    channelOps.delete(target);
-                                                }                                                
-                                                this.channelops.set(targetChannel, channelOps);
-                                            } else if (flags[i] === '+h' || flags[i] === '-h') {
-                                                var channelHalfOps = this.channelhalfops.get(targetChannel) || new Set();
-                                                if (channelHalfOps === true) {
-                                                    channelHalfOps = new Set();
-                                                }
-                                                if (flags[i] === '+h') {
-                                                    channelHalfOps.add(target);
-                                                } else if (flags[i] === '-h') {
-                                                    channelHalfOps.delete(target);
-                                                }
-                                                this.channelhalfops.set(targetChannel, channelHalfOps);
-                                            } else if (flags[i] === '+v' || flags[i] === '-v') {
-                                                var channelVoices = this.channelvoices.get(targetChannel) || new Set();
-                                                if (channelVoices === true) {
-                                                    channelVoices = new Set();
-                                                }
-                                                if (flags[i] === '+v') {
-                                                    channelVoices.add(target);
-                                                } else if (flags[i] === '-v') {
-                                                    channelVoices.delete(target);
-                                                }
-                                                this.channelvoices.set(targetChannel, channelVoices);
-                                            } else if (flags[i] === '+b' || flags[i] === '-b') {
-                                                var channelBans = this.channelbans.get(targetChannel) || [];
-                                                if (channelBans === true) {
-                                                    channelBans = [];
-                                                }
-                                                if (flags[i] === '+b') {
-                                                    channelBans.push(target);
-                                                } else if (flags[i] === '-b') {
-                                                    channelBans = channelBans.filter(ban => ban !== target);
-                                                }
-                                                this.channelbans.set(targetChannel, channelBans);
-                                            } else if (flags[i] === '+e' || flags[i] === '-e') {
-                                                var channelExemptions = this.channelexemptions.get(targetChannel) || [];
-                                                if (channelExemptions === true) {
-                                                    channelExemptions = [];
-                                                }
-                                                if (flags[i] === '+e') {
-                                                    channelExemptions.push(target);
-                                                } else if (flags[i] === '-e') {
-                                                    channelExemptions = channelExemptions.filter(exception => exception !== target);
-                                                }
-                                                this.channelexemptions.set(targetChannel, channelExemptions);
-                                            } else if (flags[i] === '+I' || flags[i] === '-I') {
-                                                var channelInvites = this.channelinvites.get(targetChannel) || [];
-                                                if (channelInvites === true) {
-                                                    channelInvites = [];
-                                                }
-                                                if (flags[i] === '+I') {
-                                                    channelInvites.push(target);
-                                                } else if (flags[i] === '-I') {
-                                                    channelInvites = channelInvites.filter(invite => invite !== target);
-                                                }
-                                                this.channelinvites.set(targetChannel, channelInvites);
-                                            } else if (flags[i] === '+l' || flags[i] === '-l') {
-                                                if (flags[i] === '+l') {
-                                                    this.setChannelMode(targetChannel, 'l', true);
-                                                    this.channellimits.set(targetChannel, parseInt(target));
-                                                } else {
-                                                    this.setChannelMode(targetChannel, 'l', false);
-                                                    this.channellimits.delete(targetChannel);
-                                                }
-                                            } else if (flags[i] === '+k' || flags[i] === '-k') {
-                                                if (flags[i] === '+k') {
-                                                    this.setChannelMode(targetChannel, 'k', true);
-                                                    this.channelkeys.set(targetChannel, target);
-                                                } else {
-                                                    this.setChannelMode(targetChannel, 'k', false);
-                                                    this.channelkeys.delete(targetChannel);
-                                                }
-                                            } 
-                                            paramIndex++;
-                                        }
-                                    }
-                                    modeMsg += '\r\n';
-                                    this.broadcastChannel(targetChannel, modeMsg);
-                                    this.broadcastToAllServers(line, socket);
+                                    this.processChannelModes(nickname, targetChannel, modes, parts.slice(4), socket);
                                 }
                                 break;
                             }                        
@@ -1878,7 +1716,7 @@ class WTVIRC {
                         break;
                     } else {
                         // Process channel mode changes
-                        this.processChannelModeBatch(socket.nickname, channel, mode, params.slice(2));
+                        this.processChannelModes(socket.nickname, channel, mode, params.slice(2), socket);
                         break;
                     } 
                 case 'NICK':
@@ -2097,7 +1935,6 @@ class WTVIRC {
                             if (!isInvited) {
                                 invited.delete(socket.nickname);
                             }
-                            this.channelinvites.set(ch, invited);
                         }
                         if (this.getChannelModes(ch).includes('O')) {
                             if (!this.isIRCOp(socket.nickname)) {
@@ -2358,7 +2195,6 @@ class WTVIRC {
                         if (!this.channelinvites) this.channelinvites = new Map();
                         const invited = this.channelinvites.get(channel) || new Set();
                         invited.add(invitee);
-                        this.channelinvites.set(channel, invited);
                         socket.write(`:${this.servername} 341 ${socket.nickname} ${invitee} ${channel} :Invited to channel\r\n`);
                         this.broadcastUserIfCapAndChanOp(socket, `:${socket.nickname}!${socket.username}@${socket.host} INVITE ${invitee} ${channel}`, socket, 'invite-notify', channel);
                         inviteeSocket.write(`:${this.servername} 341 ${socket.nickname} ${invitee} ${channel} :You have been invited to join ${channel}\r\n`);
@@ -2450,7 +2286,11 @@ class WTVIRC {
                                 );
                                 if (!whoisSocket) {
                                     // try to get server socket
-                                    whoisSocket = this.getRemoteServerUserSocket(cleanUser);
+                                    whoisSocket = this.getRemoteServerUserSocket(cleanUser);                                    
+                                }
+                                var userSecure = false;
+                                if (whoisSocket) {
+                                    userSecure = whoisSocket.secure;
                                 }
                                 let prefix = '';
                                 var chanops = this.channelops.get(target)
@@ -2473,7 +2313,7 @@ class WTVIRC {
                                     prefix = '+';
                                 }
                                 var userinfo = this.userinfo.get(cleanUser) || cleanUser;
-                                var flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(whoisSocket.secure) ? 'z' : ''}`
+                                var flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(userSecure) ? 'z' : ''}`
                                 var secondsIdle = (this.getDate() - this.usertimestamps.get(cleanUser));
                                 socket.write(`:${this.servername} 352 ${socket.nickname} ${target} ${username} ${hostname} ${this.servername} ${cleanUser} ${flags} 0 ${secondsIdle} 0 :${userinfo}\r\n`);
                             }
@@ -3559,646 +3399,6 @@ class WTVIRC {
         }
     }
 
-
-
-    processChannelModeBatch(nickname, channel, modeString, params) {
-        // Enhanced MODE command: support multiple mode flags and parameters in a single command
-        // Example: /mode #chan +mik password
-        // This method parses and applies multiple channel mode changes in one call.
-        // But it depends on processing them each individually, so it will call processChannelModeCommand for each change.
-        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === nickname);
-
-        // Parse mode string and parameters
-        let adding = true;
-        let paramIndex = 0;
-        let modeChanges = [];
-        let modeFlags = modeString.replace(/^:/, '').split('');
-        let paramModes = {
-            'k': true, // key
-            'l': true, // limit
-            'b': true, // ban
-            'e': true, // exception
-            'I': true, // invite-exception
-            'h': true, // halfop
-            'o': true, // op
-            'v': true  // voice
-        };
-        for (let i = 0; i < modeFlags.length; i++) {
-            let c = modeFlags[i];
-            // If the mode is 'b', 'e', or 'I', allow it with or without a param
-            if ((c === 'b' || c === 'e' || c === 'I') && paramIndex >= params.length) {
-                this.processChannelModeCommand(nickname, channel, c, null);
-                return;
-            }
-            if (c === '+') {
-                adding = true;
-            } else if (c === '-') {
-                adding = false;
-            } else {
-                let param = null;
-                if (paramModes[c]) {
-                    // Only consume a param if available
-                    if (paramIndex < params.length) {
-                        param = params[paramIndex++];
-                    }
-                }
-                modeChanges.push({ adding, mode: c, param });
-            }
-        }
-
-        // Allow IRCop to set channel modes, or require channel operator
-        if (
-            !this.isIRCOp(nickname) &&
-            (
-            !this.channelops.has(channel) ||
-            this.channelops.get(channel) === true ||
-            this.channelhalfops.get(channel) === true ||
-            !this.channelops.get(channel).has(nickname)
-            )
-        ) {
-            socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not channel operator\r\n`);
-            return;
-        }
-        // Now apply each mode change
-        for (const change of modeChanges) {
-            let modeFlag = (change.adding ? '+' : '-') + change.mode;
-            let modeParam = change.param ? [null, null, change.param] : [];
-            // Use the existing single-mode handler for each
-            this.processChannelModeCommand(nickname, channel, modeFlag, modeParam);
-        }
-    }
-
-    processChannelModeCommand(nickname, channel, mode, params) {
-        // A terrible implementation of handling channel modes
-        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === nickname);
-        const username = this.usernames.get(nickname);
-        if (mode.startsWith('+m')) {
-            if (!this.getChannelModes(channel).includes('m')) {
-                this.setChannelMode(channel, 'm', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +m\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +m\r\n`);
-            }                        
-            return;
-        } else if (mode.startsWith('-m')) {                          
-            if (this.getChannelModes(channel).includes('m')) {
-                this.setChannelMode(channel, 'm', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -m\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -m\r\n`);
-            }
-            return;
-        } else if (mode.startsWith("+I")) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            const inviteMask = params[2];
-            if (!inviteMask) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            if (!this.inviteexceptions.has(channel)) {
-                this.inviteexceptions.set(channel, new Set());
-            }
-            if (this.inviteexceptions.get(channel).length >= this.maxinvite) {
-                socket.write(`:${this.servername} 478 ${nickname} ${channel} :Too many invite exceptions\r\n`);
-                return;
-            } 
-            var found = false;
-            for (const mask of this.inviteexceptions.get(channel)) {
-                if (mask === inviteMask) {
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                return;
-            }       
-            this.inviteexceptions.get(channel).add(inviteMask);
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +I ${inviteMask}\r\n`);
-            this.broadcastToAllServers(`${socket.uniqueId} MODE ${channel} +I ${inviteMask}\r\n`);
-            return;
-        } else if (mode.startsWith("-I")) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            const inviteMask = params[2];
-            if (!inviteMask) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            if (this.inviteexceptions.has(channel)) {
-                // Only remove if there is an exact match (no mask/wildcard logic)
-                var found = false;
-                for (const mask of this.inviteexceptions.get(channel)) {
-                    if (mask === inviteMask) {
-                        this.inviteexceptions.get(channel).delete(mask);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    return;
-                }
-                this.inviteexceptions.get(channel).delete(inviteMask);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -I ${inviteMask}\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -I ${inviteMask}\r\n`);
-                return
-            } else {
-                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
-                return;
-            }                                
-        } else if (mode.startsWith('+l')) {
-                            
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            const limit = parseInt(params[2], 10);
-            if (isNaN(limit) || limit < 0) {
-                socket.write(`:${this.servername} 501 ${nickname} :Invalid channel limit\r\n`);
-                return;
-            }
-            this.channellimits.set(channel, limit);
-            if (!this.getChannelModes(channel).includes('l')) {
-                this.setChannelMode(channel, 'l', true);
-            }
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +l ${limit}\r\n`);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +l ${limit}\r\n`);
-            return;
-        } else if (mode.startsWith('-l')) {                            
-            if (params.length < 2) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            if (this.channellimits.has(channel)) {
-                this.channellimits.delete(channel);
-            }
-            if (this.getChannelModes(channel).includes('l')) {
-                this.setChannelMode(channel, 'l', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -l\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -l\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+k')) {                            
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            const key = params[2];
-            if (key.length < 1 || key.length > this.max_keylen) {
-                socket.write(`:${this.servername} 525 ${nickname} :Invalid channel key\r\n`);
-                return;
-            }
-            // replace key mode if it exists
-            this.channelkeys.set(channel, key);
-            if (!this.getChannelModes(channel).includes('k')) {
-                this.setChannelMode(channel, 'k', true);
-            }
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +k ${key}\r\n`);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +k ${key}\r\n`);
-            return;
-        } else if (mode.startsWith('-k')) {  
-            if (this.channelkeys.has(channel)) {                       
-                this.channelkeys.delete(channel);
-            }
-            if (this.getChannelModes(channel).includes('k')) {
-                this.setChannelMode(channel, 'k', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -k\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -k\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+i')) {
-            if (!this.getChannelModes(channel).includes('i')) {
-                this.setChannelMode(channel, 'i', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +i\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +i\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-i')) {
-            if (this.getChannelModes(channel).includes('i')) {
-                this.setChannelMode(channel, 'i', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -i\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -i\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+o')) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }                               
-            const target_nickname = params[2];
-            this.channelops.set(channel, (this.channelops.get(channel) || new Set()).add(target_nickname));
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +o ${target_nickname}\r\n`);
-            var targetUniqueId = this.uniqueids.get(target_nickname);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +o ${targetUniqueId}\r\n`);
-            return;
-        } else if (mode.startsWith('-o')) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }                                 
-            const target_nickname = params[2];                                
-            this.channelops.set(channel, (this.channelops.get(channel) || new Set()).delete(target_nickname));
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -o ${target_nickname}\r\n`);
-            var targetUniqueId = this.uniqueids.get(target_nickname);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -o ${targetUniqueId}\r\n`);
-            return;
-        } else if (mode.startsWith('+h')) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }                               
-            const target_nickname = params[2];
-            this.channelhalfops.set(channel, (this.channelhalfops.get(channel) || new Set()).add(target_nickname));
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +h ${target_nickname}\r\n`);
-            var targetUniqueId = this.uniqueids.get(target_nickname);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +h ${targetUniqueId}\r\n`);
-            return;
-        } else if (mode.startsWith('-h')) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }                                 
-            const target_nickname = params[2];                                
-            this.channelhalfops.set(channel, (this.channelhalfops.get(channel) || new Set()).delete(target_nickname));
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -h ${target_nickname}\r\n`);
-            var targetUniqueId = this.uniqueids.get(target_nickname);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -h ${targetUniqueId}\r\n`);
-            return;
-        } else if (mode.startsWith('+v')) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            const target_nickname = params[2];
-            this.channelvoices.set(channel, (this.channelvoices.get(channel) || new Set()).add(target_nickname));
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +v ${target_nickname}\r\n`);
-            var targetUniqueId = this.uniqueids.get(target_nickname);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +v ${targetUniqueId}\r\n`);
-            return;
-        } else if (mode.startsWith('-v')) {
-            if (params.length < 3) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }                                
-            const target_nickname = params[2];
-            this.channelvoices.set(channel, (this.channelvoices.get(channel) || new Set()).delete(target_nickname));
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -v ${target_nickname}\r\n`, socket);
-            var targetUniqueId = this.uniqueids.get(target_nickname);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -v ${targetUniqueId}\r\n`);
-            return;
-        } else if (mode.startsWith('+b')) {                                  
-            const banMask = params[2];
-            if (!banMask) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            if (!this.channelbans.has(channel)) {
-                this.channelbans.set(channel, new Set());
-            }
-            if (this.channelbans.get(channel).length >= this.maxbans) {
-                socket.write(`:${this.servername} 478 ${nickname} ${channel} :Channel ban list is full\r\n`);
-                return;
-            }
-            for (const mask of this.channelbans.get(channel)) {
-                if (mask === banMask) {
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                return;
-            }                          
-            this.channelbans.get(channel).add(banMask);            
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +b ${banMask}\r\n`);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +b ${banMask}\r\n`);
-            return
-        } else if (mode.startsWith('-b')) {                                
-            const banMask = params[2];
-            if (!banMask) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            if (this.channelbans.has(channel)) {
-                var found = false;
-                for (const mask of this.channelbans.get(channel)) {
-                    if (mask === banMask) {
-                        this.channelbans.get(channel).delete(mask);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    return;
-                }           
-                this.channelbans.get(channel).delete(banMask);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -b ${banMask}\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -b ${banMask}\r\n`);
-            } else {
-                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+e')) {
-            const exemptMask = params[2];
-            if (!exemptMask) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            if (!this.channelexemptions.has(channel)) {
-                this.channelexemptions.set(channel, new Set());
-            }
-            if (this.channelexemptions.get(channel).size >= this.maxexemptions) {
-                socket.write(`:${this.servername} 478 ${nickname} ${channel} :Channel exemption list is full\r\n`);
-                return;
-            }
-            for (const mask of this.channelexemptions.get(channel)) {
-                if (mask === exemptMask) {
-                    found = true;
-                    break;
-                }
-            }
-            if (found) {
-                return;
-            }                         
-            this.channelexemptions.get(channel).add(exemptMask);
-            this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +e ${exemptMask}\r\n`);
-            this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +e ${exemptMask}\r\n`);
-            return;
-        } else if (mode.startsWith('-e')) {
-            const exemptMask = params[2];
-            if (!exemptMask) {
-                socket.write(`:${this.servername} 461 ${nickname} MODE :Not enough parameters\r\n`);
-                return;
-            }
-            if (this.channelexemptions.has(channel)) {
-                var found = false;
-                for (const mask of this.channelexemptions.get(channel)) {
-                    if (mask === exemptMask) {
-                        this.channelexemptions.get(channel).delete(mask);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    return;
-                }           
-                this.channelexemptions.get(channel).delete(exemptMask);                
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -e ${exemptMask}\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -e ${exemptMask}\r\n`);
-            } else {
-                socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
-            }
-            return;
-        } else if (mode.startsWith("+n")) {
-            if (!this.getChannelModes(channel).includes('n')) {
-                this.setChannelMode(channel, 'n', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +n\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +n\r\n`);
-            }
-            return;
-        } else if (mode.startsWith("-n")) {
-            if (this.getChannelModes(channel).includes('n')) {
-                this.setChannelMode(channel, 'n', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -n\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -n\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+s')) {
-            if (!this.getChannelModes(channel).includes('s')) {
-                this.setChannelMode(channel, 's', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +s\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +s\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-s')) {
-            if (this.getChannelModes(channel).includes('s')) {
-                this.setChannelMode(channel, 's', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -s\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -s\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+p')) {
-            if (!this.getChannelModes(channel).includes('p')) {
-                this.setChannelMode(channel, 'p', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +p\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +p\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-p')) {
-            if (this.getChannelModes(channel).includes('p')) {
-                this.setChannelMode(channel, 'p', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -p\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -p\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+T')) {
-            if (!this.getChannelModes(channel).includes('T')) {
-                this.setChannelMode(channel, 'T', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +T\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +T\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-T')) {
-            if (this.getChannelModes(channel).includes('T')) {
-                this.setChannelMode(channel, 'T', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -T\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -T\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+V')) {
-            if (!this.getChannelModes(channel).includes('V')) {
-                this.setChannelMode(channel, 'V', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +V\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +V\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-V')) {
-            if (this.getChannelModes(channel).includes('V')) {
-                this.setChannelMode(channel, 'V', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -V\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -V\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+c')) {
-            if (!this.getChannelModes(channel).includes('c')) {
-                this.setChannelMode(channel, 'c', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +c\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +c\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-c')) {
-            if (this.getChannelModes(channel).includes('c')) {
-                this.setChannelMode(channel, 'c', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -c\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -c\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+C')) {
-            if (!this.getChannelModes(channel).includes('C')) {
-                this.setChannelMode(channel, 'C', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +C\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +C\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-C')) {
-            if (this.getChannelModes(channel).includes('C')) {
-                this.setChannelMode(channel, 'C', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -C\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -C\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+R')) {
-            if (!this.getChannelModes(channel).includes('R')) {
-                this.setChannelMode(channel, 'R', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +R\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +R\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-R')) {
-            if (this.getChannelModes(channel).includes('R')) {
-                this.setChannelMode(channel, 'R', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -R\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -R\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+N')) {
-            if (!this.getChannelModes(channel).includes('N')) {
-                this.setChannelMode(channel, 'N', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +N\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +N\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-N')) {
-            if (this.getChannelModes(channel).includes('N')) {
-                this.setChannelMode(channel, 'N', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -N\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -N\r\n`);
-            }
-            return; 
-        } else if (mode.startsWith('+Q')) {
-            if (!this.getChannelModes(channel).includes('Q')) {
-                this.setChannelMode(channel, 'Q', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +Q\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +Q\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-Q')) {
-            if (this.getChannelModes(channel).includes('Q')) {
-                this.setChannelMode(channel, 'Q', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -Q\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -Q\r\n`);
-            }
-            return;
-        }
-        else if (mode.startsWith('+O')) {            
-            if (!this.isIRCOp(nickname)) {
-                socket.write(`:${this.servername}   ${nickname} ${channel} :You're not an IRC operator\r\n`);
-                return;
-            }
-            if (!this.getChannelModes(channel).includes('O')) {
-                this.setChannelMode(channel, 'O', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +O\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +O\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-O')) {
-            if (!this.isIRCOp(nickname)) {
-                socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not an IRC operator\r\n`);
-                return;
-            }
-            if (this.getChannelModes(channel).includes('O')) {
-                this.setChannelMode(channel, 'O', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -O\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -O\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+S')) {
-            if (!socket.secure) {
-                socket.write(`:${this.servername} 484 ${nickname} ${channel} :You must be connected via SSL/TLS to set +S\r\n`);
-                return;
-            }
-            if (!this.getChannelModes(channel).includes('S')) {
-                this.setChannelMode(channel, 'S', true);
-                if (this.kick_insecure_users_on_secure) {
-                    const usersInChannel = this.channels.get(channel) || new Set();
-                    for (const user of usersInChannel) {
-                        const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
-                        if (userSocket && !userSocket.secure) {
-                            userSocket.write(`:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only)\r\n`);
-                            this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only)\r\n`, userSocket);
-                            this.broadcastToAllServers(`:${socket.uniqueId} KICK ${channel} ${userSocket.uniqueId} :Channel is now +S (SSL-only)\r\n`);
-                            this.channels.get(channel).delete(user);
-                        }
-                    }                
-                }
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +S\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +S\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-S')) {
-            if (this.getChannelModes(channel).includes('S')) {
-                this.setChannelMode(channel, 'S', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -S\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -S\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('+t')) {
-            if (!this.getChannelModes(channel).includes('t')) {
-                this.setChannelMode(channel, 't', true);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} +t\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} +t\r\n`);
-            }
-            return;
-        } else if (mode.startsWith('-t')) {
-            if (this.getChannelModes(channel).includes('t')) {
-                this.setChannelMode(channel, 't', false);
-                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} MODE ${channel} -t\r\n`);
-                this.broadcastToAllServers(`:${socket.uniqueId} MODE ${channel} -t\r\n`);
-            }
-            return;
-        } else if (mode === 'b') {
-            // Get the list of channel bans
-            var output_lines = [];
-            if (this.channelbans.has(channel)) {
-                const bans = Array.from(this.channelbans.get(channel));
-                for (const ban of bans) {
-                    output_lines.push(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
-                }
-            }
-            output_lines.push(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
-            this.sendThrottled(socket, output_lines);
-            return;
-        } else if (mode === 'e') {
-            // Get the list of channel exemptions
-            var output_lines = [];
-            if (this.channelexemptions.has(channel)) {
-                const exemptions = Array.from(this.channelexemptions.get(channel));
-                for (const exemption of exemptions) {
-                    output_lines.push(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
-                }
-            }
-            output_lines.push(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
-            this.sendThrottled(socket, output_lines);
-            return;
-        } else if (mode === 'I') {
-            // Get the list of channel invites masks
-            var output_lines = [];
-            if (this.channelinvites.has(channel)) {
-                const invites = Array.from(this.channelinvites.get(channel));
-                for (const invite of invites) {
-                    output_lines.push(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
-                }
-            }
-            output_lines.push(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
-            this.sendThrottled(socket, output_lines);
-            return;
-        } else {
-            socket.write(`:${this.servername} 472 ${nickname} ${mode} :is unknown mode char to me\r\n`);
-            return;
-        }
-    }
-
     async doMOTD(nickname, socket = null) {
         // Sends the Message of the Day (MOTD) to the user
         var output_lines = [];
@@ -4262,6 +3462,14 @@ class WTVIRC {
             }
         }
         return false;
+    }
+
+    addRemoteServerUser(socket, username) {
+        // Add a remote server user to the serverusers map
+        if (!this.serverusers.has(socket)) {
+            this.serverusers.set(socket, new Set());
+        }
+        this.serverusers.get(socket).add(username);
     }
 
     getRemoteServerUserSocket(username) {
@@ -4330,14 +3538,16 @@ class WTVIRC {
         this.usernames.set(newNick, this.usernames.get(socket.nickname) || socket.nickname);
         this.usernames.delete(socket.nickname);
         this.nicknames.set(socket, newNick);
-        this.deleteUserUniqueId(socket.nickname);
         this.addUserUniqueId(newNick, socket.uniqueId);
+        this.deleteUserUniqueId(socket.nickname);
         this.usertimestamps.set(newNick, this.getDate());
         this.usertimestamps.delete(socket.nickname);
         this.usermodes.set(newNick, this.getUserModes(socket.nickname) || []);
         this.usermodes.delete(socket.nickname);
-        this.awaymsgs.set(newNick, this.awaymsgs.get(socket.nickname) || '');
-        this.awaymsgs.delete(socket.nickname);
+        if (this.awaymsgs.has(socket.nickname)) {
+            this.awaymsgs.set(newNick, this.awaymsgs.get(socket.nickname) || '');
+            this.awaymsgs.delete(socket.nickname);
+        }
         this.usersignontimestamps.set(newNick, this.usersignontimestamps.get(socket.nickname) || this.getDate());
         this.usersignontimestamps.delete(socket.nickname);
         socket.nickname = newNick;
@@ -4432,12 +3642,12 @@ class WTVIRC {
     }
 
     getChannelModes(channel) {
+        // Gets the channel modes for a given channel
         channel = this.findChannel(channel);
         if (!channel) {            
             return null;
         }
         var modes = this.channelmodes.get(channel);
-        console.log(`getChannelModes: ${channel} modes:`, modes);
         if (!modes || modes === true) {
             this.channelmodes.set(channel, [...this.default_channel_modes]);
             modes = this.channelmodes.get(channel);
@@ -4446,32 +3656,67 @@ class WTVIRC {
     }
 
     setChannelMode(channel, mode, adding) {
+        // Updates the channel modes for a given channel
         const modes = this.getChannelModes(channel);
         if (!modes) {
-            return;
+            return false; // Channel not found
         }
         if (adding) {
             if (!modes.includes(mode)) {
                 modes.push(mode);
+                return true;
             }
         } else {
             const index = modes.indexOf(mode);
             if (index !== -1) {
                 modes.splice(index, 1);
+                return true;
             }
         }
-        //this.channelmodes.set(channel, modes);
+        return false; // Mode not changed
     }
 
     getUserModes(nickname) {
         // Returns the user modes for a given nickname
-        var modes = Array.isArray(this.usermodes.get(nickname))
-            ? [...this.usermodes.get(nickname)]
-            : this.usermodes.get(nickname);
-        if (!modes || modes === true) {
-            modes = this.default_user_modes;
+        let foundSocket = null;
+        for (const [socket, nick] of this.nicknames.entries()) {
+            if (nick.toLowerCase() === nickname.toLowerCase()) {
+                foundSocket = socket;
+                nickname = socket.nickname; // Ensure we use the correct nickname
+                break;
+            }
         }
-        return modes;
+        if (!foundSocket) {
+            // Also search this.serverusers for remote users (case-insensitive)
+            for (const [srvSocket, users] of this.serverusers.entries()) {
+                if (users && typeof users.forEach === 'function') {
+                    for (const user of users) {
+                        if (typeof user === 'string' && user.toLowerCase() === nickname.toLowerCase()) {
+                            foundSocket = srvSocket;
+                            nickname = user;
+                            break;
+                        }
+                    }
+                } else if (Array.isArray(users)) {
+                    for (const user of users) {
+                        if (typeof user === 'string' && user.toLowerCase() === nickname.toLowerCase()) {
+                            foundSocket = srvSocket;
+                            nickname = user;
+                            break;
+                        }
+                    }
+                }
+                if (foundSocket) break;
+            }
+        }
+        if (!foundSocket) {
+            return null;
+        }
+        var modes = this.usermodes.get(nickname);
+        if (!modes || modes === true) {
+            this.usermodes.set(nickname, [...this.default_user_modes]);
+        }
+        return this.usermodes.get(nickname);
     }
 
     setUserMode(nickname, mode, adding) {
@@ -4487,7 +3732,6 @@ class WTVIRC {
                 modes.splice(index, 1);
             }
         }
-        this.usermodes.set(nickname, modes);
     }
 
     async getHostname(socket) {
@@ -4615,6 +3859,330 @@ class WTVIRC {
         }
     }    
 
+    isChannelOp(nickname, channel) {
+        // Check if the user is a channel operator
+        if (!this.channelops.has(channel)) {
+            return false; // Channel not found
+        }
+        const channelOps = this.channelops.get(channel);
+        if (channelOps === true) {
+            return false;
+        }
+        if (channelOps.has(nickname)) {
+            return true; // User is a channel operator
+        }
+        // Check if the user is an IRC operator
+        if (this.isIRCOp(nickname)) {
+            return true; // IRC operator is considered a channel operator
+        }
+    }
+
+    isChannelHalfOp(nickname, channel) {
+        // Check if the user is a channel half-operator
+        if (!this.channelhalfops.has(channel)) {
+            return false; // Channel not found
+        }
+        const channelHalfOps = this.channelhalfops.get(channel);
+        if (channelHalfOps === true) {
+            return false;
+        }
+        if (channelHalfOps.has(nickname)) {
+            return true; // User is a channel half-operator
+        }
+        // Check if the user is an IRC operator
+        if (this.isIRCOp(nickname)) {
+            return true; // IRC operator is considered a channel half-operator
+        }
+    }
+
+
+    processChannelModeParams(channel, mode, params) {
+        if (!params) {
+            return false; // No parameters provided
+        }
+        var target = this.findUser(params);
+        console.log(channel, mode, params, target);
+        if (!target) {
+            target = params;
+        }
+        if (!target) {
+            if (this.debug) {
+                console.warn(`No target found for unique ID ${params}`);
+            }
+            return false;
+        }
+        if (mode === '+o' || mode === '-o') {
+            var channelOps = this.channelops.get(channel) || new Set();
+            if (channelOps === true) {
+                channelOps = new Set();
+            }
+            if (mode === '+o') {
+                if (!channelOps.has(target)) {
+                    channelOps.add(target);
+                    return true;
+                }
+            } else if (mode === '-o') {
+                if (channelOps.has(target)) {
+                    channelOps.delete(target);
+                    return true;
+                }
+            }
+        } else if (mode === '+h' || mode === '-h') {
+            var channelHalfOps = this.channelhalfops.get(channel) || new Set();
+            if (channelHalfOps === true) {
+                channelHalfOps = new Set();
+            }
+            if (mode === '+h') {
+                if (!channelHalfOps.has(target)) {
+                    channelHalfOps.add(target);
+                    return true;
+                }
+            } else if (mode === '-h') {
+                if (channelHalfOps.has(target)) {
+                    channelHalfOps.delete(target);
+                    return true;
+                }
+            }
+        } else if (mode === '+v' || mode === '-v') {
+            var channelVoices = this.channelvoices.get(channel) || new Set();
+            if (channelVoices === true) {
+                channelVoices = new Set();
+            }
+            if (mode === '+v') {
+                if (!channelVoices.has(target)) {
+                    channelVoices.add(target);
+                    return true;
+                }
+            } else if (mode === '-v') {
+                if (channelVoices.has(target)) {
+                    channelVoices.delete(target);
+                    return true;
+                }
+            }
+        } else if (mode === '+b' || mode === '-b') {
+            var channelBans = this.channelbans.get(channel) || [];
+            if (channelBans === true) {
+                channelBans = [];
+            }
+            if (mode === '+b') {
+                if (!channelBans.includes(target)) {
+                    channelBans.push(target);
+                    return true;
+                }
+            } else if (mode === '-b') {
+                if (channelBans.includes(target)) {
+                    channelBans = channelBans.filter(ban => ban !== target);
+                    return true;
+                }
+            }
+        } else if (mode === '+e' || mode === '-e') {
+            var channelExemptions = this.channelexemptions.get(channel) || [];
+            if (channelExemptions === true) {
+                channelExemptions = [];
+            }
+            if (mode === '+e') {
+                if (!channelExemptions.includes(target)) {
+                    channelExemptions.push(target);
+                    return true;
+                }
+            } else if (mode === '-e') {
+                if (channelExemptions.includes(target)) {
+                    channelExemptions = channelExemptions.filter(exception => exception !== target);
+                    return true;
+                }
+            }
+        } else if (mode === '+I' || mode === '-I') {
+            var channelInvites = this.channelinvites.get(channel) || [];
+            if (channelInvites === true) {
+                channelInvites = [];
+            }
+            if (mode === '+I') {
+                if (!channelInvites.includes(target)) {
+                    channelInvites.push(target);
+                    return true;
+                }
+            } else if (mode === '-I') {
+                if (channelInvites.includes(target)) {
+                    channelInvites = channelInvites.filter(invite => invite !== target);
+                    return true;
+                }
+            }
+        } else if (mode === '+l' || mode === '-l') {
+            if (mode === '+l') {
+                var result = this.setChannelMode(channel, 'l', true);
+                if (result === false && this.channellimits.get(channel) === parseInt(target)) {
+                    return false; // Mode already set with the same limit
+                }
+                this.channellimits.set(channel, parseInt(target));
+                return true;
+            } else {
+                var result = this.setChannelMode(channel, 'l', false);
+                if (result === false && this.channellimits.get(channel) === null) {
+                    return false; // Mode already unset
+                }
+                this.channellimits.delete(channel);
+                return true;
+            }
+        } else if (mode === '+k' || mode === '-k') {
+            if (mode === '+k') {
+                var result = this.setChannelMode(channel, 'k', true);
+                if (result === false && this.channelkeys.get(channel) === target) {
+                    return false; // Mode already set with the same key
+                }
+                this.channelkeys.set(channel, target);
+                return true;
+            } else {                
+                var result = this.setChannelMode(channel, 'k', false);
+                if (result === false && !this.channelkeys.has(channel)) {
+                    return false; // Mode already unset
+                }
+                this.channelkeys.delete(channel);
+                return true;
+            }
+        } 
+    }
+
+    processChannelModes(nickname, channel, modes, params, socket) {
+        // Split modes into array and process each character        
+        let modeChars = modes.split('');
+        var serverModeMsg = '';
+        if (socket.isserver) {
+            let sourceUniqueId = this.uniqueids.get(nickname);
+            serverModeMsg = `:${sourceUniqueId} MODE ${channel} `;
+        } else {
+            if (!socket.registered) {
+                socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                return;
+            }            
+            serverModeMsg = `:${socket.uniqueId} MODE ${channel} `;
+        }
+        var username = this.usernames.get(nickname);
+        var hostname = this.hostnames.get(nickname);
+
+        let modeMsg = `:${nickname}!${username}@${hostname} MODE ${channel} `;
+        let addingFlag = false;
+        let flags = [];
+        let paramIndex = 0;
+        if (!socket.isserver) {
+            if (modeChars.includes('o')) {
+                if (!this.isIRCOp(nickname) && !this.isChannelOp(nickname, channel)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not a channel operator\r\n`);
+                    return;
+                }
+            }
+            else if (modeChars.includes('O')) {
+                if (!this.isIRCOp(nickname))
+                {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not an IRC operator\r\n`);
+                    return;
+                }
+            } else {
+                if (!this.isIRCOp(nickname) && !this.isChannelOp(nickname, channel) && !this.isChannelHalfOp(nickname, channel)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not a channel operator\r\n`);
+                    return;
+                }
+            }
+
+            if (modes === 'b') {
+                // Get the list of channel bans
+                var output_lines = [];
+                if (this.channelbans.has(channel)) {
+                    const bans = Array.from(this.channelbans.get(channel));
+                    for (const ban of bans) {
+                        output_lines.push(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
+                    }
+                }
+                output_lines.push(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
+                this.sendThrottled(socket, output_lines);
+                return;
+            } else if (modes === 'e') {
+                // Get the list of channel exemptions
+                var output_lines = [];
+                if (this.channelexemptions.has(channel)) {
+                    const exemptions = Array.from(this.channelexemptions.get(channel));
+                    for (const exemption of exemptions) {
+                        output_lines.push(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
+                    }
+                }
+                output_lines.push(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
+                this.sendThrottled(socket, output_lines);
+                return;
+            } else if (modes === 'I') {
+                // Get the list of channel invites masks
+                var output_lines = [];
+                if (this.channelinvites.has(channel)) {
+                    const invites = Array.from(this.channelinvites.get(channel));
+                    for (const invite of invites) {
+                        output_lines.push(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
+                    }
+                }
+                output_lines.push(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
+                this.sendThrottled(socket, output_lines);
+                return;
+            } 
+        }
+        var channelModes = this.getChannelModes(channel);
+        for (let j = 0; j < modeChars.length; j++) {
+            let param = null;
+            let modeStr = '';
+            let mc = modeChars[j];
+            if (mc === '+') {
+                addingFlag = true;
+                modeMsg += '+';
+                serverModeMsg += '+';
+                continue;
+            } else if (mc === '-') {
+                addingFlag = false;
+                modeMsg += '-';
+                serverModeMsg += '-';
+                continue;
+            }
+            modeStr += mc;
+            // Modes that require a parameter
+            if (['o', 'I', 'b', 'e', 'v', 'h', 'l', 'k'].includes(mc)) {
+                var plusminus = (addingFlag) ? "+" : "-";
+                param = params[paramIndex];
+                var result = this.processChannelModeParams(channel, plusminus + mc, param);
+                paramIndex++;
+            } else {
+                var result = this.setChannelMode(channel, mc, addingFlag);
+                if (addingFlag) {
+                    if (mc === 'S' && this.kick_insecure_users_on_secure) {
+                        // Kick users who do not have user mode +z
+                        const usersInChannel = this.channels.get(channel) || new Set();
+                        for (const user of usersInChannel) {
+                            const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                            if (userSocket && !this.getUserModes(user).includes('z')) {
+                                userSocket.write(`:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
+                                this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`, userSocket);
+                                this.broadcastToAllServers(`:${sourceUniqueId} KICK ${channel} ${userSocket.uniqueId} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
+                                this.channels.get(channel).delete(user);
+                            }
+                        }
+                    }                                                    
+                }
+            }
+            if (result) {
+                if (modeStr.length > 0) {
+                    modeMsg += modeStr;
+                    serverModeMsg += modeStr;
+                }
+            }
+        }
+        if (params.length > 0) {
+            for (let i = 0; i < params.length; i++) {
+                modeMsg += ' ' + params[i];
+                serverModeMsg += ' ' + params[i];
+            }
+        }
+        if (modeMsg.endsWith('-') || modeMsg.endsWith('+')) {
+            return;
+        }
+        modeMsg += '\r\n';
+        this.broadcastChannel(channel, modeMsg);
+        this.broadcastToAllServers(serverModeMsg, socket);
+    }        
+
     async doLogin(nickname, socket) {
         if (await this.scanSocketForKLine(socket)) {
             return; // If the socket is K-lined, exit early
@@ -4731,7 +4299,7 @@ class WTVIRC {
         if (socket.secure) {
             usermodes.push('z');
         }
-        this.usermodes.set(nickname, usermodes);
+        this.usermodes.set(nickname, [...usermodes]);
         if (usermodes.includes('x')) {
             socket.host = this.filterHostname(socket, socket.realhost);
             if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
