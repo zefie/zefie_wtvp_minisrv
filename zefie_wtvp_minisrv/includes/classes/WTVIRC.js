@@ -132,7 +132,7 @@ class WTVIRC {
             for (const channel of this.irc_config.channels) {                
                 this.createChannel(channel.name);
                 if (channel.modes && Array.isArray(channel.modes)) {
-                    this.channelmodes.set(channel.name, channel.modes.slice());
+                    this.channelmodes.set(channel.name, [...channel.modes]);
                 }
                 if (channel.topic) {
                     this.channeltopics.set(channel.name, channel.topic);
@@ -3389,7 +3389,7 @@ class WTVIRC {
             this.channelbans.set(channel, new Set());
             this.channelexemptions.set(channel, new Set());
             this.channelinvites.set(channel, new Set());
-            this.channelmodes.set(channel, this.default_channel_modes);
+            this.channelmodes.set(channel, [...this.default_channel_modes]);
             this.channeltimestamps.set(channel, this.getDate());
         }
     }
@@ -4432,17 +4432,24 @@ class WTVIRC {
     }
 
     getChannelModes(channel) {
-        var modes = Array.isArray(this.channelmodes.get(channel))
-            ? [...this.channelmodes.get(channel)]
-            : this.channelmodes.get(channel);
+        channel = this.findChannel(channel);
+        if (!channel) {            
+            return null;
+        }
+        var modes = this.channelmodes.get(channel);
+        console.log(`getChannelModes: ${channel} modes:`, modes);
         if (!modes || modes === true) {
-            modes = this.default_channel_modes;
+            this.channelmodes.set(channel, [...this.default_channel_modes]);
+            modes = this.channelmodes.get(channel);
         }
         return modes;
     }
 
     setChannelMode(channel, mode, adding) {
         const modes = this.getChannelModes(channel);
+        if (!modes) {
+            return;
+        }
         if (adding) {
             if (!modes.includes(mode)) {
                 modes.push(mode);
@@ -4453,7 +4460,7 @@ class WTVIRC {
                 modes.splice(index, 1);
             }
         }
-        this.channelmodes.set(channel, modes);
+        //this.channelmodes.set(channel, modes);
     }
 
     getUserModes(nickname) {
@@ -4724,9 +4731,7 @@ class WTVIRC {
         if (socket.secure) {
             usermodes.push('z');
         }
-        if (usermodes) {
-            this.usermodes.set(nickname, usermodes);
-        }
+        this.usermodes.set(nickname, usermodes);
         if (usermodes.includes('x')) {
             socket.host = this.filterHostname(socket, socket.realhost);
             if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
