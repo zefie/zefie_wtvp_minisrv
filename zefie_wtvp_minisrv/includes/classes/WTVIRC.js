@@ -4519,8 +4519,7 @@ class WTVIRC {
         socket.pause();
         socket.host = await this.getHostname(socket);
         socket.resume();
-        socket.realhost = socket.host;
-        await this.scanSocketForKLine(socket);
+        socket.realhost = socket.host;        
     }
 
     async scanSocketForKLine(socket) {
@@ -4590,6 +4589,7 @@ class WTVIRC {
     }
 
     async doLogin(nickname, socket) {
+        await this.scanSocketForKLine(socket);
         for (const [srvSocket, serverName] of this.servers.entries()) {
             if (srvSocket) {
                 // Compose UID message for this client
