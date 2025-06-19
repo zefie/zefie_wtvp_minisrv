@@ -3381,6 +3381,13 @@ class WTVIRC {
                 return nickname;
             }
         }
+        for (const [socket, users] of this.serverusers.entries()) {
+            for (const user of users) {
+                if (this.getUniqueId(user) === uniqueId) {
+                    return user;
+                }
+            }
+        }
         return null;
     }
 
@@ -3483,6 +3490,8 @@ class WTVIRC {
         }
         return null;
     }
+
+    
 
     getUsernameFromUniqueId(uniqueId) {
         // Find the username associated with a unique ID
@@ -3594,8 +3603,11 @@ class WTVIRC {
     findUser(username) {
         // Normalize the username to lowercase for case-insensitive comparison
         let foundUser = null;
+        if (typeof username !== 'string') {
+            return null;
+        }
         for (const [socket, nick] of this.nicknames.entries()) {
-            if (nick.toLowerCase() === username.toLowerCase()) {
+             if (nick.toLowerCase() === username.toLowerCase()) {
                 foundUser = nick;
                 break;
             }
@@ -3895,22 +3907,10 @@ class WTVIRC {
     }
 
 
-    processChannelModeParams(channel, mode, params, socket) {
-        if (!params) {
-            return false; // No parameters provided
-        }
-        var target = null;
-        if (socket.isserver) {
-            target = this.findSocketByUniqueId(params);
-        } else {
-            target = this.findUser(params);
-        }
-        if (!target) {
-            target = params;
-        }
+    processChannelModeParams(channel, mode, target) {
         if (!target) {
             if (this.debug) {
-                console.warn(`No target found for unique ID ${params}`);
+                console.warn(`No target found for ${target}`);
             }
             return false;
         }
@@ -4049,6 +4049,7 @@ class WTVIRC {
         // Split modes into array and process each character        
         let modeChars = modes.split('');
         var serverModeMsg = '';
+        var target = null;
         if (socket.isserver) {
             let sourceUniqueId = this.uniqueids.get(nickname);
             serverModeMsg = `:${sourceUniqueId} MODE ${channel} `;
@@ -4064,8 +4065,7 @@ class WTVIRC {
 
         let modeMsg = `:${nickname}!${username}@${hostname} MODE ${channel} `;
         let addingFlag = false;
-        let flags = [];
-        let paramIndex = 0;
+        let paramIndex = 0;        
         if (!socket.isserver) {
             if (modeChars.includes('o')) {
                 if (!this.isIRCOp(nickname) && !this.isChannelOp(nickname, channel)) {
@@ -4079,14 +4079,7 @@ class WTVIRC {
                     socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not an IRC operator\r\n`);
                     return;
                 }
-            } else {
-                if (!this.isIRCOp(nickname) && !this.isChannelOp(nickname, channel) && !this.isChannelHalfOp(nickname, channel)) {
-                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not a channel operator\r\n`);
-                    return;
-                }
-            }
-
-            if (modes === 'b') {
+            } else if (modes === 'b') {
                 // Get the list of channel bans
                 var output_lines = [];
                 if (this.channelbans.has(channel)) {
@@ -4122,7 +4115,13 @@ class WTVIRC {
                 output_lines.push(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
                 this.sendThrottled(socket, output_lines);
                 return;
-            } 
+            } else {
+                if (!this.isIRCOp(nickname) && !this.isChannelOp(nickname, channel) && !this.isChannelHalfOp(nickname, channel)) {
+                    socket.write(`:${this.servername} 482 ${nickname} ${channel} :You're not a channel operator\r\n`);
+                    return;
+                }
+            }
+
         }
         for (let j = 0; j < modeChars.length; j++) {
             let param = null;
@@ -4144,7 +4143,13 @@ class WTVIRC {
             if (['o', 'I', 'b', 'e', 'v', 'h', 'l', 'k'].includes(mc)) {
                 var plusminus = (addingFlag) ? "+" : "-";
                 param = params[paramIndex];
-                var result = this.processChannelModeParams(channel, plusminus + mc, param, socket);
+                if (socket.isserver) {
+                    target = this.findUserByUniqueId(param);
+                } else {
+                    target = this.findUser(param);
+                }
+                console.log(target, param);
+                var result = this.processChannelModeParams(channel, plusminus + mc, target, socket);
                 paramIndex++;
             } else {
                 var result = this.setChannelMode(channel, mc, addingFlag);
@@ -4173,7 +4178,11 @@ class WTVIRC {
         }
         if (params.length > 0) {
             for (let i = 0; i < params.length; i++) {
-                modeMsg += ' ' + params[i];
+                if (socket.isserver) {
+                    modeMsg += ' ' + this.findUserByUniqueId(params[i]);
+                } else {
+                    modeMsg += ' ' + params[i];
+                }
                 serverModeMsg += ' ' + params[i];
             }
         }
