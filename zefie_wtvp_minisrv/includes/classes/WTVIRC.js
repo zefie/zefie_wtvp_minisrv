@@ -192,7 +192,7 @@ class WTVIRC {
                         }
                         
                         socket.removeAllListeners();
-                        await this.initializeSocket(secureSocket);
+                        await this.initializeSocket(secureSocket, true);
                         
                     });                    
                     secureSocket.resume();              
@@ -215,7 +215,7 @@ class WTVIRC {
         });        
     }
 
-    async initializeSocket(socket) {
+    async initializeSocket(socket, secure = false) {
         if (this.debug) {
             // debug output for socket data
             const originalWrite = socket.write;
@@ -244,7 +244,7 @@ class WTVIRC {
         socket.client_caps = [];
         this.filterHostname(socket, socket.remoteAddress);
         socket.timestamp = this.getDate();
-        socket.secure = false;
+        socket.secure = secure;
         socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
         await this.doInitialHandshake(socket);
 
