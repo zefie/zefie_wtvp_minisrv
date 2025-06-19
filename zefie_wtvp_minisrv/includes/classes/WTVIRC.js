@@ -4048,6 +4048,7 @@ class WTVIRC {
     processChannelModes(nickname, channel, modes, params, socket) {
         // Split modes into array and process each character        
         let modeChars = modes.split('');
+        let supportedChannelModes = this.supported_channel_modes.split(',').join('').split('');
         var serverModeMsg = '';
         var target = null;
         if (socket.isserver) {
@@ -4136,6 +4137,10 @@ class WTVIRC {
                 addingFlag = false;
                 modeMsg += '-';
                 serverModeMsg += '-';
+                continue;
+            }
+            if (!supportedChannelModes.includes(mc)) {
+                socket.write(`:${this.servername} 472 ${nickname} ${channel} :Unknown channel mode char: ${mc}\r\n`);
                 continue;
             }
             modeStr += mc;
