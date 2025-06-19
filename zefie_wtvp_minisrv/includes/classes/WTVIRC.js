@@ -108,6 +108,7 @@ class WTVIRC {
         this.clientpeak = 0;
         this.globalpeak = 0;
         this.socketpeak = 0;
+        this.max_message_len = 512; // IRC Standard maximum message length
         this.totalConnections = 0;
         this.supported_channel_modes = "Ibe,k,l,CNOQRSTVZcimnprt";
         this.supported_user_modes = "BRZciorswxz";
@@ -202,7 +203,6 @@ class WTVIRC {
                     await this.initializeSocket(socket);
                     socket.emit('data', firstChunk.toString('ascii'));
                     socket.resume();
-                    this.clients.push(socket);
                     this.clientpeak = Math.max(this.clientpeak, this.clients.length);
                     return;
                 }
@@ -215,7 +215,7 @@ class WTVIRC {
         });        
     }
 
-    async initializeSocket(socket, secure = false) {
+    async initializeSocket(socket, secure = false, oldSocket = null) {
         if (this.debug) {
             // debug output for socket data
             const originalWrite = socket.write;
@@ -230,22 +230,40 @@ class WTVIRC {
                 return originalWrite.apply(socket, args);
             };
         }
-                
-        socket.registered = false;
-        socket.nickname = '';
-        socket.username = '';
-        socket.isserver = false;
-        socket.is_srv_authorized = false;
-        socket.signedoff = false;
-        socket.hostname_resolved = false;
-        socket.realhost = socket.remoteAddress;
-        socket.upgrading_to_tls = false;
-        socket.client_version = '';
-        socket.client_caps = [];
-        this.filterHostname(socket, socket.remoteAddress);
-        socket.timestamp = this.getDate();
-        socket.secure = secure;
-        socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
+
+        if (oldSocket) {
+            socket.registered = oldSocket.registered;
+            socket.nickname = oldSocket.nickname;
+            socket.username = oldSocket.username;
+            socket.isserver = oldSocket.isserver;
+            socket.is_srv_authorized = oldSocket.is_srv_authorized;
+            socket.signedoff = oldSocket.signedoff;
+            socket.hostname_resolved = oldSocket.hostname_resolved;
+            socket.realhost = oldSocket.realhost;
+            socket.upgrading_to_tls = false; 
+            socket.client_version = oldSocket.client_version;
+            socket.client_caps = oldSocket.client_caps || [];
+            socket.host = oldSocket.host;
+            socket.timestamp = oldSocket.timestamp;
+            socket.secure = secure;
+            socket.uniqueId = oldSocket.uniqueId;
+        } else {
+            socket.registered = false;
+            socket.nickname = '';
+            socket.username = '';
+            socket.isserver = false;
+            socket.is_srv_authorized = false;
+            socket.signedoff = false;
+            socket.hostname_resolved = false;
+            socket.realhost = socket.remoteAddress;
+            socket.upgrading_to_tls = false;
+            socket.client_version = '';
+            socket.client_caps = [];
+            socket.host = this.filterHostname(socket, socket.remoteAddress);
+            socket.timestamp = this.getDate();
+            socket.secure = secure;
+            socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
+        }
         await this.doInitialHandshake(socket);
 
         socket.on('data', async data => {
@@ -1165,46 +1183,12 @@ class WTVIRC {
                 secureSocket.on('secure', async () => {
                     if (this.debug) {
                         console.log('Secure connection established');
-                    }
-                    if (this.debug) {
-                        const originalWrite = secureSocket.write;
-                        secureSocket.write = function (...args) {
-                            var log_args = args.map(arg => {
-                                if (typeof arg === 'string') {
-                                    return arg.replace(/\r\n/g, '').replace(/\n/g, '');
-                                }
-                                return arg;
-                            });
-                            console.log('<', ...log_args);                                
-                            return originalWrite.apply(secureSocket, args);
-                        };
                     }                           
                     socket.removeAllListeners('error');
-                    secureSocket.registered = socket.registered;
-                    secureSocket.nickname = socket.nickname
-                    secureSocket.username = socket.username
-                    secureSocket.isserver = socket.isserver
-                    secureSocket.is_srv_authorized = socket.is_srv_authorized
-                    secureSocket.signedoff = socket.signedoff
-                    secureSocket.client_version = socket.client_version
-                    secureSocket.client_caps = socket.client_caps || [];
-                    secureSocket.hostname_resolved = socket.hostname_resolved;
-                    secureSocket.realhost = socket.realhost
-                    secureSocket.upgrading_to_tls = false;
-                    secureSocket.host = socket.host;
-                    secureSocket.timestamp = socket.timestamp;
-                    secureSocket.secure = true;
-                    secureSocket.uniqueId = socket.uniqueId;
-                    // Push the secure socket to clients
-                    this.clients.push(secureSocket);
-                    this.clientpeak = Math.max(this.clientpeak, this.clients.length);                                                
-                    secureSocket.on('data', async data => {
-                        await this.processSocketData(secureSocket, data);
-                    });
-                    secureSocket.on('end', () => {
-                        this.terminateSession(secureSocket, false);
-                    });
-                    
+                    await this.initializeSocket(secureSocket, true, socket);
+                    // Remove the original socket from clients
+                    this.clients = this.clients.filter(c => c !== socket);
+                    this.clientpeak = Math.max(this.clientpeak, this.clients.length);                    
                 });                 
                 secureSocket.resume();
             } else {
@@ -1414,13 +1398,17 @@ class WTVIRC {
                         socket.write(`:${this.servername} 331 ${socket.nickname} ${channel} :${topic}\r\n`);
                     }
                     break;
-                case "AWAY":
+                case 'AWAY':
                     if (!socket.registered) {
                         socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
                         break;
                     }
                     this.usertimestamps.set(socket.nickname, this.getDate());
                     if (params.length > 0) {
+                        if (params.length > this.awaylen) {
+                            socket.write(`:${this.servername} 417 ${socket.nickname} ${channel} :Away message is too long\r\n`);
+                            break;
+                        }
                         socket.write(`:${this.servername} 306 ${socket.nickname} :You are now marked as away\r\n`);
                         let awayMsg = params.join(' ');
                         if (awayMsg.startsWith(':')) {
@@ -1731,13 +1719,11 @@ class WTVIRC {
                     if (new_nickname.length > this.nicklen) {
                         socket.write(`:${this.servername} 432 * ${new_nickname} :Erroneus nickname (too long)\r\n`);
                         break;
-                    }
-                    if (this.nicknames.size > 0) {
-                        var result = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === new_nickname.toLowerCase());
-                        if (result) {
-                            socket.write(`:${this.servername} 433 * ${new_nickname} :Nickname is already in use\r\n`);
-                            break; 
-                        }
+                    }                    
+                    if (this.findUser(new_nickname)) {
+                        console.log(this.findUser(new_nickname))
+                        socket.write(`:${this.servername} 433 * ${new_nickname} :Nickname is already in use\r\n`);
+                        break; 
                     }
                     for (const prefix of this.channelprefixes) {
                         if (new_nickname.startsWith(prefix)) {
@@ -1780,12 +1766,6 @@ class WTVIRC {
                     this.nicknames.set(socket, socket.nickname);
                     if (socket.nickname && socket.nickname !== new_nickname) {
                         socket.write(`:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`);
-                        if (this.usernames.has(socket.nickname)) {
-                            this.usernames.delete(socket.nickname);
-                        }                        
-                        if (this.uniqueids.has(socket.nickname)) {
-                            this.deleteUserUniqueId(socket.nickname);
-                        }
                         this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`, socket);
                         this.processNickChange(socket, new_nickname);
                         this.broadcastToAllServers(`:${socket.uniqueId} NICK ${new_nickname} :${this.getDate()}\r\n`);
@@ -3547,6 +3527,7 @@ class WTVIRC {
         this.usernames.set(newNick, this.usernames.get(socket.nickname) || socket.nickname);
         this.usernames.delete(socket.nickname);
         this.nicknames.set(socket, newNick);
+        this.nicknames.delete(socket.nickname);
         this.addUserUniqueId(newNick, socket.uniqueId);
         this.deleteUserUniqueId(socket.nickname);
         this.usertimestamps.set(newNick, this.getDate());
