@@ -4534,6 +4534,7 @@ class WTVIRC {
                         this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined\r\n`, socket);
                     }
                     this.terminateSession(socket, true);
+                    return true;
                 } else {
                     const klineIndex = this.klines.findIndex(k => k.mask === kline.mask);
                     if (klineIndex !== -1) {
@@ -4542,7 +4543,8 @@ class WTVIRC {
                     this.saveKLinesToFile();
                 }
             }
-        }        
+        }
+        return false;        
     }
 
     async scanUsersForKLines() {
@@ -4589,7 +4591,9 @@ class WTVIRC {
     }
 
     async doLogin(nickname, socket) {
-        await this.scanSocketForKLine(socket);
+        if (await this.scanSocketForKLine(socket)) {
+            return; // If the socket is K-lined, exit early
+        }
         for (const [srvSocket, serverName] of this.servers.entries()) {
             if (srvSocket) {
                 // Compose UID message for this client
