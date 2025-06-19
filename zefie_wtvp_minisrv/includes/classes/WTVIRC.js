@@ -109,7 +109,7 @@ class WTVIRC {
         this.globalpeak = 0;
         this.socketpeak = 0;
         this.totalConnections = 0;
-        this.supported_channel_modes = "Ibe,k,l,NOQRSTVZcimnprt";
+        this.supported_channel_modes = "Ibe,k,l,CNOQRSTVZcimnprt";
         this.supported_user_modes = "BRZciorswxz";
         this.supported_prefixes = ["ohv", "@%+"];
         this.supported_client_caps = ['chghost', 'away-notify', 'echo-message', 'invite-notify', 'multi-prefix', 'userhost-in-names', 'account-notify', 'extended-join'];
