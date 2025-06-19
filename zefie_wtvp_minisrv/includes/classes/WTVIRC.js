@@ -3161,7 +3161,8 @@ class WTVIRC {
         this.usermodes.delete(nickname);
         this.awaymsgs.delete(nickname); 
         this.accounts.delete(nickname); 
-        this.userinfo.delete(nickname);          
+        this.userinfo.delete(nickname); 
+        this.deleteUserUniqueId(nickname);         
         for (const [ch, ops] of this.channelops.entries()) {
             if (ops && ops !== true && ops.has(nickname)) {
                 ops.delete(nickname);
@@ -4329,7 +4330,7 @@ class WTVIRC {
         this.usernames.set(newNick, this.usernames.get(socket.nickname) || socket.nickname);
         this.usernames.delete(socket.nickname);
         this.nicknames.set(socket, newNick);
-        this.uniqueids.delete(socket.nickname);
+        this.deleteUserUniqueId(socket.nickname);
         this.addUserUniqueId(newNick, socket.uniqueId);
         this.usertimestamps.set(newNick, this.getDate());
         this.usertimestamps.delete(socket.nickname);
