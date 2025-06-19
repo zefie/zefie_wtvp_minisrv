@@ -2226,10 +2226,19 @@ async function cleanupSocket(socket) {
     }
 }
 
+function getSocketRandomID(socket) {
+    //return parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
+    return parseInt(
+        crypto.createHash('sha256')
+            .update(String(socket.remoteAddress) + String(socket.remotePort))
+            .digest('hex')
+            .substring(0, 8), 16
+    ) % 100000000;
+}
 
 async function handleSocket(socket) {
     // create unique socket id with client address and port
-    socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(socket.remoteAddress) + String(socket.remotePort), "utf8")).toString(16), 16);
+    socket.id = getSocketRandomID(socket);
     socket.ssid = null;
     socket_sessions[socket.id] = [];
     socket.minisrv_pc_mode = false;
@@ -2522,8 +2531,8 @@ pc_bind_ports.every(function (v) {
 
             req.socket.minisrv_pc_mode = true;
             req.socket.res = res;
-            req.socket.service_name = service_name;
-            req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
+            req.socket.service_name = service_name;            
+            req.socket.id = getSocketRandomID(req.socket);
             socket_sessions[req.socket.id] = []; 
 
             if (getServiceEnabled(service_name)) {
@@ -2569,7 +2578,7 @@ Content-type: text/html`;
             req.socket.minisrv_pc_mode = true;
             req.socket.res = res;
             req.socket.service_name = service_name;
-            req.socket.id = parseInt(crc16('CCITT-FALSE', Buffer.from(String(req.socket.remoteAddress) + String(req.socket.remotePort), "utf8")).toString(16), 16);
+            req.socket.id = getSocketRandomID(req.socket);
             socket_sessions[req.socket.id] = [];
 
             if (getServiceEnabled(service_name)) {
