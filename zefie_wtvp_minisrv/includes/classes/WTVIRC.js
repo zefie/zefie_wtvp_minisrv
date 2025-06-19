@@ -3845,7 +3845,6 @@ class WTVIRC {
     }
 
     getGitRevision() {
-        console.log(__dirname)
         try {
             var gitPath = __dirname + path.sep + ".." + path.sep + ".." + path.sep + ".." + path.sep + ".git" + path.sep
             const rev = fs.readFileSync(gitPath + "HEAD").toString().trim();
@@ -3896,12 +3895,16 @@ class WTVIRC {
     }
 
 
-    processChannelModeParams(channel, mode, params) {
+    processChannelModeParams(channel, mode, params, socket) {
         if (!params) {
             return false; // No parameters provided
         }
-        var target = this.findUser(params);
-        console.log(channel, mode, params, target);
+        var target = null;
+        if (socket.isserver) {
+            target = this.findSocketByUniqueId(params);
+        } else {
+            target = this.findUser(params);
+        }
         if (!target) {
             target = params;
         }
@@ -4121,7 +4124,6 @@ class WTVIRC {
                 return;
             } 
         }
-        var channelModes = this.getChannelModes(channel);
         for (let j = 0; j < modeChars.length; j++) {
             let param = null;
             let modeStr = '';
@@ -4142,7 +4144,7 @@ class WTVIRC {
             if (['o', 'I', 'b', 'e', 'v', 'h', 'l', 'k'].includes(mc)) {
                 var plusminus = (addingFlag) ? "+" : "-";
                 param = params[paramIndex];
-                var result = this.processChannelModeParams(channel, plusminus + mc, param);
+                var result = this.processChannelModeParams(channel, plusminus + mc, param, socket);
                 paramIndex++;
             } else {
                 var result = this.setChannelMode(channel, mc, addingFlag);
