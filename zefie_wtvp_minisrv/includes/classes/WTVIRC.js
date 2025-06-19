@@ -4136,6 +4136,10 @@ class WTVIRC {
                 } else {
                     target = this.findUser(param);
                 }
+                if ((!target && !socket.isserver) || !this.channels.get(channel).has(target)) {
+                    socket.write(`:${this.servername} 401 ${nickname} ${param} :No such nick/channel\r\n`);
+                    return;
+                }
                 var result = this.processChannelModeParams(channel, plusminus + mc, target, socket);
                 paramIndex++;
             } else {
