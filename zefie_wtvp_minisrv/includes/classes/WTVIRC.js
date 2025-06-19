@@ -4128,7 +4128,7 @@ class WTVIRC {
             }
             modeStr += mc;
             // Modes that require a parameter
-            if (['o', 'I', 'b', 'e', 'v', 'h', 'l', 'k'].includes(mc)) {
+            if ([...this.supported_prefixes[0], 'I', 'b', 'e', 'l', 'k'].includes(mc)) {
                 var plusminus = (addingFlag) ? "+" : "-";
                 param = params[paramIndex];
                 if (socket.isserver) {
