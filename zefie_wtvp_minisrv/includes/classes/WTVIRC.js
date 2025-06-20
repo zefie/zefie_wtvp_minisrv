@@ -1032,7 +1032,7 @@ class WTVIRC {
                                         userChannels.push(prefix + ch);
                                     }
                                 }
-                                output_lines.push(`:${this.serverId} 312 ${targetUniqueId} ${whoisNick} :${this.servername} :zefIRCd v${this.version}\r\n`);
+                                output_lines.push(`:${this.serverId} 312 ${targetUniqueId} ${whoisNick} ${this.servername} :zefIRCd v${this.version}\r\n`);
                                 if (this.isIRCOp(whoisNick)) {
                                     output_lines.push(`:${this.serverId} 313 ${targetUniqueId} ${whoisNick} :is an IRC operator\r\n`);
                                 }
@@ -2677,6 +2677,8 @@ class WTVIRC {
                             socket.write(`:${this.servername} 301 ${socket.nickname} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
                         }
                         const userChannels = [];
+
+                        var output_lines = [];
                         for (const [ch, users] of this.channels.entries()) {
                             if (users.has(whoisNick)) {
                                 let prefix = '';
@@ -2716,28 +2718,29 @@ class WTVIRC {
                                 userChannels.push(prefix + ch);
                             }
                         }
-                        socket.write(`:${this.servername} 312 ${socket.nickname} ${whoisNick} ${this.servername} :zefIRCd-${this.version}\r\n`);
+                        output_lines.push(`:${this.servername} 312 ${socket.nickname} ${whoisNick} ${this.servername} :zefIRCd-${this.version}\r\n`);
                         if (this.isIRCOp(whoisNick)) {
-                            socket.write(`:${this.servername} 313 ${socket.nickname} ${whoisNick} :is an IRC operator\r\n`);
+                            output_lines.push(`:${this.servername} 313 ${socket.nickname} ${whoisNick} :is an IRC operator\r\n`);
                         }
                         usermodes = this.getUserModes(whoisNick);
                         if (usermodes && usermodes.includes('s')) {
-                            socket.write(`:${this.servername} 671 ${socket.nickname} ${whoisNick} :is using a secure connection\r\n`);
+                            output_lines.push(`:${this.servername} 671 ${socket.nickname} ${whoisNick} :is using a secure connection\r\n`);
                         }
                         if (usermodes && usermodes.includes('r')) {
-                            socket.write(`:${this.servername} 307 ${socket.nickname} ${whoisNick} :is a registered nick\r\n`);
+                            output_lines.push(`:${this.servername} 307 ${socket.nickname} ${whoisNick} :is a registered nick\r\n`);
                         }
                         if (usermodes && usermodes.includes('B')) {
-                            socket.write(`:${this.servername} 335 ${socket.nickname} ${whoisNick} :is a bot\r\n`);
+                            output_lines.push(`:${this.servername} 335 ${socket.nickname} ${whoisNick} :is a bot\r\n`);
                         }
                         var now = this.getDate();
                         var userTimestamp = this.usertimestamps.get(whoisNick) || now;
                         var idleTime = now - userTimestamp;
-                        socket.write(`:${this.servername} 317 ${socket.nickname} ${whoisNick} ${idleTime} ${this.usersignontimestamps.get(whoisNick) || 0} :seconds idle, signon time\r\n`);
+                        output_lines.push(`:${this.servername} 317 ${socket.nickname} ${whoisNick} ${idleTime} ${this.usersignontimestamps.get(whoisNick) || 0} :seconds idle, signon time\r\n`);
                         if (userChannels.length > 0) {
-                            socket.write(`:${this.servername} 319 ${socket.nickname} ${whoisNick} :${userChannels.join(' ')}\r\n`);
+                            output_lines.push(`:${this.servername} 319 ${socket.nickname} ${whoisNick} :${userChannels.join(' ')}\r\n`);
                         }
-                        socket.write(`:${this.servername} 318 ${socket.nickname} ${whoisNick} :End of /WHOIS list\r\n`);
+                        output_lines.push(`:${this.servername} 318 ${socket.nickname} ${whoisNick} :End of /WHOIS list\r\n`);
+                        await this.sendThrottled(socket, output_lines);
                     } else {
                         // Check if whoisNick is a remote server user
                         let foundRemote = false;
