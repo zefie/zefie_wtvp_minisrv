@@ -1264,8 +1264,9 @@ async function doHTTPProxy(socket, request_headers) {
             if (minisrv_config.services[request_type].external_proxy_is_socks) {
                 // configure connection to remote socks proxy
                 // this doesnt work, needs to be fixed
-                const { ProxyAgent }= require('proxy-agent');
-                options.agent = new ProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
+                
+                const { SocksProxyAgent }= require('socks-proxy-agent');
+                options.agent = new SocksProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
                 options.agents = {
                     "http": options.agent,
                     "https": options.agent
