@@ -41,19 +41,7 @@ class WTVIRC {
         this.server = null;
         this.clients = [];
         this.usernames = new Map(); // nickname -> username
-        this.channels = new Map();
-        this.channelkeys = new Map(); // channel -> password
-        this.channellimits = new Map(); // channel -> limit of users
-        this.channeltimestamps = new Map(); // channel -> timestamp of creation
-        this.channelops = new Map(); // channel -> Set of operators
-        this.channelhalfops = new Map(); // channel -> Set of half-operators
-        this.channelvoices = new Map(); // channel -> Set of voiced users
-        this.channeltopics = new Map(); // channel -> topic
-        this.channelinvites = new Map(); // channel -> Set of invited users
-        this.channelbans = new Map(); // channel -> Set of banned users
-        this.channelexemptions = new Map(); // channel -> Set of exempted users
-        this.inviteexceptions = new Map(); // channel -> Set of users who can bypass invite only mode
-        this.channelmodes = new Map(); // channel -> Array of modes (e.g. ['m', 'i', 'l', 'k'])
+        this.channelData = new Map();
         this.usertimestamps = new Map(); // nickname -> timestamp since last message
         this.usermodes = new Map(); // nickname -> Array of modes (e.g. ['w', 'i'])
         this.usersignontimestamps = new Map(); // nickname -> timestamp since user signed on
@@ -133,10 +121,10 @@ class WTVIRC {
             for (const channel of this.irc_config.channels) {                
                 this.createChannel(channel.name);
                 if (channel.modes && Array.isArray(channel.modes)) {
-                    this.channelmodes.set(channel.name, [...channel.modes]);
+                    this.channelData.get(channel.name).modes = [...channel.modes];
                 }
                 if (channel.topic) {
-                    this.channeltopics.set(channel.name, channel.topic);
+                    this.channelData.get(channel.name).topic = channel.topic;
                 }
             }
         }
@@ -394,15 +382,15 @@ class WTVIRC {
                     const username = this.usernames.get(nickname) || '';
                     socket.write(`:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${sock.host} ${sock.realhost} ${sock.remoteAddress} ${uniqueId} * :${sock.userinfo}\r\n`);
                 }
-                for (const [channel, users] of this.channels.entries()) {
-                    const modes = this.getChannelModes(channel);
-                    for (const user of users) {                        
+                for (const [channel, channelObj] of this.channelData.entries()) {
+                    const modes = channelObj.modes;
+                    for (const user of channelObj.users) {                        
                         let userPrefix = '';
-                        if ((this.channelops.get(channel) || new Set()).has(user)) {
+                        if (channelObj.ops.has(user)) {
                             userPrefix = '@';
-                        } else if ((this.channelhalfops.get(channel) || new Set()).has(user)) {
+                        } else if (channelObj.halfops.has(user)) {
                             userPrefix = '%';
-                        } else if ((this.channelvoices.get(channel) || new Set()).has(user)) {
+                        } else if (channelObj.voices.has(user)) {
                             userPrefix = '+';
                         }
                         const userUniqueId = this.uniqueids.get(user);
@@ -607,11 +595,11 @@ class WTVIRC {
                 var nickname = this.findUserByUniqueId(uniqueId);
                 var username = this.usernames.get(nickname) || nickname;
                 var hostname = this.hostnames.get(nickname)
-                if (!this.channels.has(channel)) {
+                if (!this.channelData.has(channel)) {
                     this.createChannel(channel);
                 }
-                if (!this.channels.get(channel).has(nickname)) {
-                    this.channels.get(channel).add(nickname);
+                if (!this.channelData.get(channel).users.has(nickname)) {
+                    this.channelData.get(channel).users.add(nickname);
                 }
                 if (nickname && username && hostname) {
                     this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, userSocket);
@@ -776,7 +764,7 @@ class WTVIRC {
                             break;
                         case 'JOIN':
                             var channel = this.findChannel(parts[3]);
-                            if (!channel || !this.channels.has(channel)) {
+                            if (!channel || !this.channelData.has(channel)) {
                                 channel = parts[3];
                                 this.createChannel(channel);
                             }
@@ -788,8 +776,8 @@ class WTVIRC {
                                 break;
                             }
                             var username = this.usernames.get(nickname) || nickname;
-                            if (!this.channels.get(channel).has(nickname)) {
-                                this.channels.get(channel).add(nickname);
+                            if (!this.channelData.get(channel).users.has(nickname)) {
+                                this.channelData.get(channel).users.add(nickname);
                             }
                             this.broadcastChannelJoin(channel, userSocket);
                             this.broadcastToAllServers(`:${sourceUniqueId} JOIN ${channel}\r\n`, socket);
@@ -802,20 +790,20 @@ class WTVIRC {
                                 }
                                 break;
                             }
-                            if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set) {
-                                this.channelops.get(channel).delete(nickname);
+                            if (this.channelData.get(channel).ops.has(nickname)) {
+                                this.channelData.get(channel).ops.delete(nickname);
                             }
-                            if (this.channelhalfops.has(channel) && this.channelhalfops.get(channel) instanceof Set) {
-                                this.channelhalfops.get(channel).delete(nickname);
+                            if (this.channelData.get(channel).halfops.has(nickname)) {
+                                this.channelData.get(channel).halfops.delete(nickname);
                             }
-                            if (this.channelvoices.has(channel) && this.channelvoices.get(channel) instanceof Set) {
-                                this.channelvoices.get(channel).delete(nickname);
+                            if (this.channelData.get(channel).voices.has(nickname)) {
+                                this.channelData.get(channel).voices.delete(nickname);
                             }
 
                             var username = this.usernames.get(nickname) || nickname;
                             var hostname = this.hostnames.get(nickname);                            
                             this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} PART ${channel} :${parts.slice(4).join(' ')}\r\n`, userSocket);
-                            if (this.channels.has(channel) && this.channels.get(channel).size === 0) {
+                            if (this.channelData.has(channel) && this.channelData.get(channel).users.size === 0) {
                                 this.deleteChannel(channel);
                             }
                             this.broadcastToAllServers(`:${sourceUniqueId} PART ${channel} :${parts.slice(4).join(' ')}\r\n`, socket);
@@ -837,10 +825,10 @@ class WTVIRC {
                             if (topic.startsWith(':')) {
                                 topic = topic.slice(1);
                             }
-                            if (!this.channels.has(channel)) {
+                            if (!this.channelData.has(channel)) {
                                 this.createChannel(channel);
                             }
-                            this.channeltopics.set(channel, topic);
+                            this.channelData.get(channel).topic = topic;
                             this.broadcastChannel(channel, `:${nickname} TOPIC ${channel} :${topic}\r\n`);
                             this.broadcastToAllServers(`:${sourceUniqueId} TBURST ${channel} :${topic}\r\n`, socket);
                             break;
@@ -875,7 +863,7 @@ class WTVIRC {
                                     break;
                                 }
                                 // It's a channel, broadcast to all users in the channel
-                                if (this.channels.has(targetChannel)) {
+                                if (this.channelData.has(targetChannel)) {
                                     var modes = parts[3];
                                     this.processChannelModes(nickname, targetChannel, modes, parts.slice(4), socket);
                                 }
@@ -924,7 +912,7 @@ class WTVIRC {
                                 break;
                             }
                             var channel = this.findChannel(parts[2]);
-                            if (!channel || !this.channels.has(channel)) {
+                            if (!channel || !this.channelData.has(channel)) {
                                 socket.write(`:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
                                 break;
                             }                            
@@ -932,7 +920,7 @@ class WTVIRC {
                             if (topic.startsWith(':')) {
                                 topic = topic.slice(1); // Remove leading ':'
                             }
-                            this.channeltopics.set(channel, topic);
+                            this.channelData.get(channel).topic = topic;
                             var username = this.usernames.get(nickname) || nickname;
                             var hostname = this.hostnames.get(nickname) || '';
                             this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} TOPIC ${channel} :${topic}\r\n`, targetSocket);
@@ -955,8 +943,8 @@ class WTVIRC {
                             var sourceUsername = this.usernames.get(nickname) || nickname;
                             if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
                                 // It's a channel, broadcast to all users in the channel except the source
-                                if (this.channels.has(targetUniqueId)) {
-                                    const users = this.channels.get(targetUniqueId);
+                                if (this.channelData.has(targetUniqueId)) {
+                                    const users = this.channelData.get(targetUniqueId).users;
                                     for (const user of users) {
                                         const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                                         if (userSocket && userSocket.uniqueId !== sourceUniqueId) {
@@ -1015,17 +1003,20 @@ class WTVIRC {
                                     output_lines.push(`:${this.serverId} 301 ${targetUniqueId} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
                                 }
                                 const userChannels = [];
-                                for (const [ch, users] of this.channels.entries()) {
-                                    if (users.has(whoisNick)) {
+                                for (const [ch, channelObj] of this.channelData.entries()) {
+                                    if (channelObj.users.has(whoisNick)) {
                                         let prefix = '';
-                                        var chanops = this.channelops.get(ch) || new Set();
-                                        var chanvoices = this.channelvoices.get(ch) || new Set();
-                                        const modes = this.getChannelModes(ch);
-                                        if ((modes.includes('p') || modes.includes('s')) && (!this.channels.has(ch) || !this.channels.get(ch).has(socket.nickname))) {
+                                        var chanops = this.channelData.get(ch).ops;
+                                        var chanhalfops = this.channelData.get(ch).halfops;
+                                        var chanvoices = this.channelData.get(ch).voices;
+                                        const modes = this.channelData.get(ch).modes;
+                                        if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(ch) || !this.channelData.get(ch).users.has(socket.nickname))) {
                                             continue; // Skip listing this channel if it's private/secret and user is not in it
                                         }
                                         if (chanops.has(whoisNick)) {
                                             prefix = '@';
+                                        } else if (chanhalfops.has(whoisNick)) {
+                                            prefix = '%';
                                         } else if (chanvoices.has(whoisNick)) {
                                             prefix = '+';
                                         }
@@ -1065,25 +1056,25 @@ class WTVIRC {
                             var targetSocket = this.findSocketByUniqueId(targetUniqueId);
                             var username = this.usernames.get(targetSocket.nickname) || socket.nickname;
                             var hostname = this.hostnames.get(targetSocket.nickname) || '';
-                            if (!channelName ||!this.channels.has(channelName)) {
+                            if (!channelName ||!this.channelData.has(channelName)) {
                                 channelName = parts[3];
                                 this.createChannel(channelName);
                             }
-                            if (!this.channels.get(channelName).has(targetSocket.nickname)) {
-                                this.channels.get(channelName).add(targetSocket.nickname);
+                            if (!this.channelData.get(channelName).users.has(targetSocket.nickname)) {
+                                this.channelData.get(channelName).users.add(targetSocket.nickname);
                             }
                             this.broadcastChannelJoin(channelName, targetSocket);
                             //this.broadcastToAllServers(`:${sourceUniqueId} SVSJOIN ${channelName} ${targetUniqueId}\r\n`, socket);
-                            var chan_modes = this.getChannelModes(channelName);
+                            var chan_modes = this.channelData.get(channelName).modes;
                             let modeString = '';
                             let modeParams = [];
                             for (const m of chan_modes) {
-                                if (m === 'k' && this.channelkeys.has(channelName)) {
+                                if (m === 'k' && this.channelData.get(channelName).key) {
                                     modeString += 'k';
-                                    modeParams.push(this.channelkeys.get(channelName));
-                                } else if (m === 'l' && this.channellimits.has(channelName)) {
+                                    modeParams.push(this.channelData.get(channelName).key);
+                                } else if (m === 'l' && this.channelData.get(channelName).limit) {
                                     modeString += 'l';
-                                    modeParams.push(this.channellimits.get(channelName));
+                                    modeParams.push(this.channelData.get(channelName).limit);
                                 } else if (typeof m === 'string' && m.length === 1 && m !== 'k' && m !== 'l') {
                                     modeString += m;
                                 }
@@ -1304,11 +1295,11 @@ class WTVIRC {
                         break;
                     }
                     // Check if the user is a channel operator
-                    if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set && this.channelops.get(channel).has(socket.nickname)) {
+                    if (this.channelData.get(channel).ops instanceof Set && this.channelData.get(channel).ops.has(socket.nickname)) {
                         // Allow kick
-                    } else if (this.channelhalfops.has(channel) && this.channelhalfops.get(channel) instanceof Set && this.channelhalfops.get(channel).has(socket.nickname)) {
+                    } else if (this.channelData.get(channel).halfops instanceof Set && this.channelData.get(channel).halfops.has(socket.nickname)) {
                         // Only allow kick if the target is NOT a channel operator
-                        if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set && this.channelops.get(channel).has(targetNick)) {
+                        if (this.channelData.get(channel).ops instanceof Set && this.channelData.get(channel).ops.has(targetNick)) {
                             socket.write(`:${this.servername} 482 ${socket.nickname} ${channel} :You cannot kick a channel operator\r\n`);
                             break;
                         }
@@ -1324,21 +1315,21 @@ class WTVIRC {
                     this.usertimestamps.set(socket.nickname, this.getDate());
 
 
-                    if (!this.channels.has(channel)) {
+                    if (!this.channelData.has(channel)) {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                         break;
                     }                      
-                    if (!this.channels.get(channel).has(targetNick)) {
+                    if (!this.channelData.get(channel).users.has(targetNick)) {
                         socket.write(`:${this.servername} 441 ${socket.nickname} ${targetNick} :They aren't on that channel\r\n`);
                         break;
                     }
                     // Check if channel mode +Q (no kicks) is set
-                    var chan_modes = this.getChannelModes(channel);
+                    var chan_modes = this.channelData.get(channel).modes;
                     if (chan_modes.includes('Q')) {
                         socket.write(`:${this.servername} 482 ${socket.nickname} ${channel} :Cannot kick users, channel is +Q (no kicks allowed)\r\n`);
                         break;
                     }
-                    this.channels.get(channel).delete(targetNick);
+                    this.channelData.get(channel).users.delete(targetNick);
                     var targetSocket = Array.from(this.clients).find(s => this.nicknames.get(s) === targetNick);
                     if (params.length > 2) {
                         let reason = params.slice(2).join(' ');
@@ -1368,9 +1359,9 @@ class WTVIRC {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${params[0]} :No such channel\r\n`);
                         break;
                     }
-                    var chan_modes = this.getChannelModes(channel);
+                    var chan_modes = this.channelData.get(channel).modes;
                     if (chan_modes.includes('t')) {
-                        if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set && this.channelops.get(channel).has(socket.nickname)) {
+                        if (this.channelData.get(channel).ops instanceof Set && this.channelData.get(channel).ops.has(socket.nickname)) {
                             // Allow topic
                         } else {
                             socket.write(`:${this.servername} 482 ${socket.nickname} ${channel} :You're not channel operator\r\n`);
@@ -1378,7 +1369,7 @@ class WTVIRC {
                         }
                     }
                     this.usertimestamps.set(socket.nickname, this.getDate());
-                    if (!this.channels.has(channel)) {
+                    if (!this.channelData.has(channel)) {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                         break;
                     }                        
@@ -1387,12 +1378,12 @@ class WTVIRC {
                         if (topic.startsWith(':')) {
                             topic = topic.slice(1);
                         }
-                        this.channeltopics.set(channel, topic);
+                        this.channelData.get(channel).topic = topic;
                         socket.write(`:${this.servername} 332 ${socket.nickname} ${channel} :${topic}\r\n`);                        
                         this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} TOPIC ${channel} :${topic}\r\n`);
                         this.broadcastToAllServers(`:${socket.uniqueId} TOPIC ${channel} :${topic}\r\n`);
                     } else {
-                        const topic = this.channeltopics.get(channel) || 'No topic set';
+                        const topic = this.channelData.get(channel).topic;
                         socket.write(`:${this.servername} 331 ${socket.nickname} ${channel} :${topic}\r\n`);
                     }
                     break;
@@ -1466,7 +1457,7 @@ class WTVIRC {
                         socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
                         break;
                     }
-                    if (!this.channels.has(channel)) {
+                    if (!this.channelData.has(channel)) {
                         isChannel = false;
                     }
                     // Check if 'channel' is actually a user (nickname) instead of a channel name
@@ -1657,11 +1648,11 @@ class WTVIRC {
                             socket.write(`:${this.servername} 476 ${socket.nickname} ${channel} :Bad channel mask\r\n`);
                             break;
                         }
-                        if (!this.channels.has(channel)) {
+                        if (!this.channelData.has(channel)) {
                             socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                             break;
                         }
-                        var chan_modes = this.getChannelModes(channel);
+                        var chan_modes = this.channelData.get(channel).modes;
 
                         chan_modes = chan_modes.map(mode => {
                             if (typeof mode === 'string' && !mode.startsWith('+')) {
@@ -1677,9 +1668,9 @@ class WTVIRC {
                                     // For modes with parameters (like k <key> or l<limit>)
                                     if (typeof m === 'string' && (m === '+k' || m === '+l')) {
                                         if (m === '+l') {
-                                            params2.push(this.channellimits.get(channel));                                             
+                                            params2.push(this.channelData.get(channel).limit);
                                         } else if (m === '+k') {
-                                            params2.push(this.channelkeys.get(channel));
+                                            params2.push(this.channelData.get(channel).key);
                                         }
                                         return m.replace(/^\+/, '');
                                     }
@@ -1695,7 +1686,7 @@ class WTVIRC {
                         } else {
                             socket.write(`:${this.servername} 324 ${socket.nickname} ${channel}\r\n`);
                         }
-                        socket.write(`:${this.servername} 329 ${socket.nickname} ${channel} ${this.channeltimestamps.get(channel) || M}\r\n`);
+                        socket.write(`:${this.servername} 329 ${socket.nickname} ${channel} ${this.channelData.get(channel).timestamp || M}\r\n`);
                         break;
                     } else {
                         // Process channel mode changes
@@ -1741,9 +1732,9 @@ class WTVIRC {
                     }
                     // Prevent nick change if user is in any channel with +N mode
                     let inNoNickChangeChannel = false;
-                    for (const [ch, users] of this.channels.entries()) {
-                        if (users.has(socket.nickname)) {
-                            const chanModes = this.getChannelModes(ch);
+                    for (const [ch, channelObj] of this.channelData.entries()) {
+                        if (channelObj.users.has(socket.nickname)) {
+                            const chanModes = this.channelData.get(ch).modes;
                             if (chanModes.includes('N')) {
                                 inNoNickChangeChannel = true;
                                 break;
@@ -1842,7 +1833,7 @@ class WTVIRC {
                             continue; // Skip this channel
                         }
                         let foundChannel = null;
-                        for (const existingChannel of this.channels.keys()) {
+                        for (const existingChannel of this.channelData.keys()) {
                             if (existingChannel.toLowerCase() === ch.toLowerCase()) {
                                 foundChannel = existingChannel;
                                 break;
@@ -1862,16 +1853,14 @@ class WTVIRC {
                         }                                               
                         const [command, ...params] = joinLine.trim().split(' ');
                         
-                        
-                        if (this.channelbans.has(ch)) {
-                            if (this.isBanned(ch, socket)) {
-                                socket.write(`:${this.servername} 474 ${socket.nickname} ${ch} :Cannot join channel (+b)\r\n`);
-                                continue; // Skip joining this channel
-                            }
+                        const chmodes = this.channelData.get(ch).modes;
+                        if (this.isBanned(ch, socket)) {
+                            socket.write(`:${this.servername} 474 ${socket.nickname} ${ch} :Cannot join channel (+b)\r\n`);
+                            continue; // Skip joining this channel
                         }
                         // Check if the user is in too many channels                       
-                        if (this.getChannelModes(ch).includes('k')) {
-                            const channelKey = this.channelkeys.get(ch);
+                        if (chmodes.includes('k')) {
+                            const channelKey = this.channelData.get(ch).key;
                             // The key must be provided as the second parameter in the JOIN command
                             // params[1] is the key for the first channel, params[2] for the second, etc.
                             // For simplicity, assume only one channel per JOIN or the key is always params[1]
@@ -1882,20 +1871,17 @@ class WTVIRC {
                                 continue; // Skip joining this channel
                             }
                         }
-                        if (this.getChannelModes(ch).includes('l')) {
+                        if (chmodes.includes('l')) {
                             // Channel has a user limit (+l)
-                            const limit = this.channellimits.get(ch) || null;
-                            if (limit !== null && this.channels.get(ch).size >= limit) {
+                            const limit = this.channelData.get(ch).limit;
+                            if (limit !== null && this.channelData.get(ch).users.size >= limit) {
                                 socket.write(`:${this.servername} 471 ${socket.nickname} ${ch} :Cannot join channel (+l)\r\n`);
                                 continue; // Skip joining this channel
                             }
                         }
-                        if (this.getChannelModes(ch).includes('i')) {
+                        if (chmodes.includes('i')) {
                             // Channel is invite-only (+i)
-                            // For simplicity, let's assume you have an invited list per channel (not implemented yet)
-                            // We'll use a Map: this.channelinvites = new Map(); // channel -> Set of invited nicks
-                            if (!this.channelinvites) this.channelinvites = new Map();
-                            const invited = this.channelinvites.get(ch) || new Set();                                        
+                            const invited = this.channelData.get(ch).inviteexceptions;
                             let isInvited = false;
                             for (const inviteMask of invited) {
                                 isInvited = checkMask(inviteMask, socket);
@@ -1903,22 +1889,22 @@ class WTVIRC {
                                     break; // Stop checking if we found a match
                                 }
                             }
-                            if (!invited.has(socket.nickname) && !isInvited) {
+                            if (!this.channelData.get(ch).invites.has(socket.nickname) && !isInvited) {
                                 socket.write(`:${this.servername} 473 ${socket.nickname} ${ch} :Cannot join channel (+i)\r\n`);
                                 continue; // Skip joining this channel
                             }
-                            if (!isInvited) {
-                                invited.delete(socket.nickname);
+                            if (!this.channelData.get(ch).invites.has(socket.nickname)) {
+                                this.channelData.get(ch).invites.delete(socket.nickname);
                             }
                         }
-                        if (this.getChannelModes(ch).includes('O')) {
+                        if (chmodes.includes('O')) {
                             if (!this.isIRCOp(socket.nickname)) {
                                 var code = (this.clientIsWebTV(socket) ? 474 : 404);
                                 socket.write(`:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+O)\r\n`);
                                 continue; // Skip joining this channel
                             }
                         }
-                        if (this.getChannelModes(ch).includes('S')) {
+                        if (chmodes.includes('S')) {
                             // Channel is restricted to users with a secure connection (+S)
                             if (!socket.secure) {
                                 var code = (this.clientIsWebTV(socket) ? 474 : 468);
@@ -1926,7 +1912,7 @@ class WTVIRC {
                                 continue; // Skip joining this channel
                             }
                         }
-                        if (this.getChannelModes(ch).includes('R')) {
+                        if (chmodes.includes('R')) {
                             // Channel is registered users only (+R)
                             if (!this.getUserModes(socket.nickname).includes('r')) {
                                 var code = (this.clientIsWebTV(socket) ? 474 : 447);
@@ -1941,25 +1927,22 @@ class WTVIRC {
                         // (excluding the code before $PLACEHOLDER$ to avoid duplicate checks)
                         // You can refactor this logic into a helper if needed
                         this.usertimestamps.set(socket.nickname, this.getDate());                        
-                        if (!this.channels.has(ch)) {
-                            this.channels.set(ch, new Set());
+                        if (!this.channelData.has(ch)) {
+                            this.createChannel(ch, socket.nickname);
                         }
-                        this.channels.get(ch).add(socket.nickname);
-                        if (!this.channelops.has(ch) || this.channelops.get(ch) === true) {
-                            this.channelops.set(ch, new Set());
-                            this.channelops.get(ch).add(socket.nickname);
-                        }
+                        var channelObj = this.channelData.get(ch);
+                        channelObj.users.add(socket.nickname);
                         this.broadcastChannelJoin(ch, socket);
-                        let modes = this.getChannelModes(ch);                
+                        let modes = channelObj.modes;         
                         let prefix = '';
-                        if ((this.channelops.get(ch) || new Set()).has(socket.nickname)) {
+                        if (channelObj.ops.has(socket.nickname)) {
                             if (socket.client_caps.includes('multi-prefix')) {
                                 prefix += '@';
                             } else {
                                 prefix = '@';
                             }
                         }
-                        if ((this.channelhalfops.get(ch) || new Set()).has(socket.nickname)) {
+                        if (channelObj.halfops.has(socket.nickname)) {
                              if (socket.client_caps.includes('multi-prefix')) {
                                 prefix += '%';
                             } else {
@@ -1968,7 +1951,7 @@ class WTVIRC {
                                 }
                             }
                         }
-                        if ((this.channelvoices.get(ch) || new Set()).has(socket.nickname)) {
+                        if (channelObj.voices.has(socket.nickname)) {
                             if (socket.client_caps.includes('multi-prefix')) {
                                 prefix += '+';
                             } else {
@@ -1978,8 +1961,8 @@ class WTVIRC {
                             }
                         }
                         this.broadcastToAllServers(`:${this.serverId} SJOIN ${this.getDate()} ${ch} +${modes.join('')} :${prefix}${socket.uniqueId}\r\n`);
-                        if (this.channeltopics.has(ch)) {
-                            const topic = this.channeltopics.get(ch);
+                        if (channelObj.topic) {
+                            const topic = channelObj.topic;
                             if (topic) {
                                 socket.write(`:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`);
                             }
@@ -1993,13 +1976,11 @@ class WTVIRC {
                                 const cleanA = a.replace(prefixRegex, '');
                                 const cleanB = b.replace(prefixRegex, '');
                                 // Get privilege for each user
-                                const ops = this.channelops.get(ch) || new Set();
-                                const halfops = this.channelhalfops.get(ch) || new Set();
-                                const voices = this.channelvoices.get(ch) || new Set();
+                                var channelObj = this.channelData.get(ch);
                                 function getPriv(user) {
-                                    if (ops.has(user)) return 1;
-                                    if (halfops.has(user)) return 2;
-                                    if (voices.has(user)) return 3;
+                                    if (channelObj.ops.has(user)) return 1;
+                                    if (channelObj.halfops.has(user)) return 2;
+                                    if (channelObj.voices.has(user)) return 3;
                                     return 4;
                                 }
                                 const privA = getPriv(cleanA);
@@ -2021,13 +2002,10 @@ class WTVIRC {
                             }
                         }
                         output_lines.push(`:${this.servername} 366 ${socket.nickname} ${ch} :End of /NAMES list\r\n`);
-                        this.sendThrottled(socket, output_lines);
+                        await this.sendThrottled(socket, output_lines, 0);
                         if (this.isReservedChannel(ch)) {
                             if (this.checkIfReservedChannelOp(socket, ch)) {
-                                if (!this.channelops.has(ch) || this.channelops.get(ch) === true) {
-                                    this.channelops.set(ch, new Set());
-                                }
-                                this.channelops.get(ch).add(socket.nickname);
+                                this.channelData.get(ch).ops.add(socket.nickname);
                                 this.broadcastChannel(ch, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${ch} +o ${socket.nickname}\r\n`);
                             }
                         }
@@ -2037,11 +2015,12 @@ class WTVIRC {
                         }
                         if (this.clientIsWebTV(socket)) {
                             var output_lines = [];
+                            var channelObj = this.channelData.get(ch);
                             output_lines.push("Welcome to the channel " + ch + "! You have joined successfully.");
-                            output_lines.push("Current channel modes: +" + this.getChannelModes(ch).join(''));
-                            let isOp = (this.channelops.get(ch) || new Set()).has(socket.nickname);
-                            let isHalfOp = (this.channelhalfops.get(ch) || new Set()).has(socket.nickname);
-                            let isVoice = (this.channelvoices.get(ch) || new Set()).has(socket.nickname);
+                            output_lines.push("Current channel modes: +" + channelObj.modes.join(''));
+                            let isOp = channelObj.ops.has(socket.nickname);
+                            let isHalfOp = channelObj.halfops.has(socket.nickname);
+                            let isVoice = channelObj.voices.has(socket.nickname);
                             if (isOp) {
                                 output_lines.push("You are a channel operator (@) in " + ch + ".");
                             } else if (isHalfOp) {
@@ -2062,7 +2041,7 @@ class WTVIRC {
                         break;
                     }
                     channel = this.findChannel(params[0]);
-                    if (!channel || !this.channels.has(channel)) {
+                    if (!channel || !this.channelData.has(channel)) {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                         break;
                     }
@@ -2090,19 +2069,19 @@ class WTVIRC {
                         break;
                     }
                     channel = this.findChannel(params[0]);
-                    if (!this.channels.has(channel) || !this.channels.get(channel).has(socket.nickname)) {
+                    if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(socket.nickname)) {
                         socket.write(`:${this.servername} 442 ${socket.nickname} ${channel} :You're not on that channel\r\n`);
                         break;
                     }
-                    if (this.channelops.has(channel) && this.channelops.get(channel) instanceof Set) {
-                        this.channelops.get(channel).delete(socket.nickname);
+                    if (this.channelData.get(channel).ops.has(socket.nickname)) {
+                        this.channelData.get(channel).ops.delete(socket.nickname);
                     }
-                    if (this.channelhalfops.has(channel) && this.channelhalfops.get(channel) instanceof Set) {
-                        this.channelhalfops.get(channel).delete(socket.nickname);
+                    if (this.channelData.get(channel).halfops.has(socket.nickname)) {
+                        this.channelData.get(channel).halfops.delete(socket.nickname);
                     }
-                    if (this.channelvoices.has(channel) && this.channelvoices.get(channel) instanceof Set) {
-                        this.channelvoices.get(channel).delete(socket.nickname);
-                    }
+                    if (this.channelData.get(channel).voices.has(socket.nickname)) {
+                        this.channelData.get(channel).voices.delete(socket.nickname);
+                    }                                        
                     this.usertimestamps.set(socket.nickname, this.getDate());
                     if (params.length == 2) {
                         let reason = params.join(' ');
@@ -2115,9 +2094,9 @@ class WTVIRC {
                         socket.write(`:${socket.nickname}!${socket.username}@${socket.host} PART ${channel}\r\n`);
                         this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} PART ${channel}\r\n`, socket);
                     }
-                    if (this.channels.has(channel)) {
-                        this.channels.get(channel).delete(socket.nickname);
-                        if (this.channels.get(channel).size === 0) {
+                    if (this.channelData.has(channel)) {
+                        this.channelData.get(channel).users.delete(socket.nickname);
+                        if (this.channelData.get(channel).users.size === 0) {
                             this.deleteChannel(channel);
                         }
                     }
@@ -2137,18 +2116,13 @@ class WTVIRC {
                         socket.write(`:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
                         break;
                     }
-                    if (!this.channels.has(channel)) {
+                    if (!this.channelData.has(channel)) {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                         break;
                     }
-                    if (!this.channelops.has(channel) || this.channelops.get(channel) === true) {
+                    if (!this.channelData.get(channel).ops.has(socket.nickname)) {
                         socket.write(`:${this.servername} 482 ${socket.socket.nickname} ${channel} :You're not channel operator\r\n`);
                         break;
-                    } else {
-                        if (!this.channelops.get(channel).has(socket.nickname)) {
-                            socket.write(`:${this.servername} 482 ${socket.nickname} ${channel} :You're not channel operator\r\n`);
-                            break;
-                        }
                     }
                     if (!this.nicknames.has(socket)) {
                         socket.write(`:${this.servername} 401 ${socket.nickname} ${invitee} :No such nick/channel\r\n`);
@@ -2159,13 +2133,12 @@ class WTVIRC {
                         socket.write(`:${this.servername} 401 ${socket.nickname} ${invitee} :No such nick/channel\r\n`);
                         break;
                     }
-                    if (!this.channels.has(channel) || !this.channels.get(channel).has(invitee)) {
-                        if (this.getChannelModes(channel).includes('V')) {
+                    if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(invitee)) {
+                        if (this.channelData.get(channel).modes.includes('V')) {
                             socket.write(`:${this.servername} 482 ${socket.nickname} ${channel} :Cannot invite users, channel is +V (no invites allowed)\r\n`);
                             break;
                         }
-                        if (!this.channelinvites) this.channelinvites = new Map();
-                        const invited = this.channelinvites.get(channel) || new Set();
+                        const invited = this.channelData.get(channel).invites;
                         invited.add(invitee);
                         socket.write(`:${this.servername} 341 ${socket.nickname} ${invitee} ${channel} :Invited to channel\r\n`);
                         this.broadcastUserIfCapAndChanOp(socket, `:${socket.nickname}!${socket.username}@${socket.host} INVITE ${invitee} ${channel}`, socket, 'invite-notify', channel);
@@ -2182,28 +2155,26 @@ class WTVIRC {
                     if (params.length > 0 && params[0]) {
                         channelsToList = params[0].split(',').filter(ch => ch.length > 0);
                     } else {
-                        channelsToList = Array.from(this.channels.keys());
+                        channelsToList = Array.from(this.channelData.keys());
                     }
                     socket.write(`:${this.servername} 321 ${socket.nickname} :Channel :Users :Topic\r\n`);
                     for (const channel of channelsToList) {
                         if (!this.channelprefixes.some(prefix => channel.startsWith(prefix))) {
                             continue; // Skip invalid channel names
                         }
-                        if (this.channelmodes.has(channel)) {
-                            var modes = this.getChannelModes(channel);
-                            if (modes.includes('p')) {
-                                if (!this.channels.has(channel) || !this.channels.get(channel).has(socket.nickname)) {
-                                    continue; // Skip if user is not in the channel
-                                }
+                        var modes = this.channelData.get(channel).modes;
+                        if (modes.includes('p')) {
+                            if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(socket.nickname)) {
+                                continue; // Skip if user is not in the channel
                             }
-                            if (modes.includes('s')) {
-                                if (!this.channels.has(channel) || !this.channels.get(channel).has(socket.nickname)) {
-                                    continue; // Skip if user is not in the channel
-                                }
+                        }
+                        if (modes.includes('s')) {
+                            if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(socket.nickname)) {
+                                continue; // Skip if user is not in the channel
                             }
                         }
                         const users = this.getUsersInChannel(channel);
-                        const topic = this.channeltopics.get(channel) || '';
+                        const topic = this.channelData.get(channel).topic;
                         socket.write(`:${this.servername} 322 ${socket.nickname} ${channel} ${users.length} :${topic}\r\n`);
                     }
                     socket.write(`:${this.servername} 323 ${socket.nickname} :End of /LIST\r\n`);
@@ -2231,15 +2202,13 @@ class WTVIRC {
                     }
                     if (isChannel) {
                         // WHO for channel
-                        if (this.channelmodes.has(target)) {
-                            const modes = this.getChannelModes(target);
-                            if ((modes.includes('p') || modes.includes('s')) && (!this.channels.has(target) || !this.channels.get(target).has(socket.nickname))) {
-                                socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
-                                break;
-                            }
+                        const modes = this.channelData.get(target).modes
+                        if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(target) || !this.channelData.get(target).users.has(socket.nickname))) {
+                            socket.write(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
+                            break;
                         }
-                        if (this.channels.has(target)) {
-                            const users = this.getUsersInChannel(target);
+                        if (this.channelData.has(target)) {
+                            const users = this.channelData.get(target).users;
                             for (const user of users) {
                                 let cleanUser = user;
                                 if (!user) {
@@ -2262,23 +2231,12 @@ class WTVIRC {
                                     userSecure = whoisSocket.secure;
                                 }
                                 let prefix = '';
-                                var chanops = this.channelops.get(target)
-                                if (!chanops || chanops === true) {
-                                    chanops = new Set();
-                                }
-                                var chanhalfops = this.channelhalfops.get(target);
-                                if (!chanhalfops || chanhalfops === true) {
-                                    chanhalfops = new Set();
-                                }                                
-                                var chanvoices = this.channelvoices.get(target);
-                                if (!chanvoices || chanvoices === true) {
-                                    chanvoices = new Set();
-                                }                                
-                                if (chanops.has(cleanUser)) {
+                                var channelObj = this.channelData.get(target);                              
+                                if (channelObj.ops.has(cleanUser)) {
                                     prefix = '@';
-                                } else if (chanhalfops.has(cleanUser)) {
+                                } else if (channelObj.halfops.has(cleanUser)) {
                                     prefix = '%';
-                                } else if (chanvoices.has(cleanUser)) {
+                                } else if (channelObj.voices.has(cleanUser)) {
                                     prefix = '+';
                                 }
                                 var userinfo = this.userinfo.get(cleanUser) || cleanUser;
@@ -2359,49 +2317,47 @@ class WTVIRC {
                                 socket.write(`:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
                                 continue;
                             }
+                            var channelObj = this.channelData.get(t);                            
                             var msg = line.slice(line.indexOf(':', 1) + 1);
                             if (isChan) {
                                 // Channel message
-                                if (this.getChannelModes(t).includes('m')) {
+                                if (channelObj.modes.includes('m')) {
                                     // Channel is moderated (+m)
-                                    var voices = this.channelvoices.get(t) || new Set();
-                                    var ops = this.channelops.get(t) || new Set();
-                                    if (voices === true) voices = new Set();
-                                    if (ops === true) ops = new Set();
-                                    if (!(voices.has(socket.nickname) || ops.has(socket.nickname))) {
+                                    
+                                    if (!channelObj.voices.has(socket.nickname && !channelObj.ops.has(socket.nickname) && !channelObj.halfops.has(socket.nickname))) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+m)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('n')) {
+                                if (channelObj.modes.includes('n')) {
                                     // Channel is no-external-messages (+n)
-                                    if (!this.channels.has(t) || !this.channels.get(t).has(socket.nickname)) {
+                                    if (!channelObj.users.has(socket.nickname)) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+n)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('c')) {
+                                if (channelObj.modes.includes('c')) {
                                     // Block all IRC control codes (ASCII 0x00-0x1F except \r and \n)
                                     if (/[\x00-\x09\x0B\x0C\x0E-\x1F]/.test(msg)) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+c)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('C')) {
+                                if (channelObj.modes.includes('C')) {
                                     // channel blocks CTCP, detect if the message contains CTCPS
                                     if (msg.includes('\x01')) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+C)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('O')) {
+                                if (channelObj.modes.includes('O')) {
                                     if (!this.isIRCOp(socket.nickname)) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+O)\r\n`);
                                     }
                                 }
                             }
                             if (isChan) {
-                                if (!this.channels.has(t)) {
+                                if (!this.channelData.has(t)) {
                                     socket.write(`:${this.servername} 403 ${socket.nickname} ${t} :No such channel\r\n`);
                                     continue;
                                 }
@@ -2492,52 +2448,50 @@ class WTVIRC {
                                 socket.write(`:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
                                 continue;
                             }
+                            var channelObj = this.channelData.get(t);
                             var msg = line.slice(line.indexOf(':', 1) + 1);
                             if (isChan) {
+                                if (!this.channelData.has(t)) {
+                                    socket.write(`:${this.servername} 403 ${socket.nickname} ${t} :No such channel\r\n`);
+                                    continue;
+                                }
                                 // Channel notice
-                                if (this.getChannelModes(t).includes('n')) {
+                                if (channelObj.modes.includes('n')) {
                                     // Channel is no-external-messages (+n)
-                                    if (!this.channels.has(t) || !this.channels.get(t).has(socket.nickname)) {
+                                    if (!this.channelData.get(t).users.has(socket.nickname)) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+n)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('c')) {
+                                if (channelObj.modes.includes('c')) {
                                     // channel blocks color, detect if the message contains color codes
                                     if (/[\x00-\x09\x0B\x0C\x0E-\x1F]/.test(msg)) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+c)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('C')) {
+                                if (channelObj.modes.includes('C')) {
                                     // channel blocks CTCP, detect if the message contains CTCPS
                                     if (msg.includes('\x01')) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+C)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('T')) {
-                                    const ops = this.channelops.get(t) || new Set();
-                                    const halfops = this.channelhalfops.get(t) || new Set();
-                                    const voices = this.channelvoices.get(t) || new Set();
+                                if (channelObj.modes.includes('T')) {
                                     if (
-                                        !ops.has(socket.nickname) &&
-                                        !halfops.has(socket.nickname) &&
-                                        !voices.has(socket.nickname)
+                                        !channelObj.ops.has(socket.nickname) &&
+                                        !channelObj.halfops.has(socket.nickname) &&
+                                        !channelObj.voices.has(socket.nickname)
                                     ) {
                                         socket.write(`:${this.servername} 482 ${socket.nickname} ${t} :Cannot send to channel (+T)\r\n`);
                                         continue;
                                     }
                                 }
-                                if (this.getChannelModes(t).includes('O')) {
+                                if (channelObj.modes.includes('O')) {
                                     if (!this.isIRCOp(socket.nickname)) {
                                         socket.write(`:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+O)\r\n`);
                                     }
                                 }                                
-                                if (!this.channels.has(t)) {
-                                    socket.write(`:${this.servername} 403 ${socket.nickname} ${t} :No such channel\r\n`);
-                                    continue;
-                                }
                                 this.broadcastChannel(t, `:${socket.nickname}!${socket.username}@${socket.host} NOTICE ${t} :${msg}\r\n`, socket);
                                 this.broadcastToAllServers(`:${socket.uniqueId} NOTICE ${t} :${msg}\r\n`);
                             } else {
@@ -2679,15 +2633,15 @@ class WTVIRC {
                         const userChannels = [];
 
                         var output_lines = [];
-                        for (const [ch, users] of this.channels.entries()) {
-                            if (users.has(whoisNick)) {
+                        for (const [ch, channelObj] of this.channelData.entries()) {
+                            if (channelObk.users.has(whoisNick)) {
                                 let prefix = '';
-                                var chanops = this.channelops.get(ch) || new Set();
-                                var chanhalfops = this.channelhalfops.get(ch) || new Set();
-                                var chanvoices = this.channelvoices.get(ch) || new Set();
-                                var modes = this.getChannelModes(ch);
+                                var chanops = channelObj.ops;
+                                var chanhalfops = channelObj.halfops;
+                                var chanvoices = channelObj.voices;
+                                var modes = channelObj.modes;
 
-                                if ((modes.includes('p') || modes.includes('s')) && (!this.channels.has(ch) || !this.channels.get(ch).has(socket.nickname))) {
+                                if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(ch) || !this.channelData.get(ch).users.has(socket.nickname))) {
                                     continue; // Skip listing this channel if it's private/secret and user is not in it
                                 }
                                  if (chanops.has(whoisNick)) {
@@ -2819,17 +2773,11 @@ class WTVIRC {
                     if (!this.checkRegistered(socket)) {
                         break;
                     }
-                    for (const [ch, users] of this.channels.entries()) {
-                        if (users.has(socket.nickname)) {
-                            if (this.channelops.has(ch) && this.channelops.get(ch) instanceof Set) {
-                                this.channelops.get(ch).delete(socket.nickname);
-                            }
-                            if (this.channelhalfops.has(ch) && this.channelhalfops.get(ch) instanceof Set) {
-                                this.channelhalfops.get(ch).delete(socket.nickname);
-                            }
-                            if (this.channelvoices.has(ch) && this.channelvoices.get(ch) instanceof Set) {
-                                this.channelvoices.get(ch).delete(socket.nickname);
-                            }
+                    for (const [ch, channelObj] of this.channelData.entries()) {
+                        if (channelObj.users.has(socket.nickname)) {
+                            channelObj.ops.delete(socket.nickname);
+                            channelObj.halfops.delete(socket.nickname);
+                            channelObj.voices.delete(socket.nickname);
                         }
                     }
                     if (params.length > 0) {
@@ -2931,18 +2879,7 @@ class WTVIRC {
     deleteChannel(channel) {
         // Cleans up the channel from all lists
         if (!this.isReservedChannel(channel)) {
-            this.channels.delete(channel);
-            this.channelops.delete(channel);
-            this.channelhalfops.delete(channel);
-            this.channelvoices.delete(channel);
-            this.channeltopics.delete(channel);
-            this.channelbans.delete(channel);
-            this.channelexemptions.delete(channel);
-            this.channelinvites.delete(channel);
-            this.channelmodes.delete(channel);
-            this.channellimits.delete(channel);
-            this.channelkeys.delete(channel);
-            this.channeltimestamps.delete(channel);
+            this.channelData.delete(channel);
             if (this.debug) {
                 console.log(`Channel ${channel} deleted`);
             }       
@@ -2962,31 +2899,27 @@ class WTVIRC {
         this.accounts.delete(nickname); 
         this.userinfo.delete(nickname); 
         this.deleteUserUniqueId(nickname);         
-        for (const [ch, ops] of this.channelops.entries()) {
-            if (ops && ops !== true && ops.has(nickname)) {
-                ops.delete(nickname);
+        for (const [ch, channelObj] of this.channelData.entries()) {
+            if (channelObj.users.has(nickname)) {
+                channelObj.users.delete(nickname);
             }
-        }
-        for (const [ch, ops] of this.channelhalfops.entries()) {
-            if (ops && ops !== true && ops.has(nickname)) {
-                ops.delete(nickname);
+            if (channelObj.ops && channelObj.ops.has(nickname)) {
+                channelObj.ops.delete(nickname);
             }
-        }
-        for (const [ch, voices] of this.channelvoices.entries()) {
-            if (voices && voices !== true && voices.has(nickname)) {
-                voices.delete(nickname);
+            if (channelObj.halfops && channelObj.halfops.has(nickname)) {
+                channelObj.halfops.delete(nickname);
             }
-        }
-        // Remove user from any pending invites
-        for (const [ch, invites] of (this.channelinvites || new Map()).entries()) {
-            if (invites && invites.has(nickname)) {
+            if (channelObj.voices && channelObj.voices.has(nickname)) {
+                channelObj.voices.delete(nickname);
+            }
+            if (channelObj.invites && channelObj.invites.has(nickname)) {
                 invites.delete(nickname);
             }
         }
-        this.channels.forEach((users, ch) => {
-            if (users.has(nickname)) {
-                users.delete(nickname);
-                if (users.size === 0) {
+        this.channelData.forEach((channelObj, ch) => {
+            if (channelObj.users.has(nickname)) {
+                channelObj.users.delete(nickname);
+                if (channelObj.users.size === 0) {
                     this.deleteChannel(ch);
                 }
             }
@@ -3037,8 +2970,8 @@ class WTVIRC {
     getUserChannelCount(username) {
         // returns the number of channels a user is in
         let count = 0;
-        for (const [channel, users] of this.channels.entries()) {
-            if (users.has(username)) {
+        for (const [channel, channelObj] of this.channelData.entries()) {
+            if (channelObj.users.has(username)) {
                 count++;
             }
         }
@@ -3047,28 +2980,25 @@ class WTVIRC {
 
     getUsersInChannel(channel) {
         // Returns an array of users in a specific channel, with modes applied        
-        if (this.channels.has(channel)) {
-            const ops = this.channelops.get(channel) || new Set();
-            const halfops = this.channelhalfops.get(channel) || new Set();
-            const voices = this.channelvoices.get(channel) || new Set();
-            return Array.from(this.channels.get(channel)).map(user => {
-                if (ops === true) return user;
-                if (voices === true) return user;
-                if (halfops === true) return user;
+        if (this.channelData.has(channel)) {
+            const channelObj = this.channelData.get(channel);
+            const ops = channelObj.ops || new Set();
+            const halfops = channelObj.halfops || new Set();
+            const voices = channelObj.voices || new Set();
+            return Array.from(channelObj.users).map(user => {
                 if (ops.has(user)) return '@' + user;
                 if (halfops.has(user)) return '%' + user;
                 if (voices.has(user)) return '+' + user;
                 return user;
             });
         }
-        return [];
     }
 
     broadcastUser(username, message, exceptSocket = null) {
         // Broadcast a message to all users in any channels that the specified user is in, except the one specified 
-        for (const [channel, users] of this.channels.entries()) {
-            if (users.has(username)) {
-                for (const user of users) {
+        for (const [channel, channelObj] of this.channelData.entries()) {
+            if (channelObj.users.has(username)) {
+                for (const user of channelObj.users) {
                     const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                     if (sock && sock !== exceptSocket) {
                         sock.write(message);
@@ -3080,12 +3010,24 @@ class WTVIRC {
 
     broadcastChannel(channel, message, exceptSocket = null) {
         // Broadcast a message to all users in a specific channel, except the one specified
-        if (this.channels.has(channel)) {
-            const users = this.channels.get(channel);
-            for (const user of users) {
-                const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
-                if (sock && sock !== exceptSocket) {
-                    sock.write(message);
+        if (this.channelData.has(channel)) {
+            const channelObj = this.channelData.get(channel);
+            for (const user of channelObj.users) {
+                // +Z (secureonly): Restricts private message (PRIVMSG) or notice (NOTICE) reception/sending to users with a secure connection (TLS).
+                if (channelObj.modes.includes('Z')) {
+                    const user_modes = this.getUserModes(user);
+                    if (user_modes.includes('z')) {
+                        const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                        if (sock && sock !== exceptSocket) {
+                            sock.write(message);
+                        }
+                    }
+                }
+                else {
+                    const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                    if (sock && sock !== exceptSocket) {
+                        sock.write(message);
+                    }
                 }
             }
         }
@@ -3100,9 +3042,9 @@ class WTVIRC {
             }
             return;
         }
-        if (this.channels.has(channel)) {
-            const users = this.channels.get(channel);
-            for (const user of users) {
+        if (this.channelData.has(channel)) {
+            const channelObj = this.channelData.get(channel);
+            for (const user of channelObj.users) {
                 const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                 if (sock && sock !== exceptSocket) {
                     if (sock.client_caps && sock.client_caps.includes('extended-join')) {
@@ -3179,17 +3121,21 @@ class WTVIRC {
 
     createChannel(channel, creator) {
         // Create a new channel with the specified creator
-        if (!this.channels.has(channel)) {
-            this.channels.set(channel, new Set());
-            this.channelops.set(channel, new Set([creator]));
-            this.channelhalfops.set(channel, new Set());
-            this.channelvoices.set(channel, new Set());
-            this.channeltopics.set(channel, '');
-            this.channelbans.set(channel, new Set());
-            this.channelexemptions.set(channel, new Set());
-            this.channelinvites.set(channel, new Set());
-            this.channelmodes.set(channel, [...this.default_channel_modes]);
-            this.channeltimestamps.set(channel, this.getDate());
+        if (!this.channelData.has(channel)) {
+            this.channelData.set(channel, {
+                users: new Set(),
+                ops: new Set([creator]),
+                halfops: new Set(),
+                voices: new Set(),
+                topic: '',
+                bans: new Set(),
+                exemptions: new Set(),
+                invites: new Set(),
+                modes: [...this.default_channel_modes],
+                limit: null,
+                key: null,
+                timestamp: this.getDate()
+            });
         }
     }
 
@@ -3288,8 +3234,8 @@ class WTVIRC {
         if (!channel) {
             return false;
         }
-        if (this.channelbans.has(channel)) {
-            const bans = this.channelbans.get(channel);
+        if (this.channelData.has(channel).bans) {
+            const bans = this.channelData.get(channel).bans;
             // Check if the user's mask matches any ban mask
             let isUserBanned = false;
             for (const banMask of bans) {
@@ -3497,10 +3443,11 @@ class WTVIRC {
 
     processNickChange(socket, newNick) {        
         // Handles nickname changes, assumes the newNick is already validated
-        for (const [ch, users] of this.channels.entries()) {
-            if (users.has(socket.nickname)) {
-                users.delete(socket.nickname);
-                users.add(newNick);
+        // Update all channel user lists to use channelData
+        for (const [ch, channelObj] of this.channelData.entries()) {
+            if (channelObj.users.has(socket.nickname)) {
+                channelObj.users.delete(socket.nickname);
+                channelObj.users.add(newNick);
             }
         }
         this.usernames.set(newNick, this.usernames.get(socket.nickname) || socket.nickname);
@@ -3553,7 +3500,7 @@ class WTVIRC {
     findChannel(channel) {
         // Normalize the channel name to lowercase for case-insensitive comparison
         let foundChannel = null;
-        for (const existingChannel of this.channels.keys()) {
+        for (const existingChannel of this.channelData.keys()) {
             if (existingChannel.toLowerCase() === channel.toLowerCase()) {
                 foundChannel = existingChannel;
                 break;
@@ -3594,8 +3541,16 @@ class WTVIRC {
     broadcastUserIfCapAndChanOp(socket, message, exceptSocket = null, client_cap, channel) {
         if (socket.client_caps.includes(client_cap)) {
             // Check if the user is an operator in the specified channel
-            const isOp = this.channelops.get(channel)?.has(socket.nickname) || false;
-            const isHalfOp = this.channelhalfops.get(channel)?.has(socket.nickname) || false;
+            channel = this.findChannel(channel);
+            if (!channel) {
+                if (this.debug) {
+                    console.warn(`Attempted to broadcast to channel ${channel} that does not exist.`);
+                }
+                return;
+            }
+            const channelObj = this.channelData.get(channel);
+            const isOp = channelObj.ops.has(socket.nickname) || false;
+            const isHalfOp = channelObj.halfops.has(socket.nickname) || false;
             if (isOp || isHalfOp) {
                 this.broadcastUser(socket.nickname, message, exceptSocket);
             }
@@ -3613,41 +3568,6 @@ class WTVIRC {
                 }
             }
         }         
-    }
-
-    getChannelModes(channel) {
-        // Gets the channel modes for a given channel
-        channel = this.findChannel(channel);
-        if (!channel) {            
-            return null;
-        }
-        var modes = this.channelmodes.get(channel);
-        if (!modes || modes === true) {
-            this.channelmodes.set(channel, [...this.default_channel_modes]);
-            modes = this.channelmodes.get(channel);
-        }
-        return modes;
-    }
-
-    setChannelMode(channel, mode, adding) {
-        // Updates the channel modes for a given channel
-        const modes = this.getChannelModes(channel);
-        if (!modes) {
-            return false; // Channel not found
-        }
-        if (adding) {
-            if (!modes.includes(mode)) {
-                modes.push(mode);
-                return true;
-            }
-        } else {
-            const index = modes.indexOf(mode);
-            if (index !== -1) {
-                modes.splice(index, 1);
-                return true;
-            }
-        }
-        return false; // Mode not changed
     }
 
     getUserModes(nickname) {
@@ -3834,10 +3754,11 @@ class WTVIRC {
 
     isChannelOp(nickname, channel) {
         // Check if the user is a channel operator
-        if (!this.channelops.has(channel)) {
+        channel = this.findChannel(channel);
+        if (!channel) {
             return false; // Channel not found
         }
-        const channelOps = this.channelops.get(channel);
+        const channelOps = this.channelData.get(channel).ops;
         if (channelOps === true) {
             return false;
         }
@@ -3852,10 +3773,11 @@ class WTVIRC {
 
     isChannelHalfOp(nickname, channel) {
         // Check if the user is a channel half-operator
-        if (!this.channelhalfops.has(channel)) {
+        channel = this.findChannel(channel);
+        if (!channel) {
             return false; // Channel not found
         }
-        const channelHalfOps = this.channelhalfops.get(channel);
+        const channelHalfOps = this.channelData.get(channel).halfops;
         if (channelHalfOps === true) {
             return false;
         }
@@ -3877,14 +3799,7 @@ class WTVIRC {
             return false;
         }
         if (mode === '+o' || mode === '-o') {
-            var channelOps = this.channelops.get(channel);
-            if (!channelOps || channelOps === true) {
-                this.channelops.set(channel, new Set());
-                channelOps = this.channelops.get(channel);
-            }
-            if (channelOps === true) {
-                channelOps = new Set();
-            }
+            var channelOps = this.channelData.get(channel).ops;
             if (mode === '+o') {
                 if (!channelOps.has(target)) {
                     channelOps.add(target);
@@ -3897,12 +3812,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+h' || mode === '-h') {
-            var channelHalfOps = this.channelhalfops.get(channel);
-            if (!channelHalfOps || channelHalfOps === true) {
-                this.channelhalfops.set(channel, new Set());
-                channelHalfOps = this.channelhalfops.get(channel);
-            }
-
+            var channelHalfOps = this.channelData.get(channel).halfops;
             if (mode === '+h') {
                 if (!channelHalfOps.has(target)) {
                     channelHalfOps.add(target);
@@ -3915,11 +3825,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+v' || mode === '-v') {
-            var channelVoices = this.channelvoices.get(channel);
-            if (!channelVoices || channelVoices === true) {
-                this.channelvoices.set(channel, new Set());
-                channelVoices = this.channelvoices.get(channel);
-            }
+            var channelVoices = this.channelData.get(channel).voices;
             if (mode === '+v') {
                 if (!channelVoices.has(target)) {
                     channelVoices.add(target);
@@ -3932,11 +3838,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+b' || mode === '-b') {
-            var channelBans = this.channelbans.get(channel);
-            if (!channelBans || channelBans === true) {
-                this.channelbans.set(channel, []);
-                channelBans = this.channelbans.get(channel);
-            }
+            var channelBans = this.channelData.get(channel).bans;
             if (mode === '+b') {
                 if (!channelBans.includes(target)) {
                     channelBans.push(target);
@@ -3949,11 +3851,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+e' || mode === '-e') {
-            var channelExemptions = this.channelexemptions.get(channel);
-            if (!channelExemptions || channelExemptions === true) {
-                this.channelexemptions.set(channel, []);
-                channelExemptions = this.channelexemptions.get(channel);
-            }
+            var channelExemptions = this.channelData.get(channel).exemptions;
             if (mode === '+e') {
                 if (!channelExemptions.includes(target)) {
                     channelExemptions.push(target);
@@ -3966,11 +3864,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+I' || mode === '-I') {
-            var channelInvites = this.channelinvites.get(channel)
-            if (!channelInvites || channelInvites === true) {
-                this.channelinvites.set(channel, []);
-                channelInvites = this.channelinvites.get(channel);
-            }
+            var channelInvites = this.channelData.get(channel).inviteexemptions;
             if (mode === '+I') {
                 if (!channelInvites.includes(target)) {
                     channelInvites.push(target);
@@ -3985,33 +3879,33 @@ class WTVIRC {
         } else if (mode === '+l' || mode === '-l') {
             if (mode === '+l') {
                 var result = this.setChannelMode(channel, 'l', true);
-                if (result === false && this.channellimits.get(channel) === parseInt(target)) {
+                if (result === false && this.channelData.get(channel).limit === parseInt(target)) {
                     return false; // Mode already set with the same limit
                 }
-                this.channellimits.set(channel, parseInt(target));
+                this.channelData.get(channel).limit = parseInt(target);
                 return true;
             } else {
                 var result = this.setChannelMode(channel, 'l', false);
-                if (result === false && this.channellimits.get(channel) === null) {
+                if (result === false && this.channelData.get(channel).limit === null) {
                     return false; // Mode already unset
                 }
-                this.channellimits.delete(channel);
+                this.channelData.get(channel).limit = null;
                 return true;
             }
         } else if (mode === '+k' || mode === '-k') {
             if (mode === '+k') {
                 var result = this.setChannelMode(channel, 'k', true);
-                if (result === false && this.channelkeys.get(channel) === target) {
+                if (result === false && this.channelData.get(channel).key === target) {
                     return false; // Mode already set with the same key
                 }
-                this.channelkeys.set(channel, target);
+                this.channelData.get(channel).key = target;
                 return true;
             } else {                
                 var result = this.setChannelMode(channel, 'k', false);
-                if (result === false && !this.channelkeys.has(channel)) {
+                if (result === false && !this.channelData.get(channel).key) {
                     return false; // Mode already unset
                 }
-                this.channelkeys.delete(channel);
+                this.channelData.get(channel).key = null;
                 return true;
             }
         } 
@@ -4055,8 +3949,8 @@ class WTVIRC {
             } else if (modes === 'b') {
                 // Get the list of channel bans
                 var output_lines = [];
-                if (this.channelbans.has(channel)) {
-                    const bans = Array.from(this.channelbans.get(channel));
+                if (this.channelData.has(channel).bans) {
+                    const bans = this.channelData.has(channel).bans;
                     for (const ban of bans) {
                         output_lines.push(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
                     }
@@ -4067,8 +3961,8 @@ class WTVIRC {
             } else if (modes === 'e') {
                 // Get the list of channel exemptions
                 var output_lines = [];
-                if (this.channelexemptions.has(channel)) {
-                    const exemptions = Array.from(this.channelexemptions.get(channel));
+                if (this.channelData.has(channel).exemptions) {
+                    const exemptions = this.channelData.has(channel).exemptions;
                     for (const exemption of exemptions) {
                         output_lines.push(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
                     }
@@ -4079,8 +3973,8 @@ class WTVIRC {
             } else if (modes === 'I') {
                 // Get the list of channel invites masks
                 var output_lines = [];
-                if (this.channelinvites.has(channel)) {
-                    const invites = Array.from(this.channelinvites.get(channel));
+                if (this.channelData.has(channel).invites) {
+                    const invites = this.channelData.has(channel).invites;
                     for (const invite of invites) {
                         output_lines.push(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
                     }
@@ -4127,7 +4021,7 @@ class WTVIRC {
                 } else {
                     target = this.findUser(param);
                 }
-                if ((!target && !socket.isserver) || !this.channels.get(channel).has(target)) {
+                if ((!target && !socket.isserver) || !this.channelData.get(channel).users.has(target)) {
                     socket.write(`:${this.servername} 401 ${nickname} ${param} :No such nick/channel\r\n`);
                     return;
                 }
@@ -4143,14 +4037,14 @@ class WTVIRC {
                 if (addingFlag) {
                     if (mc === 'S' && this.kick_insecure_users_on_secure) {
                         // Kick users who do not have user mode +z
-                        const usersInChannel = this.channels.get(channel) || new Set();
+                        const usersInChannel = this.channelData.get(channel).users;
                         for (const user of usersInChannel) {
                             const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                             if (userSocket && !userSocket.secure) {
                                 userSocket.write(`:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
                                 this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`, userSocket);
                                 this.broadcastToAllServers(`:${sourceUniqueId} KICK ${channel} ${userSocket.uniqueId} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
-                                this.channels.get(channel).delete(user);
+                                this.channelData.get(channel).users.delete(userSocket.nickname);
                             }
                         }
                     }                                                    
@@ -4222,6 +4116,27 @@ class WTVIRC {
         }
         return retval;
     }
+
+    setChannelMode(channel, mode, adding) {
+        // Updates the channel modes for a given channel
+        const modes = this.channelData.get(channel).modes;
+        if (!modes) {
+            return false; // Channel not found
+        }
+        if (adding) {
+            if (!modes.includes(mode)) {
+                modes.push(mode);
+                return true;
+            }
+        } else {
+            const index = modes.indexOf(mode);
+            if (index !== -1) {
+                modes.splice(index, 1);
+                return true;
+            }
+        }
+        return false; // Mode not changed
+    }    
 
     async doLogin(nickname, socket) {
         if (await this.scanSocketForKLine(socket)) {
@@ -4316,8 +4231,8 @@ class WTVIRC {
         if (operClients.length > 0) {
             output_lines.push(`:${this.servername} 252 ${nickname} ${operClients.length} :operator(s) online\r\n`);
         }
-        if (this.channels.size > 0) {
-            output_lines.push(`:${this.servername} 253 ${nickname} ${this.channels.size} :channels formed\r\n`);
+        if (this.channelData.size > 0) {
+            output_lines.push(`:${this.servername} 253 ${nickname} ${this.channelData.size} :channels formed\r\n`);
         }
         output_lines.push(`:${this.servername} 255 ${nickname} :I have ${this.clients.length} clients and ${serverCount} servers\r\n`);
         output_lines.push(`:${this.servername} 265 ${nickname} :Current Local Users: ${this.clients.length}  Max: ${this.clientpeak}\r\n`);
