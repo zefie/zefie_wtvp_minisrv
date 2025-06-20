@@ -4029,6 +4029,7 @@ class WTVIRC {
     processChannelModes(nickname, channel, modes, params, socket) {
         // Split modes into array and process each character        
         let modeChars = modes.split('');
+        let validModes = [];
         let supportedChannelModes = (this.supported_channel_modes.split(',').join('') + this.supported_prefixes[0]).split('');
         var serverModeMsg = '';
         var target = null;
@@ -4142,6 +4143,11 @@ class WTVIRC {
                 }
                 var result = this.processChannelModeParams(channel, plusminus + mc, target, socket);
                 paramIndex++;
+                if (!result) {
+                    if (params.length > 0) {
+                        params.shift();
+                    }
+                }
             } else {
                 var result = this.setChannelMode(channel, mc, addingFlag);
                 if (addingFlag) {
@@ -4161,6 +4167,7 @@ class WTVIRC {
                 }
             }
             if (result) {
+                validModes.push(mc);
                 if (modeStr.length > 0) {
                     modeMsg += modeStr;
                     serverModeMsg += modeStr;
@@ -4181,8 +4188,10 @@ class WTVIRC {
             return;
         }
         modeMsg += '\r\n';
-        this.broadcastChannel(channel, modeMsg);
-        this.broadcastToAllServers(serverModeMsg, socket);
+        if (validModes.length > 0) {
+            this.broadcastChannel(channel, modeMsg);
+            this.broadcastToAllServers(serverModeMsg, socket);
+        }
     }        
 
     async doLogin(nickname, socket) {
