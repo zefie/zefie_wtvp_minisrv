@@ -240,12 +240,10 @@ class WTVIRC {
             socket.signedoff = oldSocket.signedoff;
             socket.hostname_resolved = oldSocket.hostname_resolved;
             socket.realhost = oldSocket.realhost;
-            socket.upgrading_to_tls = false; 
             socket.client_version = oldSocket.client_version;
             socket.client_caps = oldSocket.client_caps || [];
             socket.host = oldSocket.host;
             socket.timestamp = oldSocket.timestamp;
-            socket.secure = secure;
             socket.uniqueId = oldSocket.uniqueId;
         } else {
             socket.registered = false;
@@ -256,14 +254,15 @@ class WTVIRC {
             socket.signedoff = false;
             socket.hostname_resolved = false;
             socket.realhost = socket.remoteAddress;
-            socket.upgrading_to_tls = false;
             socket.client_version = '';
             socket.client_caps = [];
             socket.host = this.filterHostname(socket, socket.remoteAddress);
-            socket.timestamp = this.getDate();
-            socket.secure = secure;
+            socket.timestamp = this.getDate();            
             socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
         }
+        socket.secure = secure;
+        socket.upgrading_to_tls = false;
+        socket.error_count = 0;
         await this.doInitialHandshake(socket);
 
         socket.on('data', async data => {
@@ -320,14 +319,23 @@ class WTVIRC {
                 });
                 if (!matchedServer) {
                     socket.write(`:${this.servername} :ERROR :Invalid server password\r\n`);
-                    this.terminateSession(socket);
-                }
+                    socket.error_count++;
+                    setTimeout((socket) => {
+                        if (socket) {
+                            socket.error_count--;
+                        }
+                    }, 60000);
+                    if (socket.error_count >= 5) {
+                        socket.write(`:${this.servername} :ERROR :Too many errors, disconnecting\r\n`);
+                        this.terminateSession(socket, true);
+                    }
+                    return;
+                }                    
                 socket.serverinfo = matchedServer
                 return;
             case 'CAPAB':
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket, true)) {
+                    break;
                 }
                 // Handle CAPAB command from server
                 if (parts.length < 2) {
@@ -354,9 +362,8 @@ class WTVIRC {
                 socket.write(`CAPAB :${output_reply.join(' ')}\r\n`);
                 break;
             case 'SERVER':
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket, true)) {
+                    break;
                 }
                 // Handle SERVER command from server
                 if (parts.length < 6) {
@@ -373,6 +380,7 @@ class WTVIRC {
                 socket.isserver = true;
                 this.clients = this.clients.filter(c => c !== socket);
                 this.clientpeak = this.clientpeak - 1;
+                socket.registered = true;
                 socket.servername = serverName;
                 socket.uniqueId = serverId;
                 socket.serverIdent = line;
@@ -409,6 +417,9 @@ class WTVIRC {
                 socket.write(`:${this.serverId} EOB \r\n`);
                 break;
             case 'SVINFO':
+                if (!this.checkRegistered(socket, true)) {
+                    break;
+                }
                 // Handle SVINFO command from server
                 if (parts.length < 4) {
                     if (this.debug) {
@@ -431,9 +442,8 @@ class WTVIRC {
                 // Ignore PONG from server
                 break;
             case 'RESV':
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 // Handle RESV command from server
                 if (parts.length < 2) {
@@ -461,9 +471,8 @@ class WTVIRC {
                 this.broadcastToAllServers(`:${socket.servername} RESV ${targetMask} ${expiry} ${reservedNick} :${reason}\r\n`, socket);
                 break;
             case 'UID':
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 // Handle UID command from server
                 if (parts.length < 10) {
@@ -496,9 +505,8 @@ class WTVIRC {
                 this.broadcastToAllServers(`:${socket.servername} UID ${nickname} ${server_Id} ${timestamp} +${userModes.join('')} ${username} ${hostname} ${ipaddress} ${ipaddress2} ${userUniqueId} * :${userinfo}\r\n`, socket);
                 break;
             case 'SVSHOST':
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 // Handle SVSHOST command from server
                 if (parts.length < 4) {
@@ -525,10 +533,8 @@ class WTVIRC {
                 this.broadcastToAllServers(`:${socket.servername} SVSHOST ${uniqueId} ${hostname}\r\n`, socket);
                 break;
             case 'SVSACCOUNT':
-                //:00B SVSACCOUNT 00A4KP23X 1750191263 zefie
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 if (parts.length < 4) {
                     if (this.debug) {
@@ -563,9 +569,8 @@ class WTVIRC {
                 }
                 break;
             case 'SVSNICK':
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 // Handle SVSNICK command from server
                 if (parts.length < 5) {
@@ -582,9 +587,8 @@ class WTVIRC {
                 this.broadcastToAllServers(line, socket);
                 break;
             case 'SJOIN':
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 var channel = parts[2];
                 var modes = parts[3];
@@ -619,9 +623,8 @@ class WTVIRC {
                 this.servers.delete(socket);
                 break;
             case (command.match(/^\d{3}$/) || {}).input:
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 // Numeric reply from server
                 // Numeric replies are usually in the format: <numeric> <nickname> :<message>
@@ -744,9 +747,8 @@ class WTVIRC {
                 targetSocket.write(`:${socket.serverinfo.name} ${numericCode} ${targetID} :${numericMessage}\r\n`);
                 break;
             default:
-                if (!socket.is_srv_authorized) {
-                    socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
-                    return;
+                if (!this.checkRegistered(socket)) {
+                    break;
                 }
                 if (command.startsWith(':')) {
                     // part out the line to "sourceUniqueId command targetUniqueId :message"
@@ -1122,8 +1124,8 @@ class WTVIRC {
                             this.broadcastToAllServers(`:${sourceUniqueId} SVSMODE ${targetUniqueId} ${modes.join('')}\r\n`, socket);
                             break;                    
                         default:
-                            if (!socket.is_srv_authorized) {
-                                socket.write(`:${this.servername} :ERROR :Permission denied\r\n`);
+                            if (!this.checkRegistered(socket)) {
+                                break;
                             }
                             if (this.debug) {
                                 console.warn(`Unhandled server command from ${sourceUniqueId} to ${targetUniqueId}: ${srvCommand} ${message}`);                        
@@ -1255,8 +1257,7 @@ class WTVIRC {
             const [command, ...params] = line.trim().split(' ');
             switch (command.toUpperCase()) {
                 case 'OPER':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!this.oper_enabled) {
@@ -1282,8 +1283,7 @@ class WTVIRC {
                     this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +o\r\n`);
                     break;
                 case 'UPTIME':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     const uptime = this.getDate() - this.server_start_time;
@@ -1294,8 +1294,7 @@ class WTVIRC {
                     socket.write(`:${this.servername} 242 ${socket.nickname} :Server uptime is ${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds\r\n`);
                     break;
                 case 'KICK':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     var channel = this.findChannel(params[0]);                    
@@ -1357,8 +1356,7 @@ class WTVIRC {
                     }
                     break;
                 case 'TOPIC':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (params.length < 1) {
@@ -1399,8 +1397,7 @@ class WTVIRC {
                     }
                     break;
                 case 'AWAY':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     this.usertimestamps.set(socket.nickname, this.getDate());
@@ -1452,8 +1449,7 @@ class WTVIRC {
                     }                    
                     break;                
                 case 'MODE':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (params.length < 1) {
@@ -1653,8 +1649,7 @@ class WTVIRC {
                     }
                     if (!mode) {
                         // List channel modes
-                        if (!socket.registered) {
-                            socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                        if (!this.checkRegistered(socket)) {
                             break;
                         }
                         let validPrefix = this.channelprefixes.some(prefix => channel.startsWith(prefix));
@@ -1764,14 +1759,15 @@ class WTVIRC {
                         socket.nickname = new_nickname;
                     }
                     this.nicknames.set(socket, socket.nickname);
-                    if (socket.nickname && socket.nickname !== new_nickname) {
-                        socket.write(`:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`);
-                        this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`, socket);
+                    if (socket.nickname && socket.newickname != new_nickname) {
                         this.processNickChange(socket, new_nickname);
-                        this.broadcastToAllServers(`:${socket.uniqueId} NICK ${new_nickname} :${this.getDate()}\r\n`);
+                        if (socket.registered) {
+                            socket.write(`:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`);
+                            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`, socket);                        
+                            this.broadcastToAllServers(`:${socket.uniqueId} NICK ${new_nickname} :${this.getDate()}\r\n`);
+                        }
                     }
                     if (!socket.registered && socket.nickname && socket.username) {
-                        socket.registered = true;                        
                         var totalSockets = this.clients.length + this.servers.size;
                         var totalSockets = this.clients.length + this.servers.size;
                         this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
@@ -1782,14 +1778,14 @@ class WTVIRC {
                     }
                     break;
                 case 'USER':
-                    socket.username = params[0];
                     if (params.length < 4) {
                         socket.write(`:${this.servername} 461 ${socket.nickname} USER :Not enough parameters\r\n`);
+                        this.addSocketError(socket);
                         break;
                     }
+                    socket.username = params[0];
                     socket.userinfo = params.slice(3).join(' ').replace(/^:/, '');
                     if (!socket.registered && socket.nickname && socket.username) {
-                        socket.registered = true;
                         var totalSockets = this.clients.length + this.servers.size;
                         this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
                         this.usernames.set(socket.nickname, socket.username);
@@ -1800,8 +1796,7 @@ class WTVIRC {
                     break;
                 case 'JOIN':
                     var key = null;
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     channel = params[0];
@@ -2059,8 +2054,7 @@ class WTVIRC {
                     }
                     break;
                 case 'NAMES':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (params.length < 1) {
@@ -2092,8 +2086,7 @@ class WTVIRC {
                     this.sendThrottled(socket, output_lines);
                     break;
                 case 'PART':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     channel = this.findChannel(params[0]);
@@ -2131,8 +2124,7 @@ class WTVIRC {
                     this.broadcastToAllServers(`:${socket.uniqueId} PART ${channel}\r\n`);
                     break;
                 case 'INVITE':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (params.length < 2) {
@@ -2184,11 +2176,9 @@ class WTVIRC {
                         break;
                     }
                 case 'LIST':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
-                    }
-                    let channelsToList;
+                    }                    let channelsToList;
                     if (params.length > 0 && params[0]) {
                         channelsToList = params[0].split(',').filter(ch => ch.length > 0);
                     } else {
@@ -2219,8 +2209,7 @@ class WTVIRC {
                     socket.write(`:${this.servername} 323 ${socket.nickname} :End of /LIST\r\n`);
                     break;
                 case 'WHO':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.nickname} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!params[0]) {
@@ -2342,8 +2331,7 @@ class WTVIRC {
                     }
                     break;
                 case 'PRIVMSG':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     this.usertimestamps.set(socket.nickname, this.getDate());
@@ -2467,8 +2455,7 @@ class WTVIRC {
                     }
                     break;
                 case 'NOTICE':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {                        
                         break;
                     }
                     this.usertimestamps.set(socket.nickname, this.getDate());
@@ -2603,15 +2590,13 @@ class WTVIRC {
                     }
                     break;
                 case 'PING':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     socket.write(`PONG ${params.join(' ')}\r\n`);
                     break;
                 case 'KLINE':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!this.isIRCOp(socket.nickname)) {
@@ -2650,8 +2635,7 @@ class WTVIRC {
                     await this.scanUsersForKLines();
                     break;
                 case 'UNKLINE':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!this.isIRCOp(socket.nickname)) {
@@ -2674,8 +2658,7 @@ class WTVIRC {
                     socket.write(`:${this.servername} 381 ${socket.nickname} :KLINE removed for ${targetMask}\r\n`);
                     break;
                 case 'WHOIS':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (params.length < 1) {
@@ -2778,8 +2761,7 @@ class WTVIRC {
                     break;
                 case 'EVAL':
                     // VERY DANGEROUS
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!this.isIRCOp(socket.nickname)) {
@@ -2798,8 +2780,7 @@ class WTVIRC {
                     }
                     break;
                 case 'KILL':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!this.isIRCOp(socket.nickname)) {
@@ -2832,59 +2813,55 @@ class WTVIRC {
                     this.terminateSession(targetSocket, true);
                     break;
                 case 'QUIT':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
+                        break;
+                    }
+                    for (const [ch, users] of this.channels.entries()) {
+                        if (users.has(socket.nickname)) {
+                            if (this.channelops.has(ch) && this.channelops.get(ch) instanceof Set) {
+                                this.channelops.get(ch).delete(socket.nickname);
+                            }
+                            if (this.channelhalfops.has(ch) && this.channelhalfops.get(ch) instanceof Set) {
+                                this.channelhalfops.get(ch).delete(socket.nickname);
+                            }
+                            if (this.channelvoices.has(ch) && this.channelvoices.get(ch) instanceof Set) {
+                                this.channelvoices.get(ch).delete(socket.nickname);
+                            }
+                        }
+                    }
+                    if (params.length > 0) {
+                        let reason = params.join(' ');
+                        if (reason.startsWith(':')) {
+                            reason = reason.slice(1);
+                        }
+                        socket.write(`:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`);
+                        this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`, socket);
+                        this.broadcastToAllServers(`:${socket.uniqueId} QUIT :${reason}\r\n`);
+                        this.broadcastConnection(socket, `Quit: ${reason}`);
+                        socket.signedoff = true;
                     } else {
-                        for (const [ch, users] of this.channels.entries()) {
-                            if (users.has(socket.nickname)) {
-                                if (this.channelops.has(ch) && this.channelops.get(ch) instanceof Set) {
-                                    this.channelops.get(ch).delete(socket.nickname);
-                                }
-                                if (this.channelhalfops.has(ch) && this.channelhalfops.get(ch) instanceof Set) {
-                                    this.channelhalfops.get(ch).delete(socket.nickname);
-                                }
-                                if (this.channelvoices.has(ch) && this.channelvoices.get(ch) instanceof Set) {
-                                    this.channelvoices.get(ch).delete(socket.nickname);
-                                }
-                            }
-                        }
-                        if (params.length > 0) {
-                            let reason = params.join(' ');
-                            if (reason.startsWith(':')) {
-                                reason = reason.slice(1);
-                            }
-                            socket.write(`:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`);
-                            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`, socket);
-                            this.broadcastToAllServers(`:${socket.uniqueId} QUIT :${reason}\r\n`);
-                            this.broadcastConnection(socket, `Quit: ${reason}`);
-                            socket.signedoff = true;
-                        } else {
-                            socket.write(`:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`);
-                            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`, socket);
-                            this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`);
-                            this.broadcastConnection(socket, 'Quit: Client disconnected');
-                            socket.signedoff = true;
-                        }
+                        socket.write(`:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`);
+                        this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`, socket);
+                        this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`);
+                        this.broadcastConnection(socket, 'Quit: Client disconnected');
+                        socket.signedoff = true;
                     }
                     this.terminateSession(socket, true);
                     break;
                 case 'MOTD':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     await this.doMOTD(socket.nickname, socket);
                     break;
                 case 'VERSION':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     socket.write(`:${this.servername} 351 ${socket.nickname} ${this.servername} zefIRCd ${this.version} :zefIRCd IRC server\r\n`);
                     break;
                 case 'WALLOPS':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!this.isIRCOp(socket.nickname)) {
@@ -2901,8 +2878,7 @@ class WTVIRC {
                     }
                     this.broadcastWallops(`:${socket.nickname}!${socket.username}@${socket.host} WALLOPS :${wallopsMessage}\r\n`);
                 case 'VHOST':
-                    if (!socket.registered) {
-                        socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+                    if (!this.checkRegistered(socket)) {
                         break;
                     }
                     if (!this.isIRCOp(socket.nickname) && !this.allow_public_vhosts) {
@@ -3560,7 +3536,9 @@ class WTVIRC {
     async sendThrottled(socket, lines, delayMs = 1) {
         for (const line of lines) {
             await new Promise(res => setTimeout(res, delayMs));
-            socket.write(line);
+            if (socket.writable) {
+                socket.write(line);
+            }
         }
     }
 
@@ -4037,10 +4015,9 @@ class WTVIRC {
             let sourceUniqueId = this.uniqueids.get(nickname);
             serverModeMsg = `:${sourceUniqueId} MODE ${channel} `;
         } else {
-            if (!socket.registered) {
-                socket.write(`:${this.servername} 451 ${socket.uniqueId} ${command} :You have not registered\r\n`);
+            if (!this.checkRegistered(socket)) {
                 return;
-            }            
+            }
             serverModeMsg = `:${socket.uniqueId} MODE ${channel} `;
         }
         var username = this.usernames.get(nickname);
@@ -4192,7 +4169,46 @@ class WTVIRC {
             this.broadcastChannel(channel, modeMsg);
             this.broadcastToAllServers(serverModeMsg, socket);
         }
-    }        
+    }
+
+    addSocketError(socket) {
+        socket.error_count++;
+        if (socket.error_count >= 5) {
+            if (socket.writable) {
+                socket.write(`:${this.servername} :ERROR :Too many errors, disconnecting\r\n`);
+            }
+            this.terminateSession(socket, true);
+            return;
+        }        
+        setTimeout((socket) => {
+            if (socket) {
+                socket.error_count--;
+            }
+        }, 60000);
+    }
+
+    checkRegistered(socket, allowUnregistered = false) {
+        var retval = false
+        if (socket.isserver) {
+            if (!socket.is_srv_authorized && (!socket.registered && !allowUnregistered)) {
+                if (socket.writable) {
+                    socket.write(`:${this.servername} ERROR :Unauthorized\r\n`);
+                }
+                this.addSocketError(socket);
+            } else {
+                retval = true; // Server is authorized
+            }
+        }
+        if (!socket.registered && (!socket.registered && !allowUnregistered)) {
+            if (socket.writable) {
+                socket.write(`:${this.servername} 451 ${socket.uniqueId} :You have not registered\r\n`);
+            }
+            this.addSocketError(socket);
+        } else {
+            retval = true; // User is registered        
+        }
+        return retval;
+    }
 
     async doLogin(nickname, socket) {
         if (await this.scanSocketForKLine(socket)) {
@@ -4265,6 +4281,7 @@ class WTVIRC {
         for (const caps of this.caps) {
             output_lines.push(`:${this.servername} 005 ${caps}\r\n`);
         }
+        socket.registered = true;
         output_lines.push(`:${this.servername} 042 ${nickname} ${socket.uniqueId} :your unique ID\r\n`);
 
         output_lines.push(...(await this.doMOTD(nickname)));        
@@ -4320,7 +4337,7 @@ class WTVIRC {
         }
         output_lines.push(`:${this.servername} 221 ${nickname} :+${this.usermodes.get(nickname).join('')}\r\n`);
         await this.sendThrottled(socket, output_lines);
-        this.broadcastConnection(socket);
+        this.broadcastConnection(socket);    
     }
 }
 
