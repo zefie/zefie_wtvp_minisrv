@@ -3877,7 +3877,11 @@ class WTVIRC {
             return false;
         }
         if (mode === '+o' || mode === '-o') {
-            var channelOps = this.channelops.get(channel) || new Set();
+            var channelOps = this.channelops.get(channel);
+            if (!channelOps || channelOps === true) {
+                this.channelops.set(channel, new Set());
+                channelOps = this.channelops.get(channel);
+            }
             if (channelOps === true) {
                 channelOps = new Set();
             }
@@ -3893,10 +3897,12 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+h' || mode === '-h') {
-            var channelHalfOps = this.channelhalfops.get(channel) || new Set();
-            if (channelHalfOps === true) {
-                channelHalfOps = new Set();
+            var channelHalfOps = this.channelhalfops.get(channel);
+            if (!channelHalfOps || channelHalfOps === true) {
+                this.channelhalfops.set(channel, new Set());
+                channelHalfOps = this.channelhalfops.get(channel);
             }
+
             if (mode === '+h') {
                 if (!channelHalfOps.has(target)) {
                     channelHalfOps.add(target);
@@ -3909,9 +3915,10 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+v' || mode === '-v') {
-            var channelVoices = this.channelvoices.get(channel) || new Set();
-            if (channelVoices === true) {
-                channelVoices = new Set();
+            var channelVoices = this.channelvoices.get(channel);
+            if (!channelVoices || channelVoices === true) {
+                this.channelvoices.set(channel, new Set());
+                channelVoices = this.channelvoices.get(channel);
             }
             if (mode === '+v') {
                 if (!channelVoices.has(target)) {
@@ -3925,9 +3932,10 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+b' || mode === '-b') {
-            var channelBans = this.channelbans.get(channel) || [];
-            if (channelBans === true) {
-                channelBans = [];
+            var channelBans = this.channelbans.get(channel);
+            if (!channelBans || channelBans === true) {
+                this.channelbans.set(channel, []);
+                channelBans = this.channelbans.get(channel);
             }
             if (mode === '+b') {
                 if (!channelBans.includes(target)) {
@@ -3941,9 +3949,10 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+e' || mode === '-e') {
-            var channelExemptions = this.channelexemptions.get(channel) || [];
-            if (channelExemptions === true) {
-                channelExemptions = [];
+            var channelExemptions = this.channelexemptions.get(channel);
+            if (!channelExemptions || channelExemptions === true) {
+                this.channelexemptions.set(channel, []);
+                channelExemptions = this.channelexemptions.get(channel);
             }
             if (mode === '+e') {
                 if (!channelExemptions.includes(target)) {
@@ -3957,9 +3966,10 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+I' || mode === '-I') {
-            var channelInvites = this.channelinvites.get(channel) || [];
-            if (channelInvites === true) {
-                channelInvites = [];
+            var channelInvites = this.channelinvites.get(channel)
+            if (!channelInvites || channelInvites === true) {
+                this.channelinvites.set(channel, []);
+                channelInvites = this.channelinvites.get(channel);
             }
             if (mode === '+I') {
                 if (!channelInvites.includes(target)) {
