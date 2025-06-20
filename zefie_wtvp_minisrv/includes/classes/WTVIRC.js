@@ -2733,7 +2733,7 @@ class WTVIRC {
                                 userChannels.push(prefix + ch);
                             }
                         }
-                        socket.write(`:${this.servername} 312 ${socket.nickname} ${whoisNick} ${this.servername} :minisrv-${this.minisrv_config.version}\r\n`);
+                        socket.write(`:${this.servername} 312 ${socket.nickname} ${whoisNick} ${this.servername} :zefIRCd-${this.version}\r\n`);
                         if (this.isIRCOp(whoisNick)) {
                             socket.write(`:${this.servername} 313 ${socket.nickname} ${whoisNick} :is an IRC operator\r\n`);
                         }
