@@ -582,7 +582,7 @@ class WTVIRC {
                 var oldNick = this.findUserByUniqueId(parts[1]);
                 var newNick = parts[3];
                 var targetSocket = this.findSocketByUniqueId(parts[1]);
-                this.broadcastUser(oldNick, `:${oldNick}!${this.usernames.get(oldNick)}@${targetSocket.host}  NICK :${newNick}\r\n`);
+                this.broadcastUser(oldNick, `:${oldNick}!${this.usernames.get(oldNick)}@${targetSocket.host} NICK :${newNick}\r\n`);
                 this.processNickChange(targetSocket, newNick);
                 this.broadcastToAllServers(line, socket);
                 break;
@@ -4146,7 +4146,7 @@ class WTVIRC {
                         const usersInChannel = this.channels.get(channel) || new Set();
                         for (const user of usersInChannel) {
                             const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
-                            if (userSocket && !this.getUserModes(user).includes('z')) {
+                            if (userSocket && !userSocket.secure) {
                                 userSocket.write(`:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
                                 this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`, userSocket);
                                 this.broadcastToAllServers(`:${sourceUniqueId} KICK ${channel} ${userSocket.uniqueId} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
