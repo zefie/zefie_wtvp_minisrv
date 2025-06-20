@@ -1703,6 +1703,7 @@ class WTVIRC {
                         break;
                     } 
                 case 'NICK':
+                    var old_nickname = socket.nickname;
                     var new_nickname = params[0];
                     if (new_nickname.startsWith(':')) {
                         new_nickname = new_nickname.slice(1);
@@ -1757,13 +1758,12 @@ class WTVIRC {
                     if (!socket.nickname) {
                         // If no nickname is set, set it now
                         socket.nickname = new_nickname;
-                    }
-                    this.nicknames.set(socket, socket.nickname);
-                    if (socket.nickname && socket.newickname != new_nickname) {
+                        this.nicknames.set(socket, socket.nickname);
+                    } else if (socket.nickname != new_nickname) {                        
                         this.processNickChange(socket, new_nickname);
                         if (socket.registered) {
-                            socket.write(`:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`);
-                            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`, socket);                        
+                            socket.write(`:${old_nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`);
+                            this.broadcastUser(socket.nickname, `:${old_nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`, socket);                        
                             this.broadcastToAllServers(`:${socket.uniqueId} NICK ${new_nickname} :${this.getDate()}\r\n`);
                         }
                     }
