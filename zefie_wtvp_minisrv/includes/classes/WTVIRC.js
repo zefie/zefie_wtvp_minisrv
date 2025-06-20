@@ -2455,7 +2455,7 @@ class WTVIRC {
                     }
                     break;
                 case 'NOTICE':
-                    if (!this.checkRegistered(socket)) {                        
+                    if (!this.checkRegistered(socket, false, true) && params[0] !== this.servername) {                        
                         break;
                     }
                     this.usertimestamps.set(socket.nickname, this.getDate());
@@ -4187,11 +4187,11 @@ class WTVIRC {
         }, 60000);
     }
 
-    checkRegistered(socket, allowUnregistered = false) {
+    checkRegistered(socket, allowUnregistered = false, silent = false) {
         var retval = false
         if (socket.isserver) {
             if (!socket.is_srv_authorized && (!socket.registered && !allowUnregistered)) {
-                if (socket.writable) {
+                if (socket.writable && !silent) {
                     socket.write(`:${this.servername} ERROR :Unauthorized\r\n`);
                 }
                 this.addSocketError(socket);
@@ -4200,7 +4200,7 @@ class WTVIRC {
             }
         }
         if (!socket.registered && (!socket.registered && !allowUnregistered)) {
-            if (socket.writable) {
+            if (socket.writable && !silent) {
                 socket.write(`:${this.servername} 451 ${socket.uniqueId} :You have not registered\r\n`);
             }
             this.addSocketError(socket);
