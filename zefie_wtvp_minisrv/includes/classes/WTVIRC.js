@@ -1712,7 +1712,6 @@ class WTVIRC {
                         break;
                     }                    
                     if (this.findUser(new_nickname)) {
-                        console.log(this.findUser(new_nickname))
                         socket.write(`:${this.servername} 433 * ${new_nickname} :Nickname is already in use\r\n`);
                         break; 
                     }
@@ -2917,27 +2916,22 @@ class WTVIRC {
             if (channelObj.users.has(nickname)) {
                 channelObj.users.delete(nickname);
             }
-            if (channelObj.ops && channelObj.ops.has(nickname)) {
+            if (channelObj.ops.has(nickname)) {
                 channelObj.ops.delete(nickname);
             }
-            if (channelObj.halfops && channelObj.halfops.has(nickname)) {
+            if (channelObj.halfops.has(nickname)) {
                 channelObj.halfops.delete(nickname);
             }
-            if (channelObj.voices && channelObj.voices.has(nickname)) {
+            if (channelObj.voices.has(nickname)) {
                 channelObj.voices.delete(nickname);
             }
-            if (channelObj.invites && channelObj.invites.has(nickname)) {
-                invites.delete(nickname);
+            if (channelObj.invites.has(nickname)) {
+                channelObj.invites.delete(nickname);
             }
+            if (channelObj.users.size === 0) {
+                this.deleteChannel(ch);
+            }            
         }
-        this.channelData.forEach((channelObj, ch) => {
-            if (channelObj.users.has(nickname)) {
-                channelObj.users.delete(nickname);
-                if (channelObj.users.size === 0) {
-                    this.deleteChannel(ch);
-                }
-            }
-        });
     }
         
 
