@@ -40,8 +40,8 @@ class WTVIRC {
         this.debug = debug;
         this.server = null;
         this.clients = [];
-        this.usernames = new Map(); // nickname -> username
         this.channelData = new Map();
+        this.usernames = new Map(); // nickname -> username
         this.usertimestamps = new Map(); // nickname -> timestamp since last message
         this.usermodes = new Map(); // nickname -> Array of modes (e.g. ['w', 'i'])
         this.usersignontimestamps = new Map(); // nickname -> timestamp since user signed on
@@ -103,6 +103,7 @@ class WTVIRC {
         this.supported_prefixes = ["ohv", "@%+"];
         this.supported_client_caps = ['chghost', 'away-notify', 'echo-message', 'invite-notify', 'multi-prefix', 'userhost-in-names', 'account-notify', 'extended-join'];
         this.supported_server_caps = ['TBURST', 'EOB', 'IE', 'EX'];
+        this.supported_webtv_command_hacks = ["MODE"];
         this.session_store_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + path.sep + 'minisrv_internal_irc');
         this.klines_path = this.session_store_path + path.sep + 'klines.json';
         this.caps = [
@@ -877,6 +878,9 @@ class WTVIRC {
                                 break;
                             }
                             targetSocket.write(`:${targetSocket.nickname} MODE ${targetSocket.nickname} ${parts.slice(2).join(' ')}\r\n`);
+                            if (this.clientIsWebTV(targetSocket)) {
+                                this.sendWebTVNoticeTo(targetSocket, `The network has set your user mode: ${parts.slice(3).join(' ')}`);
+                            }
                             this.broadcastToAllServers(`:${sourceUniqueId} MODE ${targetUniqueId} ${parts.slice(3).join(' ')}\r\n`, socket);                        
                             break;
                         case 'NICK':
@@ -2016,7 +2020,7 @@ class WTVIRC {
                         if (this.clientIsWebTV(socket)) {
                             var output_lines = [];
                             var channelObj = this.channelData.get(ch);
-                            output_lines.push("Welcome to the channel " + ch + "! You have joined successfully.");
+                            output_lines.push("You have joined " + ch + ".");
                             output_lines.push("Current channel modes: +" + channelObj.modes.join(''));
                             let isOp = channelObj.ops.has(socket.nickname);
                             let isHalfOp = channelObj.halfops.has(socket.nickname);
@@ -2361,6 +2365,16 @@ class WTVIRC {
                                     socket.write(`:${this.servername} 403 ${socket.nickname} ${t} :No such channel\r\n`);
                                     continue;
                                 }
+                                if (this.clientIsWebTV(socket) && msg.startsWith('/')) {
+                                    var wtvcmd = msg.slice(1).split(' ');
+                                    if (wtvcmd[0].length > 0) {
+                                        if (this.supported_webtv_command_hacks.includes(wtvcmd[0].toUpperCase())) {
+                                            var wtvstr = `${wtvcmd[0].toUpperCase()} ${wtvcmd.splice(1).join(' ')}\r\n`;
+                                            this.processSocketData(socket, wtvstr);
+                                        }
+                                    }
+                                    continue;
+                                }                                
                                 this.broadcastChannel(t, `:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${t} :${msg}\r\n`, socket);
                                 this.broadcastToAllServers(`:${socket.uniqueId} PRIVMSG ${t} :${msg}\r\n`);
                             } else {
@@ -3028,6 +3042,20 @@ class WTVIRC {
                     if (sock && sock !== exceptSocket) {
                         sock.write(message);
                     }
+                }
+            }
+        }
+    }
+
+    broadcastChannelWebTV(channel, message, exceptSocket = null) {
+        // Broadcast a message to all users in a specific channel, except the one specified
+        if (this.channelData.has(channel)) {
+            const channelObj = this.channelData.get(channel);
+            for (const user of channelObj.users) {
+                const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                // Only send to WebTV clients
+                if (socket && socket !== exceptSocket && this.clientIsWebTV(socket)) {
+                    this.sendWebTVNoticeTo(socket, message)
                 }
             }
         }
@@ -3931,6 +3959,7 @@ class WTVIRC {
         var hostname = this.hostnames.get(nickname);
 
         let modeMsg = `:${nickname}!${username}@${hostname} MODE ${channel} `;
+        let WTVMsg = `${nickname} has set channel mode `;
         let addingFlag = false;
         let paramIndex = 0;        
         if (!socket.isserver) {
@@ -3997,11 +4026,13 @@ class WTVIRC {
             if (mc === '+') {
                 addingFlag = true;
                 modeMsg += '+';
+                WTVMsg += '+';
                 serverModeMsg += '+';
                 continue;
             } else if (mc === '-') {
                 addingFlag = false;
                 modeMsg += '-';
+                WTVMsg += '-';
                 serverModeMsg += '-';
                 continue;
             }
@@ -4051,6 +4082,7 @@ class WTVIRC {
                 }
             }
             if (result) {
+                WTVMsg += mc;
                 validModes.push(mc);
                 if (modeStr.length > 0) {
                     modeMsg += modeStr;
@@ -4064,6 +4096,7 @@ class WTVIRC {
                     modeMsg += ' ' + this.findUserByUniqueId(params[i]);
                 } else {
                     modeMsg += ' ' + params[i];
+                    WTVMsg += ' ' + params[i];
                 }
                 serverModeMsg += ' ' + params[i];
             }
@@ -4074,6 +4107,7 @@ class WTVIRC {
         modeMsg += '\r\n';
         if (validModes.length > 0) {
             this.broadcastChannel(channel, modeMsg);
+            this.broadcastChannelWebTV(channel, WTVMsg);
             this.broadcastToAllServers(serverModeMsg, socket);
         }
     }
