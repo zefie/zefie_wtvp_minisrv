@@ -3028,7 +3028,7 @@ class WTVIRC {
             const channelObj = this.channelData.get(channel);
             for (const user of channelObj.users) {
                 // +Z (secureonly): Restricts private message (PRIVMSG) or notice (NOTICE) reception/sending to users with a secure connection (TLS).
-                if (channelObj.modes.includes('Z')) {
+                if (channelObj.modes.includes('Z') && (message.includes('PRIVMSG') || message.includes('NOTICE'))) {
                     const user_modes = this.getUserModes(user);
                     if (user_modes.includes('z')) {
                         const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
@@ -3057,13 +3057,18 @@ class WTVIRC {
 
     broadcastChannelWebTV(channel, message, exceptSocket = null) {
         // Broadcast a message to all WebTV users in a specific channel, except the one specified
+        const alreadyNotified = [];
         if (this.channelData.has(channel)) {
             const channelObj = this.channelData.get(channel);
             for (const user of channelObj.users) {
                 const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                if (alreadyNotified.includes(socket)) {
+                    continue;
+                }
                 // Only send to WebTV clients
                 if (socket && socket !== exceptSocket && this.clientIsWebTV(socket)) {
                     this.sendWebTVNoticeTo(socket, message)
+                    alreadyNotified.push(socket);
                 }
             }
         }
