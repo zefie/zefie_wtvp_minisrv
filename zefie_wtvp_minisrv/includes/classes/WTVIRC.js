@@ -3004,12 +3004,17 @@ class WTVIRC {
 
     broadcastUser(username, message, exceptSocket = null) {
         // Broadcast a message to all users in any channels that the specified user is in, except the one specified 
+        const alreadyNotified = [];
         for (const [channel, channelObj] of this.channelData.entries()) {
             if (channelObj.users.has(username)) {
                 for (const user of channelObj.users) {
                     const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                    if (alreadyNotified.includes(sock)) {
+                        continue;
+                    }
                     if (sock && sock !== exceptSocket) {
                         sock.write(message);
+                        alreadyNotified.push(sock);
                     }
                 }
             }
@@ -3018,6 +3023,7 @@ class WTVIRC {
 
     broadcastChannel(channel, message, exceptSocket = null) {
         // Broadcast a message to all users in a specific channel, except the one specified
+        const alreadyNotified = [];
         if (this.channelData.has(channel)) {
             const channelObj = this.channelData.get(channel);
             for (const user of channelObj.users) {
@@ -3026,15 +3032,23 @@ class WTVIRC {
                     const user_modes = this.getUserModes(user);
                     if (user_modes.includes('z')) {
                         const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                        if (alreadyNotified.includes(sock)) {
+                            continue;
+                        }
                         if (sock && sock !== exceptSocket) {
                             sock.write(message);
+                            alreadyNotified.push(sock);
                         }
                     }
                 }
                 else {
                     const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                    if (alreadyNotified.includes(sock)) {
+                        continue;
+                    }                    
                     if (sock && sock !== exceptSocket) {
                         sock.write(message);
+                        alreadyNotified.push(sock);
                     }
                 }
             }
@@ -3042,7 +3056,7 @@ class WTVIRC {
     }
 
     broadcastChannelWebTV(channel, message, exceptSocket = null) {
-        // Broadcast a message to all users in a specific channel, except the one specified
+        // Broadcast a message to all WebTV users in a specific channel, except the one specified
         if (this.channelData.has(channel)) {
             const channelObj = this.channelData.get(channel);
             for (const user of channelObj.users) {
