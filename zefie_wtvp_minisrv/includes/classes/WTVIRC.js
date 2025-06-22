@@ -91,7 +91,7 @@ class WTVIRC {
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_tls = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
-        this.socket_timeout = this.irc_config.socket_timeout || 120000; // Default socket timeout to 120 seconds
+        this.socket_timeout = 60000; // Default socket timeout to 120 seconds
         this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
         this.enable_eval = this.debug || false; // Enable eval in debug mode only
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
@@ -139,7 +139,7 @@ class WTVIRC {
         }
         this.server_start_time = this.getDate();
         this.server = net.createServer(async socket => {
-            socket.setTimeout(this.socket_timeout);
+            
             // Detect SSL handshake and wrap socket if needed
             socket.once('data', async firstChunk => {
                 this.totalConnections++;
@@ -271,20 +271,15 @@ class WTVIRC {
             socket.timestamp = this.getDate();            
             socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
         }
-        socket.setTimeout(this.socket_timeout);
+        
         socket.secure = secure;
         socket.upgrading_to_tls = false;
         socket.error_count = 0;
+        socket.lastseen = Date.now();
         await this.doInitialHandshake(socket);
         
-
-        socket.on('timeout', () => {
-            this.debugLog('warn', `Socket timeout for ${socket.remoteAddress}`);
-            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping Timeout (${this.socket_timeout / 1000} seconds)\r\n`, socket);
-            this.terminateSession(socket, true);
-        });
-
         socket.on('data', async data => {
+            socket.lastseen = Date.now();
             await this.processSocketData(socket, data);
         });
 
@@ -299,6 +294,29 @@ class WTVIRC {
         socket.on('close', () => {
             this.terminateSession(socket, false);
         });
+
+        // Start a loop to check for idle clients and send PING if needed
+        socket._idleInterval = setInterval(() => {
+            if (socket.signedoff) {
+                clearInterval(socket._idleInterval);
+                return;
+            }
+            const now = Date.now();
+            if ((now - socket.lastseen) > this.socket_timeout) { // 60 seconds
+                this.safeWriteToSocket(socket, `PING :${this.servername}\r\n`);
+                this.debugLog('info', `Sent PING to ${socket.remoteAddress} due to inactivity`);
+                return;
+            }
+            if ((now - socket.lastseen) > this.socket_timeout * 2) { // If the socket has been idle for too long
+                this.debugLog('warn', `Socket ${socket.remoteAddress} has been idle for too long, terminating session`);
+                if (socket.nickname) {
+                    this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${Math.floor((now - socket.lastseen) / 1000)} seconds)\r\n`);
+                }
+                this.terminateSession(socket, true);
+                return;
+            }
+        }, 10000); // check every 10 seconds
+
         this.clients.push(socket);
         this.clientpeak = Math.max(this.clientpeak, this.clients.length);
     }        
@@ -2958,6 +2976,9 @@ class WTVIRC {
             socket.signedoff = true; // Just in case
         }
         this.clients = this.clients.filter(c => c !== socket);
+        if (socket._idleInterval) {
+            clearInterval(socket._idleInterval);
+        }
         if (close) {
             socket.end();
         }
