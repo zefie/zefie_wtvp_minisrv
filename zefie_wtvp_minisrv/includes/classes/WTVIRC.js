@@ -91,7 +91,7 @@ class WTVIRC {
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_tls = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
-        this.socket_timeout = 90000; // Default socket timeout to 120 seconds
+        this.socket_timeout = 75; // Default socket timeout to 75 seconds, most clients will send PINGs every 60 seconds, so this should be enough to catch lost connections
         this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
         this.enable_eval = this.debug || false; // Enable eval in debug mode only
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
@@ -302,18 +302,23 @@ class WTVIRC {
                 return;
             }
             const now = Date.now();
-            if ((now - socket.lastseen) > this.socket_timeout + 10000) {
+            if ((now - socket.lastseen) > (this.socket_timeout * 1000) + 10000) {
                 // Over 10 seconds has passed since we sent our PING, assume lost
                 this.debugLog('warn', `Socket ${socket.remoteAddress} has been idle for too long, terminating session`);
                 if (socket.nickname) {
                     this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${Math.floor((now - socket.lastseen) / 1000)} seconds)\r\n`, socket);
+                    this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Ping timeout (${Math.floor((now - socket.lastseen) / 1000)} seconds)\r\n`, serverSocket);
                 }
+                socket.signedoff = true;
                 this.terminateSession(socket, true);
                 return;
-            } else if ((now - socket.lastseen) > this.socket_timeout) {
+            } else if ((now - socket.lastseen) > (this.socket_timeout * 1000)) {
                 // Client has been idle for too long, send PING
-                this.safeWriteToSocket(socket, `PING :${this.servername}\r\n`);
-                this.debugLog('info', `Sent PING to ${socket.remoteAddress} due to inactivity`);
+                if (socket.isserver) {
+                    this.safeWriteToSocket(socket, `:${this.serverId} PING ${this.serverId} ${this.servername}\r\n`);
+                } else {
+                    this.safeWriteToSocket(socket, `PING :${this.servername}\r\n`);
+                }
                 return;
             }
         }, 10000); // check every 5 seconds
@@ -411,7 +416,7 @@ class WTVIRC {
                 socket.uniqueId = serverId;
                 socket.serverIdent = line;
                 this.servers.set(socket, serverName)
-                this.safeWriteToSocket(socket, `SERVER ${this.servername} 1 ${this.serverId} + :${this.server_hello}\r\n`);
+                this.safeWriteToSocket(socket, `SERVER ${serverName} 1 ${serverId} + :${this.server_hello}\r\n`);
                 for (const [sock, nickname] of this.nicknames.entries()) {
                     if (!sock || !nickname) continue;
                     const uniqueId = sock.uniqueId;
@@ -451,7 +456,7 @@ class WTVIRC {
                     this.debugLog('warn', 'Invalid SVINFO command from server');
                     return;
                 }
-                const serverInfoMessage = `:${this.serverId} SVINFO 6 6 0 :${this.getDate()}\r\n`;
+                const serverInfoMessage = `:${this.serverId} SVINFO 6 6 0 ${this.getDate()}\r\n`;
                 this.safeWriteToSocket(socket, serverInfoMessage);
                 break
             case 'PING':
@@ -460,7 +465,7 @@ class WTVIRC {
                 if (pong.startsWith(':')) {
                     pong = pong.slice(1); // Remove leading ':'
                 }
-                this.safeWriteToSocket(socket, `PONG :${pong}\r\n`);
+                this.safeWriteToSocket(socket, `:${this.serverId} PONG ${pong}\r\n`);
                 break;
             case 'PONG':
                 // Ignore PONG from server
@@ -2962,8 +2967,8 @@ class WTVIRC {
         const nickname = this.nicknames.get(socket);
         if (nickname) {
             this.cleanupUserSession(nickname);
-        }
-        this.nicknames.delete(socket);
+            this.nicknames.delete(socket);
+        }        
         if (!socket.signedoff) {
             var serverSocket = null;
             for (const [srvSocket, users] of this.serverusers.entries()) {
@@ -2976,7 +2981,12 @@ class WTVIRC {
             this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`, serverSocket);
             socket.signedoff = true; // Just in case
         }
-        this.clients = this.clients.filter(c => c !== socket);
+        if (socket.isserver) {
+            this.servers.delete(socket);
+            this.serverusers.delete(socket);
+        } else {
+            this.clients.delete(socket);
+        }        
         if (socket._idleInterval) {
             clearInterval(socket._idleInterval);
         }
