@@ -316,7 +316,7 @@ class WTVIRC {
                 this.debugLog('info', `Sent PING to ${socket.remoteAddress} due to inactivity`);
                 return;
             }
-        }, 5000); // check every 5 seconds
+        }, 10000); // check every 5 seconds
 
         this.clients.push(socket);
         this.clientpeak = Math.max(this.clientpeak, this.clients.length);
