@@ -1813,7 +1813,6 @@ class WTVIRC {
                             if (this.channelprefixes.includes(ch[1])) {
                                 ch = ch.slice(1); // Remove double prefix
                             }
-                            console.log(ch.slice(1))
                             if (!this.allowed_characters.includes(ch.slice(1))) {
                                 socket.write(`:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
                                 return;
