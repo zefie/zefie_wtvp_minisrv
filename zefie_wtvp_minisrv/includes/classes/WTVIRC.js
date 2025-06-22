@@ -41,6 +41,7 @@ class WTVIRC {
         this.server = null;
         this.clients = [];
         this.channelData = new Map();
+        this.usernames = new Map(); // nickname -> username
         this.usertimestamps = new Map(); // nickname -> timestamp since last message
         this.usermodes = new Map(); // nickname -> Array of modes (e.g. ['w', 'i'])
         this.usersignontimestamps = new Map(); // nickname -> timestamp since user signed on
@@ -102,7 +103,8 @@ class WTVIRC {
         this.supported_prefixes = ["ohv", "@%+"];
         this.supported_client_caps = ['chghost', 'away-notify', 'echo-message', 'invite-notify', 'multi-prefix', 'userhost-in-names', 'account-notify', 'extended-join'];
         this.supported_server_caps = ['TBURST', 'EOB', 'IE', 'EX'];
-        this.supported_webtv_command_hacks = ["MODE"];
+        this.enable_webtv_command_hacks = this.irc_config.enable_webtv_command_hacks || true;
+        this.supported_webtv_command_hacks = ["MODE", "KICK"];
         this.session_store_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + path.sep + 'minisrv_internal_irc');
         this.klines_path = this.session_store_path + path.sep + 'klines.json';
         this.caps = [
@@ -877,7 +879,7 @@ class WTVIRC {
                                 break;
                             }
                             targetSocket.write(`:${targetSocket.nickname} MODE ${targetSocket.nickname} ${parts.slice(2).join(' ')}\r\n`);
-                            if (this.clientIsWebTV(targetSocket)) {
+                            if (this.clientIsWebTV(targetSocket) && this.enable_webtv_command_hacks) {
                                 this.sendWebTVNoticeTo(targetSocket, `The network has set your user mode: ${parts.slice(3).join(' ')}`);
                             }
                             this.broadcastToAllServers(`:${sourceUniqueId} MODE ${targetUniqueId} ${parts.slice(3).join(' ')}\r\n`, socket);                        
@@ -2015,22 +2017,22 @@ class WTVIRC {
                         if (awaymsg) {
                             this.broadcastUserIfCap(socket, `:${socket.nickname}!${socket.username}@${socket.host} AWAY :${awaymsg}\r\n`, socket, 'away-notify');
                         }
-                        if (this.clientIsWebTV(socket)) {
+                        if (this.clientIsWebTV(socket) && this.enable_webtv_command_hacks) {
                             var output_lines = [];
                             var channelObj = this.channelData.get(ch);
-                            output_lines.push("You have joined " + ch + ".");
+                            output_lines.push("You have joined " + ch);
                             output_lines.push("Current channel modes: +" + channelObj.modes.join(''));
                             let isOp = channelObj.ops.has(socket.nickname);
                             let isHalfOp = channelObj.halfops.has(socket.nickname);
                             let isVoice = channelObj.voices.has(socket.nickname);
                             if (isOp) {
-                                output_lines.push("You are a channel operator (@) in " + ch + ".");
+                                output_lines.push("You are a channel operator (@) in " + ch);
                             } else if (isHalfOp) {
-                                output_lines.push("You are a channel half-operator (%) in " + ch + ".");
+                                output_lines.push("You are a channel half-operator (%) in " + ch);
                             } else if (isVoice) {
-                                output_lines.push("You are voiced (+) in " + ch + ".");
+                                output_lines.push("You are voiced (+) in " + ch);
                             }
-                            this.sendWebTVNoticeTo(socket, output_lines);
+                            this.sendWebTVSpoofedActionTo(socket, ch, output_lines);
                         }
                     }
                     break;
@@ -2363,7 +2365,7 @@ class WTVIRC {
                                     socket.write(`:${this.servername} 403 ${socket.nickname} ${t} :No such channel\r\n`);
                                     continue;
                                 }
-                                if (this.clientIsWebTV(socket) && msg.startsWith('/')) {
+                                if (this.clientIsWebTV(socket) && msg.startsWith('/') && this.enable_webtv_command_hacks) {
                                     var wtvcmd = msg.slice(1).split(' ');
                                     if (wtvcmd[0].length > 0) {
                                         if (this.supported_webtv_command_hacks.includes(wtvcmd[0].toUpperCase())) {
@@ -2973,6 +2975,22 @@ class WTVIRC {
         socket.write(`:${this.servername} NOTICE * :${message}\r\n`);
     }
 
+    sendWebTVSpoofedActionTo(socket, channel, message) {
+        if (!Array.isArray(message)) {
+            message = [message];
+        }
+        if (this.clientIsWebTV(socket)) {        
+            message.forEach(line => {
+                const msg = line.split(' ');
+                const firstWord = msg[0];
+                const action = msg.slice(1).join(' ');
+                const message = [`:${firstWord}!system@webtv PRIVMSG ${channel} :\x01ACTION ${action}\x01\r\n`];
+                this.sendThrottled(socket, message);
+            });
+            return;
+        }
+    }
+
     getUserChannelCount(username) {
         // returns the number of channels a user is in
         let count = 0;
@@ -3065,7 +3083,7 @@ class WTVIRC {
                 }
                 // Only send to WebTV clients
                 if (socket && socket !== exceptSocket && this.clientIsWebTV(socket)) {
-                    this.sendWebTVNoticeTo(socket, message)
+                    this.sendWebTVSpoofedActionTo(socket, channel, message)
                     alreadyNotified.push(socket);
                 }
             }
