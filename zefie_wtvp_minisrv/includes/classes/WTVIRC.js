@@ -91,7 +91,7 @@ class WTVIRC {
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_tls = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
-        this.socket_timeout = 60000; // Default socket timeout to 120 seconds
+        this.socket_timeout = 90000; // Default socket timeout to 120 seconds
         this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
         this.enable_eval = this.debug || false; // Enable eval in debug mode only
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
@@ -302,20 +302,21 @@ class WTVIRC {
                 return;
             }
             const now = Date.now();
-            if ((now - socket.lastseen) > this.socket_timeout) { // 60 seconds
+            if ((now - socket.lastseen) > this.socket_timeout + 10000) {
+                // Over 10 seconds has passed since we sent our PING, assume lost
+                this.debugLog('warn', `Socket ${socket.remoteAddress} has been idle for too long, terminating session`);
+                if (socket.nickname) {
+                    this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${Math.floor((now - socket.lastseen) / 1000)} seconds)\r\n`, socket);
+                }
+                this.terminateSession(socket, true);
+                return;
+            } else if ((now - socket.lastseen) > this.socket_timeout) {
+                // Client has been idle for too long, send PING
                 this.safeWriteToSocket(socket, `PING :${this.servername}\r\n`);
                 this.debugLog('info', `Sent PING to ${socket.remoteAddress} due to inactivity`);
                 return;
             }
-            if ((now - socket.lastseen) > this.socket_timeout * 2) { // If the socket has been idle for too long
-                this.debugLog('warn', `Socket ${socket.remoteAddress} has been idle for too long, terminating session`);
-                if (socket.nickname) {
-                    this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${Math.floor((now - socket.lastseen) / 1000)} seconds)\r\n`);
-                }
-                this.terminateSession(socket, true);
-                return;
-            }
-        }, 10000); // check every 10 seconds
+        }, 5000); // check every 5 seconds
 
         this.clients.push(socket);
         this.clientpeak = Math.max(this.clientpeak, this.clients.length);
