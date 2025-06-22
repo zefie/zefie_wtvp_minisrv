@@ -416,7 +416,7 @@ class WTVIRC {
                 socket.uniqueId = serverId;
                 socket.serverIdent = line;
                 this.servers.set(socket, serverName)
-                this.safeWriteToSocket(socket, `SERVER ${serverName} 1 ${serverId} + :${this.server_hello}\r\n`);
+                this.safeWriteToSocket(socket, `SERVER ${this.servername} 1 ${this.serverId} + :${this.server_hello}\r\n`);
                 for (const [sock, nickname] of this.nicknames.entries()) {
                     if (!sock || !nickname) continue;
                     const uniqueId = sock.uniqueId;
