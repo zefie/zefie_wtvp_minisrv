@@ -2586,9 +2586,6 @@ class WTVIRC {
                     }
                     break;
                 case 'PING':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
                     this.safeWriteToSocket(socket, `PONG ${params.join(' ')}\r\n`);
                     break;
                 case 'KLINE':
