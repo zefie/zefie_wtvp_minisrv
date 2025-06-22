@@ -139,7 +139,7 @@ class WTVIRC {
         }
         this.server_start_time = this.getDate();
         this.server = net.createServer(async socket => {
-            socket.timeout = this.socket_timeout;
+            socket.setTimeout(this.socket_timeout);
             // Detect SSL handshake and wrap socket if needed
             socket.once('data', async firstChunk => {
                 this.totalConnections++;
@@ -271,15 +271,16 @@ class WTVIRC {
             socket.timestamp = this.getDate();            
             socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
         }
-        socket.timeout = this.socket_timeout;
+        socket.setTimeout(this.socket_timeout);
         socket.secure = secure;
         socket.upgrading_to_tls = false;
         socket.error_count = 0;
         await this.doInitialHandshake(socket);
         
+
         socket.on('timeout', () => {
             this.debugLog('warn', `Socket timeout for ${socket.remoteAddress}`);
-            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping Timeout (${this.socket_timeout / 1000} seconds)\r\n`);
+            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping Timeout (${this.socket_timeout / 1000} seconds)\r\n`, socket);
             this.terminateSession(socket, true);
         });
 
