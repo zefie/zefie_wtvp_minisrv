@@ -299,7 +299,7 @@
       ]
     },
     "wtv-passport": {
-      // wtv-password (for messenger)
+      // wtv-passport (for messenger)
       "port": 1654
     },
     "wtv-favorite": {

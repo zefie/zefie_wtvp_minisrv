@@ -41,7 +41,6 @@ class WTVIRC {
         this.server = null;
         this.clients = [];
         this.channelData = new Map();
-        this.usernames = new Map(); // nickname -> username
         this.usertimestamps = new Map(); // nickname -> timestamp since last message
         this.usermodes = new Map(); // nickname -> Array of modes (e.g. ['w', 'i'])
         this.usersignontimestamps = new Map(); // nickname -> timestamp since user signed on
@@ -108,7 +107,7 @@ class WTVIRC {
         this.klines_path = this.session_store_path + path.sep + 'klines.json';
         this.caps = [
             `AWAYLEN=${this.awaylen} CASEMAPPING=rfc1459 BOT=B CHANMODES=${this.supported_channel_modes} CHANNELLEN=${this.channellen} CHANTYPES=${this.channelprefixes.join('')} PREFIX=(${this.supported_prefixes[0]})${this.supported_prefixes[1]} USERMODES=${this.supported_user_modes} MAXLIST=b:${this.maxbans},e:${this.maxexcept},i:${this.maxinvite},k:${this.maxkeylen},l:${this.maxlimit}`,
-            `CHARSET=ascii MODES=3 EXCEPTS=e INVEX=I NETWORK=${this.network} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
+            `CHARSET=ascii MODES=5 EXCEPTS=e INVEX=I NETWORK=${this.network} CHANLIMIT=${this.channelprefixes.join('')}:${this.channellimit} NICKLEN=${this.nicklen} TOPICLEN=${this.topiclen} KICKLEN=${this.kicklen}`
         ];
     }
 
@@ -1038,7 +1037,7 @@ class WTVIRC {
                                     output_lines.push(`:${this.serverId} 307 ${targetUniqueId} ${whoisNick} :is a registered nick\r\n`);
                                 }
                                 var now = this.getDate();
-                                var userTimestamp = this.usertimestamps.get(whoisNick) || now;
+                                var userTimestamp = whoisSocket.lastspoke || now;
                                 var idleTime = now - userTimestamp;
                                 output_lines.push(`:${this.serverId} 317 ${targetUniqueId} ${whoisNick} ${idleTime} ${this.usersignontimestamps.get(whoisNick) || 0} :seconds idle, signon time\r\n`);
                                 if (userChannels.length > 0) {
@@ -1316,7 +1315,7 @@ class WTVIRC {
                         socket.write(`:${this.servername} 461 ${socket.nickname} KICK :Not enough parameters\r\n`);
                         break;
                     }
-                    this.usertimestamps.set(socket.nickname, this.getDate());
+                    socket.lastspoke = this.getDate();
 
 
                     if (!this.channelData.has(channel)) {
@@ -1372,7 +1371,7 @@ class WTVIRC {
                             break;
                         }
                     }
-                    this.usertimestamps.set(socket.nickname, this.getDate());
+                    socket.lastspoke = this.getDate();
                     if (!this.channelData.has(channel)) {
                         socket.write(`:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                         break;
@@ -1395,7 +1394,7 @@ class WTVIRC {
                     if (!this.checkRegistered(socket)) {
                         break;
                     }
-                    this.usertimestamps.set(socket.nickname, this.getDate());
+                    socket.lastspoke = this.getDate();
                     if (params.length > 0) {
                         if (params.length > this.awaylen) {
                             socket.write(`:${this.servername} 417 ${socket.nickname} ${channel} :Away message is too long\r\n`);
@@ -1766,7 +1765,7 @@ class WTVIRC {
                         var totalSockets = this.clients.length + this.servers.size;
                         this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
                         this.usernames.set(socket.nickname, socket.username);
-                        this.usertimestamps.set(socket.nickname, this.getDate());
+                        socket.lastspoke = this.getDate();
                         this.usersignontimestamps.set(socket.nickname, socket.timestamp);
                         this.doLogin(socket.nickname, socket);
                     }
@@ -1783,7 +1782,7 @@ class WTVIRC {
                         var totalSockets = this.clients.length + this.servers.size;
                         this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
                         this.usernames.set(socket.nickname, socket.username);
-                        this.usertimestamps.set(socket.nickname, this.getDate());
+                        socket.lastspoke = this.getDate();
                         this.usersignontimestamps.set(socket.nickname, socket.timestamp);
                         this.doLogin(socket.nickname, socket);
                     }
@@ -1929,7 +1928,7 @@ class WTVIRC {
                         // Only run the code after $PLACEHOLDER$ for each channel
                         // (excluding the code before $PLACEHOLDER$ to avoid duplicate checks)
                         // You can refactor this logic into a helper if needed
-                        this.usertimestamps.set(socket.nickname, this.getDate());                        
+                        socket.lastspoke = this.getDate();
                         if (!this.channelData.has(ch)) {
                             this.createChannel(ch, socket.nickname);
                         }
@@ -2085,7 +2084,7 @@ class WTVIRC {
                     if (this.channelData.get(channel).voices.has(socket.nickname)) {
                         this.channelData.get(channel).voices.delete(socket.nickname);
                     }                                        
-                    this.usertimestamps.set(socket.nickname, this.getDate());
+                    socket.lastspoke = this.getDate();
                     if (params.length == 2) {
                         let reason = params.join(' ');
                         if (reason.startsWith(':')) {
@@ -2244,7 +2243,7 @@ class WTVIRC {
                                 }
                                 var userinfo = this.userinfo.get(cleanUser) || cleanUser;
                                 var flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(userSecure) ? 'z' : ''}`
-                                var secondsIdle = (this.getDate() - this.usertimestamps.get(cleanUser));
+                                var secondsIdle = (this.getDate() - whoisSocket.lastspoke);
                                 socket.write(`:${this.servername} 352 ${socket.nickname} ${target} ${username} ${hostname} ${this.servername} ${cleanUser} ${flags} 0 ${secondsIdle} 0 :${userinfo}\r\n`);
                             }
                         }
@@ -2295,7 +2294,7 @@ class WTVIRC {
                     if (!this.checkRegistered(socket)) {
                         break;
                     }
-                    this.usertimestamps.set(socket.nickname, this.getDate());
+                    socket.lastspoke = this.getDate();
                     if (params[0]) {
                         const target = params[0];
                         let targets = target.includes(',') ? target.split(',') : [target];
@@ -2427,7 +2426,7 @@ class WTVIRC {
                     if (!this.checkRegistered(socket, false, true) && params[0] !== this.servername) {                        
                         break;
                     }
-                    this.usertimestamps.set(socket.nickname, this.getDate());
+                    socket.lastspoke = this.getDate();
                     if (params[0]) {
                         const target = params[0];
                         let targets = target.includes(',') ? target.split(',') : [target];
@@ -2700,7 +2699,7 @@ class WTVIRC {
                             output_lines.push(`:${this.servername} 335 ${socket.nickname} ${whoisNick} :is a bot\r\n`);
                         }
                         var now = this.getDate();
-                        var userTimestamp = this.usertimestamps.get(whoisNick) || now;
+                        var userTimestamp = whoisSocket.lastspoke || now;
                         var idleTime = now - userTimestamp;
                         output_lines.push(`:${this.servername} 317 ${socket.nickname} ${whoisNick} ${idleTime} ${this.usersignontimestamps.get(whoisNick) || 0} :seconds idle, signon time\r\n`);
                         if (userChannels.length > 0) {
@@ -2904,7 +2903,6 @@ class WTVIRC {
     }
 
     cleanupUserSession(nickname) {
-        this.usertimestamps.delete(nickname);
         this.usersignontimestamps.delete(nickname);
         this.usernames.delete(nickname);
         this.usermodes.delete(nickname);
@@ -3497,8 +3495,6 @@ class WTVIRC {
         this.nicknames.delete(socket.nickname);
         this.addUserUniqueId(newNick, socket.uniqueId);
         this.deleteUserUniqueId(socket.nickname);
-        this.usertimestamps.set(newNick, this.getDate());
-        this.usertimestamps.delete(socket.nickname);
         this.usermodes.set(newNick, this.getUserModes(socket.nickname) || []);
         this.usermodes.delete(socket.nickname);
         if (this.awaymsgs.has(socket.nickname)) {
@@ -4183,7 +4179,7 @@ class WTVIRC {
             }
         }
         return false; // Mode not changed
-    }    
+    }
 
     async doLogin(nickname, socket) {
         if (await this.scanSocketForKLine(socket)) {
