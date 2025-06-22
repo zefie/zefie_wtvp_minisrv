@@ -91,6 +91,7 @@ class WTVIRC {
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_tls = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
+        this.socket_timeout = this.irc_config.socket_timeout || 120000; // Default socket timeout to 120 seconds
         this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
         this.enable_eval = this.debug || false; // Enable eval in debug mode only
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
@@ -138,6 +139,7 @@ class WTVIRC {
         }
         this.server_start_time = this.getDate();
         this.server = net.createServer(async socket => {
+            socket.timeout = this.socket_timeout;
             // Detect SSL handshake and wrap socket if needed
             socket.once('data', async firstChunk => {
                 this.totalConnections++;
@@ -145,6 +147,10 @@ class WTVIRC {
                 socket.pause();
                 socket.on('error', (err) => {
                     this.debugLog('error', `Socket error: ${err.message}`);
+                    this.terminateSession(socket, true);
+                });
+                socket.on('timeout', () => {
+                    this.debugLog('warn', `Socket timeout for ${socket.remoteAddress}`);
                     this.terminateSession(socket, true);
                 });
                 // Check if the first byte indicates SSL/TLS handshake (0x16 for TLS Handshake)
@@ -265,10 +271,17 @@ class WTVIRC {
             socket.timestamp = this.getDate();            
             socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
         }
+        socket.timeout = this.socket_timeout;
         socket.secure = secure;
         socket.upgrading_to_tls = false;
         socket.error_count = 0;
         await this.doInitialHandshake(socket);
+        
+        socket.on('timeout', () => {
+            this.debugLog('warn', `Socket timeout for ${socket.remoteAddress}`);
+            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping Timeout (${this.socket_timeout / 1000} seconds)\r\n`);
+            this.terminateSession(socket, true);
+        });
 
         socket.on('data', async data => {
             await this.processSocketData(socket, data);
