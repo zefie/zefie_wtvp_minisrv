@@ -2983,6 +2983,16 @@ class WTVIRC {
         }
         if (socket.isserver) {
             this.servers.delete(socket);
+            this.serverusers.get(socket).forEach(nickname => {
+                this.uniqueids.delete(nickname)
+                this.usernames.delete(nickname);
+                this.hostnames.delete(nickname);
+                this.realhosts.delete(nickname);
+                this.userinfo.delete(nickname);
+                this.usermodes.delete(nickname);
+                this.usersignontimestamps.delete(nickname);
+                this.awaymsgs.delete(nickname);                
+            });
             this.serverusers.delete(socket);
         } else {
             this.clients.delete(socket);
