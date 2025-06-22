@@ -1806,14 +1806,15 @@ class WTVIRC {
                     for (var ch of channels) {
                         // Simulate a JOIN command for each channel
                         for (let i = 0; i < ch.length; i++) {
-                            if (i == 0 && !this.channelprefixes.includes(ch[i])) {
+                            if (i == 0 && !this.channelprefixes.includes(ch[0])) {
                                 socket.write(`:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
                                 return;
                             } 
-                            if (i == 0) {
-                                continue;
+                            if (this.channelprefixes.includes(ch[1])) {
+                                ch = ch.slice(1); // Remove double prefix
                             }
-                            if (!this.allowed_characters.includes(ch[i])) {
+                            console.log(ch.slice(1))
+                            if (!this.allowed_characters.includes(ch.slice(1))) {
                                 socket.write(`:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
                                 return;
                             }
