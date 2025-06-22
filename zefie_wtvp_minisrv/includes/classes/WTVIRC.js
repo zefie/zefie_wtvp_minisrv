@@ -276,10 +276,10 @@ class WTVIRC {
         socket.upgrading_to_tls = false;
         socket.error_count = 0;
         await this.doInitialHandshake(socket);
-        
+
         socket.on('timeout', () => {
             this.debugLog('warn', `Socket timeout for ${socket.remoteAddress}`);
-            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping Timeout (${this.socket_timeout / 1000} seconds)\r\n`);
+            this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping Timeout (${this.socket_timeout / 1000} seconds)\r\n`, socket);
             this.terminateSession(socket, true);
         });
 
