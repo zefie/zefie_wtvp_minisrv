@@ -275,11 +275,11 @@ class WTVIRC {
         socket.secure = secure;
         socket.upgrading_to_tls = false;
         socket.error_count = 0;
-        socket.lastseen = Date.now();
+        socket.lastseen = this.getDate();
         await this.doInitialHandshake(socket);
         
         socket.on('data', async data => {
-            socket.lastseen = Date.now();
+            socket.lastseen = this.getDate();
             await this.processSocketData(socket, data);
         });
 
@@ -301,18 +301,18 @@ class WTVIRC {
                 clearInterval(socket._idleInterval);
                 return;
             }
-            const now = Date.now();
-            if ((now - socket.lastseen) > (this.socket_timeout * 1000) + 10000) {
+            const now = this.getDate();
+            if ((now - socket.lastseen) > this.socket_timeout + 10) {
                 // Over 10 seconds has passed since we sent our PING, assume lost
                 this.debugLog('warn', `Socket ${socket.remoteAddress} has been idle for too long, terminating session`);
                 if (socket.nickname) {
-                    await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${Math.floor((now - socket.lastseen) / 1000)} seconds)\r\n`, socket);
-                    await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Ping timeout (${Math.floor((now - socket.lastseen) / 1000)} seconds)\r\n`, serverSocket);
+                    await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${now - socket.lastseen} seconds)\r\n`, socket);
+                    await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Ping timeout (${now - socket.lastseen} seconds)\r\n`, serverSocket);
                 }
                 socket.signedoff = true;
                 this.terminateSession(socket, true);
                 return;
-            } else if ((now - socket.lastseen) > (this.socket_timeout * 1000)) {
+            } else if ((now - socket.lastseen) > this.socket_timeout) {
                 // Client has been idle for too long, send PING
                 if (socket.isserver) {
                     await this.safeWriteToSocket(socket, `:${this.serverId} PING ${this.serverId} ${this.servername}\r\n`);
