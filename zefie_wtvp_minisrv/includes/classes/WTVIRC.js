@@ -483,7 +483,9 @@ class WTVIRC {
                 const expiry = parseInt(parts[2]) || 0;
                 const reservedNick = parts[3];
                 var reason = parts.slice(4).join(' ') || '';
-                this.reservednicks.push(reservedNick);
+                if (!this.reservednicks.includes(reservedNick)) {
+                    this.reservednicks.push(reservedNick);
+                }
                 if (expiry > 0) {
                     setTimeout(() => {
                         const index = this.reservednicks.indexOf(reservedNick);
@@ -765,8 +767,8 @@ class WTVIRC {
                             if (serverUsers && typeof serverUsers.delete === 'function') {
                                 const nickToRemove = this.findUserByUniqueId(sourceUniqueId);
                                 serverUsers.delete(nickToRemove);
+                                this.cleanupUserSession(nickToRemove);
                             }
-                            this.cleanupUserSession(user_name);
                             await this.broadcastToAllServers(`:${nickname}!${user_name}@${this.servername} QUIT :${message}\r\n`, socket);
                             break;
                         case 'JOIN':
@@ -2984,16 +2986,17 @@ class WTVIRC {
             socket.signedoff = true; // Just in case
         }
         if (socket.isserver) {
-            for (const [srvSocket, users] of this.serverusers.entries()) {
-                if (srvSocket === socket) {  
-                    for (const nickname of users) {
-                        // Remove all user data for this server
-                        this.cleanupUserSession(nickname);
-                    }
+            const srvUsers = this.serverusers.get(socket) || [];
+            for (const nickname of srvUsers) {
+                // Remove all user data for this server
+                this.debugLog('debug', `Removing user ${nickname} from server ${socket.servername}`);
+                if (users && typeof users.delete === 'function') {
+                    users.delete(nickname);
                 }
+                this.cleanupUserSession(nickname);                        
             }
-            this.servers.filter(s => s !== socket);
-            this.serverusers.filter(s => s !== socket);
+            this.servers.delete(socket);
+            this.serverusers.delete(socket);
         } else {
             this.clients.filter(c => c !== socket);
         }        
