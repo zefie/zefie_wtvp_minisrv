@@ -2682,7 +2682,7 @@ class WTVIRC {
 
                         var output_lines = [];
                         for (const [ch, channelObj] of this.channelData.entries()) {
-                            if (channelObk.users.has(whoisNick)) {
+                            if (channelObj.users.has(whoisNick)) {
                                 let prefix = '';
                                 var chanops = channelObj.ops;
                                 var chanhalfops = channelObj.halfops;
