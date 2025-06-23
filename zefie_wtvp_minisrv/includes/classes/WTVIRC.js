@@ -348,7 +348,7 @@ class WTVIRC {
                 Object.entries(servers).forEach(async ([key, serverObj]) => {
                     if (serverObj.password && serverObj.password === password) {
                         matchedServer = serverObj;
-                        this.debugLog('warn', `Server ${serverObj.name || key} matched with provided password`);
+                        this.debugLog('info', `Server ${serverObj.name || key} matched with provided password`);
                         await this.safeWriteToSocket(socket, `PASS ${serverObj.password}\r\n`);
                         socket.is_srv_authorized = true;                        
                         var totalSockets = this.clients.length + this.servers.size;
@@ -357,6 +357,7 @@ class WTVIRC {
                     }
                 });
                 if (!matchedServer) {
+                    this.debugLog('warn', 'Invalid server password provided');
                     await this.safeWriteToSocket(socket, `:${this.servername} :ERROR :Invalid server password\r\n`);
                     socket.error_count++;
                     setTimeout((socket) => {
@@ -4284,18 +4285,6 @@ class WTVIRC {
         if (await this.scanSocketForKLine(socket)) {
             return; // If the socket is K-lined, exit early
         }
-        for (const [srvSocket, serverName] of this.servers.entries()) {
-            if (srvSocket) {
-                // Compose UID message for this client
-                const nickname = socket.nickname;
-                const username = socket.username || this.usernames.get(socket.nickname) || socket.nickname;
-                const uniqueId = socket.uniqueId;
-                const signonTime = socket.timestamp || this.getDate();
-                const userModes = (this.usermodes.get(nickname) || []).join('');
-                const userinfo = socket.userinfo || '';
-                await this.safeWriteToSocket(srvSocket, `:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${socket.host} ${socket.realhost} ${socket.remoteAddress} ${uniqueId} * ${nickname} :${userinfo}\r\n`);
-            }
-        }
         this.addUserUniqueId(nickname, socket.uniqueId);
         this.hostnames.set(nickname, socket.host);
         this.realhosts.set(nickname, socket.realhost);
@@ -4407,7 +4396,19 @@ class WTVIRC {
         }
         output_lines.push(`:${this.servername} 221 ${nickname} :+${this.usermodes.get(nickname).join('')}\r\n`);
         await this.sendThrottled(socket, output_lines);
-        await this.broadcastConnection(socket);    
+        await this.broadcastConnection(socket);
+        for (const [srvSocket, serverName] of this.servers.entries()) {
+            if (srvSocket) {
+                // Compose UID message for this client
+                const nickname = socket.nickname;
+                const username = socket.username || this.usernames.get(socket.nickname) || socket.nickname;
+                const uniqueId = socket.uniqueId;
+                const signonTime = socket.timestamp || this.getDate();
+                const userModes = (this.usermodes.get(nickname) || []).join('');
+                const userinfo = socket.userinfo || '';
+                await this.safeWriteToSocket(srvSocket, `:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${socket.host} ${socket.realhost} ${socket.remoteAddress} ${uniqueId} * ${nickname} :${userinfo}\r\n`);
+            }
+        } 
     }
 }
 
