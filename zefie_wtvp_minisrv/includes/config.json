@@ -61,7 +61,7 @@
       ]
     },
     "irc": {
-      "enabled": true,
+      "enabled": false,
       "port": 1667,
       "oper_username": "minisrv",
       "oper_password": "changeme573",
@@ -78,6 +78,22 @@
           "name": "#general",
           "modes": ["n","t"],
           "topic": "General Chat Channel",
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        { 
+          "name": "#WebTV",
+          "modes": ["n", "t", "c", "C", "T"],
+          "topic": "Welcome to the WebTV channel",
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        {
+          "name": "#secure",
+          "modes": ["n", "t", "S", "Z"],
+          "topic": "SSL only chat",
           "ops": [
             "*!*@127.0.0.1"
           ]
