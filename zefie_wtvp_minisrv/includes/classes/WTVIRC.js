@@ -4396,7 +4396,6 @@ class WTVIRC {
         }
         output_lines.push(`:${this.servername} 221 ${nickname} :+${this.usermodes.get(nickname).join('')}\r\n`);
         await this.sendThrottled(socket, output_lines);
-        await this.broadcastConnection(socket);
         for (const [srvSocket, serverName] of this.servers.entries()) {
             if (srvSocket) {
                 // Compose UID message for this client
@@ -4409,6 +4408,7 @@ class WTVIRC {
                 await this.safeWriteToSocket(srvSocket, `:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${socket.host} ${socket.realhost} ${socket.remoteAddress} ${uniqueId} * ${nickname} :${userinfo}\r\n`);
             }
         } 
+        await this.broadcastConnection(socket);
     }
 }
 
