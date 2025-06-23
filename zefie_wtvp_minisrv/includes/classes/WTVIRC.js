@@ -2992,10 +2992,10 @@ class WTVIRC {
                     }
                 }
             }
-            this.servers.delete(socket);
-            this.serverusers.delete(socket);
+            this.servers.filter(s => s !== socket);
+            this.serverusers.filter(s => s !== socket);
         } else {
-            this.clients.delete(socket);
+            this.clients.filter(c => c !== socket);
         }        
         if (socket._idleInterval) {
             clearInterval(socket._idleInterval);
