@@ -930,6 +930,7 @@ class WTVIRC {
                                 break;
                             }
                             var sourceUsername = this.usernames.get(nickname) || nickname;
+                            const host = this.hostnames.get(nickname) || socketSource.host;
                             if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
                                 // It's a channel, broadcast to all users in the channel except the source
                                 if (this.channelData.has(targetUniqueId)) {
@@ -937,7 +938,8 @@ class WTVIRC {
                                     for (const user of users) {
                                         const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                                         if (userSocket && userSocket.uniqueId !== sourceUniqueId) {
-                                            await this.sendThrottled(userSocket, [`:${nickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetUniqueId} :${message}\r\n`], 30);
+                                            const host = this.hostnames.get(user) || socketSource.host;
+                                            await this.sendThrottled(userSocket, [`:${nickname}!${sourceUsername}@${host} ${srvCommand} ${targetUniqueId} :${message}\r\n`], 30);
                                             await this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                                         }
                                     }
@@ -956,7 +958,7 @@ class WTVIRC {
                             if (this.clientIsWebTV(targetSocket)) {
                                 srvCommand = 'PRIVMSG';
                             }
-                            await this.sendThrottled(targetSocket, [`:${nickname}!${sourceUsername}@${sourceSocket.host} ${srvCommand} ${targetNickname} :${message}\r\n`], 30);
+                            await this.sendThrottled(targetSocket, [`:${nickname}!${sourceUsername}@${host} ${srvCommand} ${targetNickname} :${message}\r\n`], 30);
                             await this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
                             break;
                         case "WHOIS":
@@ -4079,7 +4081,6 @@ class WTVIRC {
                     return;
                 }
             }
-
         }
         for (let j = 0; j < modeChars.length; j++) {
             let param = null;
