@@ -474,7 +474,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
 }
 
 async function handlePHP(socket, request_headers, php_file, vault, service_name, session_data = null, extra_path = "") {
-    handleCGI(minisrv_config.config.php_binpath, php_file, socket, request_headers, vault, service_name, session_data, extra_path);
+    await handleCGI(minisrv_config.config.php_binpath, php_file, socket, request_headers, vault, service_name, session_data, extra_path);
 }
 
 async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name, shared_romcache = null, pc_services = false) {
@@ -651,6 +651,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         }
                     } else {
                         // php is not enabled, don't expose source code
+                        service_vault_found = true;
                         var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
@@ -678,6 +679,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                         }
                     } else {
                         // php is not enabled, don't expose source code
+                        service_vault_found = true;
                         var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
