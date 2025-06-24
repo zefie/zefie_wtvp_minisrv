@@ -873,7 +873,7 @@ class WTVIRC {
                                 this.debugLog('warn', `No socket found for target unique ID ${targetUniqueId}`);
                                 break;
                             }
-                            await this.safeWriteToSocket(targetSocket, `:${targetSocket.nickname} MODE ${targetSocket.nickname} ${parts.slice(2).join(' ')}\r\n`);
+                            await this.safeWriteToSocket(targetSocket, `:${nickname} MODE ${targetSocket.nickname} ${parts.slice(2).join(' ')}\r\n`);
                             if (this.clientIsWebTV(targetSocket) && this.enable_webtv_command_hacks) {
                                 await this.sendWebTVNoticeTo(targetSocket, `The network has set your user mode: ${parts.slice(3).join(' ')}`);
                             }
