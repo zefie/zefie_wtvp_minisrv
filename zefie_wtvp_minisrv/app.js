@@ -2382,7 +2382,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     if (typeof(minisrv_config.services[k]) === 'function') return;
     if (configureService(k, minisrv_config.services[k], true)) {
         var using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
-        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Bind Port:", !minisrv_config.services[k].nobind, "- PC Services Mode:", (minisrv_config.services[k].pc_services) ? true : false);
+        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Mode:", (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP");
 
         if (minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
