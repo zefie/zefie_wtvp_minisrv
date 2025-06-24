@@ -3234,6 +3234,7 @@ class WTVIRC {
                 exemptions: new Set(),
                 invites: new Set(),
                 modes: [...this.default_channel_modes],
+                mlock: [],
                 limit: null,
                 key: null,
                 timestamp: this.getDate()

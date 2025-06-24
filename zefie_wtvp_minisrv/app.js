@@ -15,7 +15,6 @@ const httpx = require(classPath + "/HTTPX.js");
 const net = require('net');
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
-const { crc16 } = require('easy-crc');
 const process = require('process');
 const WTVSec = require(classPath + "/WTVSec.js");
 const WTVLzpf = require(classPath + "/WTVLzpf.js");
@@ -2198,7 +2197,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 async function cleanupSocket(socket) {
     try {
         if (socket_sessions[socket.id]) {
-            if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Cleaning up disconnected socket", socket.id);
+            if (!minisrv_config.config.debug_flags.quiet) console.debug('* Cleaning up disconnected socket', socket.id, `(${socket_sessions[socket.id].socket_total_read} bytes read, ${socket_sessions[socket.id].socket_total_written} bytes written)`);
             delete socket_sessions[socket.id];
         }
         if (socket.ssid) {
@@ -2245,11 +2244,13 @@ async function handleSocket(socket) {
     socket.id = getSocketRandomID(socket);
     socket.ssid = null;
     socket_sessions[socket.id] = [];
+    socket_sessions[socket.id].socket_total_read = 0;
     socket.minisrv_pc_mode = false;
     socket.setEncoding('hex'); //set data encoding (Text: 'ascii', 'utf8' ~ Binary: 'hex', 'base64' (do not trust 'binary' encoding))
     socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
     socket.on('data', function (data_hex) {
         if (socket_sessions[socket.id]) {
+            socket_sessions[socket.id].socket_total_read += data_hex.length / 2; // hex encoding, so divide by 2
             if (!socket_sessions[socket.id].secure && !socket_sessions[socket.id].expecting_post_data) {
                 // buffer unencrypted data until we see the classic double-newline, or get blank
                 if (!socket_sessions[socket.id].header_buffer) socket_sessions[socket.id].header_buffer = "";
