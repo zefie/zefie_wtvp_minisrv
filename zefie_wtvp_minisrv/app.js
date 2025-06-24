@@ -2197,7 +2197,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 async function cleanupSocket(socket) {
     try {
         if (socket_sessions[socket.id]) {
-            if (!minisrv_config.config.debug_flags.quiet) console.debug('* Cleaning up disconnected socket', socket.id, `(${socket_sessions[socket.id].socket_total_read} bytes read, ${socket_sessions[socket.id].socket_total_written} bytes written)`);
+            if (!minisrv_config.config.debug_flags.quiet) console.debug('* Cleaning up disconnected socket', socket.id, `(${socket_sessions[socket.id].socket_total_read || 0} bytes read, ${socket_sessions[socket.id].socket_total_written || 0} bytes written)`);
             delete socket_sessions[socket.id];
         }
         if (socket.ssid) {
