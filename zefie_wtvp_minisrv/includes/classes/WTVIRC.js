@@ -2294,6 +2294,13 @@ class WTVIRC {
                             return;
                         }
                         for (var t of targets) {
+                            if (t === this.servername) {
+                                var msg = line.slice(line.indexOf(':', 1) + 1);
+                                if (msg.startsWith("\x01VERSION")) {
+                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :${this.servername} zefIRCd v${this.version} - WebTV compatible IRC server\r\n`);
+                                    break;
+                                }
+                            }
                             let isChan = false;
                             for (const prefix of this.channelprefixes) {
                                 if (t.startsWith(prefix)) {
@@ -2434,7 +2441,6 @@ class WTVIRC {
                                     socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
                                     break;
                                 }
-                                break;
                             }
                             for (const prefix of this.channelprefixes) {
                                 if (t.startsWith(prefix)) {
