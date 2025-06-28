@@ -254,7 +254,7 @@ ${page_start}-${page_end}
                                 var message = messages[k].article;
                                 var has_relation = (messages[k].relation !== null) ? true : false;
                                 var date_obj = new Date(Date.parse(message.headers.DATE));
-                                var date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d", date_obj)
+                                var date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d '%y", date_obj)
                                 data += `
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -591,11 +591,11 @@ ${strftime("%a, %b %e, %Y, %I:%M%P", new Date(Date.parse(response.article.header
 <td valign=top>
 From:
 <td>`;
-                //              if (message.from_name != message.from_addr) {
-                //                    data += `<a href="client:showalert?sound=none&message=Would%20you%20like%20to%20add%20%3Cblackface%3E${wtvshared.htmlEntitize(message.from_name)}%3C%2Fblackface%3E%20to%20your%20address%20list%3F&buttonlabel2=No&buttonaction2=client:donothing&buttonlabel1=Yes&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">${wtvshared.htmlEntitize(message.from_addr)} </a>`;
-                //                } else {
+                              if (message.from_name != message.from_addr) {
+                                    data += `<a href="client:showalert?sound=none&message=Would%20you%20like%20to%20add%20%3Cblackface%3E${wtvshared.htmlEntitize(message.from_name)}%3C%2Fblackface%3E%20to%20your%20address%20list%3F&buttonlabel2=No&buttonaction2=client:donothing&buttonlabel1=Yes&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">${wtvshared.htmlEntitize(message.from_addr)} </a>`;
+                                } else {
                 data += `${wtvshared.htmlEntitize(response.article.headers.FROM)}`;
-                //                }
+                                }
 
                 data += `<tr>
 <td nowrap valign=top>

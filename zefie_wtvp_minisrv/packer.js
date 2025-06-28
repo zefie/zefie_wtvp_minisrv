@@ -1,3 +1,6 @@
+'use strict';
+const path = require('path');
+var classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;                                       require(classPath + "Prototypes.js");
 const { WTVShared } = require(classPath + "/WTVShared.js");
 var wtvshared = new WTVShared(null, true);
 const fs = require('fs');

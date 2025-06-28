@@ -70,8 +70,8 @@
 	"services": {
 		"wtv-1800": {
 			"send_tellyscripts": true,
-			"send_tellyscript_ssid_whitelist": [
-				// send only these SSIDs a tellyscript
+			"tellyscript_ssid_blacklist": [
+				// do not send these SSIDs a tellyscript
 				"8100000000000000",
 				"8120000000000000"
 			]

@@ -60,8 +60,58 @@
         "includes/reservedWords.json"
       ]
     },
+    "irc": {
+      "enabled": false,
+      "port": 1667,
+      "oper_username": "minisrv",
+      "oper_password": "changeme573",
+      "oper_enabled": false, // Don't enable with default credentials!
+      "channel_limit": 10,
+      "enable_ssl": true,
+      "ssl_cert": {
+          /* self-signed, can be replaced with another cert */
+          "cert": "%ServiceDeps%/irc/selfsigned_cert.pem",
+          "key": "%ServiceDeps%/irc/selfsigned_key.pem"
+      },
+      "channels": [
+        {
+          "name": "#general",
+          "modes": ["n","t"],
+          "topic": "General Chat Channel",
+          "intro": [
+            "Welcome to the general chat channel!"
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        { 
+          "name": "#WebTV",
+          "modes": ["n", "t", "c", "C", "T"],
+          "topic": "Welcome to the WebTV channel",
+          "intro": [
+            "Welcome to the WebTV channel!"
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        {
+          "name": "#secure",
+          "modes": ["n", "t", "S", "Z"],
+          "topic": "SSL only chat",
+          "intro": [
+            "Welcome to zefie's secure hangout",
+            "Here, all traffic is SSL encrypted."
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        }
+      ]
+    },
     "pc_admin": {
-      "enabled": true,
+      "enabled": false,
       "ip_whitelist": [
         "192.168.1.0/24",
         "127.0.0.1"
@@ -192,7 +242,14 @@
       "connections": 1,
       "flags": "0x00000001",
       "privileged": true,
-      "send_tellyscripts": true // Best left untouched
+      "send_tellyscripts": true, // Best left untouched
+      "send_tellyscript_to_mame": true,
+      "dialin_number": 18006138199,
+      "dns1ip": "10.0.0.50",
+      "dns2ip": "8.8.8.8",
+      "modules": [
+        "WTVTellyScript"
+      ]
     },
     "wtv-flashrom": {
       // wtv-flashrom
@@ -269,7 +326,7 @@
       ]
     },
     "wtv-passport": {
-      // wtv-password (for messenger)
+      // wtv-passport (for messenger)
       "port": 1654
     },
     "wtv-favorite": {

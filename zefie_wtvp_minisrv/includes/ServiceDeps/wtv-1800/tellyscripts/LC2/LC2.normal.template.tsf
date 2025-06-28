@@ -1,0 +1,110 @@
+InitGeneratedValues()
+{
+		printf("TS: %ServiceName% minisrv Generated Artemis TellyScript");
+		setani("");
+		setlocalpopcount(1);
+		gNVRAMMayBeInvalid = 0;
+		gDisguiseRate = 1;
+
+		gUsingOpenISP = 0;
+		gEnable56K = UnknownFunc(1);
+        if (gEnable56K = 0x42554646 /* BUFF */) {
+                gEnable56K = 1;
+        }
+		printf("TS: Setting NameServers: %DNSIP1%, %DNSIP2%");
+		setnameservice(%DNS1%, %DNS2%);
+		gBlock911 = 1;
+		gWantsVideoAd = 1;
+			
+		gUsername = getserialnumber();
+		gPAPPassword = "dummy";
+		gCHAPSecret = "=1lpHL>=bTVKh1Z?26";
+		return 0;
+}
+
+LoginToPOP(int Fb, int Gb)
+{
+	return PAPChat("wtv_%s", 0);
+}
+
+ChatWithIndexedProvider(int idx)
+{
+	if (idx == 48) {
+		return LoginToPOP(71, 100);
+	}
+	
+	return 16;
+}
+
+DialIndexedPOP(char *staticConfig, char *dynamicConfig, int seq_idx, int idx, 
+int *err)
+{
+	char *accessNumber, *accessProvider, *Lb = "";
+	int ka;
+	
+	if (seq_idx == 48) {
+		accessNumber = "%DialinNumber%";
+		accessProvider = "artemis";
+		ka = 1;
+	} else {
+		printf("BUG!");
+		*err = 16;
+		return 2;
+	}
+	
+	setfullpopnumber(Lb);
+	return DialIAP(staticConfig, dynamicConfig, accessProvider, accessNumber, ka, err);
+}
+
+
+PatternDial(char* staticConfig, char* dynamicConfig)
+{
+	int pMinute, pHour, pMonth, pYear, pDayOfWeek;
+	int Rb, Sb;
+
+	WhatTimeIsIt(&pMinute, &pHour, &pMonth, &pYear, &pDayOfWeek);
+	Rb = pYear * 100 + pMonth;
+	Sb = pHour * 100 + pMinute;
+	
+	printf("TS: using set for %d %d:%02d %d", 
+	Rb, pHour, pMinute, pDayOfWeek);
+	
+	{
+		{
+			{
+				return DialByIndex(staticConfig, dynamicConfig, "00");
+			}
+		}
+	}
+	
+	return 1;
+	
+}
+
+
+AccessDial(char* staticConfig, char* dynamicConfig, char* accessNumber)
+{
+	int tb, ub, vb;
+	
+	if (version() >= 8) {
+		vb = getconnectretrycount();
+	} else {
+		vb = 0;
+	}
+	
+	printf("TS: next=%d", vb);
+	
+	if (vb)
+	return 13;
+	
+	tb = DialIAP(staticConfig, dynamicConfig, 
+	"-access-", accessNumber, 1, &ub);
+	if (tb) {
+		setdtr(0);
+		return ub;
+	}
+	ub = LoginToPOP(71, 100);
+	
+	return ub;
+}
+

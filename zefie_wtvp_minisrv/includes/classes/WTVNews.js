@@ -512,11 +512,11 @@ class WTVNews {
 
             if (message_relations[message_id_roots[k].messageId]) {
                 var relations = [];
-                Object.keys(message_relations[message_id_roots[k].messageId]).forEach((j) => {
+                Object.keys(message_relations[message_roots_sorted[k].article.messageId]).forEach((j) => {
                     // sort relations by date
-                    var article = messages[message_relations[message_id_roots[k].messageId][j].index];
+                    var article = messages[message_relations[message_roots_sorted[k].article.messageId][j].index];
                     var article_date = Date.parse(article.headers.DATE);
-                    relations.push({ "article": article, "relation": message_id_roots[k].messageId || null, "date": article_date })
+                    relations.push({ "article": article, "relation": message_roots_sorted[k].article.messageId || null, "date": article_date })
                 });
                 relations.sort((a, b) => { return (a.date - b.date) });
                 Object.keys(relations).forEach((j) => {

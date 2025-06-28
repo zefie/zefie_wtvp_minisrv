@@ -16,11 +16,13 @@ tricks = [
 	["wtv-tricks:/info", minisrv_config.config.service_name + " info"],
 	["wtv-cookie:list", "List Cookies"],
 	["wtv-cookie:reset", "Clear Cookies"],
-	["wtv-tricks:/blastblacklist?return_to=wtv-tricks%3A%2Ftricks", "Blast Blacklist"],
+	["wtv-tricks:/blastbacklist?return_to=wtv-tricks%3A%2Ftricks", "Blast Backlist"],
 	["client:ResetNVAndPowerOff", "Blast NVRAM"],
 	["wtv-tricks:/charmap", "Character Map"],
 	["wtv-tricks:/cSetup", "Connect Setup"],
-	["wtv-tricks:/benchmark", "Speed Test"]
+	["wtv-tricks:/benchmark", "Speed Test"],
+	["wtv-flashrom:/big-willie", "Big Willie"],
+    ["wtv-flashrom:/willie", "Ultra Willie"]
 ]
 // add these at the bottom
 tricks.push((session_data.getSessionData("registered")) ? ["wtv-tricks:/unregister", "Unregister This Box"] : ["wtv-tricks:/register", "Register This Box"]); // reg/unreg

@@ -163,7 +163,7 @@ class WTVSec {
     }
 
     setTicketData(key, value) {
-        if (key === null) throw ("WTVSec.ssetTicketDataet(): invalid key provided");
+        if (key === null) throw ("WTVSec.setTicketData(): invalid key provided");
         if (typeof (this.ticket_store) === 'undefined') this.ticket_store = {};
         this.ticket_store[key] = value;
         if (this.ticket_b64) this.PrepareTicket();

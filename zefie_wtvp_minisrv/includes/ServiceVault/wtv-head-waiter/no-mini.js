@@ -5,9 +5,6 @@ session_data.disableLockdown();
 ssid_sessions[socket.ssid].delete("wtv-need-upgrade")
 ssid_sessions[socket.ssid].delete("wtv-")
 
-headers = `200 OK
-Content-type: text/html
-wtv-expire: wtv-home:
-wtv-visit: wtv-home:/home`;
-
-data = '';
+errpage = wtvshared.doRedirect("wtv-home:/home")
+headers = errpage[0];
+data = errpage[1];

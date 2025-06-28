@@ -105,15 +105,17 @@ class WTVAdmin {
     }
 
     isInSubnet(ip, subnet) {
-        if (subnet.indexOf('/') == -1) {
-            var mask, base_ip, long_ip = this.ip2long(ip);
-            var mask2, base_ip2, long_ip2 = this.ip2long(ip);
-            return (long_ip == long_ip2);
+        // If subnet is given as a single IP address (no CIDR notation)
+        if (subnet.indexOf('/') === -1) {
+            return this.ip2long(ip) === this.ip2long(subnet);
         } else {
-            var mask, base_ip, long_ip = this.ip2long(ip);            
-            if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = this.ip2long(mask[1])) >= 0)) {
-                var freedom = Math.pow(2, 32 - parseInt(mask[2]));
-                return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+            // Expect subnet in format "base_ip/prefix_length"
+            let parts = subnet.match(/^(.*?)\/(\d{1,2})$/);
+            if (parts && (this.ip2long(parts[1]) >= 0)) {
+                let base_ip = this.ip2long(parts[1]);
+                let prefixLength = parseInt(parts[2]);
+                let freedom = Math.pow(2, 32 - prefixLength);
+                return (this.ip2long(ip) >= base_ip) && (this.ip2long(ip) < base_ip + freedom);
             }
         }
         return false;
@@ -185,6 +187,7 @@ class WTVAdmin {
                             allowed_ssid = true;
                             Object.keys(self.minisrv_config.services[self.service_name].authorized_ssids[k]).forEach(function (j) {
                                 if (self.isInSubnet(self.clientAddress, self.minisrv_config.services[self.service_name].authorized_ssids[k][j])) {
+                                    if (allowed_ip) return;
                                     allowed_ip = true;
                                 }
                             });
@@ -194,9 +197,15 @@ class WTVAdmin {
             }
         } else {
             if (this.pcservices) {
+                if (!this.minisrv_config.config.pc_admin.enabled) {
+                    if (justchecking) return false;
+                    else return this.rejectConnection(false);
+                }
+
                 if (this.minisrv_config.config.pc_admin.ip_whitelist) {
                     var self = this;
                     Object.keys(this.minisrv_config.config.pc_admin.ip_whitelist).forEach(function (k) {
+                        if (allowed_ip) return;
                         allowed_ip = self.isInSubnet(self.clientAddress, self.minisrv_config.config.pc_admin.ip_whitelist[k]);
                     });
                 }
