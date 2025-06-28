@@ -78,6 +78,9 @@
           "name": "#general",
           "modes": ["n","t"],
           "topic": "General Chat Channel",
+          "intro": [
+            "Welcome to the general chat channel!"
+          ],
           "ops": [
             "*!*@127.0.0.1"
           ]
@@ -86,6 +89,9 @@
           "name": "#WebTV",
           "modes": ["n", "t", "c", "C", "T"],
           "topic": "Welcome to the WebTV channel",
+          "intro": [
+            "Welcome to the WebTV channel!"
+          ],
           "ops": [
             "*!*@127.0.0.1"
           ]
@@ -94,6 +100,10 @@
           "name": "#secure",
           "modes": ["n", "t", "S", "Z"],
           "topic": "SSL only chat",
+          "intro": [
+            "Welcome to zefie's secure hangout",
+            "Here, all traffic is SSL encrypted."
+          ],
           "ops": [
             "*!*@127.0.0.1"
           ]

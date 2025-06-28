@@ -1913,6 +1913,19 @@ class WTVIRC {
                         var channelObj = this.channelData.get(ch);
                         channelObj.users.add(socket.nickname);
                         await this.broadcastChannelJoin(ch, socket);
+                        if (
+                            this.irc_config &&
+                            Array.isArray(this.irc_config.channels)
+                        ) {
+                            const channel_data = this.irc_config.channels.find(cfg => cfg.name === ch);
+                            if (channel_data && channel_data.intro) {
+                                // Send intro messages (array of lines) to the joining user only
+                                for (const line of channel_data.intro) {
+                                    await this.safeWriteToSocket(socket, `:${ch}!system@${this.servername} PRIVMSG ${ch} :${line}\r\n`);
+                                }
+                            }
+                        }
+
                         let modes = channelObj.modes;         
                         let prefix = '';
                         if (channelObj.ops.has(socket.nickname)) {
