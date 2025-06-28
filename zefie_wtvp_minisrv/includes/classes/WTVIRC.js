@@ -2297,7 +2297,20 @@ class WTVIRC {
                             if (t === this.servername) {
                                 var msg = line.slice(line.indexOf(':', 1) + 1);
                                 if (msg.startsWith("\x01VERSION")) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :${this.servername} zefIRCd v${this.version} - WebTV compatible IRC server\r\n`);
+                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :${this.servername} zefIRCd ${this.version} - zefIRCd IRC server - a part of the zefie minisrv project\r\n`);
+                                    break;
+                                }
+                                if (msg.startsWith("\x01PING")) {
+                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :\x01PING ${this.getDate()}\r\n`);
+                                    break;
+                                }
+                                if (msg.startsWith("\x01TIME")) {
+                                    const dateObj = new Date();
+                                    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                                    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                    const pad = n => n.toString().padStart(2, '0');
+                                    const formattedDate = `${dayNames[dateObj.getDay()]} ${monthNames[dateObj.getMonth()]} ${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:${pad(dateObj.getSeconds())} ${dateObj.getFullYear()}`;
+                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :\x01TIME ${formattedDate}\x01\r\n`);
                                     break;
                                 }
                             }
@@ -2878,7 +2891,7 @@ class WTVIRC {
                     if (!this.checkRegistered(socket)) {
                         break;
                     }
-                    await this.safeWriteToSocket(socket, `:${this.servername} 351 ${socket.nickname} ${this.servername} zefIRCd ${this.version} :zefIRCd IRC server\r\n`);
+                    await this.safeWriteToSocket(socket, `:${this.servername} 351 ${socket.nickname} ${this.servername} zefIRCd ${this.version} :zefIRCd IRC server - a part of the zefie minisrv project\r\n`);
                     break;
                 case 'WALLOPS':
                     if (!this.checkRegistered(socket)) {
