@@ -662,6 +662,10 @@ class WTVShared {
         return this.getFileLastModified(file).toUTCString();
     }
 
+    getFileLastModifiedUTCObj(file) {
+        return new Date(new Date().setUTCSeconds(this.getFileLastModified(file).getUTCSeconds()));
+    }
+
     /**
      * Returns a RFC7231 compliant UTC Date String from the current time
      * @param {Number} offset Offset from current time (+/-)

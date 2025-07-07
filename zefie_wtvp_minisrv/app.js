@@ -1412,6 +1412,8 @@ async function sendToClient(socket, headers_obj, data = null) {
     var headers = "";
     var content_length = 0;
     var eol = "\n";
+    var timezone = "-0000";
+
     if (typeof (data) === 'undefined' || data === null) data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -1435,6 +1437,7 @@ async function sendToClient(socket, headers_obj, data = null) {
                         // logged in
                         headers_obj['wtv-mail-count'] = ssid_sessions[socket.ssid].mailstore.countUnreadMessages(0);
                     }
+                    timezone = ssid_sessions[socket.ssid].getSessionData("timezone") || "-0000"
                 }
             }
         } else {
@@ -1483,8 +1486,15 @@ async function sendToClient(socket, headers_obj, data = null) {
                         wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "php" ||
                         wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "cgi" ||
                         socket_sessions[socket.id].request_headers.raw_file === true) {
-                            var last_modified = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
-                            if (last_modified) headers_obj["Last-Modified"] = last_modified;
+                            if (socket.res) {
+                                var last_modified_formatted = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
+                            } else {
+                                var last_modified = wtvshared.getFileLastModifiedUTCObj(socket_sessions[socket.id].request_headers.service_file_path);
+                                var strftime = require('strftime');
+                                var strf = strftime.timezone(timezone);
+                                var last_modified_formatted = strf("%a, %d %b %Y %H:%M:%S", last_modified);                             
+                            }
+                        if (last_modified_formatted) headers_obj["Last-Modified"] = last_modified_formatted;
                     }
                 }
             }

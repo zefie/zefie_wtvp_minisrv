@@ -34,7 +34,8 @@ else {
 		var human_name = nickname;
 		var userid = '1' + Math.floor(Math.random() * 1000000000000000000);
 		var messenger_enabled = 0;
-		var messenger_authorized = 0;
+		var messenger_authorized = 0;		
+		var timezone = "-0000";
 		if (request_headers.query.skip_splash) gourl = "wtv-home:/home?";
 		else gourl = "wtv-home:/splash?";
 	} else if (!session_data.getSessionData("registered")) {
@@ -48,6 +49,7 @@ else {
 		var messenger_enabled = session_data.getSessionData("messenger_enabled") || 0;
 		var messenger_authorized = session_data.getSessionData("messenger_authorized") || 0;
 		var messenger_email = session_data.getSessionData("messenger_email");
+		var timezone = session_data.getSessionData("timezone") || "-0000";
 		var gourl = "wtv-home:/splash?";
 	}
 	var limitedLogin = session_data.lockdown;
@@ -87,10 +89,11 @@ wtv-expire-all: wtv-head-waiter:
 `;
 
 	if (!limitedLogin && !limitedLoginRegistered) {
-		headers += `wtv-client-time-zone: GMT -0000
+		
+		headers += `wtv-country: US
+wtv-client-time-zone: GMT ${timezone}
 wtv-client-time-dst-rule: GMT
-wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + ` GMT
-wtv-country: US
+wtv-client-date: ${new Date().toUTCString()}
 wtv-language-header: en-US,en
 wtv-noback-all: wtv-
 wtv-transition-override: off
