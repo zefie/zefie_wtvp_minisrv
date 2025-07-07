@@ -22,7 +22,8 @@ tricks = [
 	["wtv-tricks:/cSetup", "Connect Setup"],
 	["wtv-tricks:/benchmark", "Speed Test"],
 	["wtv-flashrom:/big-willie", "Big Willie"],
-    ["wtv-flashrom:/willie", "Ultra Willie"]
+    ["wtv-flashrom:/willie", "Ultra Willie"],
+	["wtv-setup:/transfer-account", "Transfer Account"],
 ]
 // add these at the bottom
 tricks.push((session_data.getSessionData("registered")) ? ["wtv-tricks:/unregister", "Unregister This Box"] : ["wtv-tricks:/register", "Register This Box"]); // reg/unreg

@@ -1176,7 +1176,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
     headers["wtv-http-proxy"] = true;
     headers["wtv-trusted"] = false;
 
-    if (res.headers['Content-Type'].substr(0, 4) == "text") {
+    if (typeof res.headers['Content-Type'] === 'string' && res.headers['Content-Type'].startsWith("text")) {
         if (request_type != "http" && request_type != "https") {
             // replace http and https links on non http/https protocol (for proto:// for example)
             var data_t = data.toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
