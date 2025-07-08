@@ -89,11 +89,11 @@ wtv-expire-all: wtv-head-waiter:
 `;
 
 	if (!limitedLogin && !limitedLoginRegistered) {
-		
+		strf = strftime.timezone(timezone);
 		headers += `wtv-country: US
-wtv-client-time-zone: GMT ${timezone}
+wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: GMT
-wtv-client-date: ${new Date().toUTCString()}
+wtv-client-date: ${strf("%a, %d %b %Y %H:%M:%S", new Date(new Date().setUTCSeconds(new Date().getUTCSeconds())))}
 wtv-language-header: en-US,en
 wtv-noback-all: wtv-
 wtv-transition-override: off

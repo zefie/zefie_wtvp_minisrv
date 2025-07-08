@@ -17,7 +17,7 @@ wtv-expire-all: wtv-
 wtv-expire-all: http
 wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: false
-wtv-client-date: ${strf("%a, %d %b %Y %H:%M:%S", new Date(new Date().setUTCSeconds(new Date().getUTCSeconds())))} GMT
+wtv-client-date: ${strf("%a, %d %b %Y %H:%M:%S", new Date(new Date().setUTCSeconds(new Date().getUTCSeconds())))}
 Content-Type: text/html`
 
 
