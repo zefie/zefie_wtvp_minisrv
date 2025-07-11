@@ -12,9 +12,11 @@ const {spawn} = require('child_process');
 const http = require('follow-redirects').http
 const https = require('follow-redirects').https
 const httpx = require(classPath + "/HTTPX.js");
+const { URL } = require('url');
 const net = require('net');
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
+const sharp = require('sharp')
 const process = require('process');
 const WTVSec = require(classPath + "/WTVSec.js");
 const WTVLzpf = require(classPath + "/WTVLzpf.js");
@@ -238,6 +240,8 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "wtvmime": wtvmime,
         "http": http,
         "https": https,
+        "URL": URL,
+        "sharp": sharp,
         "wtvshared": wtvshared,
         "zlib": zlib,
         "clientShowAlert": clientShowAlert,

@@ -703,7 +703,6 @@ class WTVShared {
         return encoded.toUpperCase();
     }
 
-
     /**
      * Decodes a urlencoded string into a binary buffer
      * @param {string} encoded urlencoded string

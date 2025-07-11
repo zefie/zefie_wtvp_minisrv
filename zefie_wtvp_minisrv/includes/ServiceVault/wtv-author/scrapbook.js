@@ -2,7 +2,7 @@ var minisrv_service_file = true;
 
 var files = session_data.pagestore.listScrapbook();
 var dir = session_data.pagestore.scrapbookDir()
-var start = 12;
+var start = 0;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -158,14 +158,21 @@ Choose one of your saved images to view it full size.
 <table cellspacing=24 cellpadding=1 width=372 background="/ROMCache/light_blue_tile.gif">
 <tr>
 `
-for (let i = 0; i < 12; i++) {
+if (files.length === 0) {
+    data += `<td align=center valign=middle colspan=4>
+    <font color=AEBFD1 size=+1><blackface> Your scrapbook is empty. </blackface></font>
+    </td>`;
+} else {
+    for (let i = start; i < Math.min(files.length, start + 12); i++) {
 data += `
 <td align=center valign=middle>
 <A href=
-"${dir + files.i}" transition=light>
-<img src="${dir + files.i}" width=90>
+"wtv-tricks:/view-scrapbook-image?id=${files[i]}" transition=light>
+<img src="wtv-tricks:/view-scrapbook-image?id=${files[i]}&width=90" width=90>
 </A>
-</td>`
+</td>
+${i % 4 === 1 ? '</tr><tr>' : ''}`
+}
 }
 data += `
 </table>
