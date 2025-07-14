@@ -321,7 +321,6 @@ if (request_headers['wtv-request-type'] == 'download') {
 	Object.keys(service_vaults).forEach(function (g) {
 		if (diskmap_json_file != null) return;
 		diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
-        console.log("Checking diskmap file: " + diskmap_json_file);
 		if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
 	});
 	var diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
