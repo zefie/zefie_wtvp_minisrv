@@ -2,17 +2,17 @@
   "ModemFirmware": {
     "base": "file://Disk/Browser/Modem_Firmware/",
     "location": "content/Modem_Firmware/",
-	"execute_end": "client:ModemReload",
-	"service_owned": true,
-    "files": [
-      {
-        "file": "file://Disk/Browser/Modem_Firmware/Locale/en-US/modem_firmware.dat.gz",
-        "action": "delete"
-      },
-      {
-        "file": "file://Disk/Browser/Modem_Firmware/Locale/ja-JP/modem_firmware.dat.gz",
-        "action": "delete"
-      }
-   ]
+    "execute_end": "client:ModemReload",
+    "service_owned": true,
+      "files": [
+        {
+          "file": "file://Disk/Browser/Modem_Firmware/Locale/en-US/modem_firmware.dat.gz",
+          "action": "delete"
+        },
+        {
+          "file": "file://Disk/Browser/Modem_Firmware/Locale/ja-JP/modem_firmware.dat.gz",
+          "action": "delete"
+        }
+    ]
   }
 }
