@@ -10,5 +10,4 @@ if (!errpage) {
     headers = `200 OK
 Content-Type: image/jpeg`;
     data = new Buffer.from(page.blocks[blockNum].photo, 'base64');
-	console.log(data)
 }

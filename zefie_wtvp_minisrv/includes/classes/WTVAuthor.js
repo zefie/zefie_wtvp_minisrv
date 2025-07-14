@@ -299,6 +299,7 @@ class WTVAuthor {
 				break;
 				
 			case "snapshot":
+			case "scrapbook":
 				if (state == "publishing") {
 					block = this.generatePublishImageBlock(number, page)
 					break;

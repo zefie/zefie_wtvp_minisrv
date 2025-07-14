@@ -128,8 +128,13 @@ function StorageWarning() {	}
 <tr>
 <td colspan=2>
 <table><tr><td width=20><td width=380>
-<font color=AEBFD1>
-Choose one of your saved images to view it full size.
+<font color=AEBFD1>`;
+if (request_headers.query.addMediaURL) {
+    data += "Choose an image to add to your web page.";
+} else {
+    data += "Choose one of your saved images to view it full size.";
+}
+data += `
 </font>
 </table>
 <tr><td absheight=10>
@@ -164,12 +169,15 @@ if (files.length === 0) {
     </td>`;
 } else {
     for (let i = start; i < Math.min(files.length, start + 12); i++) {
+        url = "wtv-tricks:/view-scrapbook-image?id=" + files[i];
+        if (request_headers.query.addMediaURL) {
+            url = unescape(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i];
+        }
 data += `
 <td align=center valign=middle>
-<A href=
-"wtv-tricks:/view-scrapbook-image?id=${files[i]}" transition=light>
+<a href="${url}" transition=light>
 <img src="wtv-tricks:/view-scrapbook-image?id=${files[i]}&width=90" width=90>
-</A>
+</a>
 </td>
 ${i % 4 === 1 ? '</tr><tr>' : ''}`
 }

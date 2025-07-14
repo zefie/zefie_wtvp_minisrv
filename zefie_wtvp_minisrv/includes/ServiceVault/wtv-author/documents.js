@@ -53,7 +53,7 @@ data = `<HTML>
     <tr>
       <td>
       <td abswidth=93 absheight=26>
-        <table href="client:showalert?message=This%20feature%20is%20not%20available." cellspacing=0 cellpadding=0>
+        <table href="wtv-author:/scrapbook" cellspacing=0 cellpadding=0>
           <tr>
             <td abswidth=5>
             <td abswidth=90 valign=middle align=left>
