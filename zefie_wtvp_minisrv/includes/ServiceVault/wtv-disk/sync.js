@@ -1,6 +1,6 @@
 var minisrv_service_file = true;
 
-var diskmap = Object.getCaseInsensitiveKey(request_headers.query, "DiskMap");
+var diskmap = request_headers.query[wtvshared.getCaseInsensitiveKey("DiskMap", request_headers.query)];
 var wtvdl = new WTVDisk(minisrv_config, service_name);
 
 var force_update = (request_headers.query.force == "true") ? true : false;
@@ -213,7 +213,7 @@ if (request_headers['wtv-request-type'] == 'download') {
             Object.keys(service_vaults).forEach(function (g) {
                 if (diskmap_data_file != null) return;
                 diskmap_data_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
-                if (!fs.existsSync(diskmap_data_file)) diskmap_data_file = null;
+                if (!fs.existsSync(diskmap_data_file) || !fs.lstatSync(diskmap_data_file).isFile()) diskmap_data_file = null;
             });
 
             if (diskmap_data_file) {
@@ -254,7 +254,7 @@ if (request_headers['wtv-request-type'] == 'download') {
             Object.keys(post_data_fileinfo).forEach(function (g) {
                 if (post_data_fileinfo[g].file == wtv_download_list[k] || post_data_fileinfo[g].file == wtv_download_list[k].base) {
                     diskmap_group_data.group_exists = true;
-                    if (diskmap_group_data.files[k].checksum.toLowerCase() == post_data_fileinfo[g].checksum) wtv_download_list[k].invalid = false;
+                    if (diskmap_group_data.files[k].checksum && diskmap_group_data.files[k].checksum.toLowerCase() == post_data_fileinfo[g].checksum) wtv_download_list[k].invalid = false;
                     else if (post_data_fileinfo[g].version == wtv_download_list[k].version && post_data_fileinfo[g].state != "invalid") wtv_download_list[k].invalid = false;
                 }
             });
@@ -321,8 +321,9 @@ if (request_headers['wtv-request-type'] == 'download') {
 	Object.keys(service_vaults).forEach(function (g) {
 		if (diskmap_json_file != null) return;
 		diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
+        console.log("Checking diskmap file: " + diskmap_json_file);
 		if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
-	});	
+	});
 	var diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
 	if (!diskmap_data[request_headers.query.group]) {
 		throw ("Invalid diskmap data (group does not match)");

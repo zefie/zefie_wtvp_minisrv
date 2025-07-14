@@ -20,6 +20,7 @@ tricks = [
 	["client:ResetNVAndPowerOff", "Blast NVRAM"],
 	["wtv-tricks:/charmap", "Character Map"],
 	["wtv-tricks:/cSetup", "Connect Setup"],
+	["wtv-disk:/content/Downloads.tmpl", "Download-O-Rama"],
 	["wtv-tricks:/benchmark", "Speed Test"],
 	["wtv-flashrom:/big-willie", "Big Willie"],
     ["wtv-flashrom:/willie", "Ultra Willie"],
