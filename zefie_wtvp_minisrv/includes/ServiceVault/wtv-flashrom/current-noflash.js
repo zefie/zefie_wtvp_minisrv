@@ -4,7 +4,7 @@ request_is_async = true;
 
 // this build can be local or on zefie's server
 // to get the path from zefie's server, browse
-// https://archive.midnightchannel.net/zefie/files/wtv-flashrom/content/artemis-webtv-000/
+// https://flashrom.webtv.onl/content/artemis-webtv-000/
 // and put everything from 'content/' onwards, including the part000.rom filename
 // example is below
 var default_build_to_send = minisrv_config.services[service_name].bf0app_default_rom || "content/artemis-webtv-000/build7181/daily-nondebug/bf0app-part000.rom";
