@@ -226,12 +226,31 @@
       "port": 1607,
       "privileged": true
     },
+    "wtv-mail": {
+      // wtv-mail
+      "port": 1608,
+      "connections": 3,
+      "modules": [
+        "WTVNews"
+      ]
+    },
+    "mailto": {
+      "port": 1608
+    },    
     "wtv-log": {
       // wtv-log
       "port": 1609,
       "connections": 1,
       "write_logs_to_disk": false // set this to true to save logs to the error_log_file set above
     },
+    "wtv-favorite": {
+      // wtv-favorite
+      "port": 1611,
+      "connections": 3,
+      "enable_multi_query": true,
+      "max_folders": 14,
+      "max_favorites_per_folder": 18
+    },    
     "wtv-home": {
       // wtv-home
       "port": 1612
@@ -272,17 +291,19 @@
         "WTVRegister"
       ]
     },
-    "wtv-music": {
-      // wtv-music
-      "port": 1656,
-      "connections": 3,
-      "flags": "0x00000004"
-    },
     "wtv-cookie": {
       // wtv-cookie (used for http(s) cookies)
       "port": 1619,
       "connections": 1
     },
+    "wtv-guide": {
+      // wtv-guide (not yet complete)
+      "port": 1621,
+      "connections": 3,
+      "modules": [
+        "WTVGuide"
+      ]
+    },    
     "wtv-chat": {
       // wtv-chat (used for IRC)
       "port": 1630,
@@ -308,41 +329,6 @@
       "modules": [
         "WTVDisk"
       ]
-    },
-    "wtv-guide": {
-      // wtv-guide (not yet complete)
-      "port": 1621,
-      "connections": 3,
-      "modules": [
-        "WTVGuide"
-      ]
-    },
-    "wtv-mail": {
-      // wtv-mail
-      "port": 1608,
-      "connections": 3,
-      "modules": [
-        "WTVNews"
-      ]
-    },
-    "wtv-passport": {
-      // wtv-passport (for messenger)
-      "port": 1654
-    },
-    "wtv-favorite": {
-      // wtv-favorite
-      "port": 1611,
-      "connections": 3,
-      "enable_multi_query": true,
-      "max_folders": 14,
-      "max_favorites_per_folder": 18
-    },
-    "wtv-admin": {
-      // wtv-admin
-      "port": 1698,
-      "enable_multi_query": true,
-      "privileged": true,
-      "password": "viRak-7" // change to something more unique
     },
     "wtv-author": {
       "port": 1643,
@@ -384,8 +370,17 @@
       "external_proxy_port": 7851,
       "external_proxy_is_http1": true,
       "flags": "0x00000001"
+    },        
+    "wtv-passport": {
+      // wtv-passport (for messenger)
+      "port": 1654
     },
-
+    "wtv-music": {
+      // wtv-music
+      "port": 1656,
+      "connections": 3,
+      "flags": "0x00000004"
+    },    
     "pb_services": {
       // PC Services for PageBuilder
       "port": 1697,
@@ -398,6 +393,13 @@
       "allow_https": false, // for future use with LetsEncrypt
       "force_https": false // for future use with LetsEncrypt
     },
+    "wtv-admin": {
+      // wtv-admin
+      "port": 1698,
+      "enable_multi_query": true,
+      "privileged": true,
+      "password": "viRak-7" // change to something more unique
+    },    
     "pc_services": {
       // PC Services
       "port": 1699,
