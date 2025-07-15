@@ -6,6 +6,11 @@ This open source server is in beta status. Use at your own risk.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
+### Note:
+- This has nothing to do with streaming video.
+- This is a server for the MSNTV (formerly WebTV) set-top box, and its various emulators.
+- This does not support MSNTV2.
+
 ### Current status:
 - DB-less flat file client session store and registration system
 - Supports multiple simultaneous users
