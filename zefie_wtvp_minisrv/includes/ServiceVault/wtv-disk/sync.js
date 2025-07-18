@@ -316,22 +316,4 @@ if (request_headers['wtv-request-type'] == 'download') {
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
     }
-} else if (request_headers.query.group && diskmap) {
-	var diskmap_json_file = null;
-	Object.keys(service_vaults).forEach(function (g) {
-		if (diskmap_json_file != null) return;
-		diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
-		if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
-	});
-	var diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
-	if (!diskmap_data[request_headers.query.group]) {
-		throw ("Invalid diskmap data (group does not match)");
-	}
-	diskmap_data = diskmap_data[request_headers.query.group];
-    var message = request_headers.query.message || diskmap_data.message || "Retrieving files...";
-    var main_message = request_headers.query.main_message || diskmap_data.main_message || "Your receiver is downloading files.";
-	var success_url = request_headers.query.success_url || diskmap_data.success_url || null;
-	var fail_url = request_headers.query.fail_url || diskmap_data.fail_url || null;
-    headers = "200 OK\nContent-Type: text/html\nwtv-expire-all: wtv-disk:\nwtv-noback-all: wtv-disk:";
-    data = wtvdl.getSyncPage(message, request_headers.query.group, diskmap, main_message, message, force_update, no_delete, success_url, fail_url);
 }
