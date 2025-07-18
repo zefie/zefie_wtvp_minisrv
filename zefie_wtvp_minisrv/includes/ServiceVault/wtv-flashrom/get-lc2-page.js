@@ -42,12 +42,44 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 		}
 
 		if (!flashrom_info.is_last_part) {
-			flashrom_info.next_rompath = request_headers.request_url.replace(escape(request_headers.query.path), escape(flashrom_info.next_rompath.replace(service_name+":/","")));
+			flashrom_info.next_rompath = request_headers.request_url.replace(
+				escape(request_headers.query.path),
+				escape(flashrom_info.next_rompath.replace(service_name + ":/", ""))
+			);
 		}
+
+
+		const romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+		let defaultDownloadTime;
+		switch (romtype) {
+			case "US-LC2-disk-0MB-8MB":
+			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
+			case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
+			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
+			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
+				defaultDownloadTime = 30;
+				break;
+			case "US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230":
+				defaultDownloadTime = 20;
+				break;
+			default:
+				defaultDownloadTime = 15;
+				break;
+		}
+		let downloadTime = defaultDownloadTime;
+		const session = ssid_sessions[socket.ssid];
+		const now = Date.now();
+		if (session.lastDownloadTime) {
+			const elapsedMinutes = Math.ceil((now - session.lastDownloadTime) / 60000);
+			const remainingParts = flashrom_info.part_count - flashrom_info.part_number - 1;
+			downloadTime = elapsedMinutes * remainingParts;
+		}
+		session.lastDownloadTime = now;
+		
 
 		headers = `200 OK
 Content-type: text/html
-minisrv-no-mail-count: true`
+minisrv-no-mail-count: true`;
 
 		data = `<html>
 <head>
@@ -98,7 +130,7 @@ Updating now
 <font size=+1>
 Your ${session_data.getBoxName()} is being<br>updated automatically.
 <p> <font size=+1>
-This will take a while, and<br>then you can use your ${session_data.getBoxName()} again.
+This will take about ${downloadTime} minutes and<br>then you can use your ${session_data.getBoxName()} again.
 `;
 		if (flashrom_info.is_bootrom && flashrom_info.part_number == (flashrom_info.part_count - 1)) {
 			data += `<p>
@@ -107,7 +139,7 @@ This will take a while, and<br>then you can use your ${session_data.getBoxName()
 	during this time.
 	`
 		}
-data += `
+		data += `
 </font>
 <br><br><br><br><br>
 <upgradeblock width=250 height=15
@@ -162,6 +194,6 @@ ${flashrom_info.message}
 		headers = errpage[0];
 		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
 		data = errpage[1];
-    }
+	}
 	sendToClient(socket, headers, data);
 }
