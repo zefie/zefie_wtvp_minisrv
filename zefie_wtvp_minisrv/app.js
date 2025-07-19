@@ -1292,9 +1292,15 @@ async function doHTTPProxy(socket, request_headers) {
         }
         const req = proxy_agent.request(options, function (res) {
             var data = [];
+            var total_data = 0;
 
             res.on('data', d => {
                 data.push(d);
+                total_data += d.length;
+                if (total_data > 1024 * parseFloat(minisrv_config.services[request_type].max_response_size || 16)) {
+                    console.warn(` * Response data exceeded ${minisrv_config.services[request_type].max_response_size || 16}MB limit, destroying...`);
+                    res.destroy();
+                }
             })
 
             res.on('error', function (err) {
