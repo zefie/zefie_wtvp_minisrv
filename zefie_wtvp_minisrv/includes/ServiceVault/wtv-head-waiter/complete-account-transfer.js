@@ -19,6 +19,4 @@ if (result) {
     }).getURL();
 }
 
-var errpage = wtvshared.doRedirect(transferCanceled);
-var headers = errpage[0];
-var data = errpage[1];
+var [headers, data] = wtvshared.doRedirect(transferCanceled);

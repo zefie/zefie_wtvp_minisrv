@@ -39,9 +39,7 @@ else {
 		if (request_headers.query.skip_splash) gourl = "wtv-home:/home?";
 		else gourl = "wtv-home:/splash?";
 	} else if (!session_data.getSessionData("registered")) {
-		var errpage = wtvshared.doErrorPage(400);
-		headers = errpage[0];
-		data = errpage[1];
+		var [headers, data] = wtvshared.doErrorPage(400);
 	} else {
 		var userid = session_data.getSessionData("subscriber_userid")
 		var nickname = session_data.getSessionData("subscriber_username");

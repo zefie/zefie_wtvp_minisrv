@@ -129,10 +129,23 @@ function StorageWarning() {	}
 <td colspan=2>
 <table><tr><td width=20><td width=380>
 <font color=AEBFD1>`;
-if (request_headers.query.addMediaURL) {
-    data += "Choose an image to add to your web page.";
+if (files.length === 0) {
+        data += `<font color=AEBFD1>
+Your scrapbook is currently empty.
+<p>
+Storing pictures in your scrapbook makes it easy to add them to your Web pages.
+<p>
+You can add pictures to your scrapbook from TV, a VCR, a video
+camera, an e-mail message, or another Web page.
+<p>
+Choose <b>Help</b> for instructions.
+</font>`;
 } else {
-    data += "Choose one of your saved images to view it full size.";
+    if (request_headers.query.addMediaURL) {
+        data += "Choose an image to add to your web page.";
+    } else {
+        data += "Choose one of your saved images to view it full size.";
+    }
 }
 data += `
 </font>
@@ -140,7 +153,10 @@ data += `
 <tr><td absheight=10>
 </table>
 <CENTER>
-<TABLE cellspacing=0 cellpadding=0 align=center>
+
+`
+if (files.length > 0) {
+    data += `<TABLE cellspacing=0 cellpadding=0 align=center>
 <TR height=8>
 <TD width=10 height=8></TD>
 <TD bgcolor=#8A99B0 width=2 rowspan=7></TD>
@@ -156,18 +172,11 @@ data += `
 <TR height=2>
 <TD bgcolor=#8A99B0 height=2 colspan=7></TD>
 </TR>
-<TR height=10>
-<TD absheight=10 width=10 valign=top background=wtv-author:/ROMCache/vert_line.gif>
+<TR height=10><TD absheight=10 width=10 valign=top background=wtv-author:/ROMCache/vert_line.gif>
 <IMG src=wtv-author:/ROMCache/up_arrow.gif> </TD>
 <TD colspan=3 rowspan=3 align=center>
 <table cellspacing=24 cellpadding=1 width=372 background="/ROMCache/light_blue_tile.gif">
-<tr>
-`
-if (files.length === 0) {
-    data += `<td align=center valign=middle colspan=4>
-    <font color=AEBFD1 size=+1><blackface> Your scrapbook is empty. </blackface></font>
-    </td>`;
-} else {
+<tr>`
     for (let i = start; i < Math.min(files.length, start + 12); i++) {
         url = "wtv-tricks:/view-scrapbook-image?id=" + files[i];
         if (request_headers.query.addMediaURL) {
@@ -180,10 +189,7 @@ data += `
 </a>
 </td>
 ${i % 4 === 1 ? '</tr><tr>' : ''}`
-}
-}
-data += `
-</table>
+data += `</table>
 </TD>
 </TR>
 <TR>
@@ -200,6 +206,10 @@ data += `
 <TD height=8></TD>
 </TR>
 </TABLE>
+`
+}
+}
+data += `
 </CENTER>
 </table>
 </BODY>
