@@ -8,4 +8,6 @@ var transferCanceled = new clientShowAlert({
     'buttonaction1': "wtv-head-waiter:/login",
     'noback': true,
 }).getURL();
-var [headers, data] = wtvshared.doRedirect(transferCanceled);
+const errpage = wtvshared.doRedirect(transferCanceled);
+headers = errpage[0];
+data = errpage[1];
