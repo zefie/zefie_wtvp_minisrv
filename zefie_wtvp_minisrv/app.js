@@ -1069,6 +1069,7 @@ minisrv-no-mail-count: true`;
                 if (!service_name) {
 					// detect if client is trying to load wtv-star due to client-perceived error
                     if (getSocketDestinationPort(socket) == getPortByService("wtv-star")) {
+						if (minisrv_config.config.debug_flags.debug) console.debug(" * client requested", shortURL, "on wtv-star port", getSocketDestinationPort(socket))
                         shortURL = "wtv-star:/star";
                         service_name = "wtv-star";
                     } else {
