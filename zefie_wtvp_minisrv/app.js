@@ -19,6 +19,7 @@ const CryptoJS = require('crypto-js');
 const sharp = require('sharp')
 const process = require('process');
 const WTVSec = require(classPath + "/WTVSec.js");
+const WTVProxy = require(classPath + "/WTVProxy.js");
 const WTVLzpf = require(classPath + "/WTVLzpf.js");
 const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
@@ -974,7 +975,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                     }
                 }
             } catch (e) {
-               
+                // Silent catch for non-text POST data
             }
         }
         if ((shortURL.indexOf("http") != 0 && shortURL.indexOf("ftp") != 0 && shortURL.indexOf(":") > 0 && shortURL.indexOf(":/") == -1)) {
@@ -990,10 +991,10 @@ async function processURL(socket, request_headers, pc_services = false) {
 
         if (socket.ssid) {
             // skip box auth tests for pc mode
-
-            // check security
+			
+			
             if (!ssid_sessions[socket.ssid].isAuthorized(shortURL)) {
-                // lockdown mode and URL not authorized
+				// lockdown mode and URL not authorized
                 headers = "300 Unauthorized\n";
                 headers += "Location: " + minisrv_config.config.unauthorized_url + "\n";
                 headers += "minisrv-no-mail-count: true\n";
@@ -1005,7 +1006,7 @@ async function processURL(socket, request_headers, pc_services = false) {
 
             if (ssid_sessions[socket.ssid].isRegistered() && !ssid_sessions[socket.ssid].isUserLoggedIn()) {
                 if (!ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
-                    // user is not fully logged in, and URL not authorized
+					// user is not fully logged in, and URL not authorized
                     headers = "300 Unauthorized\n";
                     headers += "Location: client:relogin\n";
                     headers += "minisrv-no-mail-count: true\n";
@@ -1018,14 +1019,14 @@ async function processURL(socket, request_headers, pc_services = false) {
 
             if (ssid_sessions[socket.ssid].get("wtv-my-disk-sucks-sucks-sucks") && !ssid_sessions[socket.ssid].get("bad_disk_shown")) {
                 if (!ssid_sessions[socket.ssid].baddisk) {
-                    // psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
+					// psuedo lockdown, will unlock on the disk warning page, but prevents minisrv access until they read the error
                     ssid_sessions[socket.ssid].lockdown = true;
                     ssid_sessions[socket.ssid].baddisk = true;
                 }
             }
 
             if (!ssid_sessions[socket.ssid].isUserLoggedIn() && !ssid_sessions[socket.ssid].isAuthorized(shortURL, 'login')) {
-                // lockdown mode and URL not authorized
+				// lockdown mode and URL not authorized
                 headers = `300 Unauthorized
 Location: ${minisrv_config.config.unauthorized_url}
 minisrv-no-mail-count: true`;
@@ -1049,11 +1050,10 @@ minisrv-no-mail-count: true`;
             use_external_proxy = minisrv_config.services[service_name].use_external_proxy || false;
         }
 
-
         if ((shortURL.indexOf(':/') >= 0) && (shortURL.indexOf('://') == -1 || (shortURL.indexOf('://') && allow_double_slash))) {
             var ssid = socket.ssid;
             if (ssid == null) {
-                // prevent possible injection attacks via malformed SSID and filesystem SessionStore
+				// prevent possible injection attacks via malformed SSID and filesystem SessionStore
                 ssid = wtvshared.makeSafeSSID(request_headers["wtv-client-serial-number"]);
                 if (ssid == "") ssid = null;
             }
@@ -1067,18 +1067,16 @@ minisrv-no-mail-count: true`;
                 }
                 
                 if (!service_name) {
-                    // detect if client is trying to load wtv-star due to client-perceived error
+					// detect if client is trying to load wtv-star due to client-perceived error
                     if (getSocketDestinationPort(socket) == getPortByService("wtv-star")) {
-                        // is wtv-star
-                        if (minisrv_config.config.debug_flags.debug) console.debug(" * client requested", shortURL, "on wtv-star port", getSocketDestinationPort(socket))
                         shortURL = "wtv-star:/star";
                         service_name = "wtv-star";
                     } else {
-                        // is actually a request on then wrong port
+					    // is actually a request on then wrong port
                         var errpage = wtvshared.doErrorPage(500, null, null, pc_services);
                         socket_sessions[socket.id].close_me = true;
                         sendToClient(socket, errpage[0], errpage[1]);
-                        return
+                        return;
                     }
                 }
             }
@@ -1093,14 +1091,15 @@ minisrv-no-mail-count: true`;
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
-            doHTTPProxy(socket, request_headers);
+            const wtvproxy = new WTVProxy(minisrv_config, wtvshared);
+            await wtvproxy.proxyRequest(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
-            shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
+            shortURL = shortURL.replace("file://", '').replace("romcache", "ROMCache");
             service_name = "wtv-star";
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL);
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (pc_services) {
-            // if a directory, request index
+			// if a directory, request index
             if (shortURL.indexOf("/ROMCache/") == 0 && minisrv_config.config.enable_shared_romcache) {
                 shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split('/')[1] + '/' + shortURL.split('/')[2]);
             }
@@ -1109,264 +1108,28 @@ minisrv-no-mail-count: true`;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else {
             if (request_headers.request.indexOf("HTTP/1.0") > 0) {
-                // webtv in HTTP/1.0 mode, try to kick it back to WTVP
+				// webtv in HTTP/1.0 mode, try to kick it back to WTVP
                 if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming HTTP/1.0 headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
                 else debug(" * Incoming HTTP/1.0 headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
 
                 var errpage = wtvshared.doErrorPage(500, null, null, false, true);
                 headers = errpage[0];
-                data = ''
+                data = '';
                 socket_sessions[socket.id].close_me = true;
                 sendToClient(socket, headers, data);
             } else {
-                // error reading headers (no request_url provided, or PC on WTVP port)
+				// error reading headers (no request_url provided, or PC on WTVP port)
                 if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming Invalid headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
                 else debug(" * Incoming Invalid headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
 
                 var errpage = wtvshared.doErrorPage(500, null, null, true, false);
                 headers = errpage[0];
-                data = ''
+                data = '';
                 socket_sessions[socket.id].close_me = true;
                 sendToClient(socket, headers, data);
             }
         }
     }
-}
-
-function handleProxy(socket, request_type, request_headers, res, data) {
-    console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers.request}`)
-    // an http response error is not a request error, and will come here under the 'end' event rather than an 'error' event.
-    switch (res.statusCode) {
-        case 404:
-            res.headers.Status = res.statusCode + " The publisher can&#146;t find the page requested.";
-            break;
-
-        case 401:
-        case 403:
-            res.headers.Status = res.statusCode + " The publisher of that page has not authorized you to use it.";
-            break;
-
-        case 500:
-            res.headers.Status = res.statusCode + " The publisher of that page can&#146;t be reached.";
-            break;
-
-        default:
-            res.headers.Status = res.statusCode + " " + res.statusMessage;
-            break;
-    }
-
-    if (res.headers['Content-type']) {
-        res.headers['Content-Type'] = res.headers['Content-type'];
-        delete (res.headers['Content-type'])
-    }
-
-    if (res.headers['content-type']) {
-        res.headers['Content-Type'] = res.headers['content-type'];
-        delete (res.headers['content-type'])
-    }
-  
-    // header pass-through whitelist, case insensitive comparsion to server, however, you should
-    // specify the header case as you intend for the client
-    var headers = stripHeaders(res.headers, [
-        'Connection',
-        'Server',
-        'Date',
-        'Content-Type',
-        'Cookie',
-        'Location',
-        'Accept-Ranges',
-        'Last-Modified'
-    ]);
-    headers["wtv-http-proxy"] = true;
-    headers["wtv-trusted"] = false;
-
-    if (typeof res.headers['Content-Type'] === 'string' && res.headers['Content-Type'].startsWith("text")) {
-        if (request_type != "http" && request_type != "https") {
-            // replace http and https links on non http/https protocol (for proto:// for example)
-            var data_t = data.toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
-            data = [Buffer.from(data_t)]
-        }
-    }
-
-    // if Connection: close header, set our internal variable to close the socket
-    if (headers['Connection']) {
-        if (headers['Connection'].toLowerCase().indexOf('close') !== -1) {
-            headers["wtv-connection-close"] = true;
-        }
-    }
-
-    // if a wtv-explaination is defined for an error code (except 200), define the header here to
-    // show the 'Explain' button on the client error ShowAlert
-    if (minisrv_config.services['http']['wtv-explanation']) {
-        if (minisrv_config.services['http']['wtv-explanation'][res.statusCode]) {
-            headers['wtv-explanation-url'] = minisrv_config.services['http']['wtv-explanation'][res.statusCode];
-        }
-    }
-    var data_hex = Buffer.concat(data).toString('hex');
-    if (data_hex.substring(0, 8) == "0d0a0d0a") data_hex = data_hex.substring(8);
-    if (data_hex.substring(0, 6) == "0a0d0a") data_hex = data_hex.substring(6);
-    if (data_hex.substring(0, 4) == "0a0a") data_hex = data_hex.substring(4);
-    sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
-}
-
-async function doHTTPProxy(socket, request_headers) {
-    // detect protocol name
-    var idx = request_headers.request_url.indexOf('/') - 1;
-
-    var request_type = request_headers.request_url.substring(0, idx);
-    if (minisrv_config.config.debug_flags.show_headers) console.debug(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
-    else debug(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
-
-    switch (request_type) {
-        case "https":
-            var proxy_agent = https;
-            break;
-        case "http":
-        case "proto":
-            var proxy_agent = http;
-            break;
-    }
-
-    var request_data = new Array();
-    request_data.method = request_headers.request.split(' ')[0];
-    var request_url_split = request_headers.request.split(' ')[1].split('/');
-    request_data.host = request_url_split[2];
-    if (request_data.host.indexOf(':') > 0) {
-        request_data.port = request_data.host.split(':')[1];
-        request_data.host = request_data.host.split(':')[0];
-    } else {
-        if (request_type === "https") request_data.port = 443;
-        else request_data.port = 80;
-    }
-    for (var i = 0; i < 3; i++) request_url_split.shift();
-    request_data.path = "/" + request_url_split.join('/');
-    if (request_data.method && request_data.host && request_data.path) {
-
-        var options = {
-            host: request_data.host,
-            port: request_data.port,
-            path: request_data.path,
-            method: request_data.method,
-            followAllRedirects: true,
-            headers: {
-                "User-Agent": request_headers["User-Agent"] || "WebTV",
-                "Connection": "Keep-Alive"
-            }
-        }
-
-        // RFC7239
-        if (socket.remoteAddress != "127.0.0.1") {
-            options.headers["X-Forwarded-For"] = socket.remoteAddress;
-        }
-
-        if (request_headers.post_data) {
-            if (request_headers["Content-type"]) options.headers["Content-type"] = request_headers["Content-type"];
-            if (request_headers["Content-length"]) options.headers["Content-length"] = request_headers["Content-length"];
-        }
-
-        if (minisrv_config.services[request_type].use_external_proxy && minisrv_config.services[request_type].external_proxy_port) {
-            // configure connection to an external proxy
-            if (minisrv_config.services[request_type].external_proxy_is_socks) {
-                // configure connection to remote socks proxy
-                const { SocksProxyAgent }= require('socks-proxy-agent');
-                options.agent = new SocksProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
-                options.agents = {
-                    "http": options.agent,
-                    "https": options.agent
-                }
-            } else {
-                // configure connection to remote http proxy
-                var proxy_agent = http;
-                options.host = minisrv_config.services[request_type].external_proxy_host;
-                options.port = minisrv_config.services[request_type].external_proxy_port;
-                options.path = request_headers.request.split(' ')[1];
-                options.headers.Host = request_data.host + ":" + request_data.port;
-                if (minisrv_config.services[request_type].replace_protocol) {
-                    options.path = options.path.replace(request_type, minisrv_config.services[request_type].replace_protocol);
-                }
-            }
-            if (minisrv_config.services[request_type].external_proxy_is_http1) {
-                options.insecureHTTPParser = true;
-                options.headers.Connection = 'close'
-            }
-        }
-        const req = proxy_agent.request(options, function (res) {
-            var data = [];
-
-            res.on('data', d => {
-                data.push(d);
-            })
-
-            res.on('error', function (err) {
-                // hack for Protoweb ECONNRESET
-                if (minisrv_config.services[request_type].external_proxy_is_http1 && data.length > 0) {
-                    handleProxy(socket, request_type, request_headers, res, data);
-                } else {
-                    console.error(" * Unhandled Proxy Request Error:", err);
-                }
-            });
-
-            res.on('end', function () {
-                // For when http proxies behave correctly
-                if (!minisrv_config.services[request_type].external_proxy_is_http1 || data.length > 0) {
-                    handleProxy(socket, request_type, request_headers, res, data);
-                }
-            });
-        }).on('error', function (err) {
-                // severe errors, such as unable to connect.
-            var errpage, headers, data = null;
-            if (err.code == "ENOTFOUND" || err.message.indexOf("HostUnreachable") > 0) {
-                errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
-                sendToClient(socket, errpage[0], errpage[1]);
-            } else {
-                if (minisrv_config.services[request_type].external_proxy_is_http1 && !data_handled) {
-                    handleProxy(socket, request_type, request_headers, res, data);
-                } else {
-                    console.error(" * Unhandled Proxy Request Error:", err);
-                    errpage = wtvshared.doErrorPage(400);
-                    sendToClient(socket, errpage[0], errpage[1]);
-                }
-            }
-           
-        });
-        if (request_headers.post_data) {
-            req.write(Buffer.from(request_headers.post_data.toString(CryptoJS.enc.Hex), 'hex'), function () {
-                req.end();
-            });
-        } else {
-            req.end();
-        }
-    }
-}
-
-function stripHeaders(headers_obj, whitelist) {
-    var whitelisted_headers = new Array();
-    var out_headers = new Array();
-    out_headers.Status = headers_obj.Status;
-    if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
-
-    // compare regardless of case
-    Object.keys(whitelist).forEach(function (k) {
-        Object.keys(headers_obj).forEach(function (j) {
-            if (whitelist[k].toLowerCase() == j.toLowerCase()) {
-                // if header = connection, strip 'upgrade'
-                if (j.toLowerCase() == "connection") {
-                    headers_obj[j] = headers_obj[j].replace("Upgrade", "").replace(",", "").trim();
-                }
-                whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
-            }
-        });
-    });
-
-    // restore original header order
-    Object.keys(headers_obj).forEach(function (k) {
-        if (whitelisted_headers[k.toLowerCase()]) {
-            if (whitelisted_headers[k.toLowerCase()][1] == k) out_headers[whitelisted_headers[k.toLowerCase()][0]] = whitelisted_headers[k.toLowerCase()][2];
-        }
-    });
-
-    // return
-    return out_headers;
 }
 
 function headerStringToObj(headers, response = false) {

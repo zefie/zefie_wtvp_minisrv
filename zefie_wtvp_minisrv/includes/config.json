@@ -345,6 +345,7 @@
       // http upstream
       "port": 1650,
       "connections": 3,
+	  "transform_html": false,
       "use_external_proxy": false, // use an external proxy (WebONE or some other minifying proxy is recommended)
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
@@ -354,6 +355,7 @@
     "https": {
       "port": 1650,
       "connections": 3,
+	  "transform_html": false,
       "use_external_proxy": false, // use an external proxy (WebONE or some other minifying proxy is recommended)
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
