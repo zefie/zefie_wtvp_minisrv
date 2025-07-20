@@ -328,6 +328,91 @@ class WTVShared {
     }
 
     /**
+     * Converts a header string into an object
+     * @param {string} headers Header string to convert
+     * @param {boolean} response If true, the headers are a response, otherwise they are a request
+     * @return {object} Headers object
+     * */
+    headerStringToObj(headers, response = false) {
+        var inc_headers = 0;
+        var headers_obj = {};
+        headers_obj.raw_headers = headers;
+        var headers_obj_pre = headers.split("\n");
+        headers_obj_pre.forEach(function (d) {
+            if (/^SECURE ON/.test(d) && !response) {
+                headers_obj.secure = true;
+            } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response && !headers_obj.Status) {
+                d.s
+                headers_obj.Status = d.trim("\r");
+            } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
+                headers_obj.request = d.trim("\r");
+                var request_url = d.split(' ');
+                if (request_url.length > 2) {
+                    request_url.shift();
+                    request_url = request_url.join(" ");
+                    if (request_url.indexOf("HTTP/") > 0) {
+                        var index = request_url.indexOf(" HTTP/");
+                        request_url = request_url.substring(0, index);
+                    }
+                } else {
+                    request_url = request_url[1];
+                }
+                headers_obj.request_url = decodeURI(request_url).trim("\r");
+            } else if (d.indexOf(":") > 0) {
+                var d_split = d.split(':');
+                var header_name = d_split[0];
+                if (headers_obj[header_name] != null) {
+                    header_name = header_name + "_" + inc_headers;
+                    inc_headers++;
+                }
+                d_split.shift();
+                d = d_split.join(':');
+                headers_obj[header_name] = (d).trim("\r");
+                if (headers_obj[header_name].substring(0, 1) == " ") {
+                    headers_obj[header_name] = headers_obj[header_name].substring(1);
+                }
+            }
+        });
+        return headers_obj;
+    }
+
+    /**
+     * Strips headers not in the whitelist
+     * @param {object} headers_obj // Headers object to strip
+     * @param {Array<string>} whitelist // Array of header names to keep, case insensitive
+     * @returns {object} // Headers object with only whitelisted headers
+     */
+    stripHeaders(headers_obj, whitelist) {
+        var whitelisted_headers = new Array();
+        var out_headers = new Array();
+        out_headers.Status = headers_obj.Status;
+        if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
+
+        // compare regardless of case
+        Object.keys(whitelist).forEach(function (k) {
+            Object.keys(headers_obj).forEach(function (j) {
+                if (whitelist[k].toLowerCase() == j.toLowerCase()) {
+                    // if header = connection, strip 'upgrade'
+                    if (j.toLowerCase() == "connection") {
+                        headers_obj[j] = headers_obj[j].replace("Upgrade", "").replace(",", "").trim();
+                    }
+                    whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
+                }
+            });
+        });
+
+        // restore original header order
+        Object.keys(headers_obj).forEach(function (k) {
+            if (whitelisted_headers[k.toLowerCase()]) {
+                if (whitelisted_headers[k.toLowerCase()][1] == k) out_headers[whitelisted_headers[k.toLowerCase()][0]] = whitelisted_headers[k.toLowerCase()][2];
+            }
+        });
+
+        // return
+        return out_headers;
+    }
+
+    /**
      * Attempts to determine if the string is ASCII
      * @param {string} str
      * @returns {boolean} true if ASCII only, otherwise false

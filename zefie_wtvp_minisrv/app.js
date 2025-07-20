@@ -464,7 +464,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
             var stdout = data.split("\r\n\r\n", 2);
             var headers = stdout[0];
             data = stdout[1];
-            headers = headerStringToObj(headers, true);
+            headers = wtvshared.headerStringToObj(headers, true);
             if (!headers.Status) headers.Status = "200 OK";
             headers['Connection'] = 'keep-alive';
             sendToClient(socket, headers, data);
@@ -1167,7 +1167,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
   
     // header pass-through whitelist, case insensitive comparsion to server, however, you should
     // specify the header case as you intend for the client
-    var headers = stripHeaders(res.headers, [
+    var headers = wtvshared.stripHeaders(res.headers, [
         'Connection',
         'Server',
         'Date',
@@ -1345,79 +1345,6 @@ async function doHTTPProxy(socket, request_headers) {
     }
 }
 
-function stripHeaders(headers_obj, whitelist) {
-    var whitelisted_headers = new Array();
-    var out_headers = new Array();
-    out_headers.Status = headers_obj.Status;
-    if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
-
-    // compare regardless of case
-    Object.keys(whitelist).forEach(function (k) {
-        Object.keys(headers_obj).forEach(function (j) {
-            if (whitelist[k].toLowerCase() == j.toLowerCase()) {
-                // if header = connection, strip 'upgrade'
-                if (j.toLowerCase() == "connection") {
-                    headers_obj[j] = headers_obj[j].replace("Upgrade", "").replace(",", "").trim();
-                }
-                whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
-            }
-        });
-    });
-
-    // restore original header order
-    Object.keys(headers_obj).forEach(function (k) {
-        if (whitelisted_headers[k.toLowerCase()]) {
-            if (whitelisted_headers[k.toLowerCase()][1] == k) out_headers[whitelisted_headers[k.toLowerCase()][0]] = whitelisted_headers[k.toLowerCase()][2];
-        }
-    });
-
-    // return
-    return out_headers;
-}
-
-function headerStringToObj(headers, response = false) {
-    var inc_headers = 0;
-    var headers_obj = {};
-    headers_obj.raw_headers = headers;
-    var headers_obj_pre = headers.split("\n");
-    headers_obj_pre.forEach(function (d) {
-        if (/^SECURE ON/.test(d) && !response) {
-            headers_obj.secure = true;
-        } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response && !headers_obj.Status) {
-            d.s
-            headers_obj.Status = d.trim("\r");
-        } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
-            headers_obj.request = d.trim("\r");
-            var request_url = d.split(' ');
-            if (request_url.length > 2) {
-                request_url.shift();
-                request_url = request_url.join(" ");
-                if (request_url.indexOf("HTTP/") > 0) {
-                    var index = request_url.indexOf(" HTTP/");
-                    request_url = request_url.substring(0, index);
-                }
-            } else {
-                request_url = request_url[1];
-            }
-            headers_obj.request_url = decodeURI(request_url).trim("\r");
-        } else if (d.indexOf(":") > 0) {
-            var d_split = d.split(':');
-            var header_name = d_split[0];
-            if (headers_obj[header_name] != null) {
-                header_name = header_name + "_" + inc_headers;
-                inc_headers++;
-            }
-            d_split.shift();
-            d = d_split.join(':');
-            headers_obj[header_name] = (d).trim("\r");
-            if (headers_obj[header_name].substring(0, 1) == " ") {
-                headers_obj[header_name] = headers_obj[header_name].substring(1);
-            }
-        }
-    });
-    return headers_obj;
-}
-
 async function sendToClient(socket, headers_obj, data = null) {
     var headers = "";
     var content_length = 0;
@@ -1427,7 +1354,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     if (typeof (data) === 'undefined' || data === null) data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
-        headers_obj = headerStringToObj(headers_obj, true);
+        headers_obj = wtvshared.headerStringToObj(headers_obj, true);
     }
     if (!socket_sessions[socket.id]) {
         if (socket.destroy) socket.destroy();
@@ -1800,13 +1727,13 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             }
             if (isUnencryptedString(data)) {
                 if (headers.length != 0) {
-                    var new_header_obj = headerStringToObj(data);
+                    var new_header_obj = wtvshared.headerStringToObj(data);
                     Object.keys(new_header_obj).forEach(function (k, v) {
                         headers[k] = new_header_obj[k];
                     });
                     new_header_obj = null;
                 } else {
-                    headers = headerStringToObj(data);
+                    headers = wtvshared.headerStringToObj(data);
                 }
             } else if (!skipSecure) {
                 // if its a POST request, assume its a binary blob and not encrypted (dangerous)
