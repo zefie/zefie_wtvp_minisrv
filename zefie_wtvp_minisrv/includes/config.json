@@ -350,7 +350,8 @@
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16 // Megabytes
     },
     "https": {
       "port": 1650,
@@ -360,7 +361,8 @@
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16 // Megabytes
     },
     "proto": {
       "port": 1650,
@@ -371,7 +373,8 @@
       "external_proxy_host": "wayback.protoweb.org",
       "external_proxy_port": 7851,
       "external_proxy_is_http1": true,
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16 // Megabytes
     },        
     "wtv-passport": {
       // wtv-passport (for messenger)

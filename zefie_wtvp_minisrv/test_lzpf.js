@@ -1,6 +1,8 @@
 const WTVLzpf = require("./includes/classes/WTVLzpf.js")
 const lzpf = new WTVLzpf();
 
+
+
 // Test with a simple string
 const testString = "This is a test string to compress and decompress";
 const compressed = lzpf.Compress(testString);

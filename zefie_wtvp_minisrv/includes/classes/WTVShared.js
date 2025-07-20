@@ -288,7 +288,7 @@ class WTVShared {
                 a: ['href', 'name', 'target'],
                 audioscope: ['align', 'bgcolor', 'border', 'gain', 'height', 'leftcolor', 'leftoffset', 'maxlevel', 'rightcolor', 'rightoffset', 'width' ],
                 bgsound: ['src', 'loop'],
-                img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+                img: ['src', 'alt', 'title', 'width', 'height', 'loading'], // ?? What is 'loading'?
                 font: ['size', 'name', 'color'],
                 marquee: ['aign', 'behavior', 'direction', 'height', 'hspace', 'loop', 'scrollamount', 'scrolldelay', 'transparency', 'vspace', 'width'],
             },
