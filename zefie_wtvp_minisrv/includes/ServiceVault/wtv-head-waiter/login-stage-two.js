@@ -134,6 +134,8 @@ wtv-messenger-enable: 0
 
 		headers += `wtv-log-url: wtv-log:/log
 wtv-ssl-log-url: wtv-log:/log
+wtv-ssl-certs-download-url: wtv-head-waiter:/download-ssl-certs
+wtv-ssl-certs-checksum: 9BD865819765B66A2756F98FB4EEFBD4
 `;
 
 		if (!limitedLogin && !limitedLoginRegistered) {

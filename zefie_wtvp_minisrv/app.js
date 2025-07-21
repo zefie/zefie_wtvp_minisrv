@@ -19,6 +19,7 @@ const CryptoJS = require('crypto-js');
 const sharp = require('sharp')
 const process = require('process');
 const WTVSec = require(classPath + "/WTVSec.js");
+const WTVSSL = require(classPath + "/WTVSSL.js");
 const WTVLzpf = require(classPath + "/WTVLzpf.js");
 const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
