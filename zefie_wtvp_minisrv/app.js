@@ -26,6 +26,7 @@ const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const WTVIRC = require(classPath + "/WTVIRC.js");
+const WTVFTP = require(classPath + "/WTVFTP.js");
 const vm = require('vm');
 const debug = require('debug')('minisrv_main');
 const express = require('express');
@@ -1094,6 +1095,9 @@ minisrv-no-mail-count: true`;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
             doHTTPProxy(socket, request_headers);
+        } else if (shortURL.startsWith('ftp://')) {            
+            var wtvftp = new WTVFTP(minisrv_config, sendToClient);
+            wtvftp.handleFTPRequest(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
             shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
             service_name = "wtv-star";

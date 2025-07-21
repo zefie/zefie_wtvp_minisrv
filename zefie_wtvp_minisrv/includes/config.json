@@ -346,6 +346,10 @@
         "WTVAuthor"
       ]
     },
+    "ftp": {
+      "port": 1650,
+      "connections": 3      
+    },
     "http": {
       // http upstream
       "port": 1650,

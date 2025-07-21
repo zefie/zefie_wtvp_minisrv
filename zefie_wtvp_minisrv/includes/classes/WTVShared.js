@@ -980,6 +980,23 @@ class WTVShared {
     }
 
     /**
+     * Converts a bytes value into a human-readable string (KB, MB, GB)
+     * @param {number} bytes The number of bytes
+     * @param {number} decimals The number of decimal places to include in the output (default is 2)
+     * @returns {string} Human-readable string with 2 decimal places
+     */
+    formatBytes(bytes, decimals = 2) {
+        if (typeof bytes !== 'number' || isNaN(bytes)) return '0 Bytes';
+        const units = ['B', 'KB', 'MB'];
+        let i = 0;
+        while (bytes >= 1024 && i < units.length - 1) {
+            bytes /= 1024;
+            i++;
+        }
+        return `${bytes.toFixed(decimals)} ${units[i]}`;
+    }
+
+    /**
      * Decodes a urlencoded string into a binary buffer
      * @param {string} encoded urlencoded string
      */

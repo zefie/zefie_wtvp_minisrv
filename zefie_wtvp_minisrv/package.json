@@ -34,6 +34,7 @@
     "endianness": "^8.0.2",
     "express": "^4.21.2",
     "follow-redirects": "^1.15.6",
+    "ftp": "^0.3.10",
     "html-entities": "^2.5.2",
     "http-string-parser": "^0.0.6",
     "iconv-lite": "^0.6.3",

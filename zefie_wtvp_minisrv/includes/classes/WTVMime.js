@@ -200,6 +200,98 @@ class WTVMime {
         return new Array(wtv_mime_type, modern_mime_type);
     }
 
+    /**
+     * Attempts to detect the MIME type from a data buffer using magic numbers.
+     * Falls back to 'application/octet-stream' if unknown.
+     * @param {Buffer} buffer
+     * @returns {string} Detected MIME type
+     */
+    detectMimeTypeFromBuffer(buffer) {
+        if (!Buffer.isBuffer(buffer) || buffer.length < 4) {
+            return 'application/octet-stream';
+        }
+
+        // JPEG
+        if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+            return 'image/jpeg';
+        }
+        // PNG
+        if (buffer.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]))) {
+            return 'image/png';
+        }
+        // GIF
+        if (buffer.slice(0, 6).toString() === 'GIF87a' || buffer.slice(0, 6).toString() === 'GIF89a') {
+            return 'image/gif';
+        }
+        // PDF
+        if (buffer.slice(0, 4).toString() === '%PDF') {
+            return 'application/pdf';
+        }
+        // ZIP
+        if (buffer[0] === 0x50 && buffer[1] === 0x4B && (buffer[2] === 0x03 || buffer[2] === 0x05 || buffer[2] === 0x07) && (buffer[3] === 0x04 || buffer[3] === 0x06 || buffer[3] === 0x08)) {
+            return 'application/zip';
+        }
+        // GZIP
+        if (buffer[0] === 0x1F && buffer[1] === 0x8B) {
+            return 'application/gzip';
+        }
+        // MP3
+        if ((buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) || (buffer[0] === 0xFF && (buffer[1] & 0xE0) === 0xE0)) {
+            return 'audio/mpeg';
+        }
+        // WAV
+        if (buffer.slice(0, 4).toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WAVE') {
+            return 'audio/wav';
+        }
+        // WebP
+        if (buffer.slice(0, 4).toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WEBP') {
+            return 'image/webp';
+        }
+        // BMP
+        if (buffer[0] === 0x42 && buffer[1] === 0x4D) {
+            return 'image/bmp';
+        }
+        // OGG
+        if (buffer.slice(0, 4).toString() === 'OggS') {
+            return 'application/ogg';
+        }
+        // MIDI
+        if (buffer.slice(0, 4).toString() === 'MThd') {
+            return 'audio/midi';
+        }
+        // TAR
+        if (buffer.length > 257 && buffer.slice(257, 262).toString() === 'ustar') {
+            return 'application/x-tar';
+        }
+        // TEXT (plain)
+        if (
+            buffer.length >= 4 &&
+            (
+            buffer.slice(0, 5).toString().toLowerCase() === '<?xml' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<html>' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<!doc' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<head>' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<body>' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<meta>' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<titl>' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<scri>' ||
+            buffer.slice(0, 6).toString().toLowerCase() === '<styl>'
+            )
+        ) {
+            return 'text/html';
+        }
+        // Try to detect plain text (no null bytes, mostly printable)
+        if (
+            buffer.length > 0 &&
+            buffer.slice(0, 512).every(b => (b === 0x09 || b === 0x0A || b === 0x0D || (b >= 0x20 && b <= 0x7E)))
+        ) {
+            return 'text/plain';
+        }
+
+        // Default fallback
+        return 'application/octet-stream';
+    }
+
     // modified from https://github.com/sergi/mime-multipart/blob/master/index.js
 
     generateMultipartMIME(tuples, options) {
