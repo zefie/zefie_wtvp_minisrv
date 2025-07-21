@@ -35,7 +35,6 @@ var wtvnewsserver = null;
 
 
 
-
 process
     .on('SIGTERM', shutdown('SIGTERM'))
     .on('SIGINT', shutdown('SIGINT'))

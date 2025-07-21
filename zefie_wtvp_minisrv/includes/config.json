@@ -171,7 +171,10 @@
       // wtv-head-waiter handles logins
       "port": 1601,
       "connections": 1,
-      "privileged": true
+      "privileged": true,
+      "modules": [
+        "WTVSSL"
+      ]
     },
     "wtv-tricks": {
       // wtv-tricks

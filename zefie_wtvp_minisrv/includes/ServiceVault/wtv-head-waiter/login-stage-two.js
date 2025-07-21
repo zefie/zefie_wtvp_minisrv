@@ -186,7 +186,7 @@ wtv-inactive-timeout: 1440
 			headers += `wtv-force-lightweight-targets: webtv.net:/
 wtv-show-time-enabled: true
 wtv-allow-dsc: true
-wtv-tourist-enabled: true
+wtv-tourist-enabled: false
 wtv-offline-mail-enable: false
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3
