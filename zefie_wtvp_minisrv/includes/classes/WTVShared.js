@@ -23,6 +23,12 @@ class WTVShared {
 
     minisrv_config = [];
     
+    /**
+     * Constructor for WTVShared class
+     * @param {object} minisrv_config The configuration object for the minisrv
+     * @param {boolean} quiet If true, suppresses console output
+     * @notice If minisrv_config is null, it will attempt to read the configuration from the minisrv_config.json file
+     * */
     constructor(minisrv_config, quiet = false) {
         if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
@@ -47,7 +53,120 @@ class WTVShared {
         }
     }
 
+    /**
+     * Converts an IP address to a hexadecimal string (WTV)
+     * @param {string} ip The IP address to convert
+     * @returns {string} The hexadecimal representation of the IP address
+     * @throws {Error} If the IP address is invalid
+     */
+    ipToHex(ip) {
+        const parts = ip.split('.');
+        if (parts.length !== 4) {
+            throw new Error('Invalid IP address');
+        }
+        let num = 0;
+        for (let i = 0; i < 4; i++) {
+            const part = parseInt(parts[i], 10);
+            if (part < 0 || part > 255) {
+                throw new Error('Invalid IP address');
+            }
+            num = (num << 8) | part;
+        }
+        // Convert to unsigned 32-bit number before converting to hex
+        return "0x" + (num >>> 0).toString(16).toUpperCase();
+    }
 
+    /**
+     * Converts an IP address to a long integer
+     * @param {string} ip The IP address to convert
+     * @returns {number} The long integer representation of the IP address, or -1 if the IP address is invalid
+     */
+    ip2long(ip) {
+        var components;
+        if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
+            var iplong = 0;
+            var power = 1;
+            for (var i = 4; i >= 1; i -= 1) {
+                iplong += power * parseInt(components[i]);
+                power *= 256;
+            }
+            return iplong;
+        }
+        else return -1;
+    }
+
+    /**
+     * Checks if an IP address is in a given subnet.
+     * @param {string} ip The IP address to check
+     * @param {string} subnet The subnet in CIDR notation
+     * @returns {boolean} True if the IP address is in the subnet, false otherwise
+     */
+    isInSubnet(ip, subnet) {
+        if (subnet.indexOf('/') == -1) {
+            var mask, base_ip, long_ip = this.ip2long(ip);
+            var mask2, base_ip2, long_ip2 = this.ip2long(ip);
+            return (long_ip == long_ip2);
+        } else {
+            var mask, base_ip, long_ip = this.ip2long(ip);            
+            if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = this.ip2long(mask[1])) >= 0)) {
+                var freedom = Math.pow(2, 32 - parseInt(mask[2]));
+                return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Converts a byte array to a 32-bit unsigned integer (big-endian)
+     * @param {Uint8Array} bytes The byte array
+     * @param {number} offset The offset within the byte array
+     * @returns {number} The 32-bit unsigned integer
+     */
+    toUint32(bytes, offset) {
+        return (
+            (bytes[offset] << 24) >>> 0 |
+            (bytes[offset + 1] << 16) |
+            (bytes[offset + 2] << 8) |
+            (bytes[offset + 3])
+        ) >>> 0;
+    }
+
+    /**
+     * Converts a 32-bit unsigned integer to a byte array (big-endian)
+     * @param {number} num The 32-bit unsigned integer
+     * @returns {number[]} The byte array representation
+     * @notice The output is an array of 4 bytes, each byte is an unsigned integer (0-255)
+     */
+    uint32ToBytes(num) {
+        return [
+            (num >>> 24) & 0xff,
+            (num >>> 16) & 0xff,
+            (num >>> 8) & 0xff,
+            num & 0xff,
+        ];
+    }
+
+    /**
+     * Tries to decode a JSON string
+     * @param {String} json_string
+     * @returns {Object} The decoded JSON object, or an empty object if decoding fails.
+     */
+    tryDecodeJSON(json_string) {
+        var out;
+        try {
+            out = JSON.parse(json_string);
+        } catch (e) {
+            console.log(e);
+            out = {};
+        }
+        return out;
+    }
+
+    /**
+     * Gets the box name based on the client ROM type
+     * @param {string} client_rom_type The client ROM type
+     * @returns {string} The box name
+     */
     getBoxName(client_rom_type) {
         switch (client_rom_type) {
             case "bf0app":
@@ -94,14 +213,22 @@ class WTVShared {
         return crc.toString(16).padStart(2, '0');
     }
 
-    // check if the SSID has a valid checksum
+    /**
+     * Checks if the SSID has a valid checksum
+     * @param {string} ssid The SSID to check
+     * @return {boolean} true if the SSID is valid, false if not
+     */
     checkSSID(ssid) {
         if (ssid.slice(-2) == this.getSSIDCRC(ssid))
             return true;
         return false;
     }
 
-
+    /**
+     * Parses variables in a string, replacing %ServiceDeps% with the service dependencies
+     * @param {string} s The string to parse
+     * @returns {string} The parsed string
+     */
     parseConfigVars(s) {
         if (s.indexOf("%ServiceDeps%") >= 0)
             return this.getServiceDep(s.replace("%ServiceDeps%", ""), true);
@@ -155,7 +282,6 @@ class WTVShared {
         return src;
     }
 
-
     /**
      * Checks if the user has been whitelisted for wtv-admin
      * @param {object} wtvclient the clientSessionData object for the user
@@ -169,6 +295,11 @@ class WTVShared {
         return result;
     }
 
+    /**
+     * Parses a JSON string, removing unsupported comments
+     * @param {string} json JSON string to parse
+     * @returns {object} Parsed JSON object
+     */
     parseJSON(json) {
         if (typeof json !== 'string') json = json ? json.toString() : '';
         let result = '';
@@ -205,7 +336,6 @@ class WTVShared {
 
         return JSON.parse(result);
     }
-
 
     /**
      * Attempts to convert val into a boolean
@@ -257,7 +387,6 @@ class WTVShared {
 
         return entitized;
     }
-
 
     /**
      * Attempts to sanitize HTML code to remove possible exploits when embedded in a WebTV Service
@@ -332,7 +461,7 @@ class WTVShared {
      * @param {string} headers Header string to convert
      * @param {boolean} response If true, the headers are a response, otherwise they are a request
      * @return {object} Headers object
-     * */
+     */
     headerStringToObj(headers, response = false) {
         var inc_headers = 0;
         var headers_obj = {};
@@ -421,7 +550,6 @@ class WTVShared {
         return typeof str === 'string' && /^[\x00-\x7F]*$/.test(str);
     }
 
-
     /**
      * Attempts to determine if the string contains HTML
      * @param {string} str
@@ -431,7 +559,6 @@ class WTVShared {
         const pattern = /<([A-Za-z][A-Za-z0-9]*)\b[^>]*>(.*?)<\/\1>/;
         return typeof str === 'string' && pattern.test(str);
     }
-
 
     /**
      * Attempts to determine if the string is Base64 or not
@@ -455,7 +582,11 @@ class WTVShared {
         return new RegExp(regex, 'gi').test(str);
     }
 
-
+    /**
+     * Decodes a UTF-8 string to a regular string
+     * @param {string} utf8String The UTF-8 encoded string to decode
+     * @returns {string} The decoded string
+     * */
     utf8Decode(utf8String) {
         if (typeof utf8String !== 'string') {
             throw new TypeError("parameter 'utf8String' is not a string");
@@ -465,7 +596,11 @@ class WTVShared {
         return textDecoder.decode(bytes);
     }
 
-
+    /**
+     * Decodes a buffer containing ISO-8859-1 encoded text to a UTF-8 string
+     * @param {Buffer} buf The buffer to decode
+     * @returns {string} The decoded string
+     */
     decodeBufferText(buf) {
         var out = "";
         out = this.utf8Decode(this.iconv.decode(Buffer.from(buf),'ISO-8859-1'));
@@ -487,7 +622,6 @@ class WTVShared {
         return this.fixPathSlashes(check_path);
     }
 
-
     /**
      * Detects if the client is in MiniBrowser mode
      * @param {object} ssid_session
@@ -507,6 +641,12 @@ class WTVShared {
         return (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < minBuild) ? true : false;
     }
 
+    /**
+     * Gets the user configuration from the user_config.json file
+     * @returns {object} User configuration object
+     * @notice If the file does not exist, it will return an empty object
+     * @notice If the file exists but cannot be parsed, it will terminate the process with an error message
+     */
     getUserConfig() {
         try {
             var user_config_filename = this.getAbsolutePath("user_config.json", this.appdir);
@@ -577,7 +717,6 @@ class WTVShared {
         return ssid_obj;
     }
 
-
     /**
      * Alias for parseSSID, but just the manufacture info
      * @param {string} ssid
@@ -589,6 +728,13 @@ class WTVShared {
         else return this.parseSSID(ssid).manufacturer || null;
     }
 
+    /**
+     * Reads the MiniSrv configuration files
+     * @param {boolean} user_config If true, also read user_config.json
+     * @param {boolean} notices If true, show notices
+     * @param {boolean} reload_notice If true, show reload notice
+     * @returns {object} The MiniSrv configuration object
+     */
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
         const log = (msg) => {
             if (notices || reload_notice) console.log(msg);
@@ -642,8 +788,15 @@ class WTVShared {
         log(" *** Configuration successfully read.");
         this.minisrv_config = minisrv_config;
         return this.minisrv_config;
-}
+    }
 
+    /**
+     * Integrates the user configuration into the main configuration object
+     * @param {object} main The main configuration object
+     * @param {object} user The user configuration object
+     * @returns {object} The integrated configuration object
+     * @notice This will overwrite any existing keys in the main configuration with the user configuration
+     * */
     integrateConfig(main, user) {
         for (const key in user) {
             if (typeof user[key] === 'object' && user[key] !== null && !Array.isArray(user[key])) {
@@ -655,7 +808,11 @@ class WTVShared {
         return main;
     }
 
-
+    /**
+     * Writes the user configuration to the user_config.json file
+     * @param {object} config Configuration object to write
+     * @returns {boolean} true if successful, false if not
+     */
     writeToUserConfig(config) {
         if (config) {
             try {
@@ -683,7 +840,6 @@ class WTVShared {
         }
         return false;
     }
-
 
     /**
      * Generates a random string
@@ -718,7 +874,6 @@ class WTVShared {
         return result;
     }
 
-
     /**
      * Any alias of generateString with optional special characters enabled as well
      * @param {string} len desired generated string length
@@ -737,6 +892,13 @@ class WTVShared {
         return this.minisrv_config;
     }
 
+    /**
+     * Wraps a string to a specified length, breaking at whitespace
+     * @param {string} string The string to wrap
+     * @param {number} len The maximum line length
+     * @param {string} join The string to join the wrapped lines with (default is "\n")
+     * @returns {string} The wrapped string
+     */
     lineWrap(string, len = 72, join = "\n") {
         if (string.length <= len) return string;
 
@@ -771,6 +933,11 @@ class WTVShared {
         return this.getFileLastModified(file).toUTCString();
     }
 
+    /**
+     * Returns the Last-Modified date in a Date object with UTC time
+     * @param {string} file Path to a file
+     * @return {Date} Date object with UTC time
+     */
     getFileLastModifiedUTCObj(file) {
         return new Date(new Date().setUTCSeconds(this.getFileLastModified(file).getUTCSeconds()));
     }
@@ -842,6 +1009,11 @@ class WTVShared {
         return decoded;
     }
 
+    /**
+     * Censors the SSID by replacing parts of it with asterisks
+     * @param {string} ssid The SSID to censor
+     * @returns {string} Censored SSID
+     * */
     censorSSID(ssid) {
         if (ssid) {
             if (ssid.slice(0, 8) === "MSTVSIMU") {
@@ -875,7 +1047,11 @@ class WTVShared {
         return obj;
     }
 
-
+    /**
+     * Filters sensitive information from request logs
+     * @param {object} obj The request log object to filter
+     * @returns {object} Filtered request log object
+     * */
     filterRequestLog(obj) {
         const passwordRegex = /(^pass$|passw(or)?d)/i;
         var newobj = this.cloneObj(obj); // Clone the object once at the beginning
@@ -891,8 +1067,11 @@ class WTVShared {
         return newobj;
     }
 
-
-
+    /**
+     * Decodes post data from a request log object
+     * @param {object} obj The request log object
+     * @returns {object} The request log object with decoded post data
+     */
     decodePostData(obj) {
         if (obj.post_data) {
             const filterPasswords = this.minisrv_config.config.filter_passwords_in_logs === true;
@@ -924,11 +1103,12 @@ class WTVShared {
         return obj;
     }
 
-
     // DON'T USE THIS
     // Saved for reference until I come up with a better way
     // If used, this will exceed the stack limit over time
     unloadModule(moduleName) {
+        // Prevent usage
+        return;
         // Search for the module in the require cache
         let resolvedPath = require.resolve(moduleName);
 
@@ -973,8 +1153,6 @@ class WTVShared {
         return this.path.resolve(path);
     }
 
-
-
     /**
      * Returns a percentage
      * @param {number} partialValue
@@ -1005,6 +1183,12 @@ class WTVShared {
         return path.reverse().split(".")[0].reverse();
     }
 
+    /**
+     * Gets a line from a file by line number
+     * @param {string} filename The file to read
+     * @param {number} lineNo The line number to read (0-indexed)
+     * @param {function} callback Callback function to call with the line or an error
+     * */
     getLineFromFile(filename, lineNo, callback) {
         let lineCount = 0;
         const lineReader = this.readline.createInterface({
@@ -1033,8 +1217,6 @@ class WTVShared {
             callback(err, null);
         });
     }
-
-
 
     /**
      * Checks if service is enabled or disabled in the config
@@ -1127,7 +1309,6 @@ class WTVShared {
         return [headers, message];
     }
 
-
     /**
      * Strips bad things from paths
      * @param {string} base Base path
@@ -1169,7 +1350,6 @@ class WTVShared {
         return pathModule.normalize(normalizedPath);
     }
 
-
     /**
      * Makes sure an SSID is clean, and doesn't contain any exploitable characters
      * @param {string} ssid
@@ -1181,12 +1361,22 @@ class WTVShared {
         return ssid;
     }
 
+    /**
+     * Makes sure a string path is clean, and doesn't contain any exploitable characters
+     * @param {string} path
+     * @returns {string|null} Sanitized Path
+     * */
     makeSafeStringPath(path = "") {
         path = path.replace(/[^\w]/g, "").replace(/\.\./g, "");
         if (path.length == 0) path = null;
         return path;
     }
 
+    /**
+     * Unpacks a base64 compressed string
+     * @param {string|Buffer} data Base64 encoded compressed data
+     * @returns {string} Uncompressed string
+     * */
     unpackCompressedB64(data) {        
         var data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
         return this.zlib.inflateSync(data_buf, { finishFlush: this.zlib.Z_SYNC_FLUSH }).toString('ascii');
@@ -1252,6 +1442,7 @@ class WTVShared {
         }
         return keys.indexOf(key);
     }
+
     /**
      * Moves an object to the desired location in the object (reorder)
      * @param {string|int} currentKey Name of the object Key to move or the index to move
@@ -1322,7 +1513,7 @@ class clientShowAlert {
      * @param {string} buttonlabel2 Button 2 Label
      * @param {string} buttonaction2 Button 2 Action
      * @param {string} noback If true, disables the back button
-     * @param {string} sound Sound to play
+     * @param {string} sound Sound to play when showing the alert (default is "none")
      */
     constructor(image = null, message = null, buttonlabel1 = null, buttonaction1 = null, buttonlabel2 = null, buttonaction2 = null, noback = null, sound = null) {
         this.message = message;

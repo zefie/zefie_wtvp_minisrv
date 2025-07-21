@@ -7,7 +7,7 @@ class WTVSSL {
 
     getCACert() {
         // return the CA cert
-        const caCertFile = this.wtvshared.getServiceDep("https/ca.der")
+        const caCertFile = this.wtvshared.getServiceDep("https/ca.der", true)
         if (!this.wtvshared.fs.existsSync(caCertFile)) {
             throw new Error("CA certificate file not found");
         }

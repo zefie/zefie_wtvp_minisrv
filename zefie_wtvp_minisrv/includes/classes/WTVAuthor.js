@@ -10,7 +10,6 @@ class WTVAuthor {
     wtvclient = null;
     pageFileExt = ".page";
 	pagestore_dir = null;
-	scrapbook_dir = null;
 	pageArr = []; 
 	blockArr = [];
 	header = null;
@@ -68,18 +67,6 @@ class WTVAuthor {
         }
         return true;
     }
-
-	scrapbookExists() {
-		if (!this.isguest) {
-			if (this.scrapbook_dir === null) {
-				var userstore_dir = this.wtvclient.getUserStoreDirectory();
-				var store_dir = "Scrapbook" + this.path.sep;
-                this.scrapbook_dir = userstore_dir + store_dir;
-			}
-		}
-		return this.fs.existsSync(this.scrapbook_dir);
-	}
-
 	
 	createPagestore() {
 		if (this.pagestoreExists() === false) {
@@ -90,92 +77,6 @@ class WTVAuthor {
         }
         return false;
     }
-
-	createScrapbook() {
-		if (this.scrapbookExists() === false) {
-			try {
-				if (!this.fs.existsSync(this.scrapbook_dir)) this.fs.mkdirSync(this.scrapbook_dir, { recursive: true });
-				return true;
-			} catch { }
-		}
-		return false
-	}
-
-	scrapbookDir() {
-		if (this.scrapbookExists() === false) {
-			this.createScrapbook();
-		}
-		return this.scrapbook_dir;
-	}
-
-	listScrapbook() {
-		if (this.scrapbookExists() === false) {
-			this.createScrapbook();
-		}
-		const files = this.fs.readdirSync(this.scrapbook_dir);
-		const filteredFiles = files.filter(file => !file.endsWith('.meta'));
-		return filteredFiles;
-	}
-
-	getFreeScrapbookID() {
-		if (this.scrapbookExists() === false) {
-			this.createScrapbook();
-		}
-		var id = 1;
-		var files = this.fs.readdirSync(this.scrapbook_dir);
-		if (files.length == 0) {
-			return id;
-		}
-		files = files.map(file => parseInt(file.substr(0, file.indexOf('.'))));
-		while (files.includes(id)) {
-			id++;
-		}
-		return id;
-	}
-
-	getScrapbookImage(id) {
-		if (this.scrapbookExists() === false) {
-			this.createScrapbook();
-		}
-		var file = this.scrapbook_dir + id;
-		if (this.fs.existsSync(file)) {
-			return this.fs.readFileSync(file);
-		}
-		return null;
-	}
-
-	getScrapbookImageType(id) {
-		if (this.scrapbookExists() === false) {
-			this.createScrapbook();
-		}
-		var file = this.scrapbook_dir + id + ".meta";
-		if (this.fs.existsSync(file)) {
-			var meta = this.fs.readFileSync(file, 'utf8');
-			try {
-				var metaData = JSON.parse(meta);
-				return metaData.contentType;
-			} catch (e) {
-				this.debug("getScrapbookImageType", "Error parsing metadata for image ID", id, e);
-			}
-		}
-		return null;
-	}
-
-	addToScrapbook(filename, contentType, data) {
-		try {
-			if (this.scrapbookExists() === false) {
-				this.createScrapbook();
-			}
-			var fileout = this.scrapbook_dir + filename;
-			var fileout_meta = this.scrapbook_dir + filename + ".meta";
-			this.fs.writeFileSync(fileout, data);
-			this.fs.writeFileSync(fileout_meta, JSON.stringify({
-				"contentType": contentType
-			}));
-			return true;
-		} catch {}
-		return false;
-	}
 
 	createPage(style) {
 			this.pagestoreExists()

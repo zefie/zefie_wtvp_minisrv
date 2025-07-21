@@ -9,14 +9,27 @@ class WTVShenanigans {
         "DISABLE_HTML_SANITIZER": 5 // disables HTML Sanitizer, allowing all sorts of chaos in email/usenet posts and signatures
     }
 
+    /**
+     * Creates an instance of WTVShenanigans.
+     * @param {Object} minisrv_config - The minisrv configuration object.
+     */
     constructor(minisrv_config) {
         this.minisrv_config = minisrv_config;
     }
 
+    /**
+     * Returns the current shenanigans level set in the minisrv configuration.
+     * @returns {boolean|number} The shenanigans level, or false if shenanigans are disabled.
+     */
     getShenanigansLevel() {
         return this.minisrv_config.config.shenanigans;
     }
 
+    /**
+     * Checks if a specific shenanigan is enabled based on the current shenanigans level.
+     * @param {number} value - The shenanigan level to check against.
+     * @returns {boolean} True if the shenanigan is enabled, false otherwise.
+     */
     checkShenanigan(value) {
         var level = this.getShenanigansLevel();
 

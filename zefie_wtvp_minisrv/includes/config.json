@@ -58,7 +58,9 @@
       "reserved_names_files": [
         "includes/badWords.json",
         "includes/reservedWords.json"
-      ]
+      ],
+      "filestore_storage": 16, // Megabytes
+      "scrapbook_storage": 8 // Megabytes
     },
     "irc": {
       "enabled": false,

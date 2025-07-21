@@ -16,6 +16,7 @@ class WTVClientSessionData {
     mailstore = null;
     favstore = null;
     pagestore = null;
+    scrapbook_dir = null;
     login_security = null;
     capabilities = null;
     session_storage = "";
@@ -108,6 +109,12 @@ class WTVClientSessionData {
         }
     }
 
+    /**
+     * Sets a ticket data value.
+     * @param {string} key The key of the ticket data
+     * @param {*} value The value to set
+     * @returns {boolean} True if the value was set successfully, false otherwise
+     */
     setTicketData(key, value) {
         if (this.data_store.wtvsec_login) this.data_store.wtvsec_login.setTicketData(key, value);
         else return false;
@@ -115,16 +122,24 @@ class WTVClientSessionData {
         return true;
     }
 
+    /**
+     * Retrieves ticket data by key.
+     * @param {string} key The key of the ticket data
+     * @return {*} The value associated with the key, or false if not found
+     */
     getTicketData(key) {
         if (this.data_store.wtvsec_login) return this.data_store.wtvsec_login.getTicketData(key);
-
         return false;
     }
 
+    /**
+     * Deletes ticket data by key.
+     * @param {string} key The key of the ticket data to delete
+     * @return {boolean} True if the data was deleted successfully, false otherwise
+     */
     deleteTicketData(key) {
         if (this.data_store.wtvsec_login) this.data_store.wtvsec_login.deleteTicketData(key);
         else return false;
-
         return true;
     }
 
@@ -328,6 +343,136 @@ class WTVClientSessionData {
         return (result === false) ? false : true;
     }
 
+    scrapbookExists() {
+		if (!this.isguest) {
+			if (this.scrapbook_dir === null) {
+				var userstore_dir = this.getUserStoreDirectory();
+				var store_dir = "Scrapbook" + this.path.sep;
+                this.scrapbook_dir = userstore_dir + store_dir;
+			}
+		}
+		return this.fs.existsSync(this.scrapbook_dir);
+	}
+    
+    createScrapbook() {
+		if (this.scrapbookExists() === false) {
+			try {
+				if (!this.fs.existsSync(this.scrapbook_dir)) this.fs.mkdirSync(this.scrapbook_dir, { recursive: true });
+				return true;
+			} catch { }
+		}
+		return false
+	}
+
+	scrapbookDir() {
+		if (this.scrapbookExists() === false) {
+			this.createScrapbook();
+		}
+		return this.scrapbook_dir;
+	}
+
+	listScrapbook() {
+		if (this.scrapbookExists() === false) {
+			this.createScrapbook();
+		}
+		const files = this.fs.readdirSync(this.scrapbook_dir);
+		const filteredFiles = files.sort(function(a, b) {
+            return a.localeCompare(b, undefined, {
+                numeric: true,
+                sensitivity: 'base'
+            });
+        }).filter(file => !file.endsWith('.meta'));
+		return filteredFiles;
+	}
+
+	getFreeScrapbookID() {
+		if (this.scrapbookExists() === false) {
+			this.createScrapbook();
+		}
+		var id = 1;
+		var files = this.fs.readdirSync(this.scrapbook_dir);
+		if (files.length == 0) {
+			return id;
+		}
+		files = files.map(file => parseInt(file.substr(0, file.indexOf('.'))));
+		while (files.includes(id)) {
+			id++;
+		}
+		return id;
+	}
+
+    getScrapbookUsage() {
+        if (this.scrapbookExists() === false) {
+            this.createScrapbook();
+        }
+        var total_size = 0;
+        var files = this.fs.readdirSync(this.scrapbook_dir);
+        files.forEach(file => {
+            if (!file.endsWith('.meta')) {
+                var file_path = this.scrapbook_dir + file;
+                if (this.fs.existsSync(file_path)) {
+                    total_size += this.fs.statSync(file_path).size;
+                }
+            }
+        });
+        return total_size;
+    }
+
+    getScrapbookUsagePercent() {
+        if (this.scrapbookExists() === false) {
+            this.createScrapbook();
+        }
+        var total_size = this.getScrapbookUsage();
+        var max_size = this.minisrv_config.config.user_accounts.scrapbook_storage * 1024 * 1024; // convert to bytes
+        if (max_size <= 0) return 0; // no storage limit set
+        var usage_percent = (total_size / max_size) * 100;
+        return Math.round(usage_percent, 2);
+    }
+
+	getScrapbookImage(id) {
+		if (this.scrapbookExists() === false) {
+			this.createScrapbook();
+		}
+		var file = this.scrapbook_dir + id;
+		if (this.fs.existsSync(file)) {
+			return this.fs.readFileSync(file);
+		}
+		return null;
+	}
+
+	getScrapbookImageType(id) {
+		if (this.scrapbookExists() === false) {
+			this.createScrapbook();
+		}
+		var file = this.scrapbook_dir + id + ".meta";
+		if (this.fs.existsSync(file)) {
+			var meta = this.fs.readFileSync(file, 'utf8');
+			try {
+				var metaData = JSON.parse(meta);
+				return metaData.contentType;
+			} catch (e) {
+				this.debug("getScrapbookImageType", "Error parsing metadata for image ID", id, e);
+			}
+		}
+		return null;
+	}
+
+	addToScrapbook(filename, contentType, data) {
+		try {
+			if (this.scrapbookExists() === false) {
+				this.createScrapbook();
+			}
+			var fileout = this.scrapbook_dir + filename;
+			var fileout_meta = this.scrapbook_dir + filename + ".meta";
+			this.fs.writeFileSync(fileout, data);
+			this.fs.writeFileSync(fileout_meta, JSON.stringify({
+				"contentType": contentType
+			}));
+			return true;
+		} catch {}
+		return false;
+	}    
+
     /**
      * Retrieves a file from the user store
      * @param {string} path Path relative to the User File Store
@@ -373,12 +518,23 @@ class WTVClientSessionData {
         return Object.keys(this.session_store.cookies).length || 0;
     }
 
+    /**
+     * Resets the user cookies
+     */    
     resetCookies() {
         this.session_store.cookies = {};
         // webtv likes to have at least one cookie in the list, set a dummy cookie for zefie's site expiring in 1 year.
         this.addCookie("wtv.zefie.com", "/", this.wtvshared.getUTCTime(365 * 86400000), "cookie_type=chocolatechip");
     }
 
+    /**
+     * Adds a cookie to the user's session store
+     * @param {string|object} domain Domain for the cookie, or an object with cookie data
+     * @param {string|null} path Path for the cookie, defaults to null
+     * @param {string|null} expires Expiration date for the cookie, defaults to null
+     * @param {string|null} data Data for the cookie, defaults to null
+     * @return {boolean} True if the cookie was added successfully, false otherwise
+     */
     addCookie(domain, path = null, expires = null, data = null) {
         if (!this.checkCookies()) this.resetCookies();
         if (!domain) return false;
@@ -413,6 +569,12 @@ class WTVClientSessionData {
         return true;
     }
 
+    /**
+     * Retrieves a cookie from the user's session store
+     * @param {string} domain Domain of the cookie
+     * @param {string} path Path of the cookie
+     * @return {object|false} Cookie data if found, false otherwise
+     */
     getCookie(domain, path) {
         if (!this.checkCookies()) this.resetCookies();
         var self = this;
@@ -431,6 +593,12 @@ class WTVClientSessionData {
         return result;
     }
 
+    /**
+     * Retrieves a cookie string from the user's session store
+     * @param {string} domain Domain of the cookie
+     * @param {string} path Path of the cookie
+     * @return {string|false} Cookie string if found, false otherwise
+     */
     getCookieString(domain, path) {
         var cookie_data = this.getCookie(domain, path);
         /*
@@ -443,6 +611,12 @@ class WTVClientSessionData {
         return cookie_data.cookie;
     }
 
+    /**
+     * Deletes a cookie from the user's session store
+     * @param {string|object} domain Domain of the cookie, or an object with cookie data
+     * @param {string|null} path Path of the cookie, defaults to null
+     * @return {boolean} True if the cookie was deleted successfully, false otherwise
+     */
     deleteCookie(domain, path = null) {
         var result = false;
         if (!this.checkCookies()) {
@@ -472,12 +646,20 @@ class WTVClientSessionData {
         return result;
     }
 
+    /**
+     * Checks if there are any cookies stored in the session
+     * @return {boolean} True if there are cookies, false otherwise
+     */
     checkCookies() {
         if (!this.session_store.cookies) return false;
         else if (this.session_store.cookies == []) return false;
         return true;
     }
 
+    /**
+     * Lists all cookies in the user's session store
+     * @return {string} String representation of all cookies, each cookie separated by a null character
+     */
     listCookies() {
         if (!this.checkCookies()) this.resetCookies();
         var outstring = "";

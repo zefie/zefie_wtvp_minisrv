@@ -2,6 +2,7 @@ const CryptoJS = require('crypto-js');
 const endianness = require('endianness');
 var RC4 = require('rc4-crypto');
 var crypto = require('crypto');
+var WTVShared = require("./WTVShared.js")['WTVShared'];
 
 /**
  * Javascript implementation of WTVP Security
@@ -34,6 +35,7 @@ class WTVSec {
     RC4Session = new Array();
     minisrv_config = [];
     update_ticket = false;
+    wtvshared = null;
     ticket_store = {};
 
     /**
@@ -46,6 +48,7 @@ class WTVSec {
      */
     constructor(minisrv_config, wtv_incarnation = 1) {
         this.minisrv_config = minisrv_config;
+        this.wtvshared = new WTVShared(minisrv_config);
         this.initial_shared_key = CryptoJS.enc.Base64.parse(this.minisrv_config.config.keys.initial_shared_key);
 
         if (this.initial_shared_key.sigBytes === 8) {
@@ -58,7 +61,6 @@ class WTVSec {
 
     /**
      * Set the wtv-incarnation for this instance
-     * 
      * @param {Number} wtv_incarnation
      */
     set_incarnation(wtv_incarnation) {
@@ -77,16 +79,16 @@ class WTVSec {
 
     /**
      * Clones a WordArray to allow modification without referencing its original
-     * @param {CryptoJS.lib.WordArray} wa
-     * 
+     * @param {CryptoJS.lib.WordArray} wordArray
      * @returns {CryptoJS.lib.WordArray}
      */
-    DuplicateWordArray(wa) {
-        return CryptoJS.lib.WordArray.create(this.wordArrayToBuffer(wa));
+    DuplicateWordArray(wordArray) {
+        return CryptoJS.lib.WordArray.create(this.wordArrayToBuffer(wordArray));
     }
 
     /**
      * Prepares the wtv-ticket for this instance
+     * @returns {Base64} wtv-ticket
      */
     PrepareTicket() {
         // store last challenge response in ticket
@@ -110,20 +112,8 @@ class WTVSec {
         return this.ticket_b64;
     }
 
-    tryDecodeJSON(json_string) {
-        var out;
-        try {
-            out = JSON.parse(json_string);
-        } catch (e) {
-            console.log(e);
-            out = {};
-        }
-        return out;
-    }
-
     /**
      * Decodes a wtv-ticket to set up this instance
-     * 
      * @param {Base64} ticket_b64
      */
     DecodeTicket(ticket_b64) {
@@ -146,7 +136,7 @@ class WTVSec {
         var challenge_code_b64 = CryptoJS.enc.Hex.parse(challenge_code).toString(CryptoJS.enc.Base64);
         if ((ticket_dec.sigBytes * 2) >= challenge_code.length) {
             var ticket_data_dec = CryptoJS.enc.Hex.parse(ticket_dec.toString().substring(data_offset)).toString(CryptoJS.enc.Utf8);
-            this.ticket_store = this.tryDecodeJSON(ticket_data_dec);
+            this.ticket_store = this.wtvshared.tryDecodeJSON(ticket_data_dec);
         } else {
             this.ticket_store = {};
         }
@@ -155,6 +145,11 @@ class WTVSec {
         if (this.minisrv_config.config.debug_flags.debug) console.log(" * Decoded session from wtv-ticket with ticket_store:", this.ticket_store);
     }
 
+    /**
+     * Gets the ticket data for this instance
+     * @param {string} key The key of the ticket data to retrieve
+     * @returns {any} The ticket data for the specified key, or null if not found
+     */
     getTicketData(key = null) {
         if (typeof (this.ticket_store) === 'session_store') return null;
         else if (key === null) return this.ticket_store;
@@ -162,6 +157,11 @@ class WTVSec {
         else return null;
     }
 
+    /**
+     * Sets the ticket data for this instance
+     * @param {string} key The key of the ticket data to set
+     * @param {any} value The value to set for the specified key
+     */
     setTicketData(key, value) {
         if (key === null) throw ("WTVSec.setTicketData(): invalid key provided");
         if (typeof (this.ticket_store) === 'undefined') this.ticket_store = {};
@@ -170,6 +170,10 @@ class WTVSec {
         this.update_ticket = true;
     }
 
+    /**
+     * Deletes the ticket data for this instance
+     * @param {string} key The key of the ticket data to delete
+     */
     deleteTicketData(key) {
         if (key === null) throw ("WTVSec.deleteTicketData(): invalid key provided");
         if (typeof (this.ticket_store) === 'undefined') {
@@ -234,7 +238,6 @@ class WTVSec {
 
     /**
      * Generates a wtv-challenge for this instance
-     * 
      * @returns {Base64} wtv-challenge
      */
     IssueChallenge() {
@@ -246,7 +249,7 @@ class WTVSec {
          *	bytes 64 - 80: session key 2 used in RC4 encryption triggered by SECURE ON
          *	bytes 80 - 88: new key for future challenges
          *	bytes 88 - 104: MD5 of 8 - 88
-         *	bytes 104 - 112: padding.not important
+         *	bytes 104 - 112: padding. seemingly not important, but by default is 8 bytes of 0x08
          */
         const challenge_id = CryptoJS.lib.WordArray.random(8);
         const echo_me = CryptoJS.lib.WordArray.random(40);
@@ -280,8 +283,7 @@ class WTVSec {
     /**
      * convert a CryptoJS.lib.WordArray to a Javascript Buffer
      * @param {CryptoJS.lib.WordArray} wordArray
-     * 
-     * #returns {Buffer} JS Buffer object
+     * @returns {Buffer} JS Buffer object
      */
     wordArrayToBuffer(wordArray) {
         if (wordArray) return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
@@ -291,7 +293,6 @@ class WTVSec {
     /**
      * Starts an encryption session
      * @param {Number} rc4session Session Type (0 = enc k1, 1 = dec k1, 2 = enc k2, 3 = dec k2, default: all)
-     * 
      */
     SecureOn(rc4session = null) {
         if (this.minisrv_config.config.debug_flags.debug) console.log(" # Generating RC4 sessions with wtv-incarnation: " + this.incarnation);
@@ -326,7 +327,6 @@ class WTVSec {
      * RC4 Encrypt data
      * @param {Number} keynum Which key to use (0 = k1, 1 = k2)
      * @param {CryptoJS.lib.WordArray|ArrayBuffer|Buffer} data Data to encrypt
-     * 
      * @returns {ArrayBuffer} Encrypted data
      */
     Encrypt(keynum, data) {
@@ -357,8 +357,8 @@ class WTVSec {
      * RC4 Decrypt data
      * @param {Number} keynum Which key to use (0 = k1, 1 = k2)
      * @param {CryptoJS.lib.WordArray|ArrayBuffer|Buffer} data Data to decrypt
-     * 
      * @returns {ArrayBuffer} Decrypted data
+     * @notice This function is an alias for Encrypt, as WTVSec uses the same method for both encryption and decryption.
      */
     Decrypt(keynum, data) {
         return this.Encrypt(keynum, data)

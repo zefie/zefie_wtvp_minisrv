@@ -1,3 +1,5 @@
+const WTVClientSessionData = require('./WTVClientSessionData.js');
+
 class WTVAdmin {
 
     fs = require('fs');
@@ -18,6 +20,12 @@ class WTVAdmin {
     REASON_EXISTS = 4
     REASON_NONEXIST = 5
 
+    /**
+     * Creates an instance of WTVAdmin.
+     * @param {Object} minisrv_config 
+     * @param {WTVClientSessionData} wtvclient
+     * @param {string} service_name 
+     */
     constructor(minisrv_config, wtvclient, service_name) {
         this.minisrv_config = minisrv_config;
         var { WTVShared } = require("./WTVShared.js");
@@ -36,6 +44,12 @@ class WTVAdmin {
         this.service_name = service_name;
     }
 
+    /**
+     * Bans a specific SSID.
+     * @param {string} ssid The SSID to ban
+     * @param {string} admin_ssid The SSID of the admin requesting the ban
+     * @returns {number} The result of the ban operation
+     */
     banSSID(ssid, admin_ssid = null) {
         if (ssid == admin_ssid) {
             return this.REASON_NOSELF;
@@ -58,22 +72,27 @@ class WTVAdmin {
         }
     }
 
+    /**
+     * Unbans a specific SSID.
+     * @param {string} ssid The SSID to unban
+     * @returns {number} The result of the unban operation
+     */
     unbanSSID(ssid) {
         var config_changed = false;
-        var fake_config = wtvshared.getUserConfig();
+        var fake_config = this.wtvshared.getUserConfig();
         if (!fake_config.config) fake_config.config = {};
         if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
-        if (typeof request_headers.query.ssid === 'string') {
+        if (typeof ssid === 'string') {
             Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                if (fake_config.config.ssid_block_list[k].toLowerCase() == request_headers.query.ssid.toLowerCase()) {
+                if (fake_config.config.ssid_block_list[k].toLowerCase() == ssid.toLowerCase()) {
                     fake_config.config.ssid_block_list.splice(k, 1);
                     config_changed = true
                 }
             });
         } else {
             Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                Object.keys(request_headers.query.ssid).forEach(function (j) {
-                    if (fake_config.config.ssid_block_list[k].toLowerCase() == request_headers.query.ssid[j].toLowerCase()) {
+                Object.keys(ssid).forEach(function (j) {
+                    if (fake_config.config.ssid_block_list[k].toLowerCase() == ssid[j].toLowerCase()) {
                         fake_config.config.ssid_block_list.splice(k, 1);
                         config_changed = true
                     }
@@ -89,38 +108,11 @@ class WTVAdmin {
         }
     }
 
-    ip2long(ip) {
-        var components;
-
-        if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
-            var iplong = 0;
-            var power = 1;
-            for (var i = 4; i >= 1; i -= 1) {
-                iplong += power * parseInt(components[i]);
-                power *= 256;
-            }
-            return iplong;
-        }
-        else return -1;
-    }
-
-    isInSubnet(ip, subnet) {
-        // If subnet is given as a single IP address (no CIDR notation)
-        if (subnet.indexOf('/') === -1) {
-            return this.ip2long(ip) === this.ip2long(subnet);
-        } else {
-            // Expect subnet in format "base_ip/prefix_length"
-            let parts = subnet.match(/^(.*?)\/(\d{1,2})$/);
-            if (parts && (this.ip2long(parts[1]) >= 0)) {
-                let base_ip = this.ip2long(parts[1]);
-                let prefixLength = parseInt(parts[2]);
-                let freedom = Math.pow(2, 32 - prefixLength);
-                return (this.ip2long(ip) >= base_ip) && (this.ip2long(ip) < base_ip + freedom);
-            }
-        }
-        return false;
-    }
-
+    /**
+     * Rejects a connection attempt based on the client's address or SSID.
+     * @param {boolean} reason_is_ssid If true, the rejection is based on SSID, otherwise on IP address
+     * @returns {string} The reason for rejecting the connection
+     */
     rejectConnection(reason_is_ssid) {
         var rejectReason;
         if (this.pcservices) {
@@ -138,6 +130,11 @@ class WTVAdmin {
         return rejectReason;
     }
 
+    /**
+     * Checks if the provided password matches the service's password.
+     * @param {string} password The password to check
+     * @returns {boolean} True if the password matches, false otherwise
+     */
     checkPassword(password) {
         if (this.pcservices) {
             if (this.minisrv_config.config.pc_admin.password) {
@@ -156,6 +153,10 @@ class WTVAdmin {
         }
     }
 
+    /**
+     * Lists all registered SSIDs.
+     * @returns {Array} An array of arrays, each containing the SSID and its associated account information
+     */
     listRegisteredSSIDs() {
         var search_dir = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
         var self = this;
@@ -169,6 +170,11 @@ class WTVAdmin {
         return out;
     }
 
+    /**
+     * Checks if the current client is authorized to access the service.
+     * @param {boolean} justchecking If true, only checks authorization without rejecting the connection
+     * @return {boolean} True if authorized, false otherwise
+     */
     isAuthorized(justchecking = false) {
         var allowed_ssid = false;
         var allowed_ip = false;
@@ -186,7 +192,7 @@ class WTVAdmin {
                         if (ssid == self.wtvclient.ssid) {
                             allowed_ssid = true;
                             Object.keys(self.minisrv_config.services[self.service_name].authorized_ssids[k]).forEach(function (j) {
-                                if (self.isInSubnet(self.clientAddress, self.minisrv_config.services[self.service_name].authorized_ssids[k][j])) {
+                                if (self.wtvshared.isInSubnet(self.clientAddress, self.minisrv_config.services[self.service_name].authorized_ssids[k][j])) {
                                     if (allowed_ip) return;
                                     allowed_ip = true;
                                 }
@@ -206,7 +212,7 @@ class WTVAdmin {
                     var self = this;
                     Object.keys(this.minisrv_config.config.pc_admin.ip_whitelist).forEach(function (k) {
                         if (allowed_ip) return;
-                        allowed_ip = self.isInSubnet(self.clientAddress, self.minisrv_config.config.pc_admin.ip_whitelist[k]);
+                        allowed_ip = self.wtvshared.isInSubnet(self.clientAddress, self.minisrv_config.config.pc_admin.ip_whitelist[k]);
                     });
                 }
             }
@@ -219,6 +225,12 @@ class WTVAdmin {
         }
     }
 
+    /**
+     * Gets the account information for a specific username.
+     * @param {string} username The username to get the account information for
+     * @param {string|null} directory The directory to search for user accounts, defaults to the session store directory
+     * @returns {Object|null} An object containing account information if the username is found, null otherwise
+     */
     getAccountInfo(username, directory = null) {
         var search_dir = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
         var account_data = null;
@@ -255,6 +267,11 @@ class WTVAdmin {
         return null;
     }
 
+    /**
+     * Gets the account information for a specific SSID.
+     * @param {string} ssid The SSID to get the account information for
+     * @returns {Object|boolean} An object containing account information if the SSID is registered, false otherwise
+     */
     getAccountInfoBySSID(ssid) {
         var account_info = {};
         var userSession = new this.WTVClientSessionData(this.minisrv_config, ssid);
@@ -278,13 +295,22 @@ class WTVAdmin {
         else return false;
     }
 
-
+    /**
+     * Gets the account session data for a specific SSID.
+     * @param {string} ssid The SSID to get the account data for
+     * @returns {WTVClientSessionData} The session data object for the account
+     */
     getAccountBySSID(ssid) {
         var userSession = new this.WTVClientSessionData(this.minisrv_config, ssid);
         userSession.user_id = 0;
         return userSession;
     }
 
+    /**
+     * Checks if a specific SSID is banned.
+     * @param {string} ssid The SSID to check
+     * @returns {boolean} True if the SSID is banned, false otherwise
+     */
     isBanned(ssid) {
         var self = this;
         var isBanned = false;

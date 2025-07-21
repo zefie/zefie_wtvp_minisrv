@@ -10,7 +10,7 @@ async function handleImage() {
     if (!request_headers.query.id) {
         handleError('No image ID specified');
     } else {
-        data = session_data.pagestore.getScrapbookImage(request_headers.query.id);
+        data = session_data.getScrapbookImage(request_headers.query.id);
         if (!data) {
             handleError('Image not found');
         } else {
@@ -21,7 +21,7 @@ async function handleImage() {
                     data = await sharp(data).resize({ width, withoutEnlargement: true }).toBuffer();
                 }
                 headers = `200 OK
-Content-Type: ${session_data.pagestore.getScrapbookImageType(request_headers.query.id)}
+Content-Type: ${session_data.getScrapbookImageType(request_headers.query.id)}
 Content-Length: ${data.length}`
                 sendToClient(socket, headers, data);
             } catch (error) {
