@@ -44,7 +44,6 @@ class WTVFTP {
             user = "anonymous";
             pass = "anonymous@eff.org";
         }
-        console.log(`User: ${user}, Pass: ${pass}, Host: ${host}`);
 
         const ftpClient = new this.ftp();
         const port = parsed.port ? parseInt(parsed.port, 10) : 21;
