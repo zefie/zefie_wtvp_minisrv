@@ -1095,8 +1095,9 @@ minisrv-no-mail-count: true`;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (shortURL.indexOf('http://') >= 0 || shortURL.indexOf('https://') >= 0 || (use_external_proxy == true && shortURL.indexOf(service_name + "://") >= 0) && !pc_services) {
             doHTTPProxy(socket, request_headers);
-        } else if (shortURL.startsWith('ftp://')) {            
-            var wtvftp = new WTVFTP(minisrv_config, sendToClient);
+        } else if (shortURL.startsWith('ftp://')) {
+            if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming FTP request on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
+            var wtvftp = new WTVFTP(wtvshared, sendToClient);
             wtvftp.handleFTPRequest(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
             shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
