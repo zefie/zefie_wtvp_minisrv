@@ -26,6 +26,7 @@ tricks = [
     ["wtv-flashrom:/willie", "Ultra Willie"],
 	["wtv-setup:/transfer-account", "Transfer Account"],
 	["wtv-setup:/timezone", "Set Timezone"],
+	["wtv-proxy:/proxy", "Web Render Proxy"],
 ]
 // add these at the bottom
 tricks.push((session_data.getSessionData("registered")) ? ["wtv-tricks:/unregister", "Unregister This Box"] : ["wtv-tricks:/register", "Register This Box"]); // reg/unreg
