@@ -11,7 +11,7 @@ wtv-expire-all: wtv-proxy:/`;
   <head>
     <title>Web Rendering Proxy</title>
   </head>
-  <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff">
+  <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" fontsize="small">
     <h1>Web Rendering Proxy</h1>
     Sorry, the Web Rendering Proxy is not enabled on this service.<br>
   </body>
@@ -32,7 +32,7 @@ wtv-expire-all: wtv-proxy:/`;
     <head>
         <title>Web Rendering Proxy</title>
     </head>
-    <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff">
+    <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" fontsize="small">
         <h1>Web Rendering Proxy</h1>
         <p>Welcome to the Web Rendering Proxy.<br>
         Please provide a valid URL to render.</p>
@@ -42,7 +42,7 @@ wtv-expire-all: wtv-proxy:/`;
             <input type="hidden" name="z" value="1.0">
             <input type="hidden" name="t" value="jpg">
             <input type="hidden" name="c" value="256">
-            <input type="hidden" name="h" value="416">
+            <input type="hidden" name="h" value="426">
             <input type="hidden" name="w" value="640">
             <input type="hidden" name="m" value="ismap">
             <input type="submit" value="Go">
@@ -63,7 +63,7 @@ wtv-expire-all: wtv-proxy:/`;
                 z: request_headers.query.z || '1.0',
                 t: request_headers.query.t || 'jpg',
                 c: request_headers.query.c || '256',
-                h: request_headers.query.h || '416',
+                h: request_headers.query.h || '426',
                 w: request_headers.query.w || '640',
                 m: request_headers.query.m || 'ismap'
             });
@@ -124,7 +124,7 @@ wtv-expire-all: wtv-proxy:/`;
     <title>Web Rendering Proxy</title>
 </head>
 <display nooptions>
-<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff">
+<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" fontsize="small">
     <form method="POST" action="wtv-proxy:/proxy">
         <label for="url">URL:</label>
         <input type="text" id="url" name="url" value="${request_headers.query.url}" size=30>
