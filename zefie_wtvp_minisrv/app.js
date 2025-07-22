@@ -243,6 +243,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "https": https,
         "sharp": sharp,
         "URL": URL,
+        "URLSearchParams": URLSearchParams,
         "wtvshared": wtvshared,
         "zlib": zlib,
         "clientShowAlert": clientShowAlert,
@@ -1302,7 +1303,7 @@ async function doHTTPProxy(socket, request_headers) {
             res.on('data', d => {
                 data.push(d);
                 total_data += d.length;
-                if (total_data > 1024 * parseFloat(minisrv_config.services[request_type].max_response_size || 16)) {
+                if (total_data > 1024 * 1024 * parseFloat(minisrv_config.services[request_type].max_response_size || 16)) {
                     console.warn(` * Response data exceeded ${minisrv_config.services[request_type].max_response_size || 16}MB limit, destroying...`);
                     res.destroy();
                 }
