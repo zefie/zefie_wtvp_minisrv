@@ -395,13 +395,12 @@
     },
     "wtv-search": {
       "disabled": true,
-      "port": 1695,
-      "searxng_url": "http://192.168.11.20:9999/" // replace with your own searxng instance
+      "port": 1695
+      // "searxng_url": "" // replace with your own searxng instance
     },    
     "wtv-proxy": {
-      "disabled": true,
-      "port": 1696,
-      "wrp_url": "http://192.168.11.20:8889/" // replace with your own tenox9/wrp
+      "port": 1696
+      // "wrp_url": "" // replace with your own tenox9/wrp
     },
     "pb_services": {
       // PC Services for PageBuilder
