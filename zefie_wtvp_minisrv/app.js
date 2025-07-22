@@ -1306,6 +1306,8 @@ async function doHTTPProxy(socket, request_headers) {
                 if (total_data > 1024 * 1024 * parseFloat(minisrv_config.services[request_type].max_response_size || 16)) {
                     console.warn(` * Response data exceeded ${minisrv_config.services[request_type].max_response_size || 16}MB limit, destroying...`);
                     res.destroy();
+                    var errpage = wtvshared.doErrorPage(400, "The item chosen is too large to be used.");
+                    sendToClient(socket, errpage[0], errpage[1]);
                 }
             })
 
