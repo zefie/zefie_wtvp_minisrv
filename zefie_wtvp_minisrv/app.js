@@ -1951,8 +1951,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     socket.setTimeout(minisrv_config.config.post_data_socket_timeout * 1000);
                     if (typeof socket_sessions[socket.id].post_data == "undefined") {
                         if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
-                        socket_sessions[socket.id].post_data_length = headers['Content-length'] || headers['Content-Length'] || 0;
-                        socket_sessions[socket.id].post_data_length = parseInt(socket_sessions[socket.id].post_data_length);
+                        socket_sessions[socket.id].post_data_length = parseInt(headers['Content-length'] || headers['Content-Length'] || 0);
                         socket_sessions[socket.id].post_data = "";
                         socket_sessions[socket.id].headers = headers;
                         var post_string = "POST";
@@ -1996,7 +1995,9 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     return;
                 }
             } else {
-                socket_sessions[socket.id].headers = headers;
+                if (headers.length > 0) {
+                    socket_sessions[socket.id].headers = headers;
+                }
             }
         } else if (socket.ssid) {
             try {
@@ -2005,7 +2006,11 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     if (socket_sessions[socket.id].post_data_length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
                         closeSocket(socket);
                     } else {
-                        socket_sessions[socket.id].headers = headers;
+                        if (headers.length == 0) {
+                            headers = socket_sessions[socket.id].headers;
+                        } else {
+                            socket_sessions[socket.id].headers = headers;
+                        }
                         if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
                             new_header_obj = null;
                             var enc_data = CryptoJS.enc.Hex.parse(data_hex);
@@ -2039,25 +2044,31 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                     }
                                 }
                             }
-                        }
+                        } 
+                        
                         if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
                             // got all expected data
                             if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
+                            if (headers.length == 0) {
+                                var errpage = wtvshared.doErrorPage(400, `${minisrv_config.config.service_name} ran into a technical problem, please try again.`);
+                                headers = errpage[0];
+                                data = errpage[1];
+                                sendToClient(socket, headers, data);
+                                return;
+                            }
                             headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                             if (socket_sessions[socket.id].secure == true) {
                                 if (minisrv_config.config.debug_flags.debug) console.debug(" # Encrypted POST Content (SECURE ON)", "on", socket.id, "[", headers.post_data.sigBytes, "bytes ]");
                             } else {
                                 if (minisrv_config.config.debug_flags.debug) console.debug(" # Unencrypted POST Content", "on", socket.id);
                             }
-                            socket_sessions[socket.id].expecting_post_data = false;
                             delete socket_sessions[socket.id].headers;
                             delete socket_sessions[socket.id].post_data;
                             delete socket_sessions[socket.id].post_data_length;
                             processURL(socket, headers);
                             return;
                         } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
-                            socket_sessions[socket.id].expecting_post_data = false;
                             if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                             // got too much data ? ... should not ever reach this code

@@ -164,7 +164,7 @@ wtv-expire-all: wtv-proxy:/`;
 <display nooptions skipback showwhencomplete>
 <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" fontsize="small">
     <form method="POST" action="wtv-proxy:/proxy">
-        <label for="url">URL:</label>
+        <label for="url">&nbsp; URL:</label>
         <input type="text" id="url" name="url" value="${url || request_headers.query.url}" size=30>
         <input type="hidden" name="z" value="${request_headers.query.z || '1.0'}">
         <input type="hidden" name="t" value="${request_headers.query.t || 'jpg'}">
