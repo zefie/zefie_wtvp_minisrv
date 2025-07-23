@@ -6,6 +6,7 @@ const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
 
 const fs = require('fs');
+const nunjucks = require('nunjucks');
 const zlib = require('zlib');
 const {serialize, unserialize} = require('php-serialize');
 const {spawn} = require('child_process');
@@ -242,6 +243,7 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
         "http": http,
         "https": https,
         "sharp": sharp,
+        "nunjucks": nunjucks,
         "URL": URL,
         "URLSearchParams": URLSearchParams,
         "wtvshared": wtvshared,
