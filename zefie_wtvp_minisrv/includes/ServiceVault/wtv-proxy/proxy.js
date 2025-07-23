@@ -152,7 +152,7 @@ function process(content) {
     }
 }
 
-function finishPage(content, url) {
+function finishPage(content, url = null) {
     headers = `200 OK
 Content-Type: text/html
 wtv-expire-all: wtv-proxy:/`;
