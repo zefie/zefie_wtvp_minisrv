@@ -9,8 +9,7 @@ searchUrl += 'search';
 
 if (!request_headers.query.q) {
     const headers = `200 OK\nContent-Type: text/html`;
-    const data = `
-<html>
+    const data = `<html>
 <head>
     <title>Web Search Proxy</title>
 </head>
@@ -40,6 +39,7 @@ if (!request_headers.query.q) {
         }
     }
     params.append('format', 'json');
+    params.append('limit', '10');
     const urlObj = new URL(searchUrl);
     const lib = urlObj.protocol === 'https:' ? https : http;
     var post_data = params.toString();
@@ -63,7 +63,7 @@ if (!request_headers.query.q) {
     fetch(lib, options, post_data)
         .then(response => response.text())
         .then(text => { process(text); })
-        .catch(err => { finishPage(`Error fetching page: ${err.message}`); });
+        .catch(err => { finishPage([`Error fetching page: ${err.message}`]); });
 }
 
 function fetch(lib, options, post_data) {
@@ -86,12 +86,20 @@ function process(data) {
         const results  = JSON.parse(data).results || [];
         let content = '';
         if (results.length === 0) {
-            content = '<h1>No results found</h1>';
+            content = ['<h1>No results found</h1>'];
         } else {
-            content = '<h1>Search Results</h1>';
+            content = [];
             results.forEach(result => {
                 result.title = result.title.replace(/\</g, '&lt;').replace(/\>/g, '&gt;');
-                content += `<p><font color="gold">${result.title}</font><br><a href="${result.url}" target="_blank">Direct</a> - <a href="wtv-proxy:/proxy?url=${encodeURIComponent(result.url)}">Proxy</a><br>${result.content || `<img src="${result.thumbnail_src}">` || ''}</p><br>`;
+                if (result.description) {
+                    result.description = result.description.replace(/\</g, '&lt;').replace(/\>/g, '&gt;');
+                }
+                result.encodedurl = encodeURIComponent(result.url);
+                if (result.thumbnail_src) {
+                    result.thumbnail_src = "wtv-search:/imgproxy?url=" + encodeURIComponent(result.thumbnail_src);
+                }
+
+                content.push(result);
             });
         }
         finishPage(content);
@@ -101,23 +109,7 @@ function process(data) {
 
 function finishPage(content) {
     const headers = `200 OK\nContent-Type: text/html`;
-    const data = `
-<html>
-<head>
-    <title>Web Search Proxy</title>
-</head>
-<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff">
-    <form method="POST" action="wtv-search:/search">
-        <label for="q">Query:</label>
-        <input type="text" id="q" name="q" value="${request_headers.query.q}" size=30>
-        <select name="categories">
-            <option value="general" ${request_headers.query.categories === 'general' ? 'selected' : ''}>General</option>
-            <option value="images" ${request_headers.query.categories === 'images' ? 'selected' : ''}>Images</option>
-        </select>
-        <input type="submit" value="Search">
-    </form>
-    ${content}
-</body>
-</html>`;
+    nunjucks.configure({ autoescape: true });
+    const data = nunjucks.render(wtvshared.getServiceDep('wtv-search/results.njk', true), { content, request_headers });
     sendToClient(socket, headers, data);
 }
