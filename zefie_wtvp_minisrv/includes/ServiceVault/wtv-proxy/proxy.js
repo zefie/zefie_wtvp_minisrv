@@ -58,6 +58,11 @@ wtv-expire-all: wtv-proxy:/`;
         if (request_headers.query.err) {
             finishPage(`<h1>Error</h1><p>${request_headers.query.err}</p>`).join('<br>');
         } else {
+            if (request_headers.query.Fn) {
+                if (typeof request_headers.query.Fn !== 'string') {
+                    request_headers.query.Fn = request_headers.query.Fn[0];
+                }
+            }
             const params = new URLSearchParams({
                 url: request_headers.query.url,
                 z: request_headers.query.z || '1.0',
@@ -65,27 +70,54 @@ wtv-expire-all: wtv-proxy:/`;
                 c: request_headers.query.c || '256',
                 h: request_headers.query.h || '426',
                 w: request_headers.query.w || '640',
-                m: request_headers.query.m || 'ismap'
+                m: request_headers.query.m || 'ismap',
+                Fn: request_headers.query.Fn || ''
             });
-            const fullUrl = proxyUrl + '?' + params.toString();
-            const urlObj = new URL(fullUrl);
-            const lib = urlObj.protocol === 'https:' ? https : http;
-            if (request_headers.query.id) {
-                finishPage(`<a href="/map/${request_headers.query.id}.map"><img src="/img/${request_headers.query.id}.${params.get('t')}" ISMAP></a>`);
+
+            if (params.get('Fn') === '129') {
+                params.set('Fn', 'Bk');
+            }
+
+            if (params.get('Fn') === 'Home') {
+                headers = `302 Moved
+Location: /proxy`
+                data = '';
+                sendToClient(socket, headers, data);
             } else {
-                function fetch(url) {
-                    return new Promise((resolve, reject) => {
-                        lib.get(url, (res) => {
-                            let data = '';
-                            res.on('data', chunk => data += chunk);
-                            res.on('end', () => resolve({ text: () => Promise.resolve(data) }));
-                        }).on('error', reject);
-                    });
+                const urlObj = new URL(proxyUrl);
+                const post_data = params.toString();
+                const options = {
+                    protocol: urlObj.protocol,
+                    hostname: urlObj.hostname,
+                    port: parseInt(urlObj.port),
+                    path: urlObj.pathname,
+                    method: 'POST',
+                    headers: {
+                        'User-Agent': request_headers['User-Agent'] || 'Mozilla/4.0 WebTV/2.6 (compatible; MSIE 4.0)',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Length': Buffer.byteLength(post_data)
+                    }
                 }
-                fetch(fullUrl)
-                    .then(response => response.text())
-                    .then(text => { process(text); })
-                    .catch(err => { finishPage(`Error fetching page: ${err.message}`); });
+                const lib = urlObj.protocol === 'https:' ? https : http;
+                if (request_headers.query.id) {
+                    finishPage(`<a href="/map/${request_headers.query.id}.map"><img src="/img/${request_headers.query.id}.${params.get('t')}" ISMAP></a>`);
+                } else {
+                    function fetch(options, post_data) {
+                        return new Promise((resolve, reject) => {
+                            req = lib.request(options, (res) => {
+                                let data = '';
+                                res.on('data', chunk => data += chunk);
+                                res.on('end', () => resolve({ text: () => Promise.resolve(data) }));
+                            }).on('error', reject);
+                            req.write(post_data); // 🔁 Send body
+                            req.end();
+                        });
+                    }
+                    fetch(options, post_data)
+                        .then(response => response.text())
+                        .then(text => { process(text); })
+                        .catch(err => { finishPage(`Error fetching page: ${err.message}`); });
+                }
             }
         }
     }
@@ -123,7 +155,7 @@ wtv-expire-all: wtv-proxy:/`;
 <head>
     <title>Web Rendering Proxy</title>
 </head>
-<display nooptions>
+<display nooptions skipback showwhencomplete>
 <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" fontsize="small">
     <form method="POST" action="wtv-proxy:/proxy">
         <label for="url">URL:</label>
@@ -132,9 +164,9 @@ wtv-expire-all: wtv-proxy:/`;
         <input type="hidden" name="t" value="${request_headers.query.t || 'jpg'}">
         <input type="hidden" name="c" value="${request_headers.query.c || '216'}">
         <input type="submit" value="Go">
-        <input type="submit" name="Fn" value="Bk">
+        <input type="submit" name="Fn" value="&#129;">
         <input type="submit" name="Fn" value="Re">
-        <a href="/proxy">*</a>
+        <input type="submit" name="Fn" value="Home">
         <hr>
         ${content}
     </form>

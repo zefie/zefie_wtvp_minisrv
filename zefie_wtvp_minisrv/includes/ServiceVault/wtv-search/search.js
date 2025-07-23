@@ -90,7 +90,8 @@ function process(data) {
         } else {
             content = '<h1>Search Results</h1>';
             results.forEach(result => {
-                content += `<p><a href="${result.url}" target="_blank">${result.title}</a><br>${result.content || `<img src="${result.thumbnail_src}">` || ''}</p><br>`;
+                result.title = result.title.replace(/\</g, '&lt;').replace(/\>/g, '&gt;');
+                content += `<p><font color="gold">${result.title}</font><br><a href="${result.url}" target="_blank">Direct</a> - <a href="wtv-proxy:/proxy?url=${encodeURIComponent(result.url)}">Proxy</a><br>${result.content || `<img src="${result.thumbnail_src}">` || ''}</p><br>`;
             });
         }
         finishPage(content);
