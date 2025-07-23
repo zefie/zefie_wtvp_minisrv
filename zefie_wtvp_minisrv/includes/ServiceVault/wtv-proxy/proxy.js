@@ -56,7 +56,7 @@ wtv-expire-all: wtv-proxy:/`;
         sendToClient(socket, headers, data);
     } else {
         if (request_headers.query.err) {
-            finishPage(`<h1>Error</h1><p>${request_headers.query.err}</p>`).join('<br>');
+            finishPage(`<h1>Error</h1><p>${request_headers.query.err}</p>`);
         } else {
             if (request_headers.query.Fn) {
                 if (typeof request_headers.query.Fn !== 'string') {
@@ -80,7 +80,7 @@ wtv-expire-all: wtv-proxy:/`;
 
             if (params.get('Fn') === 'Home') {
                 headers = `302 Moved
-Location: /proxy`
+Location: wtv-proxy:/proxy`
                 data = '';
                 sendToClient(socket, headers, data);
             } else {
@@ -136,7 +136,13 @@ function process(content) {
                 img: imgSrcMatch[1]
             });
         }
-        finishPage(links.map(link => `<a href="${link.href}"><img src="${link.img}" ISMAP></a>`).join('<br>'));
+        // Extract the current URL
+        const urlInputMatch = content.match(/<input[^>]+type=["']text["'][^>]+name=["']url["'][^>]+value=["']([^"']+)["']/i);
+        let pageUrl = request_headers.query.url || '';
+        if (urlInputMatch) {
+            pageUrl = urlInputMatch[1];
+        }
+        finishPage(links.map(link => `<a href="${link.href}"><img src="${link.img}" ISMAP></a>`).join('<br>'), pageUrl);
         // You can now use the `links` array as needed
 
     } else {
@@ -146,7 +152,7 @@ function process(content) {
     }
 }
 
-function finishPage(content) {
+function finishPage(content, url) {
     headers = `200 OK
 Content-Type: text/html
 wtv-expire-all: wtv-proxy:/`;
@@ -159,7 +165,7 @@ wtv-expire-all: wtv-proxy:/`;
 <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" fontsize="small">
     <form method="POST" action="wtv-proxy:/proxy">
         <label for="url">URL:</label>
-        <input type="text" id="url" name="url" value="${request_headers.query.url}" size=30>
+        <input type="text" id="url" name="url" value="${url || request_headers.query.url}" size=30>
         <input type="hidden" name="z" value="${request_headers.query.z || '1.0'}">
         <input type="hidden" name="t" value="${request_headers.query.t || 'jpg'}">
         <input type="hidden" name="c" value="${request_headers.query.c || '216'}">
