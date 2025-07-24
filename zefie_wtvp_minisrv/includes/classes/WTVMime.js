@@ -64,7 +64,7 @@ class WTVMime {
                     // should we bother to compress?
                     var content_type = "";
                     if (typeof (headers_obj) == 'string') content_type = headers_obj;
-                    else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-Type"];
+                    else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-type"];
 
                     if (content_type) {
                         // both lzpf and gzip

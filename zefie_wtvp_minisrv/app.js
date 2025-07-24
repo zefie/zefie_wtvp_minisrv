@@ -21,7 +21,7 @@ const sharp = require('sharp')
 const process = require('process');
 const WTVSec = require(classPath + "/WTVSec.js");
 const WTVSSL = require(classPath + "/WTVSSL.js");
-const WTVLzpf = require(classPath + "/WTVLzpf.js");
+const LZPF = require(classPath + "/LZPF.js");
 const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
@@ -1480,8 +1480,8 @@ async function sendToClient(socket, headers_obj, data = null) {
             case 1:
                 // wtv-lzpf implementation
                 headers_obj["wtv-lzpf"] = 0;
-                var wtvcomp = new WTVLzpf();
-                data = wtvcomp.Compress(data);
+                var wtvcomp = new LZPF();
+                data = wtvcomp.compress(data);
                 wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
                 break;
 
