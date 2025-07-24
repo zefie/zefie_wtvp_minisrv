@@ -426,7 +426,9 @@ class LZPF {
     compress(uncompressed_data) {
         this.clear();
         if (typeof uncompressed_data === 'string') {
-            uncompressed_data = Buffer.from(uncompressed_data, 'utf8');
+            uncompressed_data = Buffer.from(uncompressed_data, 'utf-8');
+        } else if (!Buffer.isBuffer(uncompressed_data)) {
+            throw new TypeError('Input data for compress must be a Buffer or a string.');
         }
 
         const uncompressed_len = uncompressed_data.length;
