@@ -1,12 +1,14 @@
 minisrv_service_file = true;
 request_is_async = true;
 
-const proxyUrl = minisrv_config.services['wtv-proxy'].wrp_url;
+const proxyUrl = minisrv_config.services[service_name].wrp_url;
 if (!proxyUrl.endsWith('/')) {
     proxyUrl += '/';
 }
-// Remove 'wtv-proxy:/' from the start of request_url
-let forwardPath = request_headers.request_url.replace(/^wtv-proxy:\//, '');
+
+// Remove 'service_name:/' from the start of request_url
+let forwardPath = request_headers.request_url
+    .replace(new RegExp(`^${service_name}:\\/`), '');
 
 // Build the full URL to forward to
 var targetUrl = proxyUrl + forwardPath;
@@ -20,7 +22,6 @@ if (!coords) {
     coords = '0,0'
 }
 
-console.log(`Forwarding request to ${targetUrl} with coordinates ${coords}`);
 targetUrl += `?${coords}`; // Append coordinates to the target URL
 
 lib.get(targetUrl, (res) => {
@@ -29,7 +30,6 @@ lib.get(targetUrl, (res) => {
     if (res.headers['content-type']) {
         headers += `Content-Type: ${res.headers['content-type']}\n`;
     }
-    // Optionally copy other headers as needed
 
     let data = '';
     res.on('data', chunk => data += chunk);
@@ -54,12 +54,12 @@ lib.get(targetUrl, (res) => {
             if (urlInputMatch) {
                 pageUrl = urlInputMatch[1];
             }
-            var redirectUrl = `wtv-proxy:/proxy?id=${proxy_id}&t=${imgExt}&url=${encodeURIComponent(pageUrl)}`;
+            var redirectUrl = `${service_name}:/proxy?id=${proxy_id}&t=${imgExt}&url=${encodeURIComponent(pageUrl)}`;
             sendToClient(socket, {'Status': 302, 'Location': redirectUrl}, '');
         } else {
             var idx = data.indexOf('<BR>');
             data = data.substring(0, idx);
-            var redirectUrl = `wtv-proxy:/proxy?err=${escape(data)}`;
+            var redirectUrl = `${service_name}:/proxy?err=${escape(data)}`;
             sendToClient(socket, {'Status': 302, 'Location': redirectUrl}, '');
         }
     });

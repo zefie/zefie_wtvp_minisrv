@@ -74,7 +74,7 @@ class WTVFTP {
                             chunks.push(chunk);
                             totalsize += chunk.length;
                             if (totalsize > 1024 * 1024 * 4) {
-                                this.sendToClient(socket, { 'Status': '413 The file chosen contains too much information to be used.', 'Content-Type': 'text/plain' }, 'File too large');
+                                this.sendToClient(socket, { 'Status': '413 The item chosen contains too much information to be used.', 'Content-Type': 'text/plain' }, 'Item too large');
                                 ftpClient.end();
                                 return;
                             }

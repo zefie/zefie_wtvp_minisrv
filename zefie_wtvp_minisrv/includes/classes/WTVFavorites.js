@@ -331,50 +331,47 @@ class WTVFavorites {
 			keydata = this.fs.readFileSync(favoritefileout)
 			console.log(newkey)
 			switch(newkey) {
-			case "F1":
-			keydata.F1.folder = folder;
-			break
-			case "F2":
-			keydata.F2 = {
-				folder: folder,
-				id: id
+				case "F1":
+				keydata.F1.folder = folder;
+				break
+				case "F2":
+				keydata.F2 = {
+					folder: folder,
+					id: id
+				}
+				break;
+				case "F3":
+				keydata.F3 = {
+					folder: folder,
+					id: id
+				}
+				break;
+				case "F4":
+				keydata.F4 = {
+					folder: folder,
+					id: id
+				}
+				break;
+				case "F5":
+				keydata.F5 = {
+					folder: folder,
+					id: id
+				}
+				break;
+				case "F6":
+				keydata.F6 = {
+					folder: folder,
+					id: id
+				}
+				break;
+				case "F7":
+				keydata.F7 = {
+					folder: folder,
+					id: id
+				}
+				break;
 			}
-			break;
-			case "F3":
-			keydata.F3 = {
-				folder: folder,
-				id: id
-			}
-			break;
-			case "F4":
-			keydata.F4 = {
-				folder: folder,
-				id: id
-			}
-			break;
-			case "F5":
-			keydata.F5 = {
-				folder: folder,
-				id: id
-			}
-			break;
-			case "F6":
-			keydata.F6 = {
-				folder: folder,
-				id: id
-			}
-			break;
-			case "F7":
-			keydata.F7 = {
-				folder: folder,
-				id: id
-			}
-			break;
-			}
-			if (oldkey == "none")
-			{
-				//no
-			} else {
+			if (oldkey != "none") {
 				keydata[oldkey].folder = null;
 				keydata[oldkey].id = null;
 			}

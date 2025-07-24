@@ -1,12 +1,14 @@
 minisrv_service_file = true;
 request_is_async = true;
 
-const proxyUrl = minisrv_config.services['wtv-proxy'].wrp_url;
+const proxyUrl = minisrv_config.services[service_name].wrp_url;
 if (!proxyUrl.endsWith('/')) {
     proxyUrl += '/';
 }
-// Remove 'wtv-proxy:/' from the start of request_url
-let forwardPath = request_headers.request_url.replace(/^wtv-proxy:\//, '');
+
+// Remove 'service_name:/' from the start of request_url
+let forwardPath = request_headers.request_url
+    .replace(new RegExp(`^${service_name}:\\/`), '');
 
 // Build the full URL to forward to
 const targetUrl = proxyUrl + forwardPath;
@@ -21,7 +23,6 @@ lib.get(targetUrl, (res) => {
     if (res.headers['content-type']) {
         headers += `Content-Type: ${res.headers['content-type']}\n`;
     }
-    // Optionally copy other headers as needed
 
     let data = [];
     res.on('data', chunk => data.push(chunk));
@@ -29,5 +30,6 @@ lib.get(targetUrl, (res) => {
         sendToClient(socket, headers, Buffer.concat(data));
     });
 }).on('error', err => {
-    sendToClient(socket, '200 OK\nContent-Type: text/plain', `Error fetching image: ${err.message}`);
+    var errpage = WTVShared.doErrorPage(400, 'Error fetching image', err.message);
+    sendToClient(socket, errpage[0], errpage[1]);
 });

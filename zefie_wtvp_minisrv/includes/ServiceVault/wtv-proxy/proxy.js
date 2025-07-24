@@ -5,7 +5,7 @@ proxyUrl = minisrv_config.services[service_name].wrp_url;
 if (!proxyUrl) {
     headers = `200 OK
 Content-Type: text/html
-wtv-expire-all: wtv-proxy:/`;
+wtv-expire-all: ${service_name}:/`;
     data = `
 <html>
   <head>
@@ -26,7 +26,7 @@ wtv-expire-all: wtv-proxy:/`;
     if (!request_headers.query.url) {
         headers = `200 OK
 Content-Type: text/html
-wtv-expire-all: wtv-proxy:/`;
+wtv-expire-all: ${service_name}:/`;
         data = `
 <html>
     <head>
@@ -80,7 +80,7 @@ wtv-expire-all: wtv-proxy:/`;
 
             if (params.get('Fn') === 'Home') {
                 headers = `302 Moved
-Location: wtv-proxy:/proxy`
+Location: ${service_name}:/proxy`
                 data = '';
                 sendToClient(socket, headers, data);
             } else {
@@ -155,7 +155,7 @@ function process(content) {
 function finishPage(content, url = null) {
     headers = `200 OK
 Content-Type: text/html
-wtv-expire-all: wtv-proxy:/`;
+wtv-expire-all: ${service_name}:/`;
     data = `
 <html>
 <head>
@@ -163,7 +163,7 @@ wtv-expire-all: wtv-proxy:/`;
 </head>
 <display nooptions skipback showwhencomplete>
 <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" fontsize="small">
-    <form method="POST" action="wtv-proxy:/proxy">
+    <form method="POST" action="${service_name}:/proxy">
         <label for="url">&nbsp; URL:</label>
         <input type="text" id="url" name="url" value="${url || request_headers.query.url}" size=30>
         <input type="hidden" name="z" value="${request_headers.query.z || '1.0'}">
