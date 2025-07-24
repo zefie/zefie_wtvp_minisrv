@@ -7,6 +7,7 @@
   "license": "GPL3",
   "scripts": {
     "start": "node app.js",
+    "irc": "node irconly.js",
     "test": "node test.js",
     "debug": "cross-env DEBUG=* node app.js"
   },
