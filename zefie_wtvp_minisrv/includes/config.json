@@ -121,7 +121,7 @@
       "password": "MySeqRetKey1" // change this in user_config.json
     },
     "keys": {
-      "initial_shared_key": "CC5rWmRUE0o=", // Used for the initial RC4 rolling key. Changing this is untested and unsupported.
+      "initial_shared_key": "bWluaXNydiE=", // Used for the initial RC4 rolling key. Changing this is untested and unsupported.
       "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords in configs. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
     },
     "passwords": {

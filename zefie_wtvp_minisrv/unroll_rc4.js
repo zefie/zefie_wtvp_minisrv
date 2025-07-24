@@ -274,7 +274,7 @@ parser.on('packet', (packet) => {
     const srcPort = packet.data.readUInt16BE(tcpHeaderBase);
     const dstPort = packet.data.readUInt16BE(tcpHeaderBase + 2);
     
-    if (srcIP != serverIP && dstIP !== serverIP) {
+    if (srcIP !== serverIP && dstIP !== serverIP) {
         return;
     }
 
@@ -290,7 +290,7 @@ parser.on('packet', (packet) => {
         } else {
             isClientToServer = dstIP === serverIP;
         }
-        
+        console.log(`[INFO] New connection detected: ${currentKey} (Client to Server: ${isClientToServer})`);
         connections.set(currentKey, new ConnectionState());
         connections.set(oppositeKey, new ConnectionState());
         connections.get(currentKey).isClient = isClientToServer;
