@@ -77,7 +77,7 @@ class WTVSec {
      * @returns {CryptoJS.lib.WordArray}
      */
     DuplicateWordArray(wordArray) {
-        return CryptoJS.lib.WordArray.create(this.wordArrayToBuffer(wordArray));
+        return CryptoJS.lib.WordArray.create(this.wtvshared.wordArrayToBuffer(wordArray));
     }
 
     /**
@@ -275,16 +275,6 @@ class WTVSec {
     }
 
     /**
-     * convert a CryptoJS.lib.WordArray to a Javascript Buffer
-     * @param {CryptoJS.lib.WordArray} wordArray
-     * @returns {Buffer} JS Buffer object
-     */
-    wordArrayToBuffer(wordArray) {
-        if (wordArray) return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
-        else return null;
-    }
-
-    /**
      * Starts an encryption session
      * @param {Number} rc4session Session Type (0 = enc k1, 1 = dec k1, 2 = enc k2, 3 = dec k2, default: all)
      */
@@ -295,8 +285,8 @@ class WTVSec {
         endianness(buf, 4);
         this.hRC4_Key1 = CryptoJS.MD5(this.DuplicateWordArray(this.session_key1).concat(CryptoJS.lib.WordArray.create(buf).concat(this.DuplicateWordArray(this.session_key1))));
         this.hRC4_Key2 = CryptoJS.MD5(this.DuplicateWordArray(this.session_key2).concat(CryptoJS.lib.WordArray.create(buf).concat(this.DuplicateWordArray(this.session_key2))));
-        var key1 = this.wordArrayToBuffer(this.hRC4_Key1);
-        var key2 = this.wordArrayToBuffer(this.hRC4_Key2);
+        var key1 = this.wtvshared.wordArrayToBuffer(this.hRC4_Key1);
+        var key2 = this.wtvshared.wordArrayToBuffer(this.hRC4_Key2);
         const setRC4Session = (sessionIndex, key) => {
             this.RC4Session[sessionIndex] = new RC4.RC4(key);
         };
@@ -338,7 +328,7 @@ class WTVSec {
         }
 
         if (data.words) {
-            data = this.wordArrayToBuffer(data);
+            data = this.wtvshared.wordArrayToBuffer(data);
         } else if (data instanceof ArrayBuffer || typeof data === 'string') {
             data = Buffer.from(data);
         }

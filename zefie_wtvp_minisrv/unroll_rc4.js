@@ -1,320 +1,258 @@
 const fs = require('fs');
-const pcap = require('pcap-parser');
+const pcapParser = require('pcap-parser');
 const WTVSec = require('./includes/classes/WTVSec.js');
+const LZPF = require('./includes/classes/LZPF.js');
+const WTVShared = require('./includes/classes/WTVShared.js')['WTVShared'];
+const wtvshared = new WTVShared();
+const CryptoJS = require('crypto-js');
 
-// A map to hold the state of each TCP connection.
-const connections = new Map();
-
-/**
- * A simple, resilient function to parse HTTP headers from a buffer.
- * @param {Buffer} buffer - The buffer containing HTTP headers.
- * @returns {object|null} An object containing the headers, or null if headers are incomplete.
- */
-function parseHeaders(buffer) {
-    const headers = {};
-    const headerString = buffer.toString('utf8');
-    const headersEnd = headerString.indexOf('\r\n\r\n');
-    if (headersEnd === -1) {
-        return null; // Incomplete headers
-    }
-
-    const lines = headerString.slice(0, headersEnd).split('\r\n');
-    for (const line of lines) {
-        const parts = line.split(':');
-        if (parts.length > 1) {
-            const key = parts.shift().trim().toLowerCase();
-            const value = parts.join(':').trim();
-            headers[key] = value;
+var wtvsec = null;
+var wtv_challenge_response = null;
+// A simple mock config, the initial_shared_key is populated dynamically.
+const minisrv_config = {
+    config: {
+        keys: {
+            initial_shared_key: null 
+        },
+        debug_flags: {
+            debug: false // Set to true for verbose logging from WTVSec
         }
     }
-    return headers;
-}
+};
 
-/**
- * Represents the state of a single direction of a TCP connection.
- */
-class ConnectionState {
-    constructor() {
-        this.buffer = Buffer.alloc(0);
-        this.securityState = 'PLAINTEXT'; // PLAINTEXT, AWAITING_SECURE_RESPONSE, SECURE
-        this.wtvSec = null;
-        this.initialKey = null;
-        this.challenge = null;
-        this.incarnation = null;
-        this.isClient = false;
-    }
-
-    /**
-     * Appends new data to the connection's buffer.
-     * @param {Buffer} data - The raw TCP payload data.
-     */
-    feed(data) {
-        this.buffer = Buffer.concat([this.buffer, data]);
-    }
-
-    /**
-     * Initializes the WTVSec instance for this connection.
-     * @param {string} initialKey - The wtv-initial-key from the server.
-     * @param {string} challenge - The wtv-challenge from the server.
-     */
-    initializeSecurity(initialKey, challenge) {
-        this.wtvSec = new WTVSec({
-            config: {
-                keys: { initial_shared_key: initialKey },
-                debug_flags: { debug: false }
-            }
-        });
-        this.wtvSec.ProcessChallenge(challenge);
-        console.log("🔑 Security context initialized.");
-    }
-
-    /**
-     * Sets up the RC4 keys for an encrypted session.
-     * @param {number} incarnation - The wtv-incarnation value.
-     */
-    setupEncryption(incarnation) {
-        if (this.wtvSec) {
-            this.incarnation = incarnation;
-            this.wtvSec.set_incarnation(this.incarnation);
-            console.log(`🔐 Encryption keys prepared for this stream (incarnation=${this.incarnation})`);
-        }
-    }
-
-    /**
-     * Decrypts data using the appropriate RC4 key.
-     * @param {Buffer} data - The data to decrypt.
-     * @returns {Buffer} The decrypted or original data.
-     */
-    decrypt(data) {
-        if (this.wtvSec && data.length > 0) {
-            try {
-                // Client encrypts with key 0, server with key 1.
-                const keyNum = this.isClient ? 0 : 1;
-                const decrypted = this.wtvSec.Decrypt(keyNum, data);
-                console.log(`📦 Decrypted ${data.length} bytes for ${this.isClient ? 'client' : 'server'} stream.`);
-                return Buffer.from(decrypted);
-            } catch (e) {
-                console.error("Decryption failed:", e);
-                return data;
-            }
-        }
-        return data;
-    }
-}
-
-/**
- * Processes the reassembled buffer for a connection, handling state transitions.
- * @param {ConnectionState} state - The state object for the current connection direction.
- * @param {ConnectionState} oppositeState - The state for the opposite direction of the connection.
- */
-function processConnectionBuffer(state, oppositeState) {
-    while (state.buffer.length > 0) {
-        switch (state.securityState) {
-            case 'AWAITING_SECURE_RESPONSE': {
-                const headersEndIndex = state.buffer.indexOf('\r\n\r\n');
-                if (headersEndIndex === -1) {
-                    return; // Wait for the full headers.
-                }
-
-                const bodyStartIndex = headersEndIndex + 4;
-                const plaintextHeaders = state.buffer.slice(0, bodyStartIndex);
-                const encryptedBody = state.buffer.slice(bodyStartIndex);
-
-                process.stdout.write(plaintextHeaders);
-
-                if (encryptedBody.length > 0) {
-                    const decryptedBody = state.decrypt(encryptedBody);
-                    process.stdout.write(decryptedBody);
-                }
-
-                state.buffer = Buffer.alloc(0);
-                state.securityState = 'SECURE';
-                continue;
-            }
-
-            case 'SECURE': {
-                const output = state.decrypt(state.buffer);
-                process.stdout.write(output);
-                state.buffer = Buffer.alloc(0);
-                return;
-            }
-
-            case 'PLAINTEXT':
-            default: {
-                const headersEndIndex = state.buffer.indexOf('\r\n\r\n');
-                if (headersEndIndex === -1) {
-                    return;
-                }
-
-                const headerSectionLength = headersEndIndex + 4;
-                const headerBuffer = state.buffer.slice(0, headerSectionLength);
-                const headers = parseHeaders(headerBuffer);
-
-                const requestLine = headerBuffer.toString('utf8').split('\r\n')[0];
-                if (state.isClient && requestLine.includes('SECURE ON')) {
-                    console.log("▶️ Client sent SECURE ON. Transitioning to encrypted mode.");
-                    let incarnation = headers['wtv-incarnation'] ? parseInt(headers['wtv-incarnation'].trim(), 10) : 1;
-                    
-                    state.setupEncryption(incarnation);
-                    state.securityState = 'SECURE';
-                    if (oppositeState) {
-                        oppositeState.setupEncryption(incarnation);
-                        oppositeState.securityState = 'AWAITING_SECURE_RESPONSE';
-                    }
-
-                    process.stdout.write(headerBuffer);
-                    const remainingData = state.buffer.slice(headerSectionLength);
-                    
-                    if (remainingData.length > 0) {
-                        const decryptedBody = state.decrypt(remainingData);
-                        process.stdout.write(decryptedBody);
-                    }
-                    state.buffer = Buffer.alloc(0);
-                    return;
-                }
-
-                if (!state.isClient && headers) {
-                    if (headers['wtv-initial-key']) {
-                        state.initialKey = headers['wtv-initial-key'];
-                        if(oppositeState) oppositeState.initialKey = headers['wtv-initial-key'];
-                        console.log("Found wtv-initial-key.");
-                    }
-                    if (headers['wtv-challenge']) {
-                        state.challenge = headers['wtv-challenge'];
-                        if(oppositeState) oppositeState.challenge = headers['wtv-challenge'];
-                        console.log("Found wtv-challenge.");
-                    }
-
-                    if (state.initialKey && state.challenge && !state.wtvSec) {
-                        state.initializeSecurity(state.initialKey, state.challenge);
-                        if (oppositeState) oppositeState.initializeSecurity(state.initialKey, state.challenge);
-                    }
-                }
-
-                let fullMessageLength = headerSectionLength;
-                if (headers && headers['content-length']) {
-                    const bodyLength = parseInt(headers['content-length'], 10);
-                    fullMessageLength += bodyLength;
-                }
-                
-                if (state.buffer.length < fullMessageLength) {
-                    return;
-                }
-
-                const fullMessage = state.buffer.slice(0, fullMessageLength);
-                process.stdout.write(fullMessage);
-                state.buffer = state.buffer.slice(fullMessageLength);
-            }
-        }
-    }
-}
-
-
-// --- Main PCAP Processing Logic ---
-
-const args = process.argv.slice(2);
-const inputFile = args[args.indexOf('-i') + 1];
-const serverIP = args[args.indexOf('-h') + 1];
-
-if (!inputFile || !serverIP) {
-    console.error('Usage: node unroll_rc4.js -i <pcap_file> -h <server_ip>');
+// --- Main Execution ---
+const pcapFile = process.argv[2];
+if (!pcapFile) {
+    console.error('Usage: node parse_wtvp_parser.js <path_to_pcap_file>');
     process.exit(1);
 }
 
-const parser = pcap.parse(fs.createReadStream(inputFile));
-console.log(`🚀 Starting pcap parser for ${inputFile} with server IP ${serverIP}`);
+// A store for all active WTVP sessions, keyed by stream identifier.
+// The identifier is a sorted combination of src/dst ip:port pairs.
+const wtvpSessions = {};
 
-let totalPackets = 0;
-let processedPackets = 0;
-let linkLayerType = -1;
-let ipHeaderOffset = 14;
-
-parser.on('globalHeader', (globalHeader) => {
-    linkLayerType = globalHeader.linkLayerType;
-    console.log(`[INFO] PCAP Link-Layer Header Type: ${linkLayerType}. Adjusting offsets.`);
-    switch (linkLayerType) {
-        case 0: ipHeaderOffset = 4; break;
-        case 1: ipHeaderOffset = 14; break;
-        case 101: ipHeaderOffset = 0; break;
-        case 113: ipHeaderOffset = 16; break;
-        default:
-            console.warn(`[WARN] Unsupported link-layer type: ${linkLayerType}. Assuming Ethernet.`);
-            ipHeaderOffset = 14;
-    }
-});
+const parser = pcapParser.parse(pcapFile);
 
 parser.on('packet', (packet) => {
-    totalPackets++;
 
-    let isIPv4 = false;
-    switch (linkLayerType) {
-        case 0: isIPv4 = (packet.data.length > 4) && (packet.data.readUInt32LE(0) === 2); break;
-        case 1: isIPv4 = packet.data.readUInt16BE(12) === 0x0800; break;
-        case 101: isIPv4 = (packet.data.length > 0) && ((packet.data[0] >> 4) === 4); break;
-        case 113: isIPv4 = packet.data.readUInt16BE(14) === 0x0800; break;
-        default: return;
+    const data = packet.data;
+    const ethType = data.readUInt16BE(12);
+    if (ethType !== 0x0800) return; // Not IPv4
+
+    const ipHeader = data.slice(14, 34);
+    const protocol = ipHeader[9];
+    if (protocol !== 6) return; // Not TCP
+
+    const srcIP = ipHeader.slice(12, 16).join('.');
+    const dstIP = ipHeader.slice(16, 20).join('.');
+    const tcpHeaderStart = 34;
+    const srcPort = data.readUInt16BE(tcpHeaderStart);
+    const dstPort = data.readUInt16BE(tcpHeaderStart + 2);
+    const tcpHeaderLen = (data[tcpHeaderStart + 12] >> 4) * 4;
+    const tcpPayloadOffset = tcpHeaderStart + tcpHeaderLen;
+
+    const payload = data.slice(tcpPayloadOffset);
+    
+    // Create a unique key for the TCP session, independent of direction
+    const src = `${srcIP}:${srcPort}`;
+    const dst = `${dstIP}:${dstPort}`;
+    const sessionKey = [src, dst].sort().join('-');
+
+    // If it's a new session, initialize its state
+    if (!wtvpSessions[sessionKey]) {
+        console.log(`[+] New TCP Session detected: ${sessionKey}`);
+        wtvpSessions[sessionKey] = {
+            clientAddr: null,
+            serverAddr: null,
+            wtvsec: null,
+            secureMode: false,
+        };
     }
-    if (!isIPv4) return;
     
-    const protocolOffset = ipHeaderOffset + 9;
-    if (packet.data.length <= protocolOffset || packet.data[protocolOffset] !== 6) return;
-    
-    const ipHeaderLength = (packet.data[ipHeaderOffset] & 0x0F) * 4;
-    const tcpHeaderBase = ipHeaderOffset + ipHeaderLength;
-    const tcpHeaderLength = (packet.data[tcpHeaderBase + 12] >> 4) * 4;
-    const payloadOffset = tcpHeaderBase + tcpHeaderLength;
-    if (packet.data.length <= payloadOffset) return;
-    const payload = packet.data.slice(payloadOffset);
-    if (payload.length === 0) return;
-
-    processedPackets++;
-    
-    const srcIP = packet.data.slice(ipHeaderOffset + 12, ipHeaderOffset + 16).join('.');
-    const dstIP = packet.data.slice(ipHeaderOffset + 16, ipHeaderOffset + 20).join('.');
-    const srcPort = packet.data.readUInt16BE(tcpHeaderBase);
-    const dstPort = packet.data.readUInt16BE(tcpHeaderBase + 2);
-    
-    if (srcIP !== serverIP && dstIP !== serverIP) {
+    // Ignore packets without a payload
+    if (!payload || payload.length === 0) {
         return;
     }
 
-    const currentKey = `${srcIP}:${srcPort}->${dstIP}:${dstPort}`;
-    const oppositeKey = `${dstIP}:${dstPort}->${srcIP}:${srcPort}`;
+    const currentSession = wtvpSessions[sessionKey];
+    const sourceAddr = `${srcIP}:${srcPort}`;
+    const payloadStr = payload.toString('utf8');
 
-    if (!connections.has(currentKey)) {
-        let isClientToServer;
-        const payloadString = payload.toString('utf8');
-        console.log(payloadString);
-        if (srcIP === serverIP && dstIP === serverIP) {
-            isClientToServer = payloadString.startsWith('GET') || payloadString.startsWith('POST') || payloadString.startsWith('SECURE ON');
-        } else {
-            isClientToServer = dstIP === serverIP;
+    // 1. Identify Client and Server
+    if (!currentSession.clientAddr) {
+        if (payloadStr.startsWith('GET') || payloadStr.startsWith('POST') || payloadStr.startsWith('SECURE ON')) {
+            currentSession.clientAddr = sourceAddr;
+            currentSession.serverAddr = `${dstIP}:${dstPort}`;
+            console.log(`[*] Client identified as ${currentSession.clientAddr}`);
         }
-        console.log(`[INFO] New connection detected: ${currentKey} (Client to Server: ${isClientToServer})`);
-        connections.set(currentKey, new ConnectionState());
-        connections.set(oppositeKey, new ConnectionState());
-        connections.get(currentKey).isClient = isClientToServer;
-        connections.get(oppositeKey).isClient = !isClientToServer;
     }
-    
-    const state = connections.get(currentKey);
-    const oppositeState = connections.get(oppositeKey);
-    
-    state.feed(payload);
-    processConnectionBuffer(state, oppositeState);
-    processConnectionBuffer(oppositeState, state);
 
+    // This check handles cases where the first packet didn't identify the client.
+    if (!currentSession.clientAddr) {
+        return;
+    }
+
+    const isClient = sourceAddr === currentSession.clientAddr;
+    const direction = isClient ? '[CLIENT -> SERVER]' : '[SERVER -> CLIENT]';
+    
+    console.log(`\n${'='.repeat(20)} ${direction} (${payload.length} bytes) ${'='.repeat(20)}`);
+
+    // 2. Process data based on whether we are in secure mode or not
+    if (!currentSession.secureMode) {
+        handlePlaintext(currentSession, payloadStr, isClient);
+    } else {
+        handleEncrypted(currentSession, payload, isClient);
+    }
 });
 
 parser.on('end', () => {
-    console.log('\n[INFO] End of PCAP file reached. Processing any remaining buffered data...');
-    for(const [key, state] of connections.entries()){
-        const parts = key.split('->');
-        const oppositeKey = `${parts[1]}->${parts[0]}`;
-        if(connections.has(oppositeKey)) {
-            const oppositeState = connections.get(oppositeKey);
-            processConnectionBuffer(state, oppositeState);
+    console.log('\n[*] PCAP file processing complete.');
+});
+
+parser.on('error', (err) => {
+    console.error(`[!] An error occurred: ${err.message}`);
+});
+
+
+/**
+ * Handles plaintext WTVP messages to set up the security context.
+ * @param {object} session - The session state object.
+ * @param {string} payload - The plaintext payload.
+ * @param {boolean} isClient - True if the message is from the client.
+ */
+function handlePlaintext(session, payload, isClient) {
+    console.log(payload);
+    const headers = parseHeaders(payload);
+    if (wtvsec && !session.wtvsec) {
+        session.wtvsec = wtvsec;
+    }
+
+    if (isClient) {
+        // Check for the SECURE ON command from the client
+        if (payload.startsWith('SECURE ON')) {
+            if (session.wtvsec) {
+                console.log('[*] SECURE ON detected. Initializing RC4 session.');
+                session.wtvsec.SecureOn();
+                session.secureMode = true;
+            } else {
+                console.error('[!] SECURE ON received before wtv-initial-key. Cannot proceed.');
+            }
+        }
+        // Check for wtv-incarnation header
+        if (headers['wtv-incarnation']) {
+            const incarnation = parseInt(headers['wtv-incarnation'], 10);
+            if (session.wtvsec) {
+                console.log(`[*] Client sent wtv-incarnation: ${incarnation}`);
+                session.wtvsec.set_incarnation(incarnation);
+            }
+        }
+        if (headers['wtv-challenge-response']) {
+            const challengeResponse = headers['wtv-challenge-response'];
+            console.log(`[*] Client sent wtv-challenge-response: ${challengeResponse}`);
+            if (wtv_challenge_response != challengeResponse) {
+                console.error('[!] Mismatched wtv-challenge-response. Expected:', wtv_challenge_response);
+                process.exit(1);
+            } else {
+                console.log('[*] wtv-challenge-response matches expected value.');
+            }
+        }
+    } else { // Server
+        // Look for the initial key to bootstrap the WTVSec instance
+        if (headers['wtv-initial-key']) {
+            const initialKey = headers['wtv-initial-key'];
+            console.log(`[*] Captured wtv-initial-key: ${initialKey}`);
+            minisrv_config.config.keys.initial_shared_key = initialKey;
+            wtvsec = new WTVSec(minisrv_config);
+        }
+        // Process the challenge from the server
+        if (headers['wtv-challenge'] && wtvsec) {
+            const challenge = headers['wtv-challenge'];
+            console.log(`[*] Captured wtv-challenge. Processing...`);
+            wtv_challenge_response = wtvsec.ProcessChallenge(challenge).toString(CryptoJS.enc.Base64)
+            session.wtvsec = wtvsec; // Ensure session has the WTVSec instance
+        }
+        if (headers['wtv-lzpf'] !== undefined) {
+            session.lzpf = true;
         }
     }
-    console.log(`\n✅ Done parsing PCAP. Processed ${processedPackets} out of ${totalPackets} total packets.`);
-});
+}
+
+/**
+ * Handles encrypted WTVP messages.
+ * @param {object} session - The session state object.
+ * @param {Buffer} data - The raw TCP data buffer.
+ * @param {boolean} isClient - True if the message is from the client.
+ */
+function handleEncrypted(session, data, isClient) {
+    // The encrypted data comes after the headers and a double newline.
+    var lzpf = false;
+    const separator = '\n\n';
+    const dataStr = data.toString('binary');
+    const separatorIndex = dataStr.indexOf(separator);
+    
+    if (separatorIndex === -1) {
+        console.log('[!] Encrypted message without header separator found. Assuming entire payload is encrypted.');
+        // This can happen if headers are in a separate packet from the body.
+        // For simplicity, we try to decrypt the whole payload.
+        // A more robust solution would buffer data across packets.
+        try {
+            const keyNum = isClient ? 0 : 1;
+            const decryptedBody = session.wtvsec.Decrypt(keyNum, data);
+            if (session.lzpf) {
+                console.log('\n[DECRYPTED DECOMPRESSED PAYLOAD (ASSUMED)]:\n' + decryptedBody.toString('utf8'));                
+                var lzpf = new LZPF();
+                decryptedBody = lzpf.decompress(decryptedBody);
+                session.lzpf = false; // Reset after decompression
+            } else {
+                console.log('\n[DECRYPTED PAYLOAD (ASSUMED)]:\n' + decryptedBody.toString('utf8'));
+            }
+        } catch (e) {
+            console.error(`[!] Decryption failed: ${e.message}`);
+        }
+        return;
+    }
+    
+    const headersPart = data.slice(0, separatorIndex).toString('utf8');
+    const encryptedBody = data.slice(separatorIndex + separator.length);
+    
+    console.log('[HEADERS]:');
+    console.log(headersPart);
+    
+    if (encryptedBody.length > 0) {
+        // Decrypt based on message direction
+        const keyNum = isClient ? 0 : 1; // 0 for client-to-server, 1 for server-to-client
+        try {
+            const decryptedBody = session.wtvsec.Decrypt(keyNum, encryptedBody);
+            if (session.lzpf) {
+                console.log('\n[DECRYPTED DECOMPRESSED PAYLOAD]:');
+                var lzpf = new LZPF();
+                decryptedBody = lzpf.decompress(decryptedBody);
+                session.lzpf = false; // Reset after decompression
+            } else {
+                console.log('\n[DECRYPTED PAYLOAD]:');
+            }
+            console.log(decryptedBody.toString('utf8'));
+        } catch (e) {
+            console.error(`[!] Decryption failed: ${e.message}`);
+        }
+    } else {
+         console.log('\n[Encrypted message with no body]');
+    }
+}
+
+/**
+ * A simple utility to parse HTTP-like headers into an object.
+ * @param {string} payload - The raw text payload.
+ * @returns {object} A key-value map of the headers.
+ */
+function parseHeaders(payload) {
+    const headers = {};
+    const lines = payload.split(/\r?\n/);
+    lines.forEach(line => {
+        const parts = line.split(':');
+        if (parts.length === 2) {
+            headers[parts[0].toLowerCase()] = parts[1].trim();
+        }
+    });
+    return headers;
+}

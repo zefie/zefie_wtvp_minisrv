@@ -54,6 +54,16 @@ class WTVShared {
     }
 
     /**
+     * convert a CryptoJS.lib.WordArray to a Javascript Buffer
+     * @param {CryptoJS.lib.WordArray} wordArray
+     * @returns {Buffer} JS Buffer object
+     */
+    wordArrayToBuffer(wordArray) {
+        if (wordArray) return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
+        else return null;
+    }
+
+    /**
      * Converts an IP address to a hexadecimal string (WTV)
      * @param {string} ip The IP address to convert
      * @returns {string} The hexadecimal representation of the IP address
