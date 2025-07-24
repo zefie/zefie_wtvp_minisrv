@@ -3,7 +3,7 @@
     <title>Web Search Proxy</title>
 </head>
 <body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff">
-    <form method="POST" action="wtv-search:/search">
+    <form method="POST" action="{{ service_name }}:/search">
         <label for="q">Query:</label>
         <input type="text" id="q" name="q" value="{{ request_headers.query.q }}" size=30>
         <select name="categories">

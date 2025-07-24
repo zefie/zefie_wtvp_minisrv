@@ -2167,7 +2167,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
 async function cleanupSocket(socket) {
     try {
         if (socket_sessions[socket.id]) {
-            if (!minisrv_config.config.debug_flags.quiet) console.debug('* Cleaning up disconnected socket', socket.id, `(${socket_sessions[socket.id].socket_total_read || 0} bytes read, ${socket_sessions[socket.id].socket_total_written || 0} bytes written)`);
+            if (!minisrv_config.config.debug_flags.quiet) console.debug(' * Cleaning up disconnected socket', socket.id, `(${socket_sessions[socket.id].socket_total_read || 0} bytes read, ${socket_sessions[socket.id].socket_total_written || 0} bytes written)`);
             delete socket_sessions[socket.id];
         }
         if (socket.ssid) {
@@ -2433,8 +2433,6 @@ process.on('uncaughtException', function (err) {
     console.error((err && err.stack) ? err.stack : err);
 });
 
-var initstring = '';
-var initstring_pc = '';
 ports.sort();
 pc_ports.sort();
 
@@ -2445,7 +2443,6 @@ bind_ports.every(function (v) {
     try {
         var server = net.createServer(handleSocket);
         server.listen(v, minisrv_config.config.bind_ip);
-        initstring += v + ", ";
         return true;
     } catch (e) {
         throw ("Could not bind to port", v, "on", minisrv_config.config.bind_ip, e.toString());
@@ -2481,8 +2478,7 @@ pc_bind_ports.every(function (v) {
         }
 
         service_handler.createServer(server_opts, server).listen(v, minisrv_config.config.bind_ip);
-        initstring_pc += v + ", ";
-
+        
         server.get('*', (req, res) => {
             var ssl = (req.socket.ssl) ? true : false;
             var service_name = getServiceByPort(v);
@@ -2599,11 +2595,9 @@ Content-type: text/html`;
     }
     return false;
 });
-if (initstring.length > 0) initstring = initstring.substring(0, initstring.length - 2);
-if (initstring_pc.length > 0) initstring_pc = initstring_pc.substring(0, initstring_pc.length - 2);
 
-if (initstring.length > 0) console.log(" * Started WTVP Server on port(s) " + initstring + "...")
-if (initstring_pc.length > 0) console.log(" * Started HTTP Server on port(s) " + initstring_pc + "...")
+if (bind_ports.length > 0) console.log(` * Started WTVP Server on port${bind_ports.length != 1 ? "s" : ""} ` + bind_ports.join(", ") + "...");
+if (pc_bind_ports.length > 0) console.log(` * Started HTTP Server on port${pc_bind_ports.length != 1 ? "s" : ""} ` + pc_bind_ports.join(", ") + "...");
 
 var listening_ip_string = (minisrv_config.config.bind_ip != "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
 console.log(" * Listening on", listening_ip_string, "~", "Service IP:", service_ip);

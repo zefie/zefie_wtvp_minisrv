@@ -96,7 +96,7 @@ function process(data) {
                 }
                 result.encodedurl = encodeURIComponent(result.url);
                 if (result.thumbnail_src) {
-                    result.thumbnail_src = "wtv-search:/imgproxy?url=" + encodeURIComponent(result.thumbnail_src);
+                    result.thumbnail_src = service_name + "/imgproxy?url=" + encodeURIComponent(result.thumbnail_src);
                 }
 
                 content.push(result);
@@ -110,6 +110,6 @@ function process(data) {
 function finishPage(content) {
     const headers = `200 OK\nContent-Type: text/html`;
     nunjucks.configure({ autoescape: true });
-    const data = nunjucks.render(wtvshared.getServiceDep('wtv-search/results.njk', true), { content, request_headers });
+    const data = nunjucks.render(wtvshared.getServiceDep('wtv-search/results.njk', true), { content, request_headers, service_name });
     sendToClient(socket, headers, data);
 }
