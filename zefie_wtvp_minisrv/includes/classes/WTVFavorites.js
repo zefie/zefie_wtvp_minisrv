@@ -185,7 +185,22 @@ class WTVFavorites {
 			})
 		return self.messageArr;
 	}
-	
+
+
+	getFavoriteById(favoriteid) {
+		const folders = this.getFolders();
+		for (let i = 0; i < folders.length; i++) {
+			const folder = folders[i];
+			const favorites = this.listFavorites(folder);
+			for (let j = 0; j < favorites.length; j++) {
+				if (favorites[j].id === favoriteid) {
+					return favorites[j];
+				}
+			}
+		}
+		return false;
+	}
+		
 	getFavorite(folder, favoriteid) {
 		var folder_path = this.getFolderDir(folder);
 		var folder_file = favoriteid + this.favFileExt;
@@ -278,6 +293,35 @@ class WTVFavorites {
 		this.deleteFavorite(favoriteid, oldfolder)
         return true;
     }
+
+
+	isFavoriteAShortcut(favoriteid) {
+		var favoritefileout = this.favstore_dir + "KeyStore.zfav";
+		if (!this.fs.existsSync(favoritefileout)) {
+			this.createShortcutKey();
+		}
+		var keydata = {};
+		keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
+		var keys = Object.keys(keydata);
+		for (var i = 0; i < keys.length; i++) {
+			if (keydata[keys[i]].id == favoriteid) {
+				return { key: keys[i], folder: keydata[keys[i]].folder };
+			}
+		}
+		return false;
+	}
+
+	getShortcutKey(key) {
+		var favoritefileout = this.favstore_dir + "KeyStore.zfav";
+		if (!this.fs.existsSync(favoritefileout)) {
+			this.createShortcutKey();
+		}
+		var keydata = {};
+		keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
+		if (key && keydata[key]) {
+			return { folder: keydata[key].folder, id: keydata[key].id };
+		}
+	}
 	
 	createShortcutKey() {
             var favoritefileout = this.favstore_dir + "KeyStore.zfav";
@@ -314,7 +358,7 @@ class WTVFavorites {
 
             try {
                 // encode favorite into json
-                var result = this.fs.writeFileSync(favoritefileout, keydata);
+                var result = this.fs.writeFileSync(favoritefileout, JSON.stringify(keydata));
                 if (!result) return false;
 
             } catch (e) {
@@ -324,53 +368,57 @@ class WTVFavorites {
     }
 	
 	updateShortcutKey(oldkey, newkey, folder, id) {
-            var folderpath = this.getFolderDir(folder);
             var favoritefileout = this.favstore_dir + "KeyStore.zfav";
+			if (!this.fs.existsSync(favoritefileout)) {
+				this.createShortcutKey();
+			}
 			var keydata = {};
-			
-			keydata = this.fs.readFileSync(favoritefileout)
-			console.log(newkey)
+
+			keydata = JSON.parse(this.fs.readFileSync(favoritefileout))
 			switch(newkey) {
 				case "F1":
-				keydata.F1.folder = folder;
-				break
+					keydata.F1 = {
+						folder: folder,
+						id: id
+					};
+					break;
 				case "F2":
-				keydata.F2 = {
-					folder: folder,
-					id: id
-				}
-				break;
+					keydata.F2 = {
+						folder: folder,
+						id: id
+					}
+					break;
 				case "F3":
-				keydata.F3 = {
-					folder: folder,
-					id: id
-				}
-				break;
+					keydata.F3 = {
+						folder: folder,
+						id: id
+					}
+					break;
 				case "F4":
-				keydata.F4 = {
-					folder: folder,
-					id: id
-				}
-				break;
+					keydata.F4 = {
+						folder: folder,
+						id: id
+					}
+					break;
 				case "F5":
-				keydata.F5 = {
-					folder: folder,
-					id: id
-				}
-				break;
+					keydata.F5 = {
+						folder: folder,
+						id: id
+					}
+					break;
 				case "F6":
-				keydata.F6 = {
-					folder: folder,
-					id: id
-				}
-				break;
+					keydata.F6 = {
+						folder: folder,
+						id: id
+					}
+					break;
 				case "F7":
-				keydata.F7 = {
-					folder: folder,
-					id: id
+					keydata.F7 = {
+						folder: folder,
+						id: id
+					}
+					break;
 				}
-				break;
-			}
 			if (oldkey != "none") {
 				keydata[oldkey].folder = null;
 				keydata[oldkey].id = null;
@@ -378,7 +426,7 @@ class WTVFavorites {
 			
             try {
                 // encode favorite into json
-                var result = this.fs.writeFileSync(favoritefileout, keydata);
+                var result = this.fs.writeFileSync(favoritefileout, JSON.stringify(keydata));
                 if (!result) return false;
 
             } catch (e) {

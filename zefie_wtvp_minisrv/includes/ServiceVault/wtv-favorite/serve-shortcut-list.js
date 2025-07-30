@@ -1,32 +1,11 @@
 var minisrv_service_file = true;
 
-var favoritenum = 0;
-
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var favid = request_headers.query.favoriteid;
-
-var numoffolders = folder_array.length;
-
-favoritenum = Object.keys(favarray).length;
-
-var favoritedata = session_data.favstore.getFavorite(foldername, favid);
-
-
 headers = `200 OK
-Connection: Keep-Alive
 Content-Type: text/html`
-
 
 data = `<html><head>
 <title>
-Choose shortcut label
+Keyboard shortcut list
 </title>
 </head><body fontsize="large" vspace="0" hspace="0" vlink="189cd6" text="44cc55" link="189cd6" bgcolor="191919"><display>
 <sidebar width="109" height="384">
@@ -89,34 +68,11 @@ Choose shortcut label
 </td><td><table cellspacing="0" cellpadding="0">
 <tbody><tr>
 <td align="left">
-<shadow><blackface><font color="e7ce4a">Choose shortcut label</font><shadow><blackface>
+<shadow><blackface><font color="e7ce4a">Keyboard shortcut list</font><shadow><blackface>
 </blackface></shadow></blackface></shadow></td></tr></tbody></table>
 </td></tr><tr>
 <td width="4" height="14"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td height="25"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr><tr><td width="13">
-</td><td valign="middle" align="left">
-Choose a shortcut label for <b>${favoritedata.title}</b>, then choose <b>Done</b> below.
-</td></tr><tr></tr></tbody></table><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td height="4">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td width="5" height="1">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td height="4">
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td width="13">
-</td><td>
-<form action="wtv-favorite:/commit-shortcuts-favorites">`
+</td></tr></tbody></table>`
 
 for (var i = 1; i <= 8; i++) {
     var key = "F" + i;
@@ -129,33 +85,6 @@ for (var i = 1; i <= 8; i++) {
 
 data += `
 <table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="${fav.image}" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-${fav.title}<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">`;
-
-if (fav.title != favoritedata.title) {
-    data += `<input type="radio" NAME="Choose" VALUE=${key} > &nbsp;${key}`
-}
-
-data += `</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
 <tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
 </td></tr></tbody></table>
 </td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
@@ -170,7 +99,31 @@ data += `</font>
 </td></tr></tbody></table>
 <table cellspacing="0" cellpadding="0" bgcolor="191919">
 <tbody><tr><td width="13">
-</td><td>`
+</td><td>
+<form action="client:goback">
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td><table cellspacing="0" cellpadding="0">
+<tbody><tr><td abswidth="70" valign="center" align="center">
+<table bgcolor="000000">
+<tbody><tr><td><img src="${fav.image}" width="70" height="52">
+</td></tr></tbody></table>
+</td><td width="10">
+</td><td width="279" valign="center" align="left">
+<font size="-1" color="#42BC52">
+${fav.title}
+</font>
+
+<table absheight="38" width="53" cellspacing="0" cellpadding="0">
+<tbody><tr><td valign="middle" background="images/FKey.gif" absheight=38 align="center">
+<font size="-2" color="#F1F1F1">
+${key}
+</font>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+`
 }
 
 data += `
@@ -189,14 +142,14 @@ data += `
 </td></tr></tbody></table>
 </td></tr></tbody></table>
 </td></tr></tbody></table>
-<input type="hidden" name="favorite_folder_name" value="${foldername}">
-<input type="hidden" name="favoriteid" value="${favid}">
+<input type="hidden" name="favorite-folder-name" value="Personal">
+<input type="hidden" name="favorite-id" value="catLAAXSaaIc">
 <table absheight="52" cellspacing="0" cellpadding="0" bgcolor="191919">
 <tbody><tr><td height="10"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
 </td></tr><tr><td width="100%"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
 </td><td valign="center" align="right">
 <font size="-1" color="#E7CE4A"><shadow>
-<input type="submit" borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Done" name="GoBack" usestyle="" width="110">
+<input type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Done" name="GoBack" usestyle width=110>
 </shadow></font>
 </td><td abswidth="13">
 </td></tr></tbody></table>
