@@ -12,7 +12,13 @@ Location: wtv-favorite:/favorite`
 var folder_array = session_data.favstore.getFolders();
 var url = request_headers.request;
 var key = url.split('?')[1]
-
-headers = `400 You have not assigned a favorite to ${key}`
-
+var scfav = session_data.favstore.getShortcutKey(key);
+if (!scfav.id || scfav.id == "none") {
+	headers = `400 You have not assigned a favorite to ${key}`
+} else {
+	var fav = session_data.favstore.getFavorite(scfav.folder, scfav.id);
+	headers = `300 OK
+Content-Type: text/html
+Location: ${fav.url}`
+}
 }

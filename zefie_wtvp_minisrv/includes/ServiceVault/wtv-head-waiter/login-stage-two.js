@@ -148,6 +148,7 @@ passport-domain: ${session_data.getSessionData("messenger_domain")}
 wtv-mail-url: wtv-mail:/listmail
 wtv-favorite-url: wtv-favorite:/favorite
 wtv-favorites-folders-url: wtv-favorite:/list-folders
+wtv-favorite-index-url: wtv-favorite:/favorite-index?
 wtv-input-timeout: 14400
 wtv-connection-timeout: 1440
 wtv-fader-timeout: 1440

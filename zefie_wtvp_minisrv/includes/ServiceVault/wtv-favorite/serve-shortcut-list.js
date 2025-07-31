@@ -34,7 +34,7 @@ Keyboard shortcut list
 <img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">	</td></tr><tr><td absheight="32" colspan="3" width="100%">
 <table cellspacing="0" cellpadding="0">
 <tbody><tr><td abswidth="6" absheight="26">
-</td><td width="100%"><table href="wtv-favorite:/serve-browser?favorite-folder-name=Personal" width="100%" cellspacing="0" cellpadding="0">
+</td><td width="100%"><table href="wtv-favorite:/favorite" width="100%" cellspacing="0" cellpadding="0">
 <tbody><tr><td>
 <table cellspacing="0" cellpadding="0">
 <tbody><tr><td><shadow><font size="-1" color="E7CE4A">
