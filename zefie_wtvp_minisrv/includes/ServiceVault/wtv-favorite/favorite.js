@@ -256,7 +256,7 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 </td></tr></table>
 </td></tr></table>
 <table cellspacing="0" cellpadding="0">
-<tr><td width="451" height="2" background="ROMCache/FoldersCoverBorder.gif"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+<tr><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
 </td></tr></table>
 
 

@@ -61,7 +61,14 @@ class WTVFavorites {
             var folder_dir = foldername + this.path.sep;
             var store_dir = this.favstore_dir + folder_dir;
         }
-        return (store_dir !== null) ? this.fs.existsSync(store_dir) : false;
+		if (store_dir) {
+			if (this.fs.existsSync(store_dir)) {
+				if (this.fs.statSync(store_dir).isDirectory()) {
+					return store_dir;
+				}
+			}
+		}
+        return false;
     }
 	
 	getFolderDir(foldername) {
@@ -125,8 +132,11 @@ class WTVFavorites {
         var path = this.favstore_dir;
 		var self = this;
 		return this.fs.readdirSync(path).filter(function (file) {
-			self.folderArr.push(file);
-			return self.folderArr;
+			if (self.folderExists(file)) {
+				self.folderArr.push(file);
+				return self.folderArr;
+			}
+			return false;
 		});
     }
 	

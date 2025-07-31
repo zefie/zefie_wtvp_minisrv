@@ -112,11 +112,11 @@ data += `
 <font size="-1" color="#42BC52">
 ${fav.title}
 </font>
-
+</td><td>
 <table absheight="38" width="53" cellspacing="0" cellpadding="0">
 <tbody><tr><td valign="middle" background="images/FKey.gif" absheight=38 align="center">
 <font size="-2" color="#F1F1F1">
-${key}
+&nbsp;${key}
 </font>
 </td></tr></tbody></table>
 </td></tr></tbody></table>
