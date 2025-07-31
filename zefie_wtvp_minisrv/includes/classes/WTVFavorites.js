@@ -136,7 +136,6 @@ class WTVFavorites {
 				self.folderArr.push(file);
 				return self.folderArr;
 			}
-			return false;
 		});
     }
 	
