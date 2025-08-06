@@ -316,4 +316,10 @@ if (request_headers['wtv-request-type'] == 'download') {
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
     }
+} else {
+    var queryString = Object.keys(request_headers.query)
+        .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(request_headers.query[key]))
+        .join('&');
+    headers = "302 Found\nLocation: wtv-disk:/content/DownloadScreen.tmpl" + (queryString ? ("?" + queryString) : "");
+    data = "";
 }
