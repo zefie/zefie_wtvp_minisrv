@@ -1,13 +1,12 @@
 // From https://stackoverflow.com/a/42019773
 
 'use strict';
-let net = require('net');
-let http = require('http');
-let https = require('https');
+const net = require('net');
+const http = require('http');
+const https = require('https');
 
 exports.createServer = (opts, handler) => {
-
-    let server = net.createServer(socket => {
+    const server = net.createServer(socket => {
         socket.once('data', buffer => {
             // Pause the socket
             socket.pause();

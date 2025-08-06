@@ -30,22 +30,22 @@ class WTVShared {
      * @notice If minisrv_config is null, it will attempt to read the configuration from the minisrv_config.json file
      * */
     constructor(minisrv_config, quiet = false) {
-        if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
+        if (minisrv_config === null || typeof minisrv_config === 'undefined') this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
 
         this.shenanigans = new WTVShenanigans(this.minisrv_config);
        
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
-                var splitString = this.split("");
-                var reverseArray = splitString.reverse();
+                const splitString = this.split("");
+                const reverseArray = splitString.reverse();
                 return reverseArray.join("");
             }
         }
         if (!String.prototype.hexEncode) {
             String.prototype.hexEncode = function () {
-                var result = '';
-                for (var i = 0; i < this.length; i++) {
+                let result = '';
+                for (let i = 0; i < this.length; i++) {
                     result += this.charCodeAt(i).toString(16);
                 }
                 return result;
@@ -59,7 +59,7 @@ class WTVShared {
      * @returns {Buffer} JS Buffer object
      */
     wordArrayToBuffer(wordArray) {
-        if (wordArray) return new Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
+        if (wordArray) return Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
         else return null;
     }
 
@@ -92,12 +92,12 @@ class WTVShared {
      * @returns {number} The long integer representation of the IP address, or -1 if the IP address is invalid
      */
     ip2long(ip) {
-        var components;
+        let components;
         if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
-            var iplong = 0;
-            var power = 1;
-            for (var i = 4; i >= 1; i -= 1) {
-                iplong += power * parseInt(components[i]);
+            let iplong = 0;
+            let power = 1;
+            for (let i = 4; i >= 1; i -= 1) {
+                iplong += power * parseInt(components[i], 10);
                 power *= 256;
             }
             return iplong;
@@ -112,15 +112,19 @@ class WTVShared {
      * @returns {boolean} True if the IP address is in the subnet, false otherwise
      */
     isInSubnet(ip, subnet) {
-        if (subnet.indexOf('/') == -1) {
-            var mask, base_ip, long_ip = this.ip2long(ip);
-            var mask2, base_ip2, long_ip2 = this.ip2long(ip);
-            return (long_ip == long_ip2);
+        if (!subnet.includes('/')) {
+            const long_ip = this.ip2long(ip);
+            const long_subnet = this.ip2long(subnet);
+            return long_ip === long_subnet;
         } else {
-            var mask, base_ip, long_ip = this.ip2long(ip);            
-            if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = this.ip2long(mask[1])) >= 0)) {
-                var freedom = Math.pow(2, 32 - parseInt(mask[2]));
-                return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
+            const long_ip = this.ip2long(ip);            
+            const mask = subnet.match(/^(.*?)\/(\d{1,2})$/);
+            if (mask && mask[1]) {
+                const base_ip = this.ip2long(mask[1]);
+                if (base_ip >= 0) {
+                    const freedom = 2 ** (32 - parseInt(mask[2], 10));
+                    return (long_ip >= base_ip) && (long_ip <= base_ip + freedom - 1);
+                }
             }
         }
         return false;
@@ -162,7 +166,7 @@ class WTVShared {
      * @returns {Object} The decoded JSON object, or an empty object if decoding fails.
      */
     tryDecodeJSON(json_string) {
-        var out;
+        let out;
         try {
             out = JSON.parse(json_string);
         } catch (e) {
@@ -209,7 +213,7 @@ class WTVShared {
         let crc = 0;
 
         for (let i = 0; i < 14; i += 2) {
-            let inbyte = parseInt(ssid.substring(i, i + 2), 16);
+            let inbyte = parseInt(ssid.slice(i, i + 2), 16);
             if (isNaN(inbyte)) return '00';
 
             for (let ii = 0; ii < 8; ii++) {
@@ -240,7 +244,7 @@ class WTVShared {
      * @returns {string} The parsed string
      */
     parseConfigVars(s) {
-        if (s.indexOf("%ServiceDeps%") >= 0)
+        if (s.includes("%ServiceDeps%"))
             return this.getServiceDep(s.replace("%ServiceDeps%", ""), true);
         else
             return s;
@@ -279,11 +283,11 @@ class WTVShared {
         } else if (src instanceof Date) {
             return new Date(src.getTime());
         } else if (typeof src === 'object' && src !== null) {
-            var clone = null;
+            let clone = null;
             if (Array.isArray(src)) clone = [];
             else clone = {};
 
-            var self = this;
+            const self = this;
             Object.keys(src).forEach((k) => {
                 clone[k] = self.cloneObj(src[k]);
             });
@@ -298,10 +302,9 @@ class WTVShared {
      * @param {string} service_name (optional) Service to check
      */
     isAdmin(wtvclient, service_name = "wtv-admin") {
-        var  WTVAdmin = require("./WTVAdmin.js");
-        var wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
-        var result = wtva.isAuthorized(true);
-        wtva, WTVAdmin = null;
+        const  WTVAdmin = require("./WTVAdmin.js");
+        const wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
+        const result = wtva.isAuthorized(true);
         return result;
     }
 
@@ -360,7 +363,7 @@ class WTVShared {
         // for easy retrofitting old code to work with the webtvism of allowing multiple of the same query name
         // pass it the query, and it will return a string regardless. if its a string it just sends it back
         // if its an array we just pull the last object
-        if (typeof (query) === "object")
+        if (typeof query === "object")
             return query[(Object.keys(query).length - 1)];
         else
             return query
@@ -379,7 +382,7 @@ class WTVShared {
         }
 
         // Directly replace &, <, >, ", and ' characters
-        let entitized = string.replace(/[&<>"]/g, function (match) {
+        let entitized = string.replace(/[&<>"]/g, (match) => {
             switch (match) {
                 case '&': return '&amp;';
                 case '<': return '&lt;';
@@ -404,11 +407,11 @@ class WTVShared {
      * @returns {string} Sanitized string
      */
     sanitizeSignature(string) {
-        var allowedSchemes = ['http', 'https', 'ftp', 'mailto'];
-        var self = this;
+        const allowedSchemes = ['http', 'https', 'ftp', 'mailto'];
+        const self = this;
          // allow links to services flagged as "wideopen"
         Object.keys(this.minisrv_config.services).forEach((k) => {
-            var flag = parseInt(this.minisrv_config.services[k].flags, 16);
+            const flag = parseInt(this.minisrv_config.services[k].flags, 16);
             if (flag === 4 || flag === 7) {
                 if (!allowedSchemes.includes(k)) allowedSchemes.push(k);
             }
@@ -434,12 +437,12 @@ class WTVShared {
             allowedSchemes: allowedSchemes,
             allowedSchemesByTag: {},
             allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
-            exclusiveFilter: function (frame) {
-                var allowed = true;
+            exclusiveFilter: (frame) => {
+                let allowed = true;
                 Object.keys(frame.attribs).forEach((k) => {
                     if (k == "href" || k == "background" || k == "src") {
                         allowed = false;    
-                        var value = frame.attribs[k];
+                        const value = frame.attribs[k];
 
                         if (frame.tag !== "a") {
                             // check everything except normal links
@@ -473,33 +476,33 @@ class WTVShared {
      * @return {object} Headers object
      */
     headerStringToObj(headers, response = false) {
-        var inc_headers = 0;
-        var headers_obj = {};
+        let inc_headers = 0;
+        const headers_obj = {};
         headers_obj.raw_headers = headers;
-        var headers_obj_pre = headers.split("\n");
-        headers_obj_pre.forEach(function (d) {
+        const headers_obj_pre = headers.split("\n");
+        headers_obj_pre.forEach((d) => {
             if (/^SECURE ON/.test(d) && !response) {
                 headers_obj.secure = true;
-            } else if (/^([0-9]{3}) $/.test(d.substring(0, 4)) && response && !headers_obj.Status) {
+            } else if (/^([0-9]{3}) $/.test(d.slice(0, 4)) && response && !headers_obj.Status) {
                 d.s
                 headers_obj.Status = d.trim("\r");
-            } else if (/^(GET |PUT |POST)$/.test(d.substring(0, 4)) && !response) {
+            } else if (/^(GET |PUT |POST)$/.test(d.slice(0, 4)) && !response) {
                 headers_obj.request = d.trim("\r");
-                var request_url = d.split(' ');
+                let request_url = d.split(' ');
                 if (request_url.length > 2) {
                     request_url.shift();
                     request_url = request_url.join(" ");
                     if (request_url.indexOf("HTTP/") > 0) {
-                        var index = request_url.indexOf(" HTTP/");
-                        request_url = request_url.substring(0, index);
+                        const index = request_url.indexOf(" HTTP/");
+                        request_url = request_url.slice(0, index);
                     }
                 } else {
                     request_url = request_url[1];
                 }
                 headers_obj.request_url = decodeURI(request_url).trim("\r");
             } else if (d.indexOf(":") > 0) {
-                var d_split = d.split(':');
-                var header_name = d_split[0];
+                const d_split = d.split(':');
+                let header_name = d_split[0];
                 if (headers_obj[header_name] != null) {
                     header_name = header_name + "_" + inc_headers;
                     inc_headers++;
@@ -507,8 +510,8 @@ class WTVShared {
                 d_split.shift();
                 d = d_split.join(':');
                 headers_obj[header_name] = (d).trim("\r");
-                if (headers_obj[header_name].substring(0, 1) == " ") {
-                    headers_obj[header_name] = headers_obj[header_name].substring(1);
+                if (headers_obj[header_name].startsWith(" ")) {
+                    headers_obj[header_name] = headers_obj[header_name].slice(1);
                 }
             }
         });
@@ -522,17 +525,17 @@ class WTVShared {
      * @returns {object} // Headers object with only whitelisted headers
      */
     stripHeaders(headers_obj, whitelist) {
-        var whitelisted_headers = new Array();
-        var out_headers = new Array();
+        const whitelisted_headers = [];
+        const out_headers = [];
         out_headers.Status = headers_obj.Status;
         if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
 
         // compare regardless of case
-        Object.keys(whitelist).forEach(function (k) {
-            Object.keys(headers_obj).forEach(function (j) {
-                if (whitelist[k].toLowerCase() == j.toLowerCase()) {
+        Object.keys(whitelist).forEach((k) => {
+            Object.keys(headers_obj).forEach((j) => {
+                if (whitelist[k].toLowerCase() === j.toLowerCase()) {
                     // if header = connection, strip 'upgrade'
-                    if (j.toLowerCase() == "connection") {
+                    if (j.toLowerCase() === "connection") {
                         headers_obj[j] = headers_obj[j].replace("Upgrade", "").replace(",", "").trim();
                     }
                     whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
@@ -541,9 +544,9 @@ class WTVShared {
         });
 
         // restore original header order
-        Object.keys(headers_obj).forEach(function (k) {
+        Object.keys(headers_obj).forEach((k) => {
             if (whitelisted_headers[k.toLowerCase()]) {
-                if (whitelisted_headers[k.toLowerCase()][1] == k) out_headers[whitelisted_headers[k.toLowerCase()][0]] = whitelisted_headers[k.toLowerCase()][2];
+                if (whitelisted_headers[k.toLowerCase()][1] === k) out_headers[whitelisted_headers[k.toLowerCase()][0]] = whitelisted_headers[k.toLowerCase()][2];
             }
         });
 
@@ -712,15 +715,15 @@ class WTVShared {
         };
 
         const ssid_obj = {
-            boxType: boxTypeMapping[ssid.substring(0, 2)],
-            unique_id: ssid.substring(2, 8),
-            region: regionMapping[ssid.substring(10, 14).toUpperCase()],
-            manufacturer: manufacturerMapping[ssid.substring(8, 10).toUpperCase()],
-            crc: ssid.substring(14)
+            boxType: boxTypeMapping[ssid.slice(0, 2)],
+            unique_id: ssid.slice(2, 8),
+            region: regionMapping[ssid.slice(10, 14).toUpperCase()],
+            manufacturer: manufacturerMapping[ssid.slice(8, 10).toUpperCase()],
+            crc: ssid.slice(14)
         };
 
         // Special case for manufacturer based on region
-        if (ssid_obj.region === "Japan" && ssid.substring(8, 10).toUpperCase() === "00") {
+        if (ssid_obj.region === "Japan" && ssid.slice(8, 10).toUpperCase() === "00") {
             ssid_obj.manufacturer = "Panasonic";
         }
 
@@ -734,7 +737,7 @@ class WTVShared {
      * @return {string}
      */
     getManufacturer(ssid, bit = false) {
-        if (bit) return ssid.substring(8, 10).toUpperCase();
+        if (bit) return ssid.slice(8, 10).toUpperCase();
         else return this.parseSSID(ssid).manufacturer || null;
     }
 
@@ -930,7 +933,7 @@ class WTVShared {
      * @param {string} file Path to a file
      */
     getFileLastModified(file) {
-        var stats = this.fs.lstatSync(file);
+        const stats = this.fs.lstatSync(file);
         if (stats) return new Date(stats.mtimeMs);
         return false;
     }
@@ -1026,7 +1029,7 @@ class WTVShared {
 
         for (let i = 0; i < encoded.length; i++) {
             if (encoded[i] === '%') {
-                decoded[bufferIndex++] = parseInt(encoded.substr(i + 1, 2), 16);
+                decoded[bufferIndex++] = parseInt(encoded.slice(i + 1, i + 3), 16);
                 i += 2; // Skip the next two characters
             } else {
                 decoded[bufferIndex++] = encoded.charCodeAt(i);
@@ -1059,7 +1062,7 @@ class WTVShared {
     * @param {string|Array} obj SSID String or Headers Object
     */
     filterSSID(obj) {
-        var new_obj = false;
+        let new_obj = false;
         if (this.minisrv_config.config.hide_ssid_in_logs) {
             if (typeof obj === "string") {
                 return this.censorSSID(obj);
@@ -1081,7 +1084,7 @@ class WTVShared {
      * */
     filterRequestLog(obj) {
         const passwordRegex = /(^pass$|passw(or)?d)/i;
-        var newobj = this.cloneObj(obj); // Clone the object once at the beginning
+        const newobj = this.cloneObj(obj); // Clone the object once at the beginning
 
         if (newobj.query) {
             Object.keys(newobj.query).forEach((k) => {
@@ -1151,7 +1154,7 @@ class WTVShared {
     * @param {string} directory Root directory
     */
     getAbsolutePath(path = '', directory = '.') {
-        if (directory[0] == "/" || directory.substr(1, 2) == ":" + this.path.sep) {
+        if (directory[0] == "/" || directory.slice(1, 3) == ":" + this.path.sep) {
             return this.path.resolve(directory + this.path.sep + path);
         }
         try {
@@ -1196,7 +1199,7 @@ class WTVShared {
      * @return {string} path without gz, or unmodified path if it isnt a gz
      */
     getFilePath(path) {
-        var path_split = path.split(this.path.sep);
+        const path_split = path.split(this.path.sep);
         path_split.pop();
         return path_split.join(this.path.sep);
     }
@@ -1266,14 +1269,14 @@ class WTVShared {
     getServiceString(service, overrides = {}) {
         // used externally by service scripts
         if (service === "all") {
-            var self = this;
-            var out = "";
-            Object.keys(this.minisrv_config.services).sort().forEach(function (k) {
+            const self = this;
+            let out = "";
+            Object.keys(this.minisrv_config.services).sort().forEach((k) => {
                 if (!self.isConfiguredService(k)) return true;
                 if (self.minisrv_config.services[k].pc_services) return true;
 
                 if (overrides.exceptions) {
-                    Object.keys(overrides.exceptions).forEach(function (j) {
+                    Object.keys(overrides.exceptions).forEach((j) => {
                         if (k != overrides.exceptions[j]) out += self.minisrv_config.services[k].toString(overrides) + "\n";
                     });
                 } else {
@@ -1283,7 +1286,7 @@ class WTVShared {
             return out;
         } else {
             if (!this.minisrv_config.services[service]) {
-                throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
+                throw new Error("SERVICE ERROR: Attempted to provision unconfigured service: " + service);
             } else {
                 return this.minisrv_config.services[service].toString(overrides);
             }
@@ -1296,12 +1299,12 @@ class WTVShared {
      * @returns [headers, data]
      */
     doRedirect(url) {
-        var headers = []
+        const headers = [];
         headers['Status'] = "302 Moved";
         headers["Location"] = url;
         headers["wtv-visit"] = url;
-        var data = ''
-        return [headers, data]
+        const data = '';
+        return [headers, data];
     }
 
     /**
@@ -1318,7 +1321,7 @@ class WTVShared {
         const message = data || errorMessage.replace(/\$\{(\w+)\}/g, (match, p1) => minisrv_config.config[p1] || '');
 
         if (details && [400, 500].includes(code)) {
-            data += "<br>Details:<br>" + details;
+            data += `<br>Details:<br>${details}`;
         }
 
         let headers = `Status: ${(pc_mode) ? 'HTTP/1.1' : ''} ${code} ${message}\n`;
@@ -1342,14 +1345,15 @@ class WTVShared {
      * @param {string} target Sub path
      */
     makeSafePath(base, target = null, force_forward_slash = false) {
+        let output = null;
         if (target) {
             target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-            var targetPath = this.path.posix.normalize(target)
-            var output = this.fixPathSlashes(base + this.path.sep + targetPath);
+            const targetPath = this.path.posix.normalize(target)
+            output = this.fixPathSlashes(base + this.path.sep + targetPath);
         } else {
             base.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-            var targetPath = this.path.posix.normalize(base)
-            var output = this.fixPathSlashes(targetPath);
+            const targetPath = this.path.posix.normalize(base)
+            output = this.fixPathSlashes(targetPath);
         }
         return (force_forward_slash) ? output.replace(this.path.sep, '/') : output;
     }
@@ -1384,7 +1388,7 @@ class WTVShared {
      */
     makeSafeSSID(ssid = "") {
         ssid = ssid.replace(/[^a-zA-Z0-9]/g, "");
-        if (ssid.length == 0) ssid = null;
+        if (ssid.length === 0) ssid = null;
         return ssid;
     }
 
@@ -1395,7 +1399,7 @@ class WTVShared {
      * */
     makeSafeStringPath(path = "") {
         path = path.replace(/[^\w]/g, "").replace(/\.\./g, "");
-        if (path.length == 0) path = null;
+        if (path.length === 0) path = null;
         return path;
     }
 
@@ -1405,7 +1409,7 @@ class WTVShared {
      * @returns {string} Uncompressed string
      * */
     unpackCompressedB64(data) {        
-        var data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
+        const data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
         return this.zlib.inflateSync(data_buf, { finishFlush: this.zlib.Z_SYNC_FLUSH }).toString('ascii');
     }
 
@@ -1425,14 +1429,14 @@ class WTVShared {
      * @param {boolean} template If true, looks under templates subdir.
      */
     getServiceDep(file, path_only = false, template = false) {
-        var self = this;
-        var outdata = null;
-        var found = false
-        this.minisrv_config.config.ServiceDeps.forEach(function (dep_vault_dir) {
+        const self = this;
+        let outdata = null;
+        let found = false
+        this.minisrv_config.config.ServiceDeps.forEach((dep_vault_dir) => {
             if (found) return;
             if (template) dep_vault_dir += self.path.sep + "templates";
 
-            var search = self.getAbsolutePath(file, dep_vault_dir);
+            const search = self.getAbsolutePath(file, dep_vault_dir);
             if (self.fs.existsSync(search)) {
                 if (path_only) outdata = search;
                 else outdata = self.fs.readFileSync(search);
@@ -1482,10 +1486,10 @@ class WTVShared {
         let keys = Object.keys(obj);
         let values = Object.values(obj);
 
-        const currentIndex = typeof currentKey === 'string' ? this.findObjectKeyIndex(currentKey, obj, case_insensitive) : parseInt(currentKey);
+        const currentIndex = typeof currentKey === 'string' ? this.findObjectKeyIndex(currentKey, obj, case_insensitive) : +currentKey;
         if (currentIndex === -1) return obj;
 
-        var destIndex = typeof destKey === 'string' ? this.findObjectKeyIndex(destKey, obj, case_insensitive) : parseInt(destKey);
+        let destIndex = typeof destKey === 'string' ? this.findObjectKeyIndex(destKey, obj, case_insensitive) : +destKey;
 
         // Bump by one if the destKey is a string (put after the key)
         if (typeof destKey === 'string' && destIndex !== -1) destIndex++;
@@ -1555,9 +1559,9 @@ class clientShowAlert {
 
         if (typeof image === 'object') {
             this.image = null;
-            Object.keys(image).forEach(function (k) {
+            Object.keys(image).forEach((k) => {
                 if (this[k] === null) this[k] = image[k];
-            }, this);
+            });
         } else {
             this.image = image;
         }
@@ -1568,16 +1572,16 @@ class clientShowAlert {
      * @returns {string} client:showalert URL
      */
     getURL() {
-        var url = "client:ShowAlert?";
-        if (this.message) url += "message=" + escape(this.message) + "&";
-        if (this.buttonlabel1) url += "buttonlabel1=" + escape(this.buttonlabel1) + "&";
-        if (this.buttonaction1) url += "buttonaction1=" + escape(this.buttonaction1) + "&";
-        if (this.buttonlabel2) url += "buttonlabel2=" + escape(this.buttonlabel2) + "&";
-        if (this.buttonaction2) url += "buttonaction2=" + escape(this.buttonaction2) + "&";
-        if (this.image) url += "image=" + escape(this.image) + "&";
-        if (this.sound) url += "sound=" + escape(this.sound) + "&";
+        let url = "client:ShowAlert?";
+        if (this.message) url += `message=${escape(this.message)}&`;
+        if (this.buttonlabel1) url += `buttonlabel1=${escape(this.buttonlabel1)}&`;
+        if (this.buttonaction1) url += `buttonaction1=${escape(this.buttonaction1)}&`;
+        if (this.buttonlabel2) url += `buttonlabel2=${escape(this.buttonlabel2)}&`;
+        if (this.buttonaction2) url += `buttonaction2=${escape(this.buttonaction2)}&`;
+        if (this.image) url += `image=${escape(this.image)}&`;
+        if (this.sound) url += `sound=${escape(this.sound)}&`;
         if (this.noback) url += "noback=true&";
-        return url.substring(0, url.length - 1);
+        return url.slice(0, -1);
     }
 }
 

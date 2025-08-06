@@ -42,7 +42,7 @@ class WTVClientSessionData {
         this.wtvmime = new WTVMime(minisrv_config);
         this.lockdown = false;
         this.ssid = ssid;
-        this.data_store = new Array();
+        this.data_store = [];
         this.session_store = {};
         this.lockdownWhitelist = minisrv_config.config.lockdownWhitelist;
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
@@ -90,7 +90,7 @@ class WTVClientSessionData {
 
     clearUserSessionMemory() {
         this.setUserLoggedIn(false);
-        this.data_store = new Array();
+        this.data_store = [];
         this.session_store = {};
         this.assignFavoriteStore();
         this.assignMailStore()
@@ -98,7 +98,7 @@ class WTVClientSessionData {
 
     switchUserID(user_id, update_mail = true, update_ticket = true, update_favorite = true) {
         this.user_id = parseInt(user_id);
-        if (user_id != null) {
+        if (user_id !== null) {
             this.loadSessionData();
             if (this.isRegistered() && update_mail) this.assignMailStore();
             if (this.isRegistered() && update_favorite) this.assignMailStore();
@@ -189,7 +189,7 @@ class WTVClientSessionData {
         var self = this;        
         this.fs.readdirSync(master_directory).forEach(f => {
             if (self.fs.lstatSync(master_directory + self.path.sep + f).isDirectory()) {
-                if (f.substr(0, 4) == "user") {
+                if (f.startsWith("user")) {
                     var user_file = this.path.resolve(master_directory + self.path.sep + f + self.path.sep + f + ".json");
                     if (self.fs.existsSync(user_file)) {
                         if (f == "user0") {
@@ -230,7 +230,7 @@ class WTVClientSessionData {
      * @returns {string|boolean} Absolute path to the user's file store, or false if unregistered
      */
     getUserStoreDirectory(subscriber = false, user_id = null) {
-        if (user_id == null) user_id = this.user_id;
+        if (user_id === null) user_id = this.user_id;
         var userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
         if (!subscriber) userstore += "user" + user_id + this.path.sep;
         return this.wtvshared.getAbsolutePath(userstore) + this.path.sep;
@@ -340,7 +340,7 @@ class WTVClientSessionData {
         } catch (e) {
             console.error(" # User File Store failed", e);
         }
-        return (result === false) ? false : true;
+        return result !== false;
     }
 
     scrapbookExists() {
@@ -355,7 +355,7 @@ class WTVClientSessionData {
 	}
     
     createScrapbook() {
-		if (this.scrapbookExists() === false) {
+		if (!this.scrapbookExists()) {
 			try {
 				if (!this.fs.existsSync(this.scrapbook_dir)) this.fs.mkdirSync(this.scrapbook_dir, { recursive: true });
 				return true;
@@ -365,18 +365,18 @@ class WTVClientSessionData {
 	}
 
 	scrapbookDir() {
-		if (this.scrapbookExists() === false) {
+		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
 		return this.scrapbook_dir;
 	}
 
 	listScrapbook() {
-		if (this.scrapbookExists() === false) {
+		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
 		const files = this.fs.readdirSync(this.scrapbook_dir);
-		const filteredFiles = files.sort(function(a, b) {
+		const filteredFiles = files.sort((a, b) => {
             return a.localeCompare(b, undefined, {
                 numeric: true,
                 sensitivity: 'base'
@@ -386,15 +386,15 @@ class WTVClientSessionData {
 	}
 
 	getFreeScrapbookID() {
-		if (this.scrapbookExists() === false) {
+		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
 		var id = 1;
 		var files = this.fs.readdirSync(this.scrapbook_dir);
-		if (files.length == 0) {
+		if (files.length === 0) {
 			return id;
 		}
-		files = files.map(file => parseInt(file.substr(0, file.indexOf('.'))));
+		files = files.map(file => parseInt(file.slice(0, file.indexOf('.'))));
 		while (files.includes(id)) {
 			id++;
 		}
@@ -402,7 +402,7 @@ class WTVClientSessionData {
 	}
 
     getScrapbookUsage() {
-        if (this.scrapbookExists() === false) {
+        if (!this.scrapbookExists()) {
             this.createScrapbook();
         }
         var total_size = 0;
@@ -419,7 +419,7 @@ class WTVClientSessionData {
     }
 
     getScrapbookUsagePercent() {
-        if (this.scrapbookExists() === false) {
+        if (!this.scrapbookExists()) {
             this.createScrapbook();
         }
         var total_size = this.getScrapbookUsage();
@@ -430,7 +430,7 @@ class WTVClientSessionData {
     }
 
 	getScrapbookImage(id) {
-		if (this.scrapbookExists() === false) {
+		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
 		var file = this.scrapbook_dir + id;
@@ -441,7 +441,7 @@ class WTVClientSessionData {
 	}
 
 	getScrapbookImageType(id) {
-		if (this.scrapbookExists() === false) {
+		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
 		var file = this.scrapbook_dir + id + ".meta";
@@ -459,7 +459,7 @@ class WTVClientSessionData {
 
 	addToScrapbook(filename, contentType, data) {
 		try {
-			if (this.scrapbookExists() === false) {
+			if (!this.scrapbookExists()) {
 				this.createScrapbook();
 			}
 			var fileout = this.scrapbook_dir + filename;
@@ -546,7 +546,7 @@ class WTVClientSessionData {
             else return false;
         } else {
             if (path && expires && data) {
-                var cookie_data = new Array();
+                var cookie_data = {};
                 cookie_data['cookie'] = unescape(data);
                 cookie_data['expires'] = unescape(expires);
                 cookie_data['path'] = unescape(path);
@@ -564,7 +564,7 @@ class WTVClientSessionData {
             if (domain == self.session_store.cookies[k].domain && path == self.session_store.cookies[k].path) cookie_index = k;
         });
         // otherwise add a new one
-        if (cookie_index == -1) cookie_index = this.countCookies();
+        if (cookie_index === -1) cookie_index = this.countCookies();
 
         this.session_store.cookies[cookie_index] = Object.assign({}, cookie_data);
 
@@ -582,7 +582,7 @@ class WTVClientSessionData {
         var self = this;
         var result = false;
         Object.keys(this.session_store['cookies']).forEach(function (k) {
-            if (result != false) return;
+            if (result !== false) return;
             if (self.session_store['cookies'][k].domain == domain &&
                 self.session_store['cookies'][k].path == path) {
 
@@ -728,7 +728,7 @@ class WTVClientSessionData {
     getUserPasswordEnabled() {
         if (!this.minisrv_config.config.passwords.enabled) return false; // master config override
         var enabled = this.getSessionData("subscriber_password");
-        return (enabled != null && typeof enabled != undefined); // true if set, false if null/disabled
+        return (enabled !== null && typeof enabled !== 'undefined'); // true if set, false if null/disabled
     }
 
     validateUserPassword(passwd) {
@@ -846,7 +846,7 @@ class WTVClientSessionData {
         nick = nick.replace(/[^a-zA-Z0-9\-\_\`\^]/g, "");
 
         // limit nick length based on build support
-        nick = nick.substring(0, this.getMaxUsernameLength());
+        nick = nick.slice(0, this.getMaxUsernameLength());
 
         // returns headers to send to client, while storing the new data in our session data.
         this.data_store['wtv-user-name'] = nick;
@@ -877,7 +877,7 @@ class WTVClientSessionData {
 
     setSessionData(key, value) {
         if (key === null) throw ("ClientSessionData.setSessionData(): invalid key provided");
-        if (typeof (this.session_store) === 'undefined') this.session_store = new Array();
+        if (typeof (this.session_store) === 'undefined') this.session_store = {};
         this.session_store[key] = value;
         this.SaveIfRegistered();
     }
@@ -898,7 +898,7 @@ class WTVClientSessionData {
 
     set(key, value) {
         if (key === null) throw ("ClientSessionData.set(): invalid key provided");
-        if (typeof (this.data_store) === 'undefined') this.data_store = new Array();
+        if (typeof (this.data_store) === 'undefined') this.data_store = [];
         this.data_store[key] = value;
         this.SaveIfRegistered();
     }
@@ -957,7 +957,7 @@ class WTVClientSessionData {
         };
 
         var isInSubnet = function (ip, subnet) {
-            if (subnet.indexOf('/') == -1) {
+            if (!subnet.includes('/')) {
                 var mask, base_ip, long_ip = this.ip2long(ip);
                 var mask2, base_ip2, long_ip2 = this.ip2long(ip);
                 return (long_ip == long_ip2);
@@ -986,7 +986,7 @@ class WTVClientSessionData {
             if (self.minisrv_config.config.ssid_ip_allow_list) {
                 if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid]) {
                     Object.keys(self.minisrv_config.config.ssid_ip_allow_list[self.ssid]).forEach(function (k) {
-                        if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k].indexOf('/') > 0) {
+                        if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k].includes('/')) {
                             if (isInSubnet(self.clientAddress, self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k])) {
                                 // remoteAddr is in allowed subnet
                                 ssid_access_list_ip_override = true;
@@ -1011,7 +1011,7 @@ class WTVClientSessionData {
         // process whitelist first
         if (self.ssid && self.minisrv_config.config.ssid_allow_list) {
             var ssid_is_in_whitelist = self.minisrv_config.config.ssid_allow_list.findIndex(element => element == self.ssid);
-            if (ssid_is_in_whitelist == -1) {
+            if (ssid_is_in_whitelist === -1) {
                 // no whitelist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, false);
             }
@@ -1020,7 +1020,7 @@ class WTVClientSessionData {
         // now check blacklist
         if (self.ssid && self.minisrv_config.config.ssid_block_list) {
             var ssid_is_in_blacklist = self.minisrv_config.config.ssid_block_list.findIndex(element => element == self.ssid);
-            if (ssid_is_in_blacklist != -1) {
+            if (ssid_is_in_blacklist !== -1) {
                 // blacklist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, true);
             }
@@ -1046,19 +1046,21 @@ class WTVClientSessionData {
         switch (whitelist) {
             case "lockdown":
                 Object.keys(this.lockdownWhitelist).forEach(function (k) {
-                    if (self.lockdownWhitelist[k].charAt(self.lockdownWhitelist[k].length - 1) == '*') {
-                        if (self.lockdownWhitelist[k].substring(0, self.lockdownWhitelist[k].length - 1) == url.substring(0, self.lockdownWhitelist[k].length - 1)) authorized = true;
+                    if (self.lockdownWhitelist[k].endsWith('*')) {
+                        const prefix = self.lockdownWhitelist[k].slice(0, -1);
+                        if (url.startsWith(prefix)) authorized = true;
                     } else {
-                        if (self.lockdownWhitelist[k].substring(0, url.length) == url) authorized = true;
+                        if (url.startsWith(self.lockdownWhitelist[k])) authorized = true;
                     }
                 });
                 break;
             case "login":
                 Object.keys(this.loginWhitelist).forEach(function (k) {
-                    if (self.loginWhitelist[k].charAt(self.loginWhitelist[k].length - 1) == '*') {
-                        if (self.loginWhitelist[k].substring(0, self.loginWhitelist[k].length - 1) == url.substring(0, self.loginWhitelist[k].length - 1)) authorized = true;
+                    if (self.loginWhitelist[k].endsWith('*')) {
+                        const prefix = self.loginWhitelist[k].slice(0, -1);
+                        if (url.startsWith(prefix)) authorized = true;
                     } else {
-                        if (self.loginWhitelist[k].substring(0, url.length) == url) authorized = true;
+                        if (url.startsWith(self.loginWhitelist[k])) authorized = true;
                     }
                 });
                 break;
@@ -1099,7 +1101,7 @@ class WTVClientSessionData {
             else
                 return "Sony";
         else if (brandId == 1)
-            if (url && isPlus == true)
+            if (url && isPlus === true)
                 return "Philips-Plus";
             else
                 return "Philips";
