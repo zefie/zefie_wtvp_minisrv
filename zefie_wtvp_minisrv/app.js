@@ -816,7 +816,6 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                             // Here we read back certain data from the ServiceVault Script Context Object
                                             try {
                                                 if (typeof vmResults[item[1]] !== "undefined") {
-                                                    console.log(item[0])
                                                     // Safely assign without eval
                                                     if (item[0] === `ssid_sessions['${socket.ssid}']` && privileged) {
                                                         ssid_sessions[socket.ssid] = vmResults[item[1]];
