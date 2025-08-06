@@ -1,6 +1,6 @@
 'use strict';
 const path = require('path');
-var classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;
+const classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;
 require(classPath + "Prototypes.js");
 const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
@@ -60,8 +60,8 @@ function getServiceEnabled(service) {
 }
 
 function getServiceByPort(port) {
-    var service_name = null;
-    Object.keys(minisrv_config.services).forEach(function (k) {
+    let service_name;
+    Object.keys(minisrv_config.services).forEach((k) => {
         if (service_name) return;
         if (minisrv_config.services[k].port) {
             if (port == parseInt(minisrv_config.services[k].port) && getServiceEnabled(k))
@@ -72,8 +72,8 @@ function getServiceByPort(port) {
 }
 
 function getServiceByVHost(vhost) {
-    var service_name = null;
-    Object.keys(minisrv_config.services).forEach(function (k) {
+    let service_name;
+    Object.keys(minisrv_config.services).forEach((k) => {
         if (service_name) return;
         if (minisrv_config.services[k].vhost) {
             if (vhost.toLowerCase() == minisrv_config.services[k].vhost.toLowerCase())
@@ -89,7 +89,7 @@ function getPortByService(service) {
 }
 
 function getSocketServer(socket) {
-    var server = null;
+    let server;
 
     if (socket._server) {
         if (socket._server._connectionKey) server = socket._server;
@@ -150,7 +150,7 @@ function configureService(service_name, service_obj, initial = false) {
 
     service_obj.service_name = service_name;
     if (!service_obj.host) {
-        service_obj.host = service_ip;
+        service_obj.host = minisrv_config.config.service_ip;
     }
     if (service_obj.port && !service_obj.nobind && initial) {
         if (service_obj.pc_services) pc_ports.push(service_obj.port);
@@ -167,15 +167,16 @@ function configureService(service_name, service_obj, initial = false) {
                 });
             }
         }
+        let outstr = '';
         if ((service_name == "wtv-star" && self.no_star_word != true) || service_name != "wtv-star") {
-            var outstr = "wtv-service: name=" + self.service_name + " host=" + self.host + " port=" + self.port;
-            if (self.flags) outstr += " flags=" + self.flags;
-            if (self.connections) outstr += " connections=" + self.connections;
+            outstr = `wtv-service: name=${self.service_name} host=${self.host} port=${self.port}`;
+            if (self.flags) outstr += ` flags=${self.flags}`;
+            if (self.connections) outstr += ` connections=${self.connections}`;
         }
         if (service_name == "wtv-star") {
-            outstr += "\nwtv-service: name=wtv-* host=" + self.host + " port=" + self.port;
-            if (self.flags) outstr += " flags=" + self.flags;
-            if (self.connections) outstr += " connections=" + self.connections;
+            outstr += `\nwtv-service: name=wtv-* host=${self.host} port=${self.port}`;
+            if (self.flags) outstr += ` flags=${self.flags}`;
+            if (self.connections) outstr += ` connections=${self.connections}`;
         }
         return outstr;
     }
@@ -184,8 +185,8 @@ function configureService(service_name, service_obj, initial = false) {
 }
 
 // Where we store our session information
-var ssid_sessions = new Array();
-var socket_sessions = new Array();
+var ssid_sessions = [];
+var socket_sessions = [];
 
 var ports = [];
 var pc_ports = [];
@@ -362,7 +363,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     }
     var env = wtvshared.cloneObj(process.env);
     env.QUERY_STRING = "";
-    var request_data = new Array();
+    var request_data = [];
     var split_req = request_headers.request.split(' ');
     request_data.method = split_req[0];
     var request_type = (request_headers.request_url.indexOf(":/")) ? request_headers.request_url.split(":/")[0] : 'http';
@@ -485,7 +486,7 @@ async function handlePHP(socket, request_headers, php_file, vault, service_name,
     await handleCGI(minisrv_config.config.php_binpath, php_file, socket, request_headers, vault, service_name, session_data, extra_path);
 }
 
-async function processPath(socket, service_vault_file_path, request_headers = new Array(), service_name, shared_romcache = null, pc_services = false) {
+async function processPath(socket, service_vault_file_path, request_headers = [], service_name, shared_romcache = null, pc_services = false) {
     var headers, data = null;
     var request_is_async = false;
     var service_vault_found = false;
@@ -535,7 +536,7 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
             if (service_vault_found) return;
             if (!usingSharedROMCache) {
                 if (minisrv_config.config.SharedROMCache && shared_romcache) {
-                    if (shared_romcache.indexOf(minisrv_config.config.SharedROMCache) != -1) {
+                    if (shared_romcache.includes(minisrv_config.config.SharedROMCache)) {
                         var service_path_presplit = shared_romcache.split(path.sep);
                         service_path_presplit.splice(service_path_presplit.findIndex((element) => element === 'ROMCache'), 1);
                         var service_path_romcache = service_vault_dir + path.sep + service_path_presplit.join(path.sep);
@@ -575,7 +576,8 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                 }
                 var is_dir = false;
                 var file_exists = false;
-                minisrv_catchall, service_path_split, service_path_request_file = null;
+                // Clear variables to free memory
+                minisrv_catchall = service_path_split = service_path_request_file = null;
                 if (fs.existsSync(service_vault_file_path)) {
                     file_exists = true;
                     is_dir = fs.lstatSync(service_vault_file_path).isDirectory()
@@ -629,7 +631,20 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                     // Here we read back certain data from the ServiceVault Script Context Object
                     updateFromVM.forEach((item) => {
                         try {
-                            if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
+                            if (typeof vmResults[item[1]] !== "undefined") {
+                                // Safely assign without eval
+                                if (item[0] === `ssid_sessions['${socket.ssid}']` && privileged) {
+                                    ssid_sessions[socket.ssid] = vmResults[item[1]];
+                                } else if (item[0] === 'headers') {
+                                    headers = vmResults[item[1]];
+                                } else if (item[0] === 'data') {
+                                    data = vmResults[item[1]];
+                                } else if (item[0] === 'request_is_async') {
+                                    request_is_async = vmResults[item[1]];
+                                } else if (item[0] === 'socket_sessions' && privileged) {
+                                    socket_sessions = vmResults[item[1]];
+                                }
+                            }
                         } catch (e) {
                             console.error("vm readback error", e, item[0] + ' = vmResults[' + item[1] + ']');
                         }
@@ -800,9 +815,23 @@ async function processPath(socket, service_vault_file_path, request_headers = ne
                                         updateFromVM.forEach((item) => {
                                             // Here we read back certain data from the ServiceVault Script Context Object
                                             try {
-                                                if (typeof vmResults[item[1]] !== "undefined") eval(item[0] + ' = vmResults["' + item[1] + '"]');
+                                                if (typeof vmResults[item[1]] !== "undefined") {
+                                                    console.log(item[0])
+                                                    // Safely assign without eval
+                                                    if (item[0] === `ssid_sessions['${socket.ssid}']` && privileged) {
+                                                        ssid_sessions[socket.ssid] = vmResults[item[1]];
+                                                    } else if (item[0] === 'headers') {
+                                                        headers = vmResults[item[1]];
+                                                    } else if (item[0] === 'data') {
+                                                        data = vmResults[item[1]];
+                                                    } else if (item[0] === 'request_is_async') {
+                                                        request_is_async = vmResults[item[1]];
+                                                    } else if (item[0] === 'socket_sessions' && privileged) {
+                                                        socket_sessions = vmResults[item[1]];
+                                                    }
+                                                }
                                             } catch (e) {
-                                                console.error("vm readback error", e);
+                                                console.error("vm readback error", e, item[0] + ' = vmResults[' + item[1] + ']');
                                             }
                                         });
                                     } else if (catchall_file.endsWith(".php")) {
@@ -885,43 +914,38 @@ function getDirectoryIndex(svpath) {
 }
 
 async function processURL(socket, request_headers, pc_services = false) {
-    var shortURL, headers, data, service_name, original_service_name = "";
-    var allow_double_slash, enable_multi_query, use_external_proxy = false;
+    var shortURL, headers, data, service_name;
+    var original_service_name = "";
+    var allow_double_slash = false, enable_multi_query = false, use_external_proxy = false;
     request_headers.query = {};
+    
     if (request_headers.request_url) {
         service_name = socket.service_name;
         if (pc_services) {           
             original_service_name = socket.service_name; // store service name
             service_name = verifyServicePort(socket.service_name, socket); // get the actual ServiceVault path
         }
-        if (request_headers.request_url.indexOf('?') >= 0) {
+        if (request_headers.request_url.includes('?')) {
             shortURL = request_headers.request_url.split('?')[0];
-
-            if (request_headers.request_url.indexOf('?') >= 0) {
-                shortURL = request_headers.request_url.split('?')[0];
-                var qraw = request_headers.request_url.split('?')[1];
-                if (qraw.length > 0) {
-                    qraw = qraw.split("&");
-                    for (let i = 0; i < qraw.length; i++) {
-                        var qraw_split = qraw[i].split("=");
-                        if (qraw_split.length == 2) {
-                            var k = qraw_split[0];
-                            if (request_headers.query[k] && enable_multi_query) {
-                                if (typeof request_headers.query[k] === 'string') {
-                                    var keyarray = [request_headers.query[k]];
-                                    request_headers.query[k] = keyarray;
-                                }
-                                request_headers.query[k].push(unescape(qraw[i].split("=")[1].replace(/\+/g, "%20")));
-                            } else {
-                                request_headers.query[k] = unescape(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+            const qraw = request_headers.request_url.split('?')[1];
+            if (qraw.length > 0) {
+                qraw.split("&").forEach(param => {
+                    const qraw_split = param.split("=");
+                    if (qraw_split.length == 2) {
+                        const k = qraw_split[0];
+                        const value = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                        if (request_headers.query[k] && enable_multi_query) {
+                            if (typeof request_headers.query[k] === 'string') {
+                                request_headers.query[k] = [request_headers.query[k]];
                             }
-                        } else if (qraw[i].length == 1) {
-                            request_headers.query[qraw[i]] = null;
+                            request_headers.query[k].push(value);
+                        } else {
+                            request_headers.query[k] = value;
                         }
+                    } else if (param.length == 1) {
+                        request_headers.query[param] = null;
                     }
-                }
-            } else {
-                shortURL = unescape(request_headers.request_url);
+                });
             }
         } else {
             shortURL = unescape(request_headers.request_url);
@@ -1088,7 +1112,7 @@ minisrv-no-mail-count: true`;
             }
             var urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
             var shared_romcache = null;
-            if ((shortURL.indexOf(":/ROMCache/") != -1 || shortURL.indexOf("://ROMCache/") != -1) && minisrv_config.config.enable_shared_romcache) {
+            if ((shortURL.includes(":/ROMCache/") || shortURL.includes("://ROMCache/")) && minisrv_config.config.enable_shared_romcache) {
                 shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split(':/')[1]);
             } 
             if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming", (pc_services) ? "HTTP" : "WTVP", "headers on", (pc_services) ? "HTTP" : "WTVP", "socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
@@ -1198,7 +1222,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
 
     // if Connection: close header, set our internal variable to close the socket
     if (headers['Connection']) {
-        if (headers['Connection'].toLowerCase().indexOf('close') !== -1) {
+        if (headers['Connection'].toLowerCase().includes('close')) {
             headers["wtv-connection-close"] = true;
         }
     }
@@ -1235,7 +1259,7 @@ async function doHTTPProxy(socket, request_headers) {
             break;
     }
 
-    var request_data = new Array();
+    var request_data = [];
     request_data.method = request_headers.request.split(' ')[0];
     var request_url_split = request_headers.request.split(' ')[1].split('/');
     request_data.host = request_url_split[2];
@@ -1690,7 +1714,7 @@ async function sendToSocket(socket, data) {
         if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
         if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
         socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
-        if (socket_sessions[socket.id].close_me) socket.end();
+        if (socket_sessions[socket.id] && socket_sessions[socket.id].close_me) socket.end();
         if (socket_sessions[socket.id].destroy_me) socket.destroy();
     }
 }

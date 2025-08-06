@@ -469,7 +469,9 @@ class WTVClientSessionData {
 				"contentType": contentType
 			}));
 			return true;
-		} catch {}
+		} catch (e) {
+			console.error("Error in addToScrapbook:", e);
+		}
 		return false;
 	}    
 
