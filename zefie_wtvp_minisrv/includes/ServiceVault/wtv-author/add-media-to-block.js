@@ -9,7 +9,7 @@ var position = request_headers.query.newBlockNum
 var oldPosition = request_headers.query.oldBlockNum
 var editing = request_headers.query.editing
 
-	if (editing == "true"){
+if (editing == "true"){
 	session_data.pagestore.editPhotoBlock(docName, request_headers.query.blockNum, request_headers.query.newBlockNum, null, null, request_headers.query.blockTitle, request_headers.query.photoBlockCaption);
 	var page = session_data.pagestore.loadPage(docName);
 	headers = `300 OK
@@ -22,11 +22,19 @@ Location: wtv-author:/show-blocks?docName=${docName}`
 } else {
 	var page = session_data.pagestore.loadPage(docName);
 	var blockNum = request_headers.query.blockNum;
-	if (page.blocks[blockNum] != undefined)
-		session_data.pagestore.editPhotoBlock(docName, request_headers.query.blockNum, request_headers.query.blockNum, request_headers.query.mediaPath, "clipart", null, null);
-	else
-		session_data.pagestore.createPhotoBlock(docName, request_headers.query.mediaPath, "clipart");
-	
+	if (request_headers.query.scrapbookID != undefined) {
+		var image = session_data.pagestore.getScrapbookImage(parseInt(request_headers.query.scrapbookID));
+		if (page.blocks[blockNum] != undefined)
+			session_data.pagestore.editPhotoBlock(docName, request_headers.query.blockNum, request_headers.query.blockNum, image, "scrapbook", null, null);
+		else
+			session_data.pagestore.createPhotoBlock(docName, image, "scrapbook");
+	} else {
+		if (page.blocks[blockNum] != undefined)
+			session_data.pagestore.editPhotoBlock(docName, request_headers.query.blockNum, request_headers.query.blockNum, request_headers.query.mediaPath, "clipart", null, null);
+		else
+			session_data.pagestore.createPhotoBlock(docName, request_headers.query.mediaPath, "clipart");
+	}
+
 	headers = `300 OK
 wtv-expire-all: wtv-author:/block-preview
 wtv-expire-all: wtv-author:/preview

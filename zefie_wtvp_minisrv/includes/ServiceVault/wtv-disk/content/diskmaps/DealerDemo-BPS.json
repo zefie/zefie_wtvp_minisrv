@@ -1,0 +1,47 @@
+{
+	"DealerDemo-BPS": {
+		"base": "file://Disk/Demo-BPS/",
+		"location": "content/DealerDemo-BPS",
+		"service_owned": true,
+		"display": "Getting Demo",
+		"partition_size": 4194304,
+		"files": [
+			{
+				"file": "file://Disk/Demo-BPS/allyouneed_bps.html"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/allyouneed_bps.swf"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/attractloop_bps.swf"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/email_bps.html"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/email_bps.swf"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/index.html"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/internet_bps.html"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/internet_bps.swf"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/mainmenu_bps.html"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/mainmenu_bps.swf"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/service_bps.html"
+			},
+			{
+				"file": "file://Disk/Demo-BPS/service_bps.swf"
+			}
+		]
+	}
+}

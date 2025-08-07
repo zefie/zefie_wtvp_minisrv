@@ -20,22 +20,25 @@ tricks = [
 	["client:ResetNVAndPowerOff", "Blast NVRAM"],
 	["wtv-tricks:/charmap", "Character Map"],
 	["wtv-tricks:/cSetup", "Connect Setup"],
+	["wtv-disk:/content/Downloads.tmpl", "Download-O-Rama"],
 	["wtv-tricks:/benchmark", "Speed Test"],
 	["wtv-flashrom:/big-willie", "Big Willie"],
-    ["wtv-flashrom:/willie", "Ultra Willie"]
+    ["wtv-flashrom:/willie", "Ultra Willie"],
+	["wtv-setup:/transfer-account", "Transfer Account"],
+	["wtv-setup:/timezone", "Set Timezone"],
+	["wtv-proxy:/proxy", "Web Render Proxy"],
 ]
 // add these at the bottom
 tricks.push((session_data.getSessionData("registered")) ? ["wtv-tricks:/unregister", "Unregister This Box"] : ["wtv-tricks:/register", "Register This Box"]); // reg/unreg
 tricks.push((wtvshared.isAdmin(session_data)) ? ["wtv-admin:/admin", minisrv_config.config.service_name + " Admin"] : [notAdminAlert, minisrv_config.config.service_name + " Admin"]); // wtv-admin
 
 data = `<html>
-<body>
+<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0>
 <display nosave nosend>
 <title>${minisrv_config.config.service_name} Tricks</title>
 <sidebar width=20%>
 <img src="wtv-tricks:/images/Favorites_bg.jpg">
 </sidebar>
-<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff" vspace=0>
 <br>
 <br>
 <h1>${minisrv_config.config.service_name} Tricks</h1>

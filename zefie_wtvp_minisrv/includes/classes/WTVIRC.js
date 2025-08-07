@@ -93,7 +93,6 @@ class WTVIRC {
         this.maxtargets = this.irc_config.max_targets || 4;
         this.socket_timeout = 75; // Default socket timeout to 75 seconds, most clients will send PINGs every 60 seconds, so this should be enough to catch lost connections
         this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
-        this.enable_eval = this.debug || false; // Enable eval in debug mode only
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
         this.allow_public_vhosts = this.irc_config.allow_public_vhosts || true; // If true, users can set their host to a virtual host that is not a real hostname or IP address, if false, only opers can.
         this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_users_on_secure || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
@@ -2794,27 +2793,6 @@ class WTVIRC {
                         if (!foundRemote) {
                             await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${whoisNick} :No such nick/channel\r\n`);
                         }
-                    }
-                    break;
-                case 'EVAL':
-                    // VERY DANGEROUS
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `EVAL command attempted by non-IRCOp: ${socket.nickname}`);
-                        break;
-                    }
-                    if (!this.enable_eval) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} :Eval is disabled\r\n`);
-                        break;
-                    }
-                    try {
-                        const result = eval(params.join(' '));
-                        await this.safeWriteToSocket(socket, `:${this.servername} 200 ${socket.nickname} :${result}\r\n`);
-                    } catch (error) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 500 ${socket.nickname} :Error evaluating expression\r\n`);
                     }
                     break;
                 case 'KILL':

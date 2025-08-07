@@ -34,7 +34,8 @@ else {
 		var human_name = nickname;
 		var userid = '1' + Math.floor(Math.random() * 1000000000000000000);
 		var messenger_enabled = 0;
-		var messenger_authorized = 0;
+		var messenger_authorized = 0;		
+		var timezone = "-0000";
 		if (request_headers.query.skip_splash) gourl = "wtv-home:/home?";
 		else gourl = "wtv-home:/splash?";
 	} else if (!session_data.getSessionData("registered")) {
@@ -48,6 +49,7 @@ else {
 		var messenger_enabled = session_data.getSessionData("messenger_enabled") || 0;
 		var messenger_authorized = session_data.getSessionData("messenger_authorized") || 0;
 		var messenger_email = session_data.getSessionData("messenger_email");
+		var timezone = session_data.getSessionData("timezone") || "-0000";
 		var gourl = "wtv-home:/splash?";
 	}
 	var limitedLogin = session_data.lockdown;
@@ -87,10 +89,11 @@ wtv-expire-all: wtv-head-waiter:
 `;
 
 	if (!limitedLogin && !limitedLoginRegistered) {
-		headers += `wtv-client-time-zone: GMT -0000
+		strf = strftime.timezone(timezone);
+		headers += `wtv-country: US
+wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: GMT
-wtv-client-date: `+ strftime("%a, %d %b %Y %H:%M:%S", new Date(new Date().toUTCString())) + ` GMT
-wtv-country: US
+wtv-client-date: ${strf("%a, %d %b %Y %H:%M:%S", new Date(new Date().setUTCSeconds(new Date().getUTCSeconds())))}
 wtv-language-header: en-US,en
 wtv-noback-all: wtv-
 wtv-transition-override: off
@@ -131,6 +134,8 @@ wtv-messenger-enable: 0
 
 		headers += `wtv-log-url: wtv-log:/log
 wtv-ssl-log-url: wtv-log:/log
+wtv-ssl-certs-download-url: wtv-head-waiter:/download-ssl-certs
+wtv-ssl-certs-checksum: 9BD865819765B66A2756F98FB4EEFBD4
 `;
 
 		if (!limitedLogin && !limitedLoginRegistered) {
@@ -143,6 +148,7 @@ passport-domain: ${session_data.getSessionData("messenger_domain")}
 wtv-mail-url: wtv-mail:/listmail
 wtv-favorite-url: wtv-favorite:/favorite
 wtv-favorites-folders-url: wtv-favorite:/list-folders
+wtv-favorite-index-url: wtv-favorite:/favorite-index?
 wtv-input-timeout: 14400
 wtv-connection-timeout: 1440
 wtv-fader-timeout: 1440
@@ -181,7 +187,7 @@ wtv-inactive-timeout: 1440
 			headers += `wtv-force-lightweight-targets: webtv.net:/
 wtv-show-time-enabled: true
 wtv-allow-dsc: true
-wtv-tourist-enabled: true
+wtv-tourist-enabled: false
 wtv-offline-mail-enable: false
 wtv-demo-mode: 0
 wtv-wink-deferrer-retries: 3

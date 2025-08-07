@@ -80,6 +80,12 @@
     "proto": {
       "disabled": true
     },
+    "wtv-search": {
+      "disabled": true
+    },
+    "wtv-proxy": {
+      "disabled": true
+    },
     "pb_services": {
       "disabled": true
     },

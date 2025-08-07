@@ -59,11 +59,9 @@ class WTVAuthor {
             if (this.pagestore_dir === null) {
                 // set pagestore directory local var so we don't call the function every time
                 var userstore_dir = this.wtvclient.getUserStoreDirectory();
-				this.debug("pagestoreExists", "userstore_dir", userstore_dir)
-
                 // PageStore
                 var store_dir = "PageStore" + this.path.sep;
-                this.pagestore_dir = userstore_dir + store_dir;
+                this.pagestore_dir = userstore_dir + store_dir;			
             }
             return this.fs.existsSync(this.pagestore_dir);
         }
@@ -79,7 +77,7 @@ class WTVAuthor {
         }
         return false;
     }
-	
+
 	createPage(style) {
 			this.pagestoreExists()
 			var pagestorepath = this.pagestore_dir;
@@ -202,6 +200,7 @@ class WTVAuthor {
 				break;
 				
 			case "snapshot":
+			case "scrapbook":
 				if (state == "publishing") {
 					block = this.generatePublishImageBlock(number, page)
 					break;

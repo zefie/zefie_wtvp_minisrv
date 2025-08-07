@@ -465,36 +465,48 @@ class WTVNews {
                     else message_relations[res.messageId] = [{ "messageId": messageId, "index": k }];
                 } else {
                     // see if its related to a relation
+                    var found = false;
                     if (Object.keys(message_relations).length > 0) {
-                        var found = false;
                         Object.keys(message_relations).forEach((j) => {
+                            if (found) return;
                             if (message_relations[j].length > 0) {
                                 Object.keys(message_relations[j]).forEach((h) => {
                                     if (found) return;
                                     if (message_relations[j][h].messageId == ref) {
                                         var searchref = messages[message_relations[j][h].index].headers.REFERENCES || null;
-                                        var mainref = null;
+                                        var mainref = j; // j is already the main reference messageId
                                         while (searchref !== null) {
                                             var searchart = messages.find(e => e.messageId == searchref);
-                                            var searchref = searchart.headers.REFERENCES || null;
+                                            if (searchart) {
+                                                mainref = searchart.messageId;
+                                                searchref = searchart.headers.REFERENCES || null;
+                                            } else {
+                                                break;
+                                            }
                                         }
-                                        mainref = searchart.messageId;
                                         message_relations[mainref].push({ "messageId": messageId, "index": k });
                                         found = true;
-                                    } else {
-                                        // no relation, missing reference, add as root
-                                        message_id_roots.push({ "messageId": messageId, "index": k });
                                     }
                                 });
                             }
                         })
-                    } else {
-                        message_id_roots.push({ "messageId": messageId, "index": k });
+                    }
+                    
+                    // If not found in relations, add as root (but check for duplicates first)
+                    if (!found) {
+                        var existingRoot = message_id_roots.find(e => e.messageId == messageId);
+                        if (!existingRoot) {
+                            message_id_roots.push({ "messageId": messageId, "index": k });
+                        }
                     }
                 }
             }
             else {
-                message_id_roots.push({ "messageId": messageId, "index": k });
+                // Check for duplicates before adding as root
+                var existingRoot = message_id_roots.find(e => e.messageId == messageId);
+                if (!existingRoot) {
+                    message_id_roots.push({ "messageId": messageId, "index": k });
+                }
             }
         });
 
@@ -510,13 +522,15 @@ class WTVNews {
         Object.keys(message_roots_sorted).forEach((k) => {
             sorted.push(message_roots_sorted[k]);
 
-            if (message_relations[message_id_roots[k].messageId]) {
+            // Use the correct messageId from the sorted root article
+            var rootMessageId = message_roots_sorted[k].article.messageId;
+            if (message_relations[rootMessageId]) {
                 var relations = [];
-                Object.keys(message_relations[message_roots_sorted[k].article.messageId]).forEach((j) => {
+                Object.keys(message_relations[rootMessageId]).forEach((j) => {
                     // sort relations by date
-                    var article = messages[message_relations[message_roots_sorted[k].article.messageId][j].index];
+                    var article = messages[message_relations[rootMessageId][j].index];
                     var article_date = Date.parse(article.headers.DATE);
-                    relations.push({ "article": article, "relation": message_roots_sorted[k].article.messageId || null, "date": article_date })
+                    relations.push({ "article": article, "relation": rootMessageId || null, "date": article_date })
                 });
                 relations.sort((a, b) => { return (a.date - b.date) });
                 Object.keys(relations).forEach((j) => {

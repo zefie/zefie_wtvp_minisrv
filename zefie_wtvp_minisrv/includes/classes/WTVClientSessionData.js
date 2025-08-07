@@ -16,6 +16,7 @@ class WTVClientSessionData {
     mailstore = null;
     favstore = null;
     pagestore = null;
+    scrapbook_dir = null;
     login_security = null;
     capabilities = null;
     session_storage = "";
@@ -41,7 +42,7 @@ class WTVClientSessionData {
         this.wtvmime = new WTVMime(minisrv_config);
         this.lockdown = false;
         this.ssid = ssid;
-        this.data_store = new Array();
+        this.data_store = [];
         this.session_store = {};
         this.lockdownWhitelist = minisrv_config.config.lockdownWhitelist;
         this.lockdownWhitelist.push(minisrv_config.config.unauthorized_url);
@@ -89,7 +90,7 @@ class WTVClientSessionData {
 
     clearUserSessionMemory() {
         this.setUserLoggedIn(false);
-        this.data_store = new Array();
+        this.data_store = [];
         this.session_store = {};
         this.assignFavoriteStore();
         this.assignMailStore()
@@ -97,7 +98,7 @@ class WTVClientSessionData {
 
     switchUserID(user_id, update_mail = true, update_ticket = true, update_favorite = true) {
         this.user_id = parseInt(user_id);
-        if (user_id != null) {
+        if (user_id !== null) {
             this.loadSessionData();
             if (this.isRegistered() && update_mail) this.assignMailStore();
             if (this.isRegistered() && update_favorite) this.assignMailStore();
@@ -108,6 +109,12 @@ class WTVClientSessionData {
         }
     }
 
+    /**
+     * Sets a ticket data value.
+     * @param {string} key The key of the ticket data
+     * @param {*} value The value to set
+     * @returns {boolean} True if the value was set successfully, false otherwise
+     */
     setTicketData(key, value) {
         if (this.data_store.wtvsec_login) this.data_store.wtvsec_login.setTicketData(key, value);
         else return false;
@@ -115,16 +122,24 @@ class WTVClientSessionData {
         return true;
     }
 
+    /**
+     * Retrieves ticket data by key.
+     * @param {string} key The key of the ticket data
+     * @return {*} The value associated with the key, or false if not found
+     */
     getTicketData(key) {
         if (this.data_store.wtvsec_login) return this.data_store.wtvsec_login.getTicketData(key);
-
         return false;
     }
 
+    /**
+     * Deletes ticket data by key.
+     * @param {string} key The key of the ticket data to delete
+     * @return {boolean} True if the data was deleted successfully, false otherwise
+     */
     deleteTicketData(key) {
         if (this.data_store.wtvsec_login) this.data_store.wtvsec_login.deleteTicketData(key);
         else return false;
-
         return true;
     }
 
@@ -174,7 +189,7 @@ class WTVClientSessionData {
         var self = this;        
         this.fs.readdirSync(master_directory).forEach(f => {
             if (self.fs.lstatSync(master_directory + self.path.sep + f).isDirectory()) {
-                if (f.substr(0, 4) == "user") {
+                if (f.startsWith("user")) {
                     var user_file = this.path.resolve(master_directory + self.path.sep + f + self.path.sep + f + ".json");
                     if (self.fs.existsSync(user_file)) {
                         if (f == "user0") {
@@ -215,7 +230,7 @@ class WTVClientSessionData {
      * @returns {string|boolean} Absolute path to the user's file store, or false if unregistered
      */
     getUserStoreDirectory(subscriber = false, user_id = null) {
-        if (user_id == null) user_id = this.user_id;
+        if (user_id === null) user_id = this.user_id;
         var userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
         if (!subscriber) userstore += "user" + user_id + this.path.sep;
         return this.wtvshared.getAbsolutePath(userstore) + this.path.sep;
@@ -325,8 +340,140 @@ class WTVClientSessionData {
         } catch (e) {
             console.error(" # User File Store failed", e);
         }
-        return (result === false) ? false : true;
+        return result !== false;
     }
+
+    scrapbookExists() {
+		if (!this.isguest) {
+			if (this.scrapbook_dir === null) {
+				var userstore_dir = this.getUserStoreDirectory();
+				var store_dir = "Scrapbook" + this.path.sep;
+                this.scrapbook_dir = userstore_dir + store_dir;
+			}
+		}
+		return this.fs.existsSync(this.scrapbook_dir);
+	}
+    
+    createScrapbook() {
+		if (!this.scrapbookExists()) {
+			try {
+				if (!this.fs.existsSync(this.scrapbook_dir)) this.fs.mkdirSync(this.scrapbook_dir, { recursive: true });
+				return true;
+			} catch { }
+		}
+		return false
+	}
+
+	scrapbookDir() {
+		if (!this.scrapbookExists()) {
+			this.createScrapbook();
+		}
+		return this.scrapbook_dir;
+	}
+
+	listScrapbook() {
+		if (!this.scrapbookExists()) {
+			this.createScrapbook();
+		}
+		const files = this.fs.readdirSync(this.scrapbook_dir);
+		const filteredFiles = files.sort((a, b) => {
+            return a.localeCompare(b, undefined, {
+                numeric: true,
+                sensitivity: 'base'
+            });
+        }).filter(file => !file.endsWith('.meta'));
+		return filteredFiles;
+	}
+
+	getFreeScrapbookID() {
+		if (!this.scrapbookExists()) {
+			this.createScrapbook();
+		}
+		var id = 1;
+		var files = this.fs.readdirSync(this.scrapbook_dir);
+		if (files.length === 0) {
+			return id;
+		}
+		files = files.map(file => parseInt(file.slice(0, file.indexOf('.'))));
+		while (files.includes(id)) {
+			id++;
+		}
+		return id;
+	}
+
+    getScrapbookUsage() {
+        if (!this.scrapbookExists()) {
+            this.createScrapbook();
+        }
+        var total_size = 0;
+        var files = this.fs.readdirSync(this.scrapbook_dir);
+        files.forEach(file => {
+            if (!file.endsWith('.meta')) {
+                var file_path = this.scrapbook_dir + file;
+                if (this.fs.existsSync(file_path)) {
+                    total_size += this.fs.statSync(file_path).size;
+                }
+            }
+        });
+        return total_size;
+    }
+
+    getScrapbookUsagePercent() {
+        if (!this.scrapbookExists()) {
+            this.createScrapbook();
+        }
+        var total_size = this.getScrapbookUsage();
+        var max_size = this.minisrv_config.config.user_accounts.scrapbook_storage * 1024 * 1024; // convert to bytes
+        if (max_size <= 0) return 0; // no storage limit set
+        var usage_percent = (total_size / max_size) * 100;
+        return Math.round(usage_percent, 2);
+    }
+
+	getScrapbookImage(id) {
+		if (!this.scrapbookExists()) {
+			this.createScrapbook();
+		}
+		var file = this.scrapbook_dir + id;
+		if (this.fs.existsSync(file)) {
+			return this.fs.readFileSync(file);
+		}
+		return null;
+	}
+
+	getScrapbookImageType(id) {
+		if (!this.scrapbookExists()) {
+			this.createScrapbook();
+		}
+		var file = this.scrapbook_dir + id + ".meta";
+		if (this.fs.existsSync(file)) {
+			var meta = this.fs.readFileSync(file, 'utf8');
+			try {
+				var metaData = JSON.parse(meta);
+				return metaData.contentType;
+			} catch (e) {
+				this.debug("getScrapbookImageType", "Error parsing metadata for image ID", id, e);
+			}
+		}
+		return null;
+	}
+
+	addToScrapbook(filename, contentType, data) {
+		try {
+			if (!this.scrapbookExists()) {
+				this.createScrapbook();
+			}
+			var fileout = this.scrapbook_dir + filename;
+			var fileout_meta = this.scrapbook_dir + filename + ".meta";
+			this.fs.writeFileSync(fileout, data);
+			this.fs.writeFileSync(fileout_meta, JSON.stringify({
+				"contentType": contentType
+			}));
+			return true;
+		} catch (e) {
+			console.error("Error in addToScrapbook:", e);
+		}
+		return false;
+	}    
 
     /**
      * Retrieves a file from the user store
@@ -373,12 +520,23 @@ class WTVClientSessionData {
         return Object.keys(this.session_store.cookies).length || 0;
     }
 
+    /**
+     * Resets the user cookies
+     */    
     resetCookies() {
         this.session_store.cookies = {};
         // webtv likes to have at least one cookie in the list, set a dummy cookie for zefie's site expiring in 1 year.
         this.addCookie("wtv.zefie.com", "/", this.wtvshared.getUTCTime(365 * 86400000), "cookie_type=chocolatechip");
     }
 
+    /**
+     * Adds a cookie to the user's session store
+     * @param {string|object} domain Domain for the cookie, or an object with cookie data
+     * @param {string|null} path Path for the cookie, defaults to null
+     * @param {string|null} expires Expiration date for the cookie, defaults to null
+     * @param {string|null} data Data for the cookie, defaults to null
+     * @return {boolean} True if the cookie was added successfully, false otherwise
+     */
     addCookie(domain, path = null, expires = null, data = null) {
         if (!this.checkCookies()) this.resetCookies();
         if (!domain) return false;
@@ -388,7 +546,7 @@ class WTVClientSessionData {
             else return false;
         } else {
             if (path && expires && data) {
-                var cookie_data = new Array();
+                var cookie_data = {};
                 cookie_data['cookie'] = unescape(data);
                 cookie_data['expires'] = unescape(expires);
                 cookie_data['path'] = unescape(path);
@@ -406,19 +564,25 @@ class WTVClientSessionData {
             if (domain == self.session_store.cookies[k].domain && path == self.session_store.cookies[k].path) cookie_index = k;
         });
         // otherwise add a new one
-        if (cookie_index == -1) cookie_index = this.countCookies();
+        if (cookie_index === -1) cookie_index = this.countCookies();
 
         this.session_store.cookies[cookie_index] = Object.assign({}, cookie_data);
 
         return true;
     }
 
+    /**
+     * Retrieves a cookie from the user's session store
+     * @param {string} domain Domain of the cookie
+     * @param {string} path Path of the cookie
+     * @return {object|false} Cookie data if found, false otherwise
+     */
     getCookie(domain, path) {
         if (!this.checkCookies()) this.resetCookies();
         var self = this;
         var result = false;
         Object.keys(this.session_store['cookies']).forEach(function (k) {
-            if (result != false) return;
+            if (result !== false) return;
             if (self.session_store['cookies'][k].domain == domain &&
                 self.session_store['cookies'][k].path == path) {
 
@@ -431,6 +595,12 @@ class WTVClientSessionData {
         return result;
     }
 
+    /**
+     * Retrieves a cookie string from the user's session store
+     * @param {string} domain Domain of the cookie
+     * @param {string} path Path of the cookie
+     * @return {string|false} Cookie string if found, false otherwise
+     */
     getCookieString(domain, path) {
         var cookie_data = this.getCookie(domain, path);
         /*
@@ -443,6 +613,12 @@ class WTVClientSessionData {
         return cookie_data.cookie;
     }
 
+    /**
+     * Deletes a cookie from the user's session store
+     * @param {string|object} domain Domain of the cookie, or an object with cookie data
+     * @param {string|null} path Path of the cookie, defaults to null
+     * @return {boolean} True if the cookie was deleted successfully, false otherwise
+     */
     deleteCookie(domain, path = null) {
         var result = false;
         if (!this.checkCookies()) {
@@ -472,12 +648,20 @@ class WTVClientSessionData {
         return result;
     }
 
+    /**
+     * Checks if there are any cookies stored in the session
+     * @return {boolean} True if there are cookies, false otherwise
+     */
     checkCookies() {
         if (!this.session_store.cookies) return false;
         else if (this.session_store.cookies == []) return false;
         return true;
     }
 
+    /**
+     * Lists all cookies in the user's session store
+     * @return {string} String representation of all cookies, each cookie separated by a null character
+     */
     listCookies() {
         if (!this.checkCookies()) this.resetCookies();
         var outstring = "";
@@ -544,7 +728,7 @@ class WTVClientSessionData {
     getUserPasswordEnabled() {
         if (!this.minisrv_config.config.passwords.enabled) return false; // master config override
         var enabled = this.getSessionData("subscriber_password");
-        return (enabled != null && typeof enabled != undefined); // true if set, false if null/disabled
+        return (enabled !== null && typeof enabled !== 'undefined'); // true if set, false if null/disabled
     }
 
     validateUserPassword(passwd) {
@@ -662,7 +846,7 @@ class WTVClientSessionData {
         nick = nick.replace(/[^a-zA-Z0-9\-\_\`\^]/g, "");
 
         // limit nick length based on build support
-        nick = nick.substring(0, this.getMaxUsernameLength());
+        nick = nick.slice(0, this.getMaxUsernameLength());
 
         // returns headers to send to client, while storing the new data in our session data.
         this.data_store['wtv-user-name'] = nick;
@@ -693,7 +877,7 @@ class WTVClientSessionData {
 
     setSessionData(key, value) {
         if (key === null) throw ("ClientSessionData.setSessionData(): invalid key provided");
-        if (typeof (this.session_store) === 'undefined') this.session_store = new Array();
+        if (typeof (this.session_store) === 'undefined') this.session_store = {};
         this.session_store[key] = value;
         this.SaveIfRegistered();
     }
@@ -714,7 +898,7 @@ class WTVClientSessionData {
 
     set(key, value) {
         if (key === null) throw ("ClientSessionData.set(): invalid key provided");
-        if (typeof (this.data_store) === 'undefined') this.data_store = new Array();
+        if (typeof (this.data_store) === 'undefined') this.data_store = [];
         this.data_store[key] = value;
         this.SaveIfRegistered();
     }
@@ -773,7 +957,7 @@ class WTVClientSessionData {
         };
 
         var isInSubnet = function (ip, subnet) {
-            if (subnet.indexOf('/') == -1) {
+            if (!subnet.includes('/')) {
                 var mask, base_ip, long_ip = this.ip2long(ip);
                 var mask2, base_ip2, long_ip2 = this.ip2long(ip);
                 return (long_ip == long_ip2);
@@ -802,7 +986,7 @@ class WTVClientSessionData {
             if (self.minisrv_config.config.ssid_ip_allow_list) {
                 if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid]) {
                     Object.keys(self.minisrv_config.config.ssid_ip_allow_list[self.ssid]).forEach(function (k) {
-                        if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k].indexOf('/') > 0) {
+                        if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k].includes('/')) {
                             if (isInSubnet(self.clientAddress, self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k])) {
                                 // remoteAddr is in allowed subnet
                                 ssid_access_list_ip_override = true;
@@ -827,7 +1011,7 @@ class WTVClientSessionData {
         // process whitelist first
         if (self.ssid && self.minisrv_config.config.ssid_allow_list) {
             var ssid_is_in_whitelist = self.minisrv_config.config.ssid_allow_list.findIndex(element => element == self.ssid);
-            if (ssid_is_in_whitelist == -1) {
+            if (ssid_is_in_whitelist === -1) {
                 // no whitelist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, false);
             }
@@ -836,7 +1020,7 @@ class WTVClientSessionData {
         // now check blacklist
         if (self.ssid && self.minisrv_config.config.ssid_block_list) {
             var ssid_is_in_blacklist = self.minisrv_config.config.ssid_block_list.findIndex(element => element == self.ssid);
-            if (ssid_is_in_blacklist != -1) {
+            if (ssid_is_in_blacklist !== -1) {
                 // blacklist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, true);
             }
@@ -862,19 +1046,21 @@ class WTVClientSessionData {
         switch (whitelist) {
             case "lockdown":
                 Object.keys(this.lockdownWhitelist).forEach(function (k) {
-                    if (self.lockdownWhitelist[k].charAt(self.lockdownWhitelist[k].length - 1) == '*') {
-                        if (self.lockdownWhitelist[k].substring(0, self.lockdownWhitelist[k].length - 1) == url.substring(0, self.lockdownWhitelist[k].length - 1)) authorized = true;
+                    if (self.lockdownWhitelist[k].endsWith('*')) {
+                        const prefix = self.lockdownWhitelist[k].slice(0, -1);
+                        if (url.startsWith(prefix)) authorized = true;
                     } else {
-                        if (self.lockdownWhitelist[k].substring(0, url.length) == url) authorized = true;
+                        if (url.startsWith(self.lockdownWhitelist[k])) authorized = true;
                     }
                 });
                 break;
             case "login":
                 Object.keys(this.loginWhitelist).forEach(function (k) {
-                    if (self.loginWhitelist[k].charAt(self.loginWhitelist[k].length - 1) == '*') {
-                        if (self.loginWhitelist[k].substring(0, self.loginWhitelist[k].length - 1) == url.substring(0, self.loginWhitelist[k].length - 1)) authorized = true;
+                    if (self.loginWhitelist[k].endsWith('*')) {
+                        const prefix = self.loginWhitelist[k].slice(0, -1);
+                        if (url.startsWith(prefix)) authorized = true;
                     } else {
-                        if (self.loginWhitelist[k].substring(0, url.length) == url) authorized = true;
+                        if (url.startsWith(self.loginWhitelist[k])) authorized = true;
                     }
                 });
                 break;
@@ -915,7 +1101,7 @@ class WTVClientSessionData {
             else
                 return "Sony";
         else if (brandId == 1)
-            if (url && isPlus == true)
+            if (url && isPlus === true)
                 return "Philips-Plus";
             else
                 return "Philips";

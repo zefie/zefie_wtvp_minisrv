@@ -162,7 +162,14 @@ ${favarray[i].title}<br>
 </td><td>	<table bgcolor="191919">
 <tbody><tr><td abswidth="62" valign="center" align="center">
 <table absheight="38" href="wtv-favorite:/serve-choose-shortcut-favorites?favorite_folder_name=${foldername}&amp;favoriteid=${favarray[i].id}" width="53" cellspacing="0" cellpadding="0">
-<tbody><tr><td valign="middle" background="images/FKey.gif" align="left">
+<tbody><tr><td valign="middle" background="images/FKey.gif" absheight=38 align="center">
+`
+var scdata = session_data.favstore.isFavoriteAShortcut(favarray[i].id);
+if (scdata) {
+	data += `<font size="-2" color="#F1F1F1">${scdata.key}</font>`;
+}
+
+data += `
 <table cellspacing="0" cellpadding="0">
 <tbody><tr><td width="8">
 </td><td absheight="38" width="44" valign="center" align="center">

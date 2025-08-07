@@ -1,12 +1,14 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var pagestore_exists = session_data.pagestore.pagestoreExists();
+const pagestore_exists = session_data.pagestore.pagestoreExists();
+
+const site = session_data.pagestore.getPublishDomain();
 
 if (pagestore_exists != true)
 	session_data.pagestore.createPagestore();
 	
-var pagearray = session_data.pagestore.listPages();
-var numofpages = pagearray.length
+const pagearray = session_data.pagestore.listPages();
+const numofpages = pagearray.length
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -53,7 +55,7 @@ data = `<HTML>
     <tr>
       <td>
       <td abswidth=93 absheight=26>
-        <table href="client:showalert?message=This%20feature%20is%20not%20available." cellspacing=0 cellpadding=0>
+        <table href="wtv-author:/scrapbook" cellspacing=0 cellpadding=0>
           <tr>
             <td abswidth=5>
             <td abswidth=90 valign=middle align=left>
@@ -194,6 +196,9 @@ if (minisrv_config.services["wtv-author"].max_pages) {
 	data += `
 </table>
 <p>A maximum of <b>${minisrv_config.services["wtv-author"].max_pages}</b> pages can be created, regardless of publish status.
+<br><br>
+Your published pages are available at<br>
+<a href="http://${site}/${session_data.getSessionData("subscriber_username")}/">http://${site}/${session_data.getSessionData("subscriber_username")}/</a>
 </table>`
 
 }

@@ -10,8 +10,7 @@ var photo;
 var thumbnail;
 
 if (pagedata.blocks[oldBlockNum].photo) {
-	console.log(pagedata.blocks[oldBlockNum].photo);
-	photo = wtvshared.btoa(pagedata.blocks[oldBlockNum].photo)
+	photo = wtvshared.atob(pagedata.blocks[oldBlockNum].photo)
 	thumbnail = photo.replace('clipart/', 'clipart/icons/');
 }
 
@@ -328,6 +327,7 @@ setTimeout(tempStr, 500);
 break;
 
 	case "snapshot":
+	case "scrapbook":
 	case "clipart":
 	case "text":
 	if (request_headers.query.photoBlockChangeImage) {
@@ -461,8 +461,8 @@ function DisplayViewOption(showIt)
 if (showIt)
 {	document.viewOptionEmbed.document.write('
 <BODY text=AEBFD1 link=B8BDC7 vlink=B8BDC7>
-<img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0>`
-if (blockType == "snapshot") {
+<img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0> `
+if (blockType == "snapshot" || blockType == "scrapbook") {
 	data += `<a href=wtv-author:/get-photo?docName=${docName}&blockNum=${oldBlockNum}
 ><font effect=shadow><B>View this picture</B></font></a>
 </BODY>`

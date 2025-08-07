@@ -373,7 +373,7 @@ data += `
 <tr>
 <td height=32>
 <img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0>
-<a href=wtv-author:/scrapbook?addMediaURL=wtv-author%3A%2Fadd-media-to-block%3FdocName%3D${docName}%26blockNum%3D9%26blockClass%3D23
+<a href=wtv-author:/scrapbook?addMediaURL=wtv-author%3A%2Fadd-media-to-block%3FdocName%3D${docName}%26blockNum%3D${blockNum - 1}%26blockClass%3D23
 ><font effect=shadow><B>Your scrapbook</B></font></a>
 <tr>
 <td height=32>

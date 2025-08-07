@@ -1,4 +1,5 @@
 const LZSS = require("./LZSS.js");
+const WTVShared = require("./WTVShared.js")['WTVShared'];
 
 const WhitespaceInstruction = {
     ADD_NONE: 0,
@@ -278,7 +279,7 @@ class WTVTellyScriptTokenizer {
                         this.tokenizeIdentifierOrConstant(checkSequence);
                     }
                 } else {
-                    // Not alphanumeric – try symbol sequence.
+                    // Not alphanumeric ï¿½ try symbol sequence.
                     this.index = currentIdx;
                     checkSequence = this.buildCheckSequence(ch, "^[\\-+=<>!\\|\\&]$");
                     if (this.replacements.has(checkSequence)) {
@@ -1048,7 +1049,7 @@ class WTVTellyScriptMinifier {
 class WTVTellyScript {
 
     // --- TellyScript Class ---
-    /*
+    /**
      * Constructs a new TellyScript object.
      * @param {Uint8Array|string} data - The TellyScript data (either packed, tokenized, or raw).
      * @param {number} dataState - One of TellyScriptState (default: PACKED).
@@ -1064,10 +1065,14 @@ class WTVTellyScript {
         this.raw_data = null;
         this.preprocessor_definitions = preprocessor_definitions;
         this.version_minor = version_minor;
-
+        this.wtvshared = new WTVShared();
         this.process(data, dataState);
     }
 
+    /**
+     * Preprocesses the tellscript data based on the current preprocessor definitions.
+     * It handles directives like #ifdef, #ifndef, #if, #else, #endif.
+     */
     preprocess() {
         var definitions = this.preprocessor_definitions || {};
         // Split input into lines (handling CRLF and LF)
@@ -1140,6 +1145,10 @@ class WTVTellyScript {
     }
 
 
+    /**
+     * Minifies the TellyScript data.
+     * @returns {string} The minified TellyScript data.
+     */
     minify() {
         let minifier = new WTVTellyScriptMinifier();
         this.raw_data = minifier.minify(this);
@@ -1148,51 +1157,18 @@ class WTVTellyScript {
         this.pack();        
     }
 
-    ipToHex(ip) {
-        const parts = ip.split('.');
-        if (parts.length !== 4) {
-            throw new Error('Invalid IP address');
-        }
-        let num = 0;
-        for (let i = 0; i < 4; i++) {
-            const part = parseInt(parts[i], 10);
-            if (part < 0 || part > 255) {
-                throw new Error('Invalid IP address');
-            }
-            num = (num << 8) | part;
-        }
-        // Convert to unsigned 32-bit number before converting to hex
-        return "0x" + (num >>> 0).toString(16).toUpperCase();
-    }
-
     setTemplateVars(service_name, dialin_number, DNS1IP, DNS2IP) {
         this.raw_data = this.raw_data.replaceAll("%ServiceName%", service_name);
         this.raw_data = this.raw_data.replaceAll("%DialinNumber%", dialin_number);
         this.raw_data = this.raw_data.replaceAll("%DNSIP1%", DNS1IP);
         this.raw_data = this.raw_data.replaceAll("%DNSIP2%", DNS2IP);
-        this.raw_data = this.raw_data.replaceAll("%DNS1%", this.ipToHex(DNS1IP));
-        this.raw_data = this.raw_data.replaceAll("%DNS2%", this.ipToHex(DNS2IP));   
+        this.raw_data = this.raw_data.replaceAll("%DNS1%", this.wtvshared.ipToHex(DNS1IP));
+        this.raw_data = this.raw_data.replaceAll("%DNS2%", this.wtvshared.ipToHex(DNS2IP));
     }
 
     // --- Big Endian Converter Helpers ---
 
-    toUint32(bytes, offset) {
-        return (
-            (bytes[offset] << 24) >>> 0 |
-            (bytes[offset + 1] << 16) |
-            (bytes[offset + 2] << 8) |
-            (bytes[offset + 3])
-        ) >>> 0;
-    }
 
-    uint32ToBytes(num) {
-        return [
-            (num >>> 24) & 0xff,
-            (num >>> 16) & 0xff,
-            (num >>> 8) & 0xff,
-            num & 0xff,
-        ];
-    }
 
     // --- CRC32 Calculation ---
 
@@ -1253,7 +1229,7 @@ class WTVTellyScript {
     autoDetectState(data) {
         if (data instanceof Uint8Array) {
             if (data.length > 4) {
-                const magic = this.toUint32(data, 0);
+                const magic = this.wtvshared.toUint32(data, 0);
                 if (magic === 0x414e4459) { // "ANDY"
                     this.tellyscript_type = TellyScriptType.ORIGINAL;
                     return TellyScriptState.PACKED;
@@ -1312,19 +1288,23 @@ class WTVTellyScript {
     }
 
     // --- Unpacking ---
+    /**
+     * Unpacks the packed TellyScript data
+     * @returns {Uint8Array} The unpacked TellyScript data
+     */
     unpack() {
         // Read header fields from the first 36 bytes.
         const headerBytes = this.packed_data.slice(0, PACKED_TELLYSCRIPT_HEADER_SIZE);
         this.packed_header = {
             magic: String.fromCharCode(...headerBytes.slice(0, 4)),
-            version_major: this.toUint32(headerBytes, 4),
-            version_minor: this.toUint32(headerBytes, 8),
-            script_id: this.toUint32(headerBytes, 12),
-            script_mod: this.toUint32(headerBytes, 16),
-            compressed_data_length: this.toUint32(headerBytes, 20),
-            decompressed_data_length: this.toUint32(headerBytes, 24),
-            decompressed_checksum: this.toUint32(headerBytes, 28),
-            unknown1: this.toUint32(headerBytes, 32),
+            version_major: this.wtvshared.toUint32(headerBytes, 4),
+            version_minor: this.wtvshared.toUint32(headerBytes, 8),
+            script_id: this.wtvshared.toUint32(headerBytes, 12),
+            script_mod: this.wtvshared.toUint32(headerBytes, 16),
+            compressed_data_length: this.wtvshared.toUint32(headerBytes, 20),
+            decompressed_data_length: this.wtvshared.toUint32(headerBytes, 24),
+            decompressed_checksum: this.wtvshared.toUint32(headerBytes, 28),
+            unknown1: this.wtvshared.toUint32(headerBytes, 32),
         };
 
         // Extract compressed data from the remainder of the packed_data.
@@ -1337,21 +1317,30 @@ class WTVTellyScript {
         return this.tokenized_data;
     }
 
-    // --- Detokenization ---
+    /**
+     * Detokenizes the tokenized TellyScript data
+     * @returns {string} The detokenized TellyScript data
+     */
     detokenize() {
         // Uses the previously defined TellyScriptDetokenizer class.
         this.raw_data = new WTVTellyScriptDetokenizer(this.tokenized_data).detokenize();
         return this.raw_data;
     }
 
-    // --- Tokenization ---
+    /**
+     * Tokenizes the raw TellyScript data
+     * @returns {Uint8Array} The tokenized TellyScript data
+     */
     tokenize() {
         // Uses the previously defined TellyScriptTokenizer class.
         this.tokenized_data = new WTVTellyScriptTokenizer(this.raw_data).tokenize();
         return this.tokenized_data;
     }
 
-    // --- Packing ---
+    /**
+     * Packs the tokenized TellyScript data into a packed format
+     * @returns {Uint8Array} The packed TellyScript data
+     */
     pack() {
         // Compress tokenized data using LZSS.
         const comp = new LZSS();
@@ -1399,14 +1388,14 @@ class WTVTellyScript {
             buffer[i] = header.magic.charCodeAt(i);
         }
         // Next fields: each 4 bytes in Big Endian order.
-        buffer.set(this.uint32ToBytes(header.version_major), 4);
-        buffer.set(this.uint32ToBytes(header.version_minor), 8);
-        buffer.set(this.uint32ToBytes(header.script_id), 12);
-        buffer.set(this.uint32ToBytes(header.script_mod), 16);
-        buffer.set(this.uint32ToBytes(header.compressed_data_length), 20);
-        buffer.set(this.uint32ToBytes(header.decompressed_data_length), 24);
-        buffer.set(this.uint32ToBytes(header.decompressed_checksum), 28);
-        buffer.set(this.uint32ToBytes(header.unknown1), 32);
+        buffer.set(this.wtvshared.uint32ToBytes(header.version_major), 4);
+        buffer.set(this.wtvshared.uint32ToBytes(header.version_minor), 8);
+        buffer.set(this.wtvshared.uint32ToBytes(header.script_id), 12);
+        buffer.set(this.wtvshared.uint32ToBytes(header.script_mod), 16);
+        buffer.set(this.wtvshared.uint32ToBytes(header.compressed_data_length), 20);
+        buffer.set(this.wtvshared.uint32ToBytes(header.decompressed_data_length), 24);
+        buffer.set(this.wtvshared.uint32ToBytes(header.decompressed_checksum), 28);
+        buffer.set(this.wtvshared.uint32ToBytes(header.unknown1), 32);
 
         return buffer;
     }

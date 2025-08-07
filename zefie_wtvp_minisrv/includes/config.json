@@ -58,7 +58,9 @@
       "reserved_names_files": [
         "includes/badWords.json",
         "includes/reservedWords.json"
-      ]
+      ],
+      "filestore_storage": 16, // Megabytes
+      "scrapbook_storage": 8 // Megabytes
     },
     "irc": {
       "enabled": false,
@@ -119,7 +121,7 @@
       "password": "MySeqRetKey1" // change this in user_config.json
     },
     "keys": {
-      "initial_shared_key": "CC5rWmRUE0o=", // Used for the initial RC4 rolling key. Changing this is untested and unsupported.
+      "initial_shared_key": "bWluaXNydiE=", // Used for the initial RC4 rolling key. 8 bytes base64 encode. If you intend to link multiple minisrv's together, they must all share the same Initial Shared Key.
       "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords in configs. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
     },
     "passwords": {
@@ -142,20 +144,16 @@
       "wtv-1800:/preregister",
       "wtv-1800:/noflash",
       "wtv-flashrom:/*",
+      "wtv-register:/*",
+      "wtv-head-waiter:/images/*",
+      "wtv-head-waiter:/ROMCache/*",
       "wtv-head-waiter:/login",
       "wtv-head-waiter:/ValidateLogin",
       "wtv-head-waiter:/login-stage-two",
       "wtv-head-waiter:/complete-account-transfer",
       "wtv-head-waiter:/cancel-account-transfer",
       "wtv-head-waiter:/relogin",
-      "wtv-head-waiter:/ROMCache/Spacer.gif",
-      "wtv-head-waiter:/ROMCache/NameStrip.gif",
-      "wtv-head-waiter:/images/PasswordBanner.gif",
-      "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
-      "wtv-head-waiter:/images/NameBanner.gif",
       "wtv-head-waiter:/bad-disk",
-      "wtv-head-waiter:/images/signin_new_mail.gif",
-      "wtv-head-waiter:/images/signin_no_mail.gif",
       "wtv-log:/log"
     ],
     /* shenanigans: this allows you to intentionally enable old minisrv bugs, as well as official WebTV Networks exploits 
@@ -171,7 +169,10 @@
       // wtv-head-waiter handles logins
       "port": 1601,
       "connections": 1,
-      "privileged": true
+      "privileged": true,
+      "modules": [
+        "WTVSSL"
+      ]
     },
     "wtv-tricks": {
       // wtv-tricks
@@ -226,12 +227,31 @@
       "port": 1607,
       "privileged": true
     },
+    "wtv-mail": {
+      // wtv-mail
+      "port": 1608,
+      "connections": 3,
+      "modules": [
+        "WTVNews"
+      ]
+    },
+    "mailto": {
+      "port": 1608
+    },    
     "wtv-log": {
       // wtv-log
       "port": 1609,
       "connections": 1,
       "write_logs_to_disk": false // set this to true to save logs to the error_log_file set above
     },
+    "wtv-favorite": {
+      // wtv-favorite
+      "port": 1611,
+      "connections": 3,
+      "enable_multi_query": true,
+      "max_folders": 14,
+      "max_favorites_per_folder": 18
+    },    
     "wtv-home": {
       // wtv-home
       "port": 1612
@@ -272,17 +292,19 @@
         "WTVRegister"
       ]
     },
-    "wtv-music": {
-      // wtv-music
-      "port": 1656,
-      "connections": 3,
-      "flags": "0x00000004"
-    },
     "wtv-cookie": {
       // wtv-cookie (used for http(s) cookies)
       "port": 1619,
       "connections": 1
     },
+    "wtv-guide": {
+      // wtv-guide (not yet complete)
+      "port": 1621,
+      "connections": 3,
+      "modules": [
+        "WTVGuide"
+      ]
+    },    
     "wtv-chat": {
       // wtv-chat (used for IRC)
       "port": 1630,
@@ -309,41 +331,6 @@
         "WTVDisk"
       ]
     },
-    "wtv-guide": {
-      // wtv-guide (not yet complete)
-      "port": 1621,
-      "connections": 3,
-      "modules": [
-        "WTVGuide"
-      ]
-    },
-    "wtv-mail": {
-      // wtv-mail
-      "port": 1608,
-      "connections": 3,
-      "modules": [
-        "WTVNews"
-      ]
-    },
-    "wtv-passport": {
-      // wtv-passport (for messenger)
-      "port": 1654
-    },
-    "wtv-favorite": {
-      // wtv-favorite
-      "port": 1611,
-      "connections": 3,
-      "enable_multi_query": true,
-      "max_folders": 14,
-      "max_favorites_per_folder": 18
-    },
-    "wtv-admin": {
-      // wtv-admin
-      "port": 1698,
-      "enable_multi_query": true,
-      "privileged": true,
-      "password": "viRak-7" // change to something more unique
-    },
     "wtv-author": {
       "port": 1643,
       "connections": 3,
@@ -355,6 +342,10 @@
         "WTVAuthor"
       ]
     },
+    "ftp": {
+      "port": 1650,
+      "connections": 3      
+    },
     "http": {
       // http upstream
       "port": 1650,
@@ -363,7 +354,8 @@
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16 // Megabytes
     },
     "https": {
       "port": 1650,
@@ -372,7 +364,8 @@
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16 // Megabytes
     },
     "proto": {
       "port": 1650,
@@ -383,9 +376,28 @@
       "external_proxy_host": "wayback.protoweb.org",
       "external_proxy_port": 7851,
       "external_proxy_is_http1": true,
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16 // Megabytes
+    },        
+    "wtv-passport": {
+      // wtv-passport (for messenger)
+      "port": 1654
     },
-
+    "wtv-music": {
+      // wtv-music
+      "port": 1656,
+      "connections": 3,
+      "flags": "0x00000004"
+    },
+    "wtv-search": {
+      "disabled": true,
+      "port": 1695
+      // "searxng_url": "" // replace with your own searxng instance
+    },    
+    "wtv-proxy": {
+      "port": 1696
+      // "wrp_url": "" // replace with your own tenox9/wrp
+    },
     "pb_services": {
       // PC Services for PageBuilder
       "port": 1697,
@@ -398,6 +410,13 @@
       "allow_https": false, // for future use with LetsEncrypt
       "force_https": false // for future use with LetsEncrypt
     },
+    "wtv-admin": {
+      // wtv-admin
+      "port": 1698,
+      "enable_multi_query": true,
+      "privileged": true,
+      "password": "viRak-7" // change to something more unique
+    },    
     "pc_services": {
       // PC Services
       "port": 1699,

@@ -21,12 +21,22 @@ class WTVRegister {
         }
     }
 
+    /**
+     * Checks if the username is valid according to the configured rules.
+     * @param {string} username The username to check
+     * @returns {boolean} True if the username is valid, false otherwise
+     */
     checkUsernameSanity(username) {
         var regex_str = "^([A-Za-z0-9-\_]{" + this.minisrv_config.config.user_accounts.min_username_length + "," + this.minisrv_config.config.user_accounts.max_username_length + "})$";
         var regex = new RegExp(regex_str);
         return regex.test(username);
     }
 
+    /**
+     * Checks if the SSID is already registered.
+     * @param {string} ssid The SSID to check
+     * @returns {boolean} True if the SSID is available for registration, false if it already has an account registered.
+     */
     checkSSIDAvailable(ssid) {
         var directory = (directory) ? directory : this.session_store_dir + this.path.sep + "accounts";
         var available = true;
@@ -41,6 +51,12 @@ class WTVRegister {
         return available;
     }
 
+    /**
+     * Checks if the username is already taken.
+     * @param {string} username The username to check
+     * @param {string} directory The directory to search for user accounts
+     * @returns {boolean} True if the username is available, false if it is already taken
+     */
     checkUsernameAvailable(username, directory = null) {
         var self = this;
         var return_val = false;

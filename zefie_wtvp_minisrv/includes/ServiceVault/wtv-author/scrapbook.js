@@ -1,12 +1,14 @@
 var minisrv_service_file = true;
 
-var files = session_data.pagestore.listScrapbook();
-var dir = session_data.pagestore.scrapbookDir()
-var start = 12;
+var files = session_data.listScrapbook();
+var dir = session_data.scrapbookDir()
+var pageNum = parseInt(request_headers.query.pageNum || 1);
+var start = (pageNum - 1) * 6;
 
 headers = `200 OK
 Connection: Keep-Alive
-Content-Type: text/html`
+Content-Type: text/html
+wtv-expire-all: wtv-author:/scrapbook`
 
 data = `<HTML>
 <HEAD>
@@ -124,18 +126,70 @@ function StorageWarning() {	}
 </FORM>
 <tr>
 <td height=44 valign=middle>
-<font size=+1 color=D1D1D1><blackface> Your scrapbook </blackface></font>
+<font size=+1 color=D1D1D1><blackface> Your scrapbook </blackface></font>`
+if (files.length > 6) {
+data += `<td align=right valign=middle>
+<table valign=middle>
+<tr>
+<td>`;
+if (pageNum > 1) {
+data += `<table cellspacing=0 cellpadding=0
+href="wtv-author:scrapbook?addMediaURL=&mediaCategoryID=0&pageNum=${pageNum - 1}#minus" id=minus><tr><td><img src="wtv-author:/ROMCache/minus_button.gif">`
+} else {
+data += `<table cellspacing=0 cellpadding=0
+><tr><td><img src="wtv-author:/ROMCache/minus_button_dim.gif">`
+}
+data += `
+</table>
+</td>
+<td align=center><font color=D1D1D1><B>${pageNum} of ${Math.ceil(files.length / 6)}</B></font></td>
+<td>`;
+if (files.length > start + 6) {
+data += `<table cellspacing=0 cellpadding=0
+href="wtv-author:scrapbook?addMediaURL=&mediaCategoryID=0&pageNum=${pageNum + 1}#plus" id=plus><tr><td><img src="wtv-author:/ROMCache/plus_button.gif">`
+
+} else {
+    data += `<table cellspacing=0 cellpadding=0><tr><td><img src="wtv-author:/ROMCache/plus_button_dim.gif">`
+}
+    data += `
+</table>
+</td>
+</tr>
+</table>`
+}
+data += `
 <tr>
 <td colspan=2>
 <table><tr><td width=20><td width=380>
-<font color=AEBFD1>
-Choose one of your saved images to view it full size.
+<font color=AEBFD1>`;
+if (files.length === 0) {
+        data += `<font color=AEBFD1>
+Your scrapbook is currently empty.
+<p>
+Storing pictures in your scrapbook makes it easy to add them to your Web pages.
+<p>
+You can add pictures to your scrapbook from TV, a VCR, a video
+camera, an e-mail message, or another Web page.
+<p>
+Choose <b>Help</b> for instructions.
+</font>`;
+} else {
+    if (request_headers.query.addMediaURL) {
+        data += "Choose an image to add to your web page.";
+    } else {
+        data += `You are currently using ${session_data.getScrapbookUsagePercent()}% of your scrapbook storage space. Choose one of your saved images to view it full size.`;
+    }
+}
+data += `
 </font>
 </table>
 <tr><td absheight=10>
 </table>
 <CENTER>
-<TABLE cellspacing=0 cellpadding=0 align=center>
+
+`
+if (files.length > 0) {
+    data += `<TABLE cellspacing=0 cellpadding=0 align=center>
 <TR height=8>
 <TD width=10 height=8></TD>
 <TD bgcolor=#8A99B0 width=2 rowspan=7></TD>
@@ -151,24 +205,26 @@ Choose one of your saved images to view it full size.
 <TR height=2>
 <TD bgcolor=#8A99B0 height=2 colspan=7></TD>
 </TR>
-<TR height=10>
-<TD absheight=10 width=10 valign=top background=wtv-author:/ROMCache/vert_line.gif>
+<TR height=10><TD absheight=10 width=10 valign=top background=wtv-author:/ROMCache/vert_line.gif>
 <IMG src=wtv-author:/ROMCache/up_arrow.gif> </TD>
 <TD colspan=3 rowspan=3 align=center>
 <table cellspacing=24 cellpadding=1 width=372 background="/ROMCache/light_blue_tile.gif">
 <tr>
 `
-for (let i = 0; i < 12; i++) {
+    for (let i = start; i < Math.min(files.length, start + 6); i++) {
+        url = "wtv-tricks:/view-scrapbook-image?id=" + files[i];
+        if (request_headers.query.addMediaURL) {
+            url = unescape(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i];
+        }
 data += `
 <td align=center valign=middle>
-<A href=
-"${dir + files.i}" transition=light>
-<img src="${dir + files.i}" width=90>
-</A>
-</td>`
-}
-data += `
-</table>
+<a href="${url}" transition=light>
+<img src="wtv-tricks:/view-scrapbook-image?id=${files[i]}&width=90" width=90>
+</a>
+</td>
+${(i - start + 1) % 3 === 0 ? '<tr>' : ''}`
+    }
+data += `</tr></table>
 </TD>
 </TR>
 <TR>
@@ -185,6 +241,10 @@ data += `
 <TD height=8></TD>
 </TR>
 </TABLE>
+`
+
+}
+data += `
 </CENTER>
 </table>
 </BODY>

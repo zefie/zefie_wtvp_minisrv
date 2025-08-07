@@ -185,9 +185,9 @@ Organize favorites
 <TD WIDTH=198 VALIGN=top ALIGN=left>
 <A HREF="wtv-favorite:/serve-rename-favorites?favorite_folder_name=${foldername}"><BLACKFACE>Rename</BLACKFACE></A><BR>
 <FONT SIZE="-1">Rename favorites in this folder</FONT><BR>
-<!--<spacer type=block WIDTH=1 HEIGHT=7><BR>
+<spacer type=block WIDTH=1 HEIGHT=7><BR>
 <A HREF="wtv-favorite:/serve-shortcuts-favorites?favorite_folder_name=${foldername}"><BLACKFACE>Shortcuts</BLACKFACE></A><BR>
-<FONT SIZE="-1">Assign a keyboard shortcut to a favorite, or <a href="client:showalert?message=fuck">view a list</a> of all shortcuts</FONT><BR>-->
+<FONT SIZE="-1">Assign a keyboard shortcut to a favorite, or <a href="wtv-favorite:/serve-shortcut-list">view a list</a> of all shortcuts</FONT><BR>
 
 <TR>
 <TD>
