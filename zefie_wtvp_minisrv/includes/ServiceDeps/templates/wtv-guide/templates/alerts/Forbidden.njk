@@ -1,0 +1,16 @@
+{% set title = "Access is restricted" %}
+{% set heading = "Access is restricted" %}
+{% set error_code = "403 Forbidden" %}
+{% set error_description = "result" %}
+{% set content %}
+This message means that
+the publisher has restricted access to a page,
+and will not allow you to see it.
+<p>
+Publishers sometimes restrict access to
+limit the use of their information.
+<p>
+In general, it won't help to try again.
+{% endset %}
+
+{% include "error_base.njk" %}

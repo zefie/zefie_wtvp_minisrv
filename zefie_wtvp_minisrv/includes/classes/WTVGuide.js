@@ -23,6 +23,30 @@ class WTVGuide {
 		var data = false;
 
 		switch (topic.toLowerCase()) {
+			case "alerts":
+				// Handle error alert pages using Nunjucks templates
+				var template = this.wtvshared.getTemplate("wtv-guide", "templates/NunjucksTemplate.js", true);
+				if (this.fs.existsSync(template)) {
+					// Map error names to template files
+					var errorTemplateMap = {
+						"forbidden": topic + "/Forbidden.njk",
+						"hostmissing": topic + "/HostMissing.njk",
+						"internalservererror": topic + "/InternalServerError.njk",
+						"notfound": topic + "/NotFound.njk",
+						"serviceunavailable": topic + "/ServiceUnavailable.njk"
+					};
+
+					var templateName = errorTemplateMap[subtopic.toLowerCase()];
+					if (templateName) {
+						template_args = {
+							template_name: templateName,
+							minisrv_config: this.minisrv_config,
+							session_data: this.session_data
+						};
+					}
+				}
+				if (template) break;
+
 			case "glossary":
 				var template =this.wtvshared.getTemplate("wtv-guide", "templates/glossary.js", true);
 				var glossary_datafile =this.wtvshared.getTemplate("wtv-guide", "glossary.json", true);

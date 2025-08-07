@@ -1,0 +1,15 @@
+{% set title = "Publisher is too busy" %}
+{% set heading = "Publisher is too busy" %}
+{% set error_code = "503 Service Unavailable" %}
+{% set error_description = "result" %}
+{% set content %}
+This message means that
+the publisher of the page you're trying to reach
+is so busy sending pages to other people on the
+Internet that it can't handle your request right now.
+<p>
+Try again in a minute or two, and the publisher
+might be less busy. Many publishers are busiest in the mid-morning and early evening.
+{% endset %}
+
+{% include "error_base.njk" %}
