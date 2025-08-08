@@ -2,6 +2,9 @@
  * wtv/download-list creation helper class
  * By: zefie
  */
+
+const { WTVShared, clientShowAlert } = require("./WTVShared.js");
+
 class WTVDownloadList {
 
     download_list = "";
@@ -16,11 +19,10 @@ class WTVDownloadList {
      * @param {string} service_name Service name to use in wtv-urls
      */
     constructor(minisrv_config, service_name = "wtv-disk") {
-        var { WTVShared, clientShowAlert } = require("./WTVShared.js");
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.clientShowAlert = clientShowAlert;
-        this.service_name = service_name
+        this.service_name = service_name;
         this.clear();
     }
 
@@ -51,7 +53,7 @@ class WTVDownloadList {
      * @param {string} message Message to display to the client
      */
     display(message) {
-        this.download_list += "DISPLAY " + message + "\n\n";
+        this.download_list += `DISPLAY ${message}\n\n`;
     }
 
     /**
@@ -59,7 +61,7 @@ class WTVDownloadList {
      * @param {string} command client command to execute
      */
     execute(command) {
-        this.download_list += "EXECUTE " + command + "\n\n";
+        this.download_list += `EXECUTE ${command}\n\n`;
     }
 
     /**
@@ -68,8 +70,7 @@ class WTVDownloadList {
      * @param {string} size Size of the desired partition
      */
     createPartition(path, size) {
-        this.download_list += "CREATE " + path + "\n";
-        this.download_list += "partition-size: " + size + "\n\n";
+        this.download_list += `CREATE ${path}\npartition-size: ${size}\n\n`;
     }
 
     /**
@@ -80,10 +81,9 @@ class WTVDownloadList {
      * @param {boolean|null} service_owned Sets service owned flag. (null = don't set)
      */
     createGroup(name, path, state = 'invalid', service_owned = null) {
-        this.download_list += "CREATE-GROUP " + name + "\n";
-        this.download_list += "state: " + state + "\n";
-        if (service_owned !== null) this.download_list += "service-owned: " + service_owned + "\n";
-        this.download_list += "base: " + path + "\n\n";
+        this.download_list += `CREATE-GROUP ${name}\nstate: ${state}\n`;
+        if (service_owned !== null) this.download_list += `service-owned: ${service_owned}\n`;
+        this.download_list += `base: ${path}\n\n`;
     }
 
     /**
@@ -106,9 +106,9 @@ class WTVDownloadList {
      */
     delete(path, group = null, original_filename = null) {
         path = this.checkOriginalName(path, original_filename);
-        this.download_list += "DELETE " + path + "\n";
-        if (group) this.download_list += "group: " + group + "\n\n";
-        else (this.download_list) += "\n";
+        this.download_list += `DELETE ${path}\n`;
+        if (group) this.download_list += `group: ${group}\n\n`;
+        else this.download_list += "\n";
     }
 
     /**
@@ -117,8 +117,7 @@ class WTVDownloadList {
      * @param {string} destination Destination address (wtv url on service) in which to POST upload the file to
      */
     put(path, destination) {
-        this.download_list += "PUT " + path + "\n";
-        this.download_list += "location: " + destination + "\n\n";
+        this.download_list += `PUT ${path}\nlocation: ${destination}\n\n`;
     }
 
     /**
@@ -127,15 +126,15 @@ class WTVDownloadList {
     * @param {string} destination Destination file path in the User Store
     */
     putUserStoreDest(path, destination) {
-        this.put(path, this.service_name + ":/userstore?partialPath=" + escape(destination));
+        this.put(path, `${this.service_name}:/userstore?partialPath=${encodeURIComponent(destination)}`);
     }
 
     /**
      * Alias to putUserStoreDest() that generates the destination
-     * @param {any} path
+     * @param {string} path
      */
     putUserStore(path) {
-        var destination = path.replace("file://", "");
+        const destination = path.replace("file://", "");
         this.putUserStoreDest(path, destination);
     }
     /**
@@ -152,22 +151,22 @@ class WTVDownloadList {
     get(file, path, source, group, checksum = null, uncompressed_size = null, original_filename = null, file_permission = 'r') {
         if (original_filename) {
             file = file.split('/');
-            var file_name = file[file.length - 1];
+            const file_name = file[file.length - 1];
             path = path.replace(file_name, original_filename);
             file.pop();
             if (file.length > 0) file = file.join('/') + '/' + original_filename;
             else file = original_filename;
         }
-        this.download_list += "GET " + file + "\n";
+        this.download_list += `GET ${file}\n`;
 
-		source = source.replace(/\\/g, "/");
-        this.download_list += "group: " + group + "-UPDATE\n";
-        this.download_list += "location: " + source + "\n";
-        this.download_list += "file-permission: " + file_permission + "\n";
-        if (checksum != null) this.download_list += "wtv-checksum: " + checksum + "\n";
-        if (uncompressed_size != null) this.download_list += "wtv-uncompressed-filesize: " + uncompressed_size + "\n";
-        this.download_list += "service-source-location: /webtv/content/" + source.substr(source.indexOf('-') + 1, source.indexOf(':/') - source.indexOf('-') - 1) + "d/" + source.substr(source.indexOf(':/') + 2) + "\n";        
-        this.download_list += "client-dest-location: " + path + "\n\n";
+        source = source.replace(/\\/g, "/");
+        this.download_list += `group: ${group}-UPDATE\n`;
+        this.download_list += `location: ${source}\n`;
+        this.download_list += `file-permission: ${file_permission}\n`;
+        if (checksum != null) this.download_list += `wtv-checksum: ${checksum}\n`;
+        if (uncompressed_size != null) this.download_list += `wtv-uncompressed-filesize: ${uncompressed_size}\n`;
+        this.download_list += `service-source-location: /webtv/content/${source.substring(source.indexOf('-') + 1, source.indexOf(':/'))}d/${source.substring(source.indexOf(':/') + 2)}\n`;        
+        this.download_list += `client-dest-location: ${path}\n\n`;
     }
 
     /**
@@ -178,24 +177,23 @@ class WTVDownloadList {
      */
     checkOriginalName(path, original_name) {
         if (original_name) {
-            var tmp = this.wtvshared.getFilePath(path);
-            if (tmp.length > 0) return tmp + "/" + original_name;
-            return original_name
+            const tmp = this.wtvshared.getFilePath(path);
+            if (tmp.length > 0) return `${tmp}/${original_name}`;
+            return original_name;
         } else return path;
     }
 
     getGroupDataFromClientPost(post_data) {
         if (typeof post_data == 'string') post_data = post_data.split("\n\n");
-        var group_data = [];
-        var i = 0;
+        const group_data = [];
         post_data.forEach(function (v) {
-            if (v.substr(0, 4) == "file") {
-                var block_split = v.split("\n");
-                var group_data_entry = {};
+            if (v.substring(0, 4) == "file") {
+                const block_split = v.split("\n");
+                const group_data_entry = {};
                 group_data_entry.path = block_split[0];
                 block_split.forEach(function (block_section) {
                     if (block_section.indexOf(": ") > 0) {
-                        var block_section_split = block_section.split(": ");
+                        const block_section_split = block_section.split(": ");
                         group_data_entry[block_section_split[0]] = block_section_split[1];
                     }
                 });
@@ -216,12 +214,12 @@ class WTVDownloadList {
     rename(srcfile, destfile, srcgroup, destgroup, original_filename = null) {
         if (original_filename) {
             srcfile = this.checkOriginalName(srcfile, original_filename);
-            destfile = this.checkOriginalName(srcfile, original_filename);
+            destfile = this.checkOriginalName(destfile, original_filename);
         }
-        this.download_list += "RENAME " + srcfile + "\n";
-        this.download_list += "group: " + srcgroup + "-UPDATE\n";
-        this.download_list += "destination-group: " + destgroup + "\n";
-        this.download_list += "location: " + destfile + "\n\n";
+        this.download_list += `RENAME ${srcfile}\n`;
+        this.download_list += `group: ${srcgroup}-UPDATE\n`;
+        this.download_list += `destination-group: ${destgroup}\n`;
+        this.download_list += `location: ${destfile}\n\n`;
     }
 
     /**
@@ -231,10 +229,10 @@ class WTVDownloadList {
      * @param {string} version Version to set group to
      */
     setGroup(group, state, version) {
-        this.download_list += "SET-GROUP " + group + "\n";
-        this.download_list += "state: " + state + "\n";
-        this.download_list += "version: " + version + "\n";
-        this.download_list += "last-checkup-time: " + new Date().toUTCString().replace("GMT", "+0000") + "\n\n";
+        this.download_list += `SET-GROUP ${group}\n`;
+        this.download_list += `state: ${state}\n`;
+        this.download_list += `version: ${version}\n`;
+        this.download_list += `last-checkup-time: ${new Date().toUTCString().replace("GMT", "+0000")}\n\n`;
     }
 
     /**
@@ -242,7 +240,7 @@ class WTVDownloadList {
      * @param {string} group Group to delete
      */
     deleteGroup(group) {
-        this.download_list += "DELETE-GROUP " + group + "\n\n";
+        this.download_list += `DELETE-GROUP ${group}\n\n`;
     }
 
     /**
@@ -251,8 +249,8 @@ class WTVDownloadList {
      * @param {string} path Group base path
      */
     deleteGroupUpdate(group, path) {
-        this.deleteGroup(group + "-UPDATE");
-        this.delete(path + ".GROUP-UPDATE/");
+        this.deleteGroup(`${group}-UPDATE`);
+        this.delete(`${path}.GROUP-UPDATE/`);
     }
 }
 
