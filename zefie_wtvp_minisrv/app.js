@@ -1212,9 +1212,41 @@ function handleProxy(socket, request_type, request_headers, res, data) {
     headers["wtv-trusted"] = false;
 
     if (typeof res.headers['Content-Type'] === 'string' && res.headers['Content-Type'].startsWith("text")) {
+        // Get the original URL for relative link fixing
+        const originalUrl = request_headers.request.split(' ')[1];
+        
+        // Transform HTML content for WebTV compatibility
+        if (res.headers['Content-Type'].includes('html') && 
+            minisrv_config.services[request_type]?.use_minifying_proxy !== false) {
+            try {
+                const WTVProxy = require('./includes/classes/WTVProxy.js');
+                const proxy = new WTVProxy(minisrv_config);
+                
+                let htmlContent = Buffer.concat(data).toString();
+                
+                // Apply WebTV-specific transformations
+                const transformOptions = {
+                    removeImages: minisrv_config.services[request_type]?.remove_images || false,
+                    maxImageWidth: minisrv_config.services[request_type]?.max_image_width || 400,
+                    simplifyTables: minisrv_config.services[request_type]?.simplify_tables !== false,
+                    addWTVControls: minisrv_config.services[request_type]?.add_wtv_controls !== false,
+                    maxWidth: minisrv_config.services[request_type]?.max_width || 544
+                };
+                
+                htmlContent = proxy.transformHtml(htmlContent, originalUrl, transformOptions);
+                data = [Buffer.from(htmlContent)];
+                
+                if (minisrv_config.config.verbosity >= 3) {
+                    console.log(` * HTML transformed for WebTV compatibility (${originalUrl})`);
+                }
+            } catch (err) {
+                console.warn(` * HTML transformation failed: ${err.message}`);
+            }
+        }
+        
         if (request_type != "http" && request_type != "https") {
             // replace http and https links on non http/https protocol (for proto:// for example)
-            var data_t = data.toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
+            var data_t = Buffer.concat(data).toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
             data = [Buffer.from(data_t)]
         }
     }
