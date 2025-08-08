@@ -1219,8 +1219,8 @@ function handleProxy(socket, request_type, request_headers, res, data) {
         if (res.headers['Content-Type'].includes('html') && 
             minisrv_config.services[request_type]?.use_minifying_proxy !== false) {
             try {
-                const WTVProxy = require('./includes/classes/WTVProxy.js');
-                const proxy = new WTVProxy(minisrv_config);
+                const WTVMinifyingProxy = require('./includes/classes/WTVMinifyingProxy.js');
+                const proxy = new WTVMinifyingProxy(minisrv_config);
                 
                 let htmlContent = Buffer.concat(data).toString();
                 
@@ -1234,7 +1234,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
                     jellyScriptMaxSize: minisrv_config.services[request_type]?.jellyscript_max_size || 8192
                 };
                 
-                htmlContent = proxy.transformHtml(htmlContent, originalUrl, transformOptions);
+                htmlContent = proxy.transformForWebTV(htmlContent, originalUrl, transformOptions);
                 data = [Buffer.from(htmlContent)];
                 
                 if (minisrv_config.config.verbosity >= 3) {

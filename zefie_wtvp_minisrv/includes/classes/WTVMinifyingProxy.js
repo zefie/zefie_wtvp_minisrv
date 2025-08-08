@@ -31,7 +31,9 @@ class WTVMinifyingProxy {
             'background-color': 'bgcolor',
             'color': 'color',
             'font-size': 'size',
-            'font-family': 'face'
+            'font-family': 'face',
+            'width': 'width',
+            'height': 'height'
         };
         
         // JellyScript (WebTV JavaScript) supported features
@@ -143,13 +145,63 @@ class WTVMinifyingProxy {
      * Extract CSS styles and convert them to HTML attributes where possible
      */
     convertCssToAttributes(html) {
-        // Remove <style> blocks but extract useful info first
-        html = html.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+        // Extract CSS rules from style blocks before removing them
+        const cssRules = new Map();
         
-        // Convert inline styles to HTML attributes
-        html = html.replace(/style\s*=\s*["']([^"']+)["']/gi, (match, styles) => {
-            const attributes = this.parseStyleToAttributes(styles);
-            return attributes;
+        html = html.replace(/<style\b[^<]*?>(.*?)<\/style>/gis, (match, cssContent) => {
+            // Parse CSS rules and store them
+            const rules = cssContent.match(/([^{]+)\{([^}]+)\}/g);
+            if (rules) {
+                rules.forEach(rule => {
+                    const [selector, styles] = rule.split('{');
+                    if (selector && styles) {
+                        const cleanSelector = selector.trim();
+                        const cleanStyles = styles.replace('}', '').trim();
+                        cssRules.set(cleanSelector, cleanStyles);
+                    }
+                });
+            }
+            return ''; // Remove the style block
+        });
+        
+        // Apply CSS rules to matching elements with WebTV-specific handling
+        html = this.applyCssRulesToElements(html, cssRules);
+        
+        // Convert inline styles to HTML attributes and wrap non-form elements with font-size in font tags
+        html = html.replace(/<(\w+)([^>]*)\s+style\s*=\s*["']([^"']+)["']([^>]*?)(\s*\/?)>/gi, (match, tagName, beforeStyle, styles, afterStyle, selfClosing) => {
+            const result = this.parseStyleToAttributes(styles, tagName);
+            
+            if (result.fontSize && !/^(input|select|textarea)$/i.test(tagName)) {
+                // For non-form elements with font-size, wrap in font tag
+                const elementWithAttributes = result.attributes ? 
+                    `<${tagName}${beforeStyle} ${result.attributes}${afterStyle}${selfClosing}>` :
+                    `<${tagName}${beforeStyle}${afterStyle}${selfClosing}>`;
+                
+                // Self-closing tags or void elements
+                if (selfClosing || /^(br|hr|img|input|area|base|col|embed|link|meta|source|track|wbr)$/i.test(tagName)) {
+                    return `<font size="${result.fontSize}">${elementWithAttributes}</font>`;
+                }
+                
+                // For container elements, we need to find the matching closing tag
+                return `<font size="${result.fontSize}">${elementWithAttributes}`;
+            } else if (result.attributes) {
+                // For form elements or elements without font-size, just add attributes
+                return `<${tagName}${beforeStyle} ${result.attributes}${afterStyle}${selfClosing}>`;
+            }
+            return `<${tagName}${beforeStyle}${afterStyle}${selfClosing}>`;
+        });
+        
+        // Simple approach: find unmatched font tags and close them at the next major element boundary
+        let openFontTags = 0;
+        html = html.replace(/<\/?[^>]+>/g, (tag) => {
+            if (tag.startsWith('<font size=') && !tag.includes('</font>')) {
+                openFontTags++;
+                return tag;
+            } else if (tag.startsWith('</') && openFontTags > 0) {
+                openFontTags--;
+                return tag + '</font>';
+            }
+            return tag;
         });
         
         return html;
@@ -158,8 +210,9 @@ class WTVMinifyingProxy {
     /**
      * Parse CSS style string and convert to HTML attributes
      */
-    parseStyleToAttributes(styleString) {
+    parseStyleToAttributes(styleString, elementTag = '') {
         const attributes = [];
+        let fontSize = null;
         const styles = styleString.split(';');
         
         styles.forEach(style => {
@@ -170,15 +223,105 @@ class WTVMinifyingProxy {
                 // Convert CSS values to HTML equivalents
                 if (property === 'font-size') {
                     htmlValue = this.convertFontSize(value);
+                    
+                    // Handle font-size differently for form vs non-form elements
+                    const isFormElement = /^(input|select|textarea)$/i.test(elementTag);
+                    if (isFormElement) {
+                        // For form elements, add size attribute directly
+                        attributes.push(`${this.cssToHtml[property]}="${htmlValue}"`);
+                    } else {
+                        // For non-form elements, store font size for font tag wrapping
+                        fontSize = htmlValue;
+                    }
+                    return;
                 } else if (property === 'color' || property === 'background-color') {
                     htmlValue = this.convertColor(value);
+                } else if (property === 'width' || property === 'height') {
+                    htmlValue = this.convertDimension(value);
                 }
                 
                 attributes.push(`${this.cssToHtml[property]}="${htmlValue}"`);
             }
         });
         
-        return attributes.join(' ');
+        return {
+            attributes: attributes.join(' '),
+            fontSize: fontSize
+        };
+    }
+
+    /**
+     * Apply CSS rules to matching elements and handle WebTV-specific attribute priorities
+     */
+    applyCssRulesToElements(html, cssRules) {
+        for (const [selector, styles] of cssRules) {
+            if (selector.startsWith('.')) {
+                // Handle class selectors (e.g., .lst)
+                const className = selector.substring(1);
+                const regex = new RegExp(`<(input[^>]*class\\s*=\\s*["'][^"']*\\b${className}\\b[^"']*["'][^>]*)>`, 'gi');
+                html = html.replace(regex, (match, tagContent) => {
+                    // Convert CSS styles to attributes for this element (input tag)
+                    const result = this.parseStyleToAttributes(styles, 'input');
+                    const attributes = result.attributes || '';
+                    if (attributes) {
+                        let newTagContent = tagContent;
+                        
+                        // Special handling for input elements: WebTV prioritizes size over width
+                        if (attributes.includes('width=')) {
+                            const existingSize = tagContent.match(/size\s*=\s*["']?(\d+)["']?/i);
+                            const widthMatch = attributes.match(/width="(\d+)"/);
+                            
+                            if (existingSize && widthMatch) {
+                                // Both size and width exist - for WebTV, recalculate size based on CSS width
+                                const cssWidth = parseInt(widthMatch[1]);
+                                const currentSize = parseInt(existingSize[1]);
+                                // Use larger of the two for better WebTV compatibility
+                                const betterSize = Math.max(Math.round(cssWidth / 8), currentSize);
+                                
+                                // Replace the existing size with the better calculated size
+                                newTagContent = tagContent.replace(/size\s*=\s*["']?\d+["']?/i, `size="${betterSize}"`);
+                                
+                                // Add other attributes except width
+                                const filteredAttributes = attributes.replace(/width="[^"]*"/, '').trim();
+                                if (filteredAttributes) {
+                                    newTagContent = `${newTagContent} ${filteredAttributes}`;
+                                }
+                            } else if (existingSize) {
+                                // If input already has size attribute, don't add width
+                                const filteredAttributes = attributes.replace(/\s*width="[^"]*"/, '');
+                                newTagContent = `${tagContent} ${filteredAttributes}`;
+                            } else {
+                                // Convert width to size if no existing size
+                                const pixelWidth = parseInt(widthMatch[1]);
+                                // Rough conversion: ~8-10 pixels per character for WebTV
+                                const charSize = Math.round(pixelWidth / 8);
+                                const sizeAttr = `size="${Math.min(charSize, 80)}"`; // Cap at 80 chars
+                                const otherAttributes = attributes.replace(/width="[^"]*"/, '').trim();
+                                const finalAttributes = otherAttributes ? `${sizeAttr} ${otherAttributes}` : sizeAttr;
+                                newTagContent = `${tagContent} ${finalAttributes}`;
+                            }
+                        } else {
+                            // No width attribute, add all attributes normally
+                            newTagContent = `${tagContent} ${attributes}`;
+                        }
+                        
+                        return `<${newTagContent}>`;
+                    }
+                    return match;
+                });
+                
+                // Also handle non-input elements with this class
+                const generalRegex = new RegExp(`<((?!input)[^>]+class\\s*=\\s*["'][^"']*\\b${className}\\b[^"']*["'][^>]*)>`, 'gi');
+                html = html.replace(generalRegex, (match, tagContent) => {
+                    const attributes = this.parseStyleToAttributes(styles);
+                    if (attributes) {
+                        return `<${tagContent} ${attributes}>`;
+                    }
+                    return match;
+                });
+            }
+        }
+        return html;
     }
 
     /**
@@ -193,6 +336,41 @@ class WTVMinifyingProxy {
         if (size <= 18) return '5';
         if (size <= 24) return '6';
         return '7';
+    }
+
+    /**
+     * Convert CSS dimensions (width/height) to HTML format
+     */
+    convertDimension(cssDimension) {
+        // Remove 'px' suffix and return just the number for HTML attributes
+        if (cssDimension.endsWith('px')) {
+            return cssDimension.slice(0, -2);
+        }
+        // Convert 'em' to pixels (assume 1em = 16px, which is the WebTV default)
+        if (cssDimension.includes('em')) {
+            const emValue = parseFloat(cssDimension);
+            if (!isNaN(emValue)) {
+                const pixels = Math.round(emValue * 16);
+                return pixels.toString();
+            }
+        }
+        // Convert 'rem' to pixels (same as em for WebTV)
+        if (cssDimension.includes('rem')) {
+            const remValue = parseFloat(cssDimension);
+            if (!isNaN(remValue)) {
+                const pixels = Math.round(remValue * 16);
+                return pixels.toString();
+            }
+        }
+        // For percentages, keep as-is
+        if (cssDimension.endsWith('%')) {
+            return cssDimension;
+        }
+        // Remove !important and other CSS-specific suffixes
+        let cleanDimension = cssDimension.replace(/\s*!important\s*/, '').trim();
+        
+        // For other units or plain numbers, return as-is
+        return cleanDimension;
     }
 
     /**
@@ -256,20 +434,42 @@ class WTVMinifyingProxy {
             return ''; // Remove empty or incompatible scripts
         });
         
+        // WebTV form fixes: ensure proper input types and attributes
+        html = html.replace(/<input([^>]*name="q"[^>]*)>/gi, (match, attributes) => {
+            // Make sure search input has type="text" if not specified
+            if (!attributes.includes('type=')) {
+                attributes = attributes.trim() + ' type="text"';
+            }
+            return `<input ${attributes}>`;
+        });
+        
+        // Fix submit buttons to have better sizing for WebTV
+        html = html.replace(/<input([^>]*type="submit"[^>]*)>/gi, (match, attributes) => {
+            // Add width if not present to make buttons more visible
+            if (!attributes.includes('width=') && !attributes.includes('size=')) {
+                // Extract button text to determine appropriate width
+                const valueMatch = attributes.match(/value="([^"]*)"/) || ['', ''];
+                const buttonText = valueMatch[1];
+                let buttonWidth = Math.max(buttonText.length * 8, 80); // Minimum 80px
+                attributes = attributes.trim() + ` width="${buttonWidth}"`;
+            }
+            return `<input ${attributes}>`;
+        });
+        
         // Remove other unsupported content
         return html
             // Remove noscript content (show it since we support basic JS)
             .replace(/<noscript\b[^>]*>/gi, '')
             .replace(/<\/noscript>/gi, '')
             // Remove object/embed tags
-            .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-            .replace(/<embed\b[^<]*(?:(?!>)<[^<]*)*>/gi, '')
+            .replace(/<object\b[^>]*>.*?<\/object>/gis, '')
+            .replace(/<embed\b[^>]*\/?>/gi, '')
             // Remove iframes
-            .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+            .replace(/<iframe\b[^>]*>.*?<\/iframe>/gis, '')
             // Remove link tags (CSS, etc.)
-            .replace(/<link\b[^<]*(?:(?!>)<[^<]*)*>/gi, '')
-            // Remove meta tags except content-type and basic ones
-            .replace(/<meta\b(?![^>]*(?:content-type|charset))[^<]*(?:(?!>)<[^<]*)*>/gi, '')
+            .replace(/<link\b[^>]*\/?>/gi, '')
+            // Remove meta tags except content-type and charset
+            .replace(/<meta\b(?![^>]*(?:content-type|charset))[^>]*\/?>/gi, '')
             // Keep JellyScript event handlers, remove modern ones
             .replace(/on(?!click|load|unload|submit|reset|focus|blur|change|mouseover|mouseout|mousedown|mouseup)\w+\s*=\s*("[^"]*"|'[^']*'|[^ >]+)/gi, '')
             // Remove unsupported attributes but keep some basic ones
