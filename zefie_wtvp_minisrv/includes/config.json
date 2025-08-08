@@ -338,6 +338,7 @@
       "max_pages": 4,
       "publish_mode": "service", // "service" or "directory"
       "publish_dest": "pb_services", // service name, or directory path
+      "powered_by_url": null, // Set to a URL to have a custom "Powered by" link. If null, it will use the publish domain.
       "modules": [
         "WTVAuthor"
       ]
