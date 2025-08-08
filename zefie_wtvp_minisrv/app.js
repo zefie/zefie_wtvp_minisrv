@@ -1358,7 +1358,7 @@ async function doHTTPProxy(socket, request_headers) {
                 errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
                 sendToClient(socket, errpage[0], errpage[1]);
             } else {
-                if (minisrv_config.services[request_type].external_proxy_is_http1 && !data_handled) {
+                if (minisrv_config.services[request_type].external_proxy_is_http1) {
                     handleProxy(socket, request_type, request_headers, res, data);
                 } else {
                     console.error(" * Unhandled Proxy Request Error:", err);
@@ -1981,9 +1981,13 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (socket_sessions[socket.id].secure) post_string = "Encrypted " + post_string;
 
                         // the client may have just sent the data with the primary headers, so lets look for that.
-                        if (data_hex.includes("0d0a0d0a")) socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0d0a0d0a") + 8);
-                        if (data_hex.includes("0a0d0a")) socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0d0a") + 6);
-                        if (data_hex.includes("0a0a")) socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0a") + 4);
+                        if (data_hex.includes("0d0a0d0a")) {
+                            socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0d0a0d0a") + 8);
+                        } else if (data_hex.includes("0a0d0a")) {
+                            socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0d0a") + 6);
+                        } else if (data_hex.includes("0a0a")) {
+                            socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0a") + 4);
+                        }
                     }
 
                     if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
@@ -2005,8 +2009,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     } else {
                         // expecting more data (see below)
                         socket_sessions[socket.id].expecting_post_data = true;
-                        if (!socket_sessions[socket.id].post_data) socket_sessions[socket.id].post_data = '';
-                        socket_sessions[socket.id].post_data += CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                         console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
                     }
                     return;
@@ -2025,7 +2027,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
         } else if (socket.ssid) {
             try {
                 // handle streaming POST
-                if (socket_sessions[socket.id].expecting_post_data && headers) {
+                if (socket_sessions[socket.id].expecting_post_data) {
                     if (socket_sessions[socket.id].post_data_length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
                         closeSocket(socket);
                     } else {
