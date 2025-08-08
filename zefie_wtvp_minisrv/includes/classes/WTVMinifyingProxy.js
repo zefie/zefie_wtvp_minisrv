@@ -18,7 +18,10 @@ class WTVMinifyingProxy {
         this.allowedAttributes = [
             'href', 'src', 'alt', 'title', 'width', 'height', 'border', 'align', 'valign',
             'bgcolor', 'color', 'size', 'face', 'target', 'name', 'value', 'type', 'action',
-            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap'
+            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap',
+            // JellyScript event handlers
+            'onclick', 'onload', 'onunload', 'onsubmit', 'onreset', 'onfocus', 'onblur', 
+            'onchange', 'onmouseover', 'onmouseout', 'onmousedown', 'onmouseup'
         ];
         
         // CSS properties to convert to HTML attributes
@@ -30,6 +33,31 @@ class WTVMinifyingProxy {
             'font-size': 'size',
             'font-family': 'face'
         };
+        
+        // JellyScript (WebTV JavaScript) supported features
+        this.jellyScriptSupported = {
+            // Core JavaScript objects and methods
+            objects: ['window', 'document', 'history', 'location', 'navigator'],
+            domMethods: ['getElementById', 'getElementsByTagName', 'getElementsByName'],
+            windowMethods: ['alert', 'confirm', 'prompt', 'open', 'close', 'focus', 'blur'],
+            historyMethods: ['back', 'forward', 'go'],
+            documentMethods: ['write', 'writeln', 'open', 'close'],
+            events: ['onclick', 'onload', 'onunload', 'onsubmit', 'onreset', 'onfocus', 'onblur', 'onchange'],
+            // Basic JavaScript features
+            features: ['var', 'function', 'if', 'else', 'for', 'while', 'switch', 'case', 'break', 'continue', 'return']
+        };
+        
+        // Modern JavaScript features not supported by JellyScript
+        this.unsupportedJSFeatures = [
+            // Modern ES6+ features
+            'const', 'let', 'arrow functions', '=>', 'class', 'extends', 'import', 'export',
+            // Modern APIs
+            'fetch', 'Promise', 'async', 'await', 'XMLHttpRequest', 'addEventListener',
+            // jQuery and libraries
+            '\\$\\(', 'jQuery', 'angular', 'react', 'vue', 'prototype\\.js',
+            // Modern DOM methods
+            'querySelector', 'querySelectorAll', 'classList', 'dataset'
+        ];
     }
 
     /**
@@ -216,13 +244,21 @@ class WTVMinifyingProxy {
     }
 
     /**
-     * Remove unsupported content and scripts
+     * Remove unsupported content but preserve JellyScript-compatible JavaScript
      */
     removeUnsupportedContent(html) {
+        // Process script tags to filter for JellyScript compatibility
+        html = html.replace(/<script\b[^<]*?>(.*?)<\/script>/gis, (match, scriptContent) => {
+            const processedScript = this.processJellyScript(scriptContent);
+            if (processedScript.trim()) {
+                return `<script>${processedScript}</script>`;
+            }
+            return ''; // Remove empty or incompatible scripts
+        });
+        
+        // Remove other unsupported content
         return html
-            // Remove scripts
-            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-            // Remove noscript content (show it since we don't support JS anyway)
+            // Remove noscript content (show it since we support basic JS)
             .replace(/<noscript\b[^>]*>/gi, '')
             .replace(/<\/noscript>/gi, '')
             // Remove object/embed tags
@@ -234,10 +270,10 @@ class WTVMinifyingProxy {
             .replace(/<link\b[^<]*(?:(?!>)<[^<]*)*>/gi, '')
             // Remove meta tags except content-type and basic ones
             .replace(/<meta\b(?![^>]*(?:content-type|charset))[^<]*(?:(?!>)<[^<]*)*>/gi, '')
-            // Remove event handlers
-            .replace(/on\w+\s*=\s*("[^"]*"|'[^']*'|[^ >]+)/gi, '')
-            // Remove unsupported attributes
-            .replace(/\b(?:class|id|data-\w+)\s*=\s*("[^"]*"|'[^']*'|[^ >]+)/gi, '');
+            // Keep JellyScript event handlers, remove modern ones
+            .replace(/on(?!click|load|unload|submit|reset|focus|blur|change|mouseover|mouseout|mousedown|mouseup)\w+\s*=\s*("[^"]*"|'[^']*'|[^ >]+)/gi, '')
+            // Remove unsupported attributes but keep some basic ones
+            .replace(/\b(?:class|data-\w+)\s*=\s*("[^"]*"|'[^']*'|[^ >]+)/gi, '');
     }
 
     /**
@@ -305,8 +341,136 @@ ${bodyContent}
     }
 
     /**
-     * Intelligently truncate content at word/tag boundaries
+     * Process JavaScript to be JellyScript (WebTV JavaScript) compatible
+     * @param {string} scriptContent - The JavaScript content to process
+     * @returns {string} - JellyScript-compatible JavaScript or empty if incompatible
      */
+    processJellyScript(scriptContent) {
+        if (!scriptContent || !scriptContent.trim()) return '';
+        
+        let processed = scriptContent.trim();
+        
+        // Check for and remove unsupported modern JavaScript features
+        for (const feature of this.unsupportedJSFeatures) {
+            const regex = new RegExp(feature, 'gi');
+            if (regex.test(processed)) {
+                // If script contains unsupported features, try to clean or remove
+                processed = this.cleanUnsupportedJS(processed, feature);
+            }
+        }
+        
+        // Convert some modern syntax to JellyScript-compatible equivalents
+        processed = this.convertToJellyScript(processed);
+        
+        // Check if remaining script is simple enough for JellyScript
+        if (this.isJellyScriptCompatible(processed)) {
+            return processed;
+        }
+        
+        return ''; // Remove incompatible scripts
+    }
+
+    /**
+     * Convert modern JavaScript to JellyScript-compatible equivalents where possible
+     */
+    convertToJellyScript(script) {
+        let converted = script;
+        
+        // Convert addEventListener to traditional event handlers (basic cases)
+        converted = converted.replace(
+            /(\w+)\.addEventListener\s*\(\s*['"](\w+)['"]\s*,\s*(\w+)\s*\)/gi,
+            '$1.on$2 = $3'
+        );
+        
+        // Convert querySelector to getElementById (simple cases)
+        converted = converted.replace(
+            /document\.querySelector\s*\(\s*['"]#(\w+)['"]\s*\)/gi,
+            'document.getElementById("$1")'
+        );
+        
+        // Convert console.log to alert (for debugging)
+        converted = converted.replace(/console\.log\s*\(/gi, 'alert(');
+        
+        // Remove 'use strict' directives
+        converted = converted.replace(/['"]use strict['"];?\s*/gi, '');
+        
+        // Convert const/let to var
+        converted = converted.replace(/\b(const|let)\b/gi, 'var');
+        
+        return converted;
+    }
+
+    /**
+     * Clean unsupported JavaScript features from script
+     */
+    cleanUnsupportedJS(script, feature) {
+        // For major libraries, remove the entire script
+        if (feature.includes('jQuery') || feature.includes('\\$\\(') || 
+            feature.includes('angular') || feature.includes('react')) {
+            return '';
+        }
+        
+        // For specific unsupported features, try to remove just those lines
+        const lines = script.split('\n');
+        const cleanedLines = lines.filter(line => {
+            const trimmedLine = line.trim();
+            
+            // Skip empty lines and comments
+            if (!trimmedLine || trimmedLine.startsWith('//')) return true;
+            
+            // Check if this line contains the unsupported feature
+            const regex = new RegExp(feature, 'gi');
+            return !regex.test(line);
+        });
+        
+        return cleanedLines.join('\n');
+    }
+
+    /**
+     * Check if script is compatible with JellyScript limitations
+     */
+    isJellyScriptCompatible(script) {
+        if (!script || script.trim().length === 0) return false;
+        
+        // Check script length (JellyScript has memory limitations)
+        if (script.length > 8192) return false; // 8KB limit for scripts
+        
+        // Check for obviously incompatible patterns
+        const incompatiblePatterns = [
+            /import\s+.*from/gi,        // ES6 imports
+            /export\s+/gi,              // ES6 exports
+            /class\s+\w+\s+extends/gi,  // ES6 classes
+            /=>\s*{/gi,                 // Arrow functions
+            /async\s+function/gi,       // Async functions
+            /await\s+/gi,               // Await expressions
+            /Promise\s*\(/gi,           // Promises
+            /fetch\s*\(/gi,             // Fetch API
+        ];
+        
+        for (const pattern of incompatiblePatterns) {
+            if (pattern.test(script)) return false;
+        }
+        
+        // Simple heuristic: if it's mostly basic JavaScript, it's probably OK
+        const basicPatterns = [
+            /function\s+\w+/gi,         // Function declarations
+            /var\s+\w+/gi,              // Variable declarations
+            /if\s*\(/gi,                // If statements
+            /for\s*\(/gi,               // For loops
+            /while\s*\(/gi,             // While loops
+            /document\./gi,             // Document methods
+            /window\./gi,               // Window methods
+            /alert\s*\(/gi,             // Alert calls
+        ];
+        
+        let basicCount = 0;
+        for (const pattern of basicPatterns) {
+            if (pattern.test(script)) basicCount++;
+        }
+        
+        // If we found several basic patterns and no complex ones, it's probably OK
+        return basicCount > 0;
+    }
     intelligentTruncate(content, maxLength) {
         if (content.length <= maxLength) return content;
         
@@ -347,7 +511,6 @@ ${bodyContent}
             removeImages: false,  // Whether to remove images entirely
             maxImageWidth: 400,   // Max image width
             preserveLinks: true,  // Keep navigation links
-            addWTVControls: true  // Add WebTV-specific navigation aids
         };
         
         const config = { ...defaults, ...options };
@@ -393,11 +556,7 @@ ${bodyContent}
         } else {
             bodyContent = this.optimizeImages(bodyContent, config.maxImageWidth);
         }
-        
-        if (config.addWTVControls && url) {
-            bodyContent = this.addWebTVControls(bodyContent, url);
-        }
-        
+                
         // Ensure content isn't too long
         if (bodyContent.length > 32768) {
             bodyContent = this.intelligentTruncate(bodyContent, 32768);
@@ -434,23 +593,6 @@ ${bodyContent}
             }
             return `<img${attrs}>`;
         });
-    }
-
-    /**
-     * Add WebTV-specific navigation controls
-     */
-    addWebTVControls(html, originalUrl) {
-        const controls = `<div align="center">
-<font size="2">
-<a href="javascript:history.back()">← Back</a> | 
-<a href="javascript:location.reload()">Reload</a> | 
-<a href="${originalUrl}">Original Site</a>
-</font>
-</div>
-<hr>`;
-        
-        // Insert controls at the beginning of body content, not after body tag
-        return controls + html;
     }
 }
 

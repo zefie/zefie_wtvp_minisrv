@@ -1229,8 +1229,9 @@ function handleProxy(socket, request_type, request_headers, res, data) {
                     removeImages: minisrv_config.services[request_type]?.remove_images || false,
                     maxImageWidth: minisrv_config.services[request_type]?.max_image_width || 400,
                     simplifyTables: minisrv_config.services[request_type]?.simplify_tables !== false,
-                    addWTVControls: minisrv_config.services[request_type]?.add_wtv_controls !== false,
-                    maxWidth: minisrv_config.services[request_type]?.max_width || 544
+                    maxWidth: minisrv_config.services[request_type]?.max_width || 544,
+                    preserveJellyScript: minisrv_config.services[request_type]?.preserve_jellyscript !== false,
+                    jellyScriptMaxSize: minisrv_config.services[request_type]?.jellyscript_max_size || 8192
                 };
                 
                 htmlContent = proxy.transformHtml(htmlContent, originalUrl, transformOptions);
