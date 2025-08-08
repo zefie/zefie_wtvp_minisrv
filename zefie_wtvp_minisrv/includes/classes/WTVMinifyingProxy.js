@@ -8,6 +8,7 @@ class WTVMinifyingProxy {
         
         // HTML 3.0/4.0 compatible tags and attributes
         this.allowedTags = [
+            'audioscope', 'bgsound', 'marquee', 'wtvchattranscript', 'wtvchat',
             'html', 'head', 'title', 'meta', 'body', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
             'p', 'br', 'hr', 'div', 'span', 'a', 'img', 'ul', 'ol', 'li', 'table', 'tr', 
             'td', 'th', 'tbody', 'thead', 'tfoot', 'form', 'input', 'textarea', 'select',
@@ -16,9 +17,12 @@ class WTVMinifyingProxy {
         ];
         
         this.allowedAttributes = [
+            'leftcolor', 'rightcolor', 'maxlevel', 'leftoffset', 'rightoffset',
+            'host', 'port', 'channel', 'borderimage', 'font', 'nohighlight', 'autoactivate',
+            'text', 'cursor', 
             'href', 'src', 'alt', 'title', 'width', 'height', 'border', 'align', 'valign',
             'bgcolor', 'color', 'size', 'face', 'target', 'name', 'value', 'type', 'action',
-            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap',
+            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap', 
             // JellyScript event handlers
             'onclick', 'onload', 'onunload', 'onsubmit', 'onreset', 'onfocus', 'onblur', 
             'onchange', 'onmouseover', 'onmouseout', 'onmousedown', 'onmouseup'
@@ -171,8 +175,8 @@ class WTVMinifyingProxy {
         html = html.replace(/<(\w+)([^>]*)\s+style\s*=\s*["']([^"']+)["']([^>]*?)(\s*\/?)>/gi, (match, tagName, beforeStyle, styles, afterStyle, selfClosing) => {
             const result = this.parseStyleToAttributes(styles, tagName);
             
-            if (result.fontSize && !/^(input|select|textarea)$/i.test(tagName)) {
-                // For non-form elements with font-size, wrap in font tag
+            if (result.fontSize) {
+                // For all elements with font-size, wrap in font tag
                 const elementWithAttributes = result.attributes ? 
                     `<${tagName}${beforeStyle} ${result.attributes}${afterStyle}${selfClosing}>` :
                     `<${tagName}${beforeStyle}${afterStyle}${selfClosing}>`;
@@ -217,30 +221,61 @@ class WTVMinifyingProxy {
         
         styles.forEach(style => {
             const [property, value] = style.split(':').map(s => s.trim());
-            if (property && value && this.cssToHtml[property]) {
+            if (property && value) {
                 let htmlValue = value;
                 
                 // Convert CSS values to HTML equivalents
                 if (property === 'font-size') {
                     htmlValue = this.convertFontSize(value);
                     
-                    // Handle font-size differently for form vs non-form elements
-                    const isFormElement = /^(input|select|textarea)$/i.test(elementTag);
-                    if (isFormElement) {
-                        // For form elements, add size attribute directly
-                        attributes.push(`${this.cssToHtml[property]}="${htmlValue}"`);
+                    // For all elements, font-size should use font tag wrapping, not size attribute
+                    fontSize = htmlValue;
+                    return;
+                } else if (property === 'color') {
+                    htmlValue = this.convertColor(value);
+                    
+                    // WebTV-specific color handling based on element type
+                    if (/^(input|textarea)$/i.test(elementTag)) {
+                        // Forms support both 'color' and 'text' attributes for text color
+                        attributes.push(`text="${htmlValue}"`);
+                    } else if (/^(button)$/i.test(elementTag)) {
+                        // Buttons support 'text' attribute but not bgcolor
+                        attributes.push(`text="${htmlValue}"`);
+                    } else if (/^(select)$/i.test(elementTag)) {
+                        // Select menus don't support color attributes - skip
+                        return;
                     } else {
-                        // For non-form elements, store font size for font tag wrapping
-                        fontSize = htmlValue;
+                        // Other elements use standard 'color' attribute
+                        attributes.push(`color="${htmlValue}"`);
                     }
                     return;
-                } else if (property === 'color' || property === 'background-color') {
+                } else if (property === 'background-color') {
                     htmlValue = this.convertColor(value);
-                } else if (property === 'width' || property === 'height') {
-                    htmlValue = this.convertDimension(value);
+                    
+                    // WebTV-specific background color handling
+                    if (/^(input|textarea)$/i.test(elementTag)) {
+                        // Forms support bgcolor attribute
+                        attributes.push(`bgcolor="${htmlValue}"`);
+                    } else if (/^(button|select)$/i.test(elementTag)) {
+                        // Buttons and select menus don't support bgcolor - skip
+                        return;
+                    } else {
+                        // Other elements use standard bgcolor
+                        attributes.push(`bgcolor="${htmlValue}"`);
+                    }
+                    return;
+                } else if (property === 'caret-color' && /^(input|textarea)$/i.test(elementTag)) {
+                    // WebTV cursor attribute for text cursor color in forms
+                    htmlValue = this.convertColor(value);
+                    attributes.push(`cursor="${htmlValue}"`);
+                    return;
+                } else if (this.cssToHtml[property]) {
+                    // Handle other standard CSS-to-HTML conversions
+                    if (property === 'width' || property === 'height') {
+                        htmlValue = this.convertDimension(value);
+                    }
+                    attributes.push(`${this.cssToHtml[property]}="${htmlValue}"`);
                 }
-                
-                attributes.push(`${this.cssToHtml[property]}="${htmlValue}"`);
             }
         });
         
@@ -266,42 +301,30 @@ class WTVMinifyingProxy {
                     if (attributes) {
                         let newTagContent = tagContent;
                         
-                        // Special handling for input elements: WebTV prioritizes size over width
+                        // Special handling for input elements: WebTV prioritizes width over size
                         if (attributes.includes('width=')) {
                             const existingSize = tagContent.match(/size\s*=\s*["']?(\d+)["']?/i);
                             const widthMatch = attributes.match(/width="(\d+)"/);
                             
                             if (existingSize && widthMatch) {
-                                // Both size and width exist - for WebTV, recalculate size based on CSS width
-                                const cssWidth = parseInt(widthMatch[1]);
-                                const currentSize = parseInt(existingSize[1]);
-                                // Use larger of the two for better WebTV compatibility
-                                const betterSize = Math.max(Math.round(cssWidth / 8), currentSize);
+                                // Both size and width exist - for WebTV, prioritize width, remove size
+                                newTagContent = tagContent.replace(/\s*size\s*=\s*["']?\d+["']?/i, '');
                                 
-                                // Replace the existing size with the better calculated size
-                                newTagContent = tagContent.replace(/size\s*=\s*["']?\d+["']?/i, `size="${betterSize}"`);
-                                
-                                // Add other attributes except width
-                                const filteredAttributes = attributes.replace(/width="[^"]*"/, '').trim();
-                                if (filteredAttributes) {
-                                    newTagContent = `${newTagContent} ${filteredAttributes}`;
-                                }
+                                // Add all attributes including width
+                                newTagContent = `${newTagContent} ${attributes}`;
                             } else if (existingSize) {
-                                // If input already has size attribute, don't add width
-                                const filteredAttributes = attributes.replace(/\s*width="[^"]*"/, '');
-                                newTagContent = `${tagContent} ${filteredAttributes}`;
+                                // If input already has size attribute, replace with width if available
+                                newTagContent = tagContent.replace(/\s*size\s*=\s*["']?\d+["']?/i, '');
+                                newTagContent = `${newTagContent} ${attributes}`;
                             } else {
-                                // Convert width to size if no existing size
-                                const pixelWidth = parseInt(widthMatch[1]);
-                                // Rough conversion: ~8-10 pixels per character for WebTV
-                                const charSize = Math.round(pixelWidth / 8);
-                                const sizeAttr = `size="${Math.min(charSize, 80)}"`; // Cap at 80 chars
-                                const otherAttributes = attributes.replace(/width="[^"]*"/, '').trim();
-                                const finalAttributes = otherAttributes ? `${sizeAttr} ${otherAttributes}` : sizeAttr;
-                                newTagContent = `${tagContent} ${finalAttributes}`;
+                                // Add width and other attributes normally
+                                newTagContent = `${tagContent} ${attributes}`;
                             }
+                        } else if (attributes.includes('size=')) {
+                            // Only font-size, no width - use size attribute
+                            newTagContent = `${tagContent} ${attributes}`;
                         } else {
-                            // No width attribute, add all attributes normally
+                            // No width or size attributes, add all attributes normally
                             newTagContent = `${tagContent} ${attributes}`;
                         }
                         
@@ -313,8 +336,19 @@ class WTVMinifyingProxy {
                 // Also handle non-input elements with this class
                 const generalRegex = new RegExp(`<((?!input)[^>]+class\\s*=\\s*["'][^"']*\\b${className}\\b[^"']*["'][^>]*)>`, 'gi');
                 html = html.replace(generalRegex, (match, tagContent) => {
-                    const attributes = this.parseStyleToAttributes(styles);
-                    if (attributes) {
+                    // Extract tag name to properly handle attributes
+                    const tagMatch = tagContent.match(/^(\w+)/);
+                    const tagName = tagMatch ? tagMatch[1] : '';
+                    
+                    const result = this.parseStyleToAttributes(styles, tagName);
+                    const attributes = result.attributes || '';
+                    
+                    if (result.fontSize) {
+                        // Wrap all elements with font-size in font tags
+                        const elementWithAttributes = attributes ? 
+                            `<${tagContent} ${attributes}>` : `<${tagContent}>`;
+                        return `<font size="${result.fontSize}">${elementWithAttributes}`;
+                    } else if (attributes) {
                         return `<${tagContent} ${attributes}>`;
                     }
                     return match;
@@ -442,6 +476,9 @@ class WTVMinifyingProxy {
             }
             return `<input ${attributes}>`;
         });
+        
+        // Add WebTV-specific enhancements for better layout
+        html = this.addWebTVLayoutEnhancements(html);
         
         // Fix submit buttons to have better sizing for WebTV
         html = html.replace(/<input([^>]*type="submit"[^>]*)>/gi, (match, attributes) => {
@@ -793,6 +830,86 @@ ${bodyContent}
             }
             return `<img${attrs}>`;
         });
+    }
+
+    /**
+     * Add WebTV-specific layout enhancements
+     */
+    addWebTVLayoutEnhancements(html) {
+        // Ensure input elements have minimum sizing for WebTV visibility
+        html = html.replace(/<input([^>]*type=["']?text["']?[^>]*)>/gi, (match, attributes) => {
+            let newAttributes = attributes;
+            
+            // Check if width exists and ensure it's reasonable for WebTV
+            const widthMatch = attributes.match(/width\s*=\s*["']?(\d+)["']?/);
+            if (widthMatch) {
+                let width = parseInt(widthMatch[1]);
+                // Ensure minimum width of 200px for text inputs on WebTV
+                if (width < 200) {
+                    newAttributes = attributes.replace(/width\s*=\s*["']?\d+["']?/, `width="200"`);
+                }
+                // Cap maximum width at 400px for WebTV compatibility
+                else if (width > 400) {
+                    newAttributes = attributes.replace(/width\s*=\s*["']?\d+["']?/, `width="400"`);
+                }
+            } else {
+                // Add default width if none exists
+                newAttributes += ` width="250"`;
+            }
+            
+            // Ensure minimum height for better visibility
+            if (!attributes.includes('height=')) {
+                newAttributes += ` height="25"`;
+            }
+            
+            return `<input ${newAttributes}>`;
+        });
+        
+        // Enhance table layouts for better WebTV rendering
+        html = html.replace(/<table([^>]*)>/gi, (match, attributes) => {
+            let newAttributes = attributes;
+            
+            // Ensure tables have explicit widths for WebTV
+            if (!attributes.includes('width=')) {
+                newAttributes += ` width="100%"`;
+            }
+            
+            // Add cellpadding and cellspacing if not present
+            if (!attributes.includes('cellpadding=')) {
+                newAttributes += ` cellpadding="4"`;
+            }
+            if (!attributes.includes('cellspacing=')) {
+                newAttributes += ` cellspacing="2"`;
+            }
+            
+            return `<table${newAttributes}>`;
+        });
+        
+        // Don't auto-wrap forms in tables - enhance existing structure instead
+        // The original HTML likely already has proper table structure
+        
+        // Ensure submit buttons have minimum height for WebTV
+        html = html.replace(/<input([^>]*type=["']?submit["']?[^>]*)>/gi, (match, attributes) => {
+            let newAttributes = attributes;
+            
+            // Ensure minimum height for buttons
+            if (!attributes.includes('height=')) {
+                newAttributes += ` height="30"`;
+            }
+            
+            // Ensure minimum width for buttons
+            const widthMatch = attributes.match(/width\s*=\s*["']?(\d+)["']?/);
+            if (widthMatch) {
+                let width = parseInt(widthMatch[1]);
+                if (width < 80) {
+                    newAttributes = attributes.replace(/width\s*=\s*["']?\d+["']?/, `width="80"`);
+                }
+            }
+            
+            return `<input ${newAttributes}>`;
+        });
+        
+        return html;
     }
 }
 
