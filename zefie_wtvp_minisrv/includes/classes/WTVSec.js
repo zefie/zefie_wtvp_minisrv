@@ -207,6 +207,7 @@ class WTVSec {
         const challenge_md5_challenge = CryptoJS.MD5(CryptoJS.enc.Hex.parse(challenge_dec_hex.slice(0, 160))).toString(CryptoJS.enc.Hex); // 80 bytes * 2
 
         if (challenge_dec_hex.slice(160, 192) !== challenge_md5_challenge) { // 96 bytes * 2
+            console.log("Failed to process challenge (invalid key?)")
             return "";
         }
 

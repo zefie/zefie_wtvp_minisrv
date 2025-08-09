@@ -44,6 +44,10 @@ else {
 		data = errpage[1];
 	} else {
 		var userid = session_data.getSessionData("subscriber_userid")
+		if (userid === null) {
+			userid = '1' + Math.floor(Math.random() * 1000000000000000000);
+			session_data.setSessionData("subscriber_userid", userid);
+		}
 		var nickname = session_data.getSessionData("subscriber_username");
 		var human_name = session_data.getSessionData("subscriber_name") || nickname;
 		var messenger_enabled = session_data.getSessionData("messenger_enabled") || 0;
