@@ -13,7 +13,6 @@ if (!session_data.isRegistered()) {
         // user is trying to bypass the intro screen
         headers = "300 OK\nLocation: wtv-mail:/DiplomaMail?came-from=" + encodeURIComponent(request_headers.request_url);
     } else if (request_headers.query.clear == "true") {
-    } else if (request_headers.query.clear == "true") {
         if (request_headers.Referer)
             gourl = request_headers.Referer.replace(/[\?\&]clear\=true/, '');
         else
