@@ -1217,7 +1217,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
         
         // Transform HTML content for WebTV compatibility
         if (res.headers['Content-Type'].includes('html') && 
-            minisrv_config.services[request_type]?.use_minifying_proxy !== false) {
+            minisrv_config.services[request_type]?.use_minifying_proxy === true) {
             try {
                 const WTVMinifyingProxy = require('./includes/classes/WTVMinifyingProxy.js');
                 const proxy = new WTVMinifyingProxy(minisrv_config);
