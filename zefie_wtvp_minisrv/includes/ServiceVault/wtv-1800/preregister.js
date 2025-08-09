@@ -92,9 +92,14 @@ if (session_data.data_store.wtvsec_login) {
 				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
 				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
 				*/
-				template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
-				if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
-				else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
+				if (wtvshared.isMiniBrowser(session_data)) {
+					if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
+					else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
+				} else {
+					template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+					if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
+					else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
+				}
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
@@ -145,7 +150,7 @@ if (session_data.data_store.wtvsec_login) {
 	}
 
 
-	if (!request_headers['wtv-client-rom-type'] && bootrom == "105") {
+	if (!request_headers['wtv-client-rom-type'] && bootrom === 105) {
 		// assume old classic in flash mode, override user setting and send tellyscript
 		// because it is required to proceed in flash mode
 		prereg_contype = "text/tellyscript";

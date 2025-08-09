@@ -560,7 +560,7 @@ block += `
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
+<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -604,7 +604,7 @@ html += `">previous page</a>
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
+<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -640,7 +640,7 @@ html += `">previous page</a>
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
+<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -672,7 +672,7 @@ html += `">next page</a>
 <td width="30%" valign="middle">
 <center>
 <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
+<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
 </i></font></center>
 </td>
 <td width="30%" valign="middle" align="right">
@@ -776,6 +776,14 @@ html += `">next page</a>
 			}
         } 
     }
+
+	getPoweredBy() {
+		if (this.minisrv_config.services['wtv-author'].powered_by_url) {
+			return this.minisrv_config.services['wtv-author'].powered_by_url;
+		} else {
+			return this.getPublishDomain();
+		}
+	}
 
 	getPublishDir() {
 		var destDir = false;

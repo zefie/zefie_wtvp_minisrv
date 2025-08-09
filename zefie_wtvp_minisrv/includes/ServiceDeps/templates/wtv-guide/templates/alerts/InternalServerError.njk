@@ -1,0 +1,16 @@
+{% set title = "Publisher problem" %}
+{% set heading = "Publisher problem" %}
+{% set error_code = "500 Internal Server Error" %}
+{% set error_description = "result" %}
+{% set content %}
+This message means that
+the publisher's computer experienced a technical
+problem while it was trying to send you information.
+<p>
+This can occur because of a mistake made by the
+author of a page or by the publisher.
+You might want to try getting the page again,
+though this problem is likely to happen again.
+{% endset %}
+
+{% include "error_base.njk" %}

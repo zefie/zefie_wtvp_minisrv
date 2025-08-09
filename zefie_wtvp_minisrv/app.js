@@ -1212,9 +1212,42 @@ function handleProxy(socket, request_type, request_headers, res, data) {
     headers["wtv-trusted"] = false;
 
     if (typeof res.headers['Content-Type'] === 'string' && res.headers['Content-Type'].startsWith("text")) {
+        // Get the original URL for relative link fixing
+        const originalUrl = request_headers.request.split(' ')[1];
+        
+        // Transform HTML content for WebTV compatibility
+        if (res.headers['Content-Type'].includes('html') && 
+            minisrv_config.services[request_type]?.use_minifying_proxy !== false) {
+            try {
+                const WTVMinifyingProxy = require('./includes/classes/WTVMinifyingProxy.js');
+                const proxy = new WTVMinifyingProxy(minisrv_config);
+                
+                let htmlContent = Buffer.concat(data).toString();
+                
+                // Apply WebTV-specific transformations
+                const transformOptions = {
+                    removeImages: minisrv_config.services[request_type]?.remove_images || false,
+                    maxImageWidth: minisrv_config.services[request_type]?.max_image_width || 400,
+                    simplifyTables: minisrv_config.services[request_type]?.simplify_tables !== false,
+                    maxWidth: minisrv_config.services[request_type]?.max_width || 544,
+                    preserveJellyScript: minisrv_config.services[request_type]?.preserve_jellyscript !== false,
+                    jellyScriptMaxSize: minisrv_config.services[request_type]?.jellyscript_max_size || 8192
+                };
+                
+                htmlContent = proxy.transformForWebTV(htmlContent, originalUrl, transformOptions);
+                data = [Buffer.from(htmlContent)];
+                
+                if (minisrv_config.config.verbosity >= 3) {
+                    console.log(` * HTML transformed for WebTV compatibility (${originalUrl})`);
+                }
+            } catch (err) {
+                console.warn(` * HTML transformation failed: ${err.message}`);
+            }
+        }
+        
         if (request_type != "http" && request_type != "https") {
             // replace http and https links on non http/https protocol (for proto:// for example)
-            var data_t = data.toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
+            var data_t = Buffer.concat(data).toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
             data = [Buffer.from(data_t)]
         }
     }
@@ -1358,7 +1391,7 @@ async function doHTTPProxy(socket, request_headers) {
                 errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
                 sendToClient(socket, errpage[0], errpage[1]);
             } else {
-                if (minisrv_config.services[request_type].external_proxy_is_http1 && !data_handled) {
+                if (minisrv_config.services[request_type].external_proxy_is_http1) {
                     handleProxy(socket, request_type, request_headers, res, data);
                 } else {
                     console.error(" * Unhandled Proxy Request Error:", err);
@@ -1981,9 +2014,13 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (socket_sessions[socket.id].secure) post_string = "Encrypted " + post_string;
 
                         // the client may have just sent the data with the primary headers, so lets look for that.
-                        if (data_hex.includes("0d0a0d0a")) socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0d0a0d0a") + 8);
-                        if (data_hex.includes("0a0d0a")) socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0d0a") + 6);
-                        if (data_hex.includes("0a0a")) socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0a") + 4);
+                        if (data_hex.includes("0d0a0d0a")) {
+                            socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0d0a0d0a") + 8);
+                        } else if (data_hex.includes("0a0d0a")) {
+                            socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0d0a") + 6);
+                        } else if (data_hex.includes("0a0a")) {
+                            socket_sessions[socket.id].post_data = data_hex.slice(data_hex.indexOf("0a0a") + 4);
+                        }
                     }
 
                     if (socket_sessions[socket.id].post_data.length == (socket_sessions[socket.id].post_data_length * 2)) {
@@ -2005,8 +2042,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     } else {
                         // expecting more data (see below)
                         socket_sessions[socket.id].expecting_post_data = true;
-                        if (!socket_sessions[socket.id].post_data) socket_sessions[socket.id].post_data = '';
-                        socket_sessions[socket.id].post_data += CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
                         console.log(" * Incoming", post_string, "request on", socket.id, "from", wtvshared.filterSSID(socket.ssid), "to", headers['request_url'], "(expecting", socket_sessions[socket.id].post_data_length, "bytes of data from client...)");
                     }
                     return;
@@ -2025,7 +2060,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
         } else if (socket.ssid) {
             try {
                 // handle streaming POST
-                if (socket_sessions[socket.id].expecting_post_data && headers) {
+                if (socket_sessions[socket.id].expecting_post_data) {
                     if (socket_sessions[socket.id].post_data_length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
                         closeSocket(socket);
                     } else {

@@ -69,8 +69,8 @@ class WTVIRC {
         this.servername = this.irc_config.server_hostname || 'irc.local';
         this.network = this.irc_config.network || 'minisrv';
         this.oper_username = this.irc_config.oper_username || 'minisrv';
-        this.oper_password = this.irc_config.oper_password || 'changeme573';
-        this.oper_enabled = this.irc_config.oper_enabled || this.debug || false; // Default to off to prevent accidental use with default credentials
+        this.oper_password = this.irc_config.oper_password || 'changeme573_PLEASE_CHANGE_THIS_PASSWORD';
+        this.oper_enabled = this.irc_config.oper_enabled || false; // Default to off for security
         this.irc_motd = this.irc_config.motd || [
             'Welcome to the zefIRCd IRC server, powered by minisrv.',
             'This server is powered by Node.js, and the minisrv project.',
@@ -94,7 +94,7 @@ class WTVIRC {
         this.socket_timeout = 75; // Default socket timeout to 75 seconds, most clients will send PINGs every 60 seconds, so this should be enough to catch lost connections
         this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
         this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
-        this.allow_public_vhosts = this.irc_config.allow_public_vhosts || true; // If true, users can set their host to a virtual host that is not a real hostname or IP address, if false, only opers can.
+        this.allow_public_vhosts = this.irc_config.allow_public_vhosts || false; // Default to false for security
         this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_users_on_secure || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
         this.hide_version = this.irc_config.hide_version || false; // If true, the server will not send its version in the MOTD
         this.clientpeak = 0;
@@ -111,6 +111,24 @@ class WTVIRC {
         this.supported_server_caps = ['TBURST', 'EOB', 'IE', 'EX'];
         this.enable_webtv_command_hacks = this.irc_config.enable_webtv_command_hacks || true;
         this.supported_webtv_command_hacks = ["MODE", "KICK"]; // You could technically add any command currently supported by the IRCd here, such as OPER, KILL, KLINE, etc.
+        
+        // Rate limiting configuration
+        this.rate_limit_enabled = this.irc_config.rate_limit_enabled || true;
+        this.max_messages_per_second = this.irc_config.max_messages_per_second || 5;
+        this.message_counts = new Map(); // socket -> {count, resetTime}
+        
+        // Brute force protection
+        this.failed_auth_attempts = new Map(); // IP -> {count, lockoutUntil}
+        this.max_auth_attempts = this.irc_config.max_auth_attempts || 3;
+        this.auth_lockout_duration = this.irc_config.auth_lockout_duration || 300; // 5 minutes
+        
+        // Connection limits
+        this.connections_per_ip = new Map(); // IP -> count
+        this.max_connections_per_ip = this.irc_config.max_connections_per_ip || 3;
+        
+        // Security logging
+        this.security_log_enabled = this.irc_config.security_log_enabled || true;
+        this.security_events = [];
         this.session_store_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + path.sep + 'minisrv_internal_irc');
         this.klines_path = this.session_store_path + path.sep + 'klines.json';
         this.caps = [
@@ -129,10 +147,16 @@ class WTVIRC {
             for (const channel of this.irc_config.channels) {                
                 this.createChannel(channel.name);
                 if (channel.modes && Array.isArray(channel.modes)) {
-                    this.channelData.get(channel.name).modes = [...channel.modes];
+                    const channelData = this.channelData.get(channel.name);
+                    if (channelData) {
+                        channelData.modes = [...channel.modes];
+                    }
                 }
                 if (channel.topic) {
-                    this.channelData.get(channel.name).topic = channel.topic;
+                    const channelData = this.channelData.get(channel.name);
+                    if (channelData) {
+                        channelData.topic = channel.topic;
+                    }
                 }
             }
         }
@@ -142,6 +166,18 @@ class WTVIRC {
             // Detect SSL handshake and wrap socket if needed
             socket.once('data', async firstChunk => {
                 this.totalConnections++;
+                
+                // Check connection limits per IP
+                const clientIP = socket.remoteAddress;
+                const currentConnections = this.connections_per_ip.get(clientIP) || 0;
+                if (currentConnections >= this.max_connections_per_ip) {
+                    this.debugLog('warn', `Connection limit exceeded for IP ${clientIP}`);
+                    socket.write(`:${this.servername} ERROR :Too many connections from your IP\r\n`);
+                    socket.end();
+                    return;
+                }
+                this.connections_per_ip.set(clientIP, currentConnections + 1);
+                
                 socket.removeAllListeners('data');
                 socket.pause();
                 socket.on('error', (err) => {
@@ -219,17 +255,182 @@ class WTVIRC {
             data = data.substring(0, this.max_message_len - 2) + '\r\n';
             this.debugLog('warn', `Data length exceeds max_message_len (${this.max_message_len}), truncating: ${data.length} > ${this.max_message_len}`);
         }
-        while (socket.writable === false) {
+        
+        // Add timeout to prevent infinite loop
+        let waitCount = 0;
+        const maxWaitIterations = 1000; // 10 seconds max wait
+        while (socket.writable === false && waitCount < maxWaitIterations) {
             await new Promise(resolve => setTimeout(resolve, 10));
+            waitCount++;
+        }
+        
+        if (socket.writable === false) {
+            this.debugLog('error', 'Socket not writable after timeout, aborting write');
+            return;
         }
         socket.write(data);
+    }
+
+    checkRateLimit(socket) {
+        if (!this.rate_limit_enabled || socket.isserver || this.isIRCOp(socket.nickname)) {
+            return true; // No rate limiting for servers or IRCOps
+        }
+        
+        const now = Date.now();
+        const socketId = socket.remoteAddress + ':' + socket.remotePort;
+        
+        if (!this.message_counts.has(socketId)) {
+            this.message_counts.set(socketId, { count: 1, resetTime: now + 1000 });
+            return true;
+        }
+        
+        const rateLimitData = this.message_counts.get(socketId);
+        
+        if (now > rateLimitData.resetTime) {
+            // Reset the counter
+            rateLimitData.count = 1;
+            rateLimitData.resetTime = now + 1000;
+            return true;
+        }
+        
+        if (rateLimitData.count >= this.max_messages_per_second) {
+            return false; // Rate limit exceeded
+        }
+        
+        rateLimitData.count++;
+        return true;
+    }
+
+    checkAuthAttempts(socket) {
+        const ip = socket.realhost || socket.remoteAddress;
+        const now = Date.now();
+        
+        if (!this.failed_auth_attempts.has(ip)) {
+            return true;
+        }
+        
+        const authData = this.failed_auth_attempts.get(ip);
+        if (authData.lockoutUntil && now < authData.lockoutUntil) {
+            return false; // Still locked out
+        }
+        
+        return true;
+    }
+
+    recordAuthFailure(socket) {
+        const ip = socket.realhost || socket.remoteAddress;
+        const now = Date.now();
+        
+        if (!this.failed_auth_attempts.has(ip)) {
+            this.failed_auth_attempts.set(ip, { count: 1, lockoutUntil: null });
+            return;
+        }
+        
+        const authData = this.failed_auth_attempts.get(ip);
+        authData.count++;
+        
+        if (authData.count >= this.max_auth_attempts) {
+            authData.lockoutUntil = now + (this.auth_lockout_duration * 1000);
+            this.debugLog('warn', `IP ${ip} locked out for ${this.auth_lockout_duration} seconds due to failed auth attempts`);
+        }
+    }
+
+    clearAuthFailures(socket) {
+        const ip = socket.realhost || socket.remoteAddress;
+        this.failed_auth_attempts.delete(ip);
+    }
+
+    sanitizeInput(input, type = 'general') {
+        if (typeof input !== 'string') {
+            return '';
+        }
+        
+        // Remove control characters except \r\n
+        input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+        
+        switch (type) {
+            case 'nickname':
+                // IRC nicknames: A-Z a-z 0-9 [ ] \ ` _ ^ { | }
+                return input.replace(/[^A-Za-z0-9\[\]\\`_^{|}]/g, '').substring(0, this.nicklen);
+            
+            case 'channel':
+                // Channel names: start with #, no spaces, commas, or control chars
+                if (!input.startsWith('#')) return '';
+                return input.replace(/[^A-Za-z0-9#\-_.]/g, '').substring(0, this.channellen);
+            
+            case 'message':
+                // Messages: no control chars, reasonable length
+                return input.substring(0, 512);
+            
+            case 'username':
+                // Usernames: alphanumeric and some special chars
+                return input.replace(/[^A-Za-z0-9\-_.]/g, '').substring(0, 32);
+            
+            default:
+                return input.substring(0, 512);
+        }
+    }
+
+    validateCommand(command, params) {
+        if (!command || typeof command !== 'string') {
+            return false;
+        }
+        
+        // Command must be uppercase letters only
+        if (!/^[A-Z]+$/.test(command)) {
+            return false;
+        }
+        
+        // Reasonable command length
+        if (command.length > 20) {
+            return false;
+        }
+        
+        // Parameters validation
+        if (params && Array.isArray(params)) {
+            for (const param of params) {
+                if (typeof param !== 'string' || param.length > 512) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+
+    logSecurityEvent(event, socket, details = {}) {
+        if (!this.security_log_enabled) return;
+        
+        const securityEvent = {
+            timestamp: new Date().toISOString(),
+            event: event,
+            ip: socket ? (socket.realhost || socket.remoteAddress) : 'unknown',
+            nickname: socket ? socket.nickname : 'unknown',
+            details: details
+        };
+        
+        this.security_events.push(securityEvent);
+        
+        // Keep only last 1000 security events in memory
+        if (this.security_events.length > 1000) {
+            this.security_events.shift();
+        }
+        
+        // Log to console/file if needed
+        this.debugLog('security', `Security Event: ${event} from ${securityEvent.ip} (${securityEvent.nickname})`);
+        
+        // Write to security log file if configured
+        if (this.irc_config.security_log_file) {
+            const fs = require('fs');
+            fs.appendFileSync(this.irc_config.security_log_file, JSON.stringify(securityEvent) + '\n');
+        }
     }
             
 
     async initializeSocket(socket, secure = false, oldSocket = null) {
         if (this.debug) {
             // debug output for socket data
-            const originalWrite = socket.write;
+            const originalWrite = socket.write.bind(socket);
             socket.write = function (...args) {
                 var log_args = args.map(arg => {
                     if (typeof arg === 'string') {
@@ -238,7 +439,7 @@ class WTVIRC {
                     return arg;
                 });
                 console.log('<', ...log_args);
-                return originalWrite.apply(socket, args);
+                return originalWrite(...args);
             };
         }
         if (oldSocket) {
@@ -984,7 +1185,7 @@ class WTVIRC {
                                 whoisNick = whoisSocket.nickname;
                                 const whois_username = this.usernames.get(whoisNick);
                                 var userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || '';
-                                var output_lines = [];
+                                output_lines = [];
                                 output_lines.push(`:${this.serverId} 311 ${targetUniqueId} ${whoisNick} ${whois_username} ${whoisSocket.host} * :${userinfo}\r\n`);
                                 if (this.awaymsgs.has(whoisNick)) {
                                     output_lines.push(`:${this.serverId} 301 ${targetUniqueId} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
@@ -1108,6 +1309,8 @@ class WTVIRC {
     }
 
     async processSocketData(socket, data) {
+        var output_lines = []; // Declare once at function scope
+        
         if (socket.signedoff) {
             return;
         }
@@ -1184,6 +1387,16 @@ class WTVIRC {
             if (this.debug) {
                 console.log(`> ${line}`);
             }
+            
+            // Rate limiting check for non-server connections
+            if (!socket.isserver && !this.checkRateLimit(socket)) {
+                this.debugLog('warn', `Rate limit exceeded for ${socket.remoteAddress}, disconnecting`);
+                this.logSecurityEvent('RATE_LIMIT_EXCEEDED', socket, { limit: this.max_messages_per_second });
+                await this.safeWriteToSocket(socket, `:${this.servername} ERROR :Rate limit exceeded\r\n`);
+                this.terminateSession(socket, true);
+                return;
+            }
+            
             if (socket.isserver) {
                 await this.processServerData(socket, line);
                 continue;
@@ -1221,9 +1434,25 @@ class WTVIRC {
 
 
             const [command, ...params] = line.trim().split(' ');
+            
+            // Validate command and parameters
+            if (!this.validateCommand(command.toUpperCase(), params)) {
+                this.logSecurityEvent('INVALID_COMMAND', socket, { command, params });
+                await this.safeWriteToSocket(socket, `:${this.servername} 421 ${socket.nickname || '*'} ${command} :Unknown command\r\n`);
+                continue;
+            }
+            
             switch (command.toUpperCase()) {
                 case 'OPER':
+                    if (!socket.secure) {
+                        await this.safeWriteToSocket(socket, `:${this.servername} 464 ${socket.nickname} :SSL required for OPER\r\n`);
+                    }
                     if (!this.checkRegistered(socket)) {
+                        break;
+                    }
+                    if (!this.checkAuthAttempts(socket)) {
+                        await this.safeWriteToSocket(socket, `:${this.servername} 491 ${socket.nickname} :Too many failed attempts. Try again later.\r\n`);
+                        this.logSecurityEvent('OPER_LOCKOUT', socket, { attempts: this.failed_auth_attempts.get(socket.realhost || socket.remoteAddress) });
                         break;
                     }
                     if (!this.oper_enabled) {
@@ -1238,13 +1467,25 @@ class WTVIRC {
                     if (operName !== this.oper_username) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 491 ${socket.nickname} :No permission\r\n`);
                         this.debugLog('warn', `Invalid oper name attempt: ${operName} from ${socket.nickname} (${socket.username}@${socket.realhost})`);
+                        this.logSecurityEvent('OPER_FAILED_USERNAME', socket, { provided_username: operName });
+                        this.recordAuthFailure(socket);
                         break;
                     }
-                    if (operPassword !== this.oper_password) {
+                    // Use timing-safe comparison to prevent timing attacks
+                    const providedPassword = Buffer.from(operPassword, 'utf8');
+                    const actualPassword = Buffer.from(this.oper_password, 'utf8');
+                    const passwordMatch = providedPassword.length === actualPassword.length && 
+                                        require('crypto').timingSafeEqual(providedPassword, actualPassword);
+                    
+                    if (!passwordMatch) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 464 ${socket.nickname} :Password incorrect\r\n`);
                         this.debugLog('warn', `Invalid oper password attempt from ${socket.nickname} (${socket.username}@${socket.realhost}) (using oper name ${operName})`);
+                        this.logSecurityEvent('OPER_FAILED_PASSWORD', socket, { username: operName });
+                        this.recordAuthFailure(socket);
                         break;
                     }
+                    this.clearAuthFailures(socket);
+                    this.logSecurityEvent('OPER_SUCCESS', socket, { username: operName });
                     this.setUserMode(socket.nickname, 'o', true);
                     await this.safeWriteToSocket(socket, `:${this.servername} 381 ${socket.nickname} :You are now an IRC operator\r\n`);
                     await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +o\r\n`);
@@ -1261,6 +1502,26 @@ class WTVIRC {
                     const minutes = Math.floor((uptime % 3600) / 60);
                     const seconds = uptime % 60;
                     await this.safeWriteToSocket(socket, `:${this.servername} 242 ${socket.nickname} :Server uptime is ${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds\r\n`);
+                    break;
+                case 'SECURITY':
+                    if (!this.checkRegistered(socket)) {
+                        break;
+                    }
+                    if (!this.isIRCOp(socket.nickname)) {
+                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
+                        break;
+                    }
+                    
+                    // Show security statistics
+                    let output_lines = [];
+                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :=== Security Report ===\r\n`);
+                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Active connections per IP: ${this.connections_per_ip.size}\r\n`);
+                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Failed auth attempts tracked: ${this.failed_auth_attempts.size}\r\n`);
+                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Security events logged: ${this.security_events.length}\r\n`);
+                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Rate limit violations: ${this.security_events.filter(e => e.event === 'RATE_LIMIT_EXCEEDED').length}\r\n`);
+                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :=== End Report ===\r\n`);
+                    
+                    await this.sendThrottled(socket, output_lines);
                     break;
                 case 'KICK':
                     if (!this.checkRegistered(socket)) {
@@ -1674,13 +1935,23 @@ class WTVIRC {
                 case 'NICK':
                     var old_nickname = socket.nickname;
                     var new_nickname = params[0];
-                    if (new_nickname.startsWith(':')) {
+                    if (new_nickname && new_nickname.startsWith(':')) {
                         new_nickname = new_nickname.slice(1);
                     }
                     if (!new_nickname || new_nickname.length < 1) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 431 * :No nickname\r\n`);
                         break;
                     }
+                    
+                    // Sanitize nickname input
+                    const sanitized_nickname = this.sanitizeInput(new_nickname, 'nickname');
+                    if (sanitized_nickname !== new_nickname || sanitized_nickname.length === 0) {
+                        await this.safeWriteToSocket(socket, `:${this.servername} 432 * ${new_nickname} :Erroneus nickname (invalid characters)\r\n`);
+                        this.logSecurityEvent('INVALID_NICKNAME', socket, { provided: new_nickname, sanitized: sanitized_nickname });
+                        break;
+                    }
+                    new_nickname = sanitized_nickname;
+                    
                     if (new_nickname.length > this.nicklen) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 432 * ${new_nickname} :Erroneus nickname (too long)\r\n`);
                         break;
@@ -1863,7 +2134,7 @@ class WTVIRC {
                             const invited = this.channelData.get(ch).inviteexceptions;
                             let isInvited = false;
                             for (const inviteMask of invited) {
-                                isInvited = checkMask(inviteMask, socket);
+                                isInvited = this.checkMask(inviteMask, socket);
                                 if (isInvited) {
                                     break; // Stop checking if we found a match
                                 }
@@ -1948,7 +2219,7 @@ class WTVIRC {
                             }
                         }
                         var users = this.getUsersInChannel(ch);
-                        var output_lines = [];
+                        output_lines = [];
                         var prefixRegex = new RegExp(`^[${this.supported_prefixes[1]}]`);
                         if (users.length > 0) {
                             users.sort((a, b) => {
@@ -2006,7 +2277,7 @@ class WTVIRC {
                             }
                         }                        
                         if (this.clientIsWebTV(socket) && this.enable_webtv_command_hacks) {
-                            var output_lines = [];
+                            output_lines = [];
                             var channelObj = this.channelData.get(ch);
                             output_lines.push("You have joined " + ch);
                             output_lines.push("Current channel modes: +" + channelObj.modes.join(''));
@@ -2038,7 +2309,7 @@ class WTVIRC {
                         break;
                     }
                     var users = this.getUsersInChannel(channel);
-                    var output_lines = [];
+                    output_lines = [];
                     if (users.length > 0) {
                         if (socket.client_caps.includes('userhost-in-names')) {
                             const userHosts = users.map(user => {
@@ -2240,7 +2511,7 @@ class WTVIRC {
                         await this.safeWriteToSocket(socket, `:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
                     } else {
                         // WHO for nickname
-                        var output_lines = [];
+                        output_lines = [];
                         if (target.includes('*') || target.includes('?')) {
                             // Wildcard mask search for nicknames
                             const maskRegex = new RegExp('^' + target.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
@@ -2574,7 +2845,7 @@ class WTVIRC {
                         break;
                     }
                     var type = params[0] ? params[0].toUpperCase() : '';
-                    var output_lines = [];
+                    output_lines = [];
                     switch (type) {
                         case "HELP":
                             output_lines.push(`:${this.servername} 200 ${socket.nickname} :Available commands:\r\n`);
@@ -2711,7 +2982,7 @@ class WTVIRC {
                         }
                         const userChannels = [];
 
-                        var output_lines = [];
+                        output_lines = [];
                         for (const [ch, channelObj] of this.channelData.entries()) {
                             if (channelObj.users.has(whoisNick)) {
                                 let prefix = '';
@@ -3010,11 +3281,28 @@ class WTVIRC {
             this.servers.delete(socket);
             this.serverusers.delete(socket);
         } else {
-            this.clients.filter(c => c !== socket);
+            this.clients = this.clients.filter(c => c !== socket);
         }        
         if (socket._idleInterval) {
             clearInterval(socket._idleInterval);
+            socket._idleInterval = null;
         }
+        
+        // Clean up rate limiting data
+        const socketId = socket.remoteAddress + ':' + socket.remotePort;
+        this.message_counts.delete(socketId);
+        
+        // Clean up connection count per IP
+        const clientIP = socket.remoteAddress;
+        if (this.connections_per_ip.has(clientIP)) {
+            const currentCount = this.connections_per_ip.get(clientIP);
+            if (currentCount <= 1) {
+                this.connections_per_ip.delete(clientIP);
+            } else {
+                this.connections_per_ip.set(clientIP, currentCount - 1);
+            }
+        }
+        
         if (close) {
             socket.end();
         }
@@ -4057,7 +4345,7 @@ class WTVIRC {
                 }
             } else if (modes === 'b') {
                 // Get the list of channel bans
-                var output_lines = [];
+                output_lines = [];
                 if (this.channelData.has(channel).bans) {
                     const bans = this.channelData.has(channel).bans;
                     for (const ban of bans) {
@@ -4069,7 +4357,7 @@ class WTVIRC {
                 return;
             } else if (modes === 'e') {
                 // Get the list of channel exemptions
-                var output_lines = [];
+                output_lines = [];
                 if (this.channelData.has(channel).exemptions) {
                     const exemptions = this.channelData.has(channel).exemptions;
                     for (const exemption of exemptions) {
@@ -4081,7 +4369,7 @@ class WTVIRC {
                 return;
             } else if (modes === 'I') {
                 // Get the list of channel invites masks
-                var output_lines = [];
+                output_lines = [];
                 if (this.channelData.has(channel).invites) {
                     const invites = this.channelData.has(channel).invites;
                     for (const invite of invites) {

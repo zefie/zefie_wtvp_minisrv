@@ -177,34 +177,6 @@ class WTVShared {
     }
 
     /**
-     * Gets the box name based on the client ROM type
-     * @param {string} client_rom_type The client ROM type
-     * @returns {string} The box name
-     */
-    getBoxName(client_rom_type) {
-        switch (client_rom_type) {
-            case "bf0app":
-            case "bfeapp":
-            case "US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230":
-            case "US-BPS-flashdisk-0MB-16MB-softmodem-CPU5230":
-                return "WebTV Internet Terminal";
-
-            case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
-            case "US-WEBSTAR-disk-0MB-8MB-softmodem-CPU5230":
-            case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
-                return "WebTV Satellite Receiver";
-            
-            case "US-LC2-disk-0MB-8MB":
-            case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
-            case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
-                return "WebTV Plus Internet Receiver";
-            
-            default:
-                return "WebTV Internet Receiver";
-        }
-    }
-
-    /**
      * Calculates the CRC of an SSID, WNI Style
      * @param {string} ssid
      * @returns {string} CRC8 result as hex string
@@ -1154,7 +1126,8 @@ class WTVShared {
     * @param {string} directory Root directory
     */
     getAbsolutePath(path = '', directory = '.') {
-        if (directory[0] == "/" || directory.slice(1, 3) == ":" + this.path.sep) {
+        // Check if directory is already an absolute path
+        if (directory.length > 0 && (directory[0] == "/" || (directory.length >= 3 && directory[1] === ':' && directory[2] === this.path.sep))) {
             return this.path.resolve(directory + this.path.sep + path);
         }
         try {
@@ -1165,22 +1138,24 @@ class WTVShared {
                 return appdir;
             }
             // If the directory is a valid directory, prepend it to the path
-            directory = this.path.resolve(appdir + this.path.sep + directory);
+            let resolvedDirectory = this.path.resolve(appdir + this.path.sep + directory);
             if (!path) {
-                return directory;
+                return resolvedDirectory;
             }
-            if (directory && !path.startsWith(directory)) {
-                if (!directory.endsWith(this.path.sep)) {
-                    directory += this.path.sep;
+            if (resolvedDirectory && !path.startsWith(resolvedDirectory)) {
+                if (!resolvedDirectory.endsWith(this.path.sep)) {
+                    resolvedDirectory += this.path.sep;
                 }
-                path = directory + path;
+                path = resolvedDirectory + path;
             }
+            // The path.resolve method will take care of normalizing slashes
+            return this.path.resolve(path);
         } catch (e) {
             // If there's an error accessing the directory, log it or handle as needed
             console.error('Error resolving directory:', e);
+            // Fallback to basic path resolution
+            return this.path.resolve(path);
         }
-        // The path.resolve method will take care of normalizing slashes
-        return this.path.resolve(path);
     }
 
     /**

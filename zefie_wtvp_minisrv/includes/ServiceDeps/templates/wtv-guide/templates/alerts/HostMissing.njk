@@ -1,0 +1,22 @@
+{% set title = "Missing publisher's name" %}
+{% set heading = "Missing publisher's name" %}
+{% set error_code = "400 Bad Request" %}
+{% set error_description = "result" %}
+{% set content %}
+Web addresses generally include a publisher's
+name after the colon. This name is often called
+a <i>host</i> name. In this address, <B>www.npr.org</B>
+is the publisher's name:
+<table>
+<tr>
+<td height=8>
+<tr>
+<td width=10>
+<td><tt>http://<b>www.npr.org</b>/news/</tt>
+</table>
+<p>
+This message appears if you don't include the publisher's
+name in an address that you type.
+{% endset %}
+
+{% include "error_base.njk" %}
