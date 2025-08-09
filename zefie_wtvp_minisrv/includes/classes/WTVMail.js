@@ -60,7 +60,6 @@ class WTVMail {
             if (this.mailstore_dir === null) {
                 // set mailstore directory local var so we don't call the function every time
                 var userstore_dir = this.wtvclient.getUserStoreDirectory();
-
                 // MailStore
                 var store_dir = "MailStore" + this.path.sep;
                 this.mailstore_dir = userstore_dir + store_dir;
@@ -376,7 +375,7 @@ class WTVMail {
 
     checkUserExists(username, directory = null) {
         // returns the user's ssid, and user_id and userid in an array if true, false if not
-        var search_dir = this.path.resolve(this.wtvshared.getAbsolutePath() + this.path.sep + this.minisrv_config.config.SessionStore);
+        var search_dir = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
         var return_val = false;
         var self = this;
         if (directory) search_dir = directory;
@@ -390,7 +389,9 @@ class WTVMail {
                 var temp_session_data = JSON.parse(temp_session_data_file);
                 if (temp_session_data.subscriber_username) {
                     if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
-                        return_val = search_dir.replace(this.minisrv_config.config.SessionStore + self.path.sep + "accounts" + self.path.sep, '').replace("user", '').split(self.path.sep);
+                        // Use the absolute path for replacement since search_dir is now absolute
+                        var accounts_dir = self.wtvshared.getAbsolutePath(self.minisrv_config.config.SessionStore + self.path.sep + "accounts" + self.path.sep);
+                        return_val = search_dir.replace(accounts_dir, '').replace("user", '').split(self.path.sep);
                         return_val.push(temp_session_data.subscriber_name);
                     }
                 }

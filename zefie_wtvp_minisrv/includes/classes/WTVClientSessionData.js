@@ -232,8 +232,14 @@ class WTVClientSessionData {
     getUserStoreDirectory(subscriber = false, user_id = null) {
         if (user_id === null) user_id = this.user_id;
         var userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
+        console.log("DEBUG: getAccountStoreDirectory() =", this.getAccountStoreDirectory());
+        console.log("DEBUG: userstore before getAbsolutePath =", userstore);
         if (!subscriber) userstore += "user" + user_id + this.path.sep;
-        return this.wtvshared.getAbsolutePath(userstore) + this.path.sep;
+        console.log("DEBUG: userstore after user_id =", userstore);
+        // getAccountStoreDirectory() already returns an absolute path, so we don't need getAbsolutePath again
+        var result = userstore + this.path.sep;
+        console.log("DEBUG: final result =", result);
+        return result;
     }
 
     removeUser(user_id) {
