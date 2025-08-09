@@ -176,7 +176,9 @@ Content-Type: audio/wav`;
                         attachments.push(attachment);
                     }
 
+                    console.log("DEBUG sendmail: Before send decision - newsgroup =", newsgroup, "to_addr =", to_addr);
                     if (newsgroup !== null) {
+                        console.log("DEBUG sendmail: Taking newsgroup path");
                         var request_is_async = true;
                         var local_service_name = request_headers.query['discuss-prefix'] || "wtv-news"
                         const wtvnews = new WTVNews(minisrv_config, local_service_name);
@@ -268,6 +270,7 @@ Location: wtv-news:/news?group=${newsgroup}`;
 
 
                     } else {
+                        console.log("DEBUG sendmail: Taking email path with to_addr =", to_addr);
                         var messagereturn = session_data.mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
                         if (messagereturn !== true) {
                             var errpage = wtvshared.doErrorPage(400, messagereturn);

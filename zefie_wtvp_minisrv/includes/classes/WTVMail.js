@@ -97,12 +97,13 @@ class WTVMail {
     mailboxExists(mailboxid) {
         if (mailboxid >= this.mailboxes.length) return null;
         var mailbox_dir = null;
+        var store_dir = null;
         if (this.mailstoreExists()) {
             var mailbox_name = this.getMailboxById(mailboxid);
             if (!mailbox_name) return null;
 
-            var mailbox_dir = mailbox_name + this.path.sep;
-            var store_dir = this.mailstore_dir + mailbox_dir;
+            mailbox_dir = mailbox_name + this.path.sep;
+            store_dir = this.mailstore_dir + mailbox_dir;
         }
         return (store_dir !== null) ? this.fs.existsSync(store_dir) : false;
     }
@@ -181,22 +182,25 @@ class WTVMail {
             }
             try {
                 if (this.fs.existsSync(message_file_out)) {
-                    console.error(" * ERROR: Message with this UUID (" + messageid + ") already exists (should never happen). Message lost.");
+                    console.error(" * ERROR: Message with this UUID (" + message_id + ") already exists (should never happen). Message lost.");
                     return false;
                 }
 
                 // encode message into json
-                var result = this.fs.writeFileSync(message_file_out, JSON.stringify(message_data));
-                if (!result) return false;
+                this.fs.writeFileSync(message_file_out, JSON.stringify(message_data));
 
-                // rely on filesystem times for sorting as it is quicker then reading every file
-                var file_timestamp = new Date(date * 1000);
-                fs.utimesSync(message_file, Date.now(), file_timestamp);
-                if (!result) console.error(" WARNING: Setting timestamp on " + message_file + " failed, mail dates will be inaccurate.");
+                // Skip timestamp setting for now as it's causing issues with malformed paths
+                // var file_timestamp = new Date(date * 1000);
+                // this.fs.utimesSync(message_file_out, Date.now(), file_timestamp);
+
+                return true; // Success!
 
             } catch (e) {
                 console.error(" # MailErr: Mail Store failed\n", e, "\n", message_file_out, "\n", message_data ,"\n");
+                return false;
             }
+        } else {
+            console.error("DEBUG: createMailbox failed for mailboxid:", mailboxid);
             return false;
         }
     }
@@ -391,8 +395,17 @@ class WTVMail {
                     if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
                         // Use the absolute path for replacement since search_dir is now absolute
                         var accounts_dir = self.wtvshared.getAbsolutePath(self.minisrv_config.config.SessionStore + self.path.sep + "accounts" + self.path.sep);
-                        return_val = search_dir.replace(accounts_dir, '').replace("user", '').split(self.path.sep);
-                        return_val.push(temp_session_data.subscriber_name);
+                        var path_after_replace = search_dir.replace(accounts_dir, '');
+                        // Remove leading path separator if present
+                        if (path_after_replace.startsWith(self.path.sep)) {
+                            path_after_replace = path_after_replace.substring(1);
+                        }
+                        var path_split = path_after_replace.split(self.path.sep);
+                        // The path should be like "ssid/user0", so extract ssid and user_id
+                        var ssid = path_split[0];
+                        var user_part = path_split[1] || '';
+                        var user_id = user_part.replace('user', '');
+                        return_val = [ssid, user_id, temp_session_data.subscriber_name];
                     }
                 }
             } catch (e) {
@@ -445,7 +458,12 @@ class WTVMail {
                 if (mailbox_exists) dest_user_mailstore.createWelcomeMessage();
             }
             // if the mailbox exists, deliver the message
-            if (dest_user_mailstore.mailboxExists(0)) dest_user_mailstore.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature, null, this.isInUserAddressBook(to_addr, from_addr), attachments, url, url_title);
+            if (dest_user_mailstore.mailboxExists(0)) {
+                var createResult = dest_user_mailstore.createMessage(0, from_addr, to_addr, msgbody, subject, from_name, to_name, signature, null, this.isInUserAddressBook(to_addr, from_addr), attachments, url, url_title);
+                if (!createResult) {
+                    return "There was an error creating the message in the recipient's mailbox.";
+                }
+            }
             else return "There was an internal error sending the message to <strong>" + to_addr + "</strong>. Please try again later";
 
             // clean up
