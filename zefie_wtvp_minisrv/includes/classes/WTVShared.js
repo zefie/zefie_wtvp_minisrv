@@ -177,34 +177,6 @@ class WTVShared {
     }
 
     /**
-     * Gets the box name based on the client ROM type
-     * @param {string} client_rom_type The client ROM type
-     * @returns {string} The box name
-     */
-    getBoxName(client_rom_type) {
-        switch (client_rom_type) {
-            case "bf0app":
-            case "bfeapp":
-            case "US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230":
-            case "US-BPS-flashdisk-0MB-16MB-softmodem-CPU5230":
-                return "WebTV Internet Terminal";
-
-            case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
-            case "US-WEBSTAR-disk-0MB-8MB-softmodem-CPU5230":
-            case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
-                return "WebTV Satellite Receiver";
-            
-            case "US-LC2-disk-0MB-8MB":
-            case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
-            case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
-                return "WebTV Plus Internet Receiver";
-            
-            default:
-                return "WebTV Internet Receiver";
-        }
-    }
-
-    /**
      * Calculates the CRC of an SSID, WNI Style
      * @param {string} ssid
      * @returns {string} CRC8 result as hex string

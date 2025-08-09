@@ -46,8 +46,9 @@ data = `<html>
 		http-equiv=refresh 
 		content="0;url=client:Fetch?source=wtv-disk:/sync`;
 if (request_headers.query.diskmap) data += `%3fdiskmap%3d${request_headers.query.diskmap}`;
+if (request_headers.query.force) data += `%26force%3dtrue`
 if (!request_headers.query.group) data += `&root=file://Disk/Browser/`;
-else data += `&group=${request_headers.query.group}`;
+else data += `&group=${request_headers.query.group}`;;
 data += `&message=Retrieving Files..."
 	>
 	<display downloadsuccess="${success_url}" downloadfail="${fail_url}">
@@ -77,7 +78,7 @@ data += `&message=Retrieving Files..."
 		<td colspan=2>
 		<td>
 			<font size=+1>
-				Your ${wtvshared.getBoxName(session_data.get("wtv-client-rom-type"))} is retrieving some files.
+				Your ${session_data.getBoxName()} is retrieving some files.
 				<p>This usually takes a while.
 			</font>
 	<tr>

@@ -150,14 +150,9 @@ class WTVDownloadList {
      */
     get(file, path, source, group, checksum = null, uncompressed_size = null, original_filename = null, file_permission = 'r') {
         if (original_filename) {
-            file = file.split('/');
-            const file_name = file[file.length - 1];
-            path = path.replace(file_name, original_filename);
-            file.pop();
-            if (file.length > 0) file = file.join('/') + '/' + original_filename;
-            else file = original_filename;
+            path = path.replace(file, original_filename);
         }
-        this.download_list += `GET ${file}\n`;
+        this.download_list += `GET ${original_filename || file}\n`;
 
         source = source.replace(/\\/g, "/");
         this.download_list += `group: ${group}-UPDATE\n`;

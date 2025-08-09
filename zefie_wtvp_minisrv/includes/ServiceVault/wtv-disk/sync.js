@@ -65,7 +65,11 @@ if (request_headers['wtv-request-type'] == 'download') {
                     if (update_list[k].checksum_match && !force_update) return;
                     if (!update_list[k].invalid && !force_update) return;
                 }
-                wtvdl.delete(update_list[k].file.replace(diskmap_group_data.base, ""), diskmap_group_name);
+                delete_file = update_list[k].file.replace(diskmap_group_data.base, "")
+                if (!diskmap_group_data.files[k].dont_extract_filename) { 
+                    delete_file = delete_file.replace(".gz","");
+                }
+                wtvdl.delete(delete_file, diskmap_group_name);
             });
 
             Object.keys(update_list).forEach(function (k) {
@@ -228,11 +232,12 @@ if (request_headers['wtv-request-type'] == 'download') {
 
                 // we need the checksum of the uncompressed data
                 if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
+                    var diskmap_data_filename = path.basename(diskmap_data_file);
                     var gunzipped = zlib.gunzipSync(diskmap_file_data);
                     diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
                     var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
                     if (!diskmap_group_data.files[k].dont_extract_filename) {
-                        diskmap_group_data.files[k].original_filename = diskmap_file_data.toString('utf8', 10, gzip_fn_end);
+                        diskmap_group_data.files[k].original_filename = diskmap_group_data.files[k].file.replace(diskmap_group_data.base,"").replace(diskmap_data_filename, diskmap_file_data.toString('utf8', 10, gzip_fn_end));
                     }
                     diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
                     gunzipped = null;

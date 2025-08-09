@@ -2,6 +2,7 @@ var minisrv_service_file = true;
 
 headers = `200 OK
 Content-type: text/html
+wtv-expire-all: wtv-flashrom:
 minisrv-no-mail-count: true`
 
 if (socket.ssid && ssid_sessions[socket.ssid]) {
