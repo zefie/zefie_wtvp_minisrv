@@ -518,7 +518,8 @@ class WTVNews {
             var article_date = Date.parse(article.headers.DATE);
             message_roots_sorted.push({ "article": article, "relation": null, "date": article_date });
         });
-        message_roots_sorted.sort((a, b) => { return (a.date - b.date) });
+        // Sort root articles newest to oldest
+        message_roots_sorted.sort((a, b) => { return (b.date - a.date) });
         Object.keys(message_roots_sorted).forEach((k) => {
             sorted.push(message_roots_sorted[k]);
 
