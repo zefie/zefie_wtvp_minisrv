@@ -35,7 +35,7 @@ const req = https.request(options, function (res) {
 
 	res.on('error', function (e) {
 		if (!minisrv_config.config.debug_flags.quiet) console.log(" * Upstream Ultra Willies HTTP Error:", e);
-		var errpage = wtvshared.doErrorPage(400)
+		var errpage = wtvshared.doErrorPage(400, "A required service is not responding. Please try again in a few moments.");
 		headers = errpage[0];
 		data = errpage[1];
 		sendToClient(socket, headers, data);
@@ -48,5 +48,6 @@ const req = https.request(options, function (res) {
         }
 		sendToClient(socket, headers, data);
 	});
+
 });
 req.end();

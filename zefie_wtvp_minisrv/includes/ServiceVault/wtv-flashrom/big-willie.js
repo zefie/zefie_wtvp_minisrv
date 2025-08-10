@@ -21,7 +21,15 @@ var req = https.request(options, function(res) {
 		headers += "Content-Type: text/html";
 		sendToClient(socket,headers,data)
     });
-});
+
+	res.on('error', function (e) {
+		if (!minisrv_config.config.debug_flags.quiet) console.log(" * Upstream Big Willies HTTP Error:", e);
+		var errpage = wtvshared.doErrorPage(400)
+		headers = errpage[0];
+		data = errpage[1];
+		sendToClient(socket, headers, data);
+	});
+
 
 
 req.end();
