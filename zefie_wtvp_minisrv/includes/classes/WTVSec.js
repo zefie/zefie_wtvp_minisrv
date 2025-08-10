@@ -314,7 +314,7 @@ class WTVSec {
      * @param {CryptoJS.lib.WordArray|ArrayBuffer|Buffer} data Data to encrypt
      * @returns {ArrayBuffer} Encrypted data
      */
-    Encrypt(keynum, data, reverse = false) {
+    Encrypt(keynum, data) {
         let session_id;
         if (keynum === 0) {
             session_id = (reverse) ? 1 : 0;
@@ -345,8 +345,8 @@ class WTVSec {
      * @returns {ArrayBuffer} Decrypted data
      * @notice This function is an alias for Encrypt, as WTVSec uses the same method for both encryption and decryption.
      */
-    Decrypt(keynum, data, reverse = false) {
-        return this.Encrypt(keynum, data, reverse)
+    Decrypt(keynum, data) {
+        return this.Encrypt(keynum, data)
     }
 }
 
