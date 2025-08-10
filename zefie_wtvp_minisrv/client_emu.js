@@ -13,7 +13,7 @@ const zlib = require('zlib');
  * using the WTVP protocol with proper authentication and service discovery.
  */
 class WebTVClientSimulator {
-    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false) {
+    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false) {
         this.host = host;
         this.port = port;
         this.ssid = ssid;
@@ -24,6 +24,8 @@ class WebTVClientSimulator {
         this.useEncryption = useEncryption;
         this.encryptionEnabled = false;
         this.redirectCount = 0;
+        this.useTricksAccess = tricks;
+        this.tricksAccessUsed = false; // Track if we've used our "one last time" redirect
         this.userIdDetected = false;
         this.targetUrlFetched = false; // Prevent multiple target URL fetches
         this.services = new Map(); // Store service name -> {host, port} mappings
@@ -33,12 +35,14 @@ class WebTVClientSimulator {
         this.incarnation = 0; // Start at 0, will be incremented to 1 on first request
         this.lastHost = null; // Track last host for incarnation management
         this.currentSocket = null;
+        this.socketPool = new Map(); // Cache sockets by host:port
         this.challengeResponse = null;
         this.initial_key = null; // Store initial key from wtv-initial-key header
         this.hasSeenEncryptedResponse = false; // Track if we've seen an encrypted response
         this.previousUrl = null; // Store previous URL for Referer header
         this.debug = debug;
-        
+        this.connectSessionId = Math.random().toString(16).substr(2, 8).padEnd(8, '0');
+
         // Load minisrv config to get the initial shared key
         this.minisrv_config = this.wtvshared.readMiniSrvConfig(true, false);
         this.debugLog(`WebTV Client Simulator starting...`);
@@ -114,7 +118,7 @@ class WebTVClientSimulator {
     /**
      * Make a WTVP request to a service
      */
-    async makeRequest(serviceName, path, data = null, skipRedirects = false, post = false) {
+    async makeRequest(serviceName, path, data = null, skipRedirects = false) {
         return new Promise((resolve, reject) => {
             const currentUrl = `${serviceName}:${path}`;
             
@@ -134,12 +138,39 @@ class WebTVClientSimulator {
 
             this.debugLog(`\n--- Making request to ${serviceName}:${path} at ${targetHost}:${targetPort} ---`);
 
-            const socket = new net.Socket();
-            this.currentSocket = socket;
-            let responseData = Buffer.alloc(0);
+            const socketKey = `${targetHost}:${targetPort}`;
+            let socket = this.socketPool.get(socketKey);
+            let isNewConnection = false;
 
-            socket.connect(targetPort, targetHost, () => {
-                this.debugLog(`Connected to ${targetHost}:${targetPort}`);
+            // Check if we can reuse an existing socket
+            // For encrypted connections, always create a new socket to avoid encryption state issues
+            if (socket && !socket.destroyed && socket.readyState === 'open' && !socket._inUse && !this.encryptionEnabled) {
+                this.debugLog(`Reusing existing socket for ${socketKey}`);
+                this.currentSocket = socket;
+                socket._inUse = true; // Mark socket as in use
+            } else {
+                this.debugLog(`Creating new socket for ${socketKey}`);
+                socket = new net.Socket();
+                socket._inUse = true; // Mark socket as in use
+                this.socketPool.set(socketKey, socket);
+                this.currentSocket = socket;
+                isNewConnection = true;
+            }
+
+            let responseData = Buffer.alloc(0);
+            let requestSent = false;
+            let responseHandled = false;
+
+            const cleanupListeners = () => {
+                socket.removeListener('data', handleData);
+                socket.removeListener('close', handleClose);
+                socket.removeListener('error', handleError);
+                socket.removeListener('timeout', handleTimeout);
+            };
+
+            const sendRequest = () => {
+                if (requestSent) return;
+                requestSent = true;
                 
                 let requestData;
                 
@@ -163,16 +194,29 @@ class WebTVClientSimulator {
                     this.debugLog(requestData.toString());
                     socket.write(requestData);
                 }
-            });
+            };
 
-            socket.on('data', (chunk) => {
+            const handleData = (chunk) => {
                 responseData = Buffer.concat([responseData, chunk]);
-                this.debugLog(`Received chunk: ${chunk.length} bytes`);
+                this.debugLog(`Received chunk: ${chunk.length} bytes (total: ${responseData.length} bytes)`);
+
+                // Clear any existing timeout for LZPF completion detection
+                if (this.lzpfTimeoutId) {
+                    clearTimeout(this.lzpfTimeoutId);
+                    this.lzpfTimeoutId = null;
+                }
 
                 // Check if we have a complete response
                 if (this.encryptionEnabled) {
                     // For encrypted responses, we need to handle differently
-                    this.handleEncryptedResponse(responseData, resolve, reject);
+                    if (!responseHandled) {
+                        const result = this.handleEncryptedResponse(responseData, resolve, reject);
+                        if (result === true) { // If response was handled
+                            responseHandled = true;
+                            cleanupListeners();
+                            socket._inUse = false;
+                        }
+                    }
                 } else {
                     // Regular response handling
                     // Only check for header/body split, do not convert to string
@@ -181,39 +225,68 @@ class WebTVClientSimulator {
                     const lflf = Buffer.from('\n\n');
                     let idx = responseData.indexOf(crlfcrlf);
                     if (idx === -1) idx = responseData.indexOf(lflf);
-                    if (idx !== -1) {
+                    if (idx !== -1 && !responseHandled) {
+                        responseHandled = true;
                         this.debugLog('Complete response detected, processing...');
-                        this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl);
+                        cleanupListeners();
+                        socket._inUse = false;
+                        this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl, socket, socketKey);
                     }
                 }
-            });
+            };
 
-            socket.on('close', () => {
-                this.debugLog('Connection closed');
-                if (responseData.length > 0 && !this.encryptionEnabled) {
+            const handleClose = () => {
+                this.debugLog('Connection closed, removing from socket pool');
+                this.socketPool.delete(socketKey);
+                socket._inUse = false;
+                
+                if (responseData.length > 0 && !this.encryptionEnabled && !responseHandled) {
                     // Only process if not already processed
                     const crlfcrlf = Buffer.from('\r\n\r\n');
                     const lflf = Buffer.from('\n\n');
                     let idx = responseData.indexOf(crlfcrlf);
                     if (idx === -1) idx = responseData.indexOf(lflf);
                     if (idx === -1) {
+                        responseHandled = true;
                         this.debugLog('Processing incomplete response on close...');
-                        this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl);
+                        cleanupListeners();
+                        this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl, socket, socketKey);
                     }
                 } 
-            });
+            };
 
-            socket.on('error', (error) => {
+            const handleError = (error) => {
                 console.error('Socket error:', error);
+                this.socketPool.delete(socketKey);
+                socket._inUse = false;
+                cleanupListeners();
                 reject(error);
-            });
+            };
 
-            // Set timeout
-            socket.setTimeout(30000, () => {
+            const handleTimeout = () => {
                 console.error('Request timed out');
                 socket.destroy();
+                this.socketPool.delete(socketKey);
+                socket._inUse = false;
+                cleanupListeners();
                 reject(new Error('Request timeout'));
-            });
+            };
+
+            // Set up event listeners
+            socket.on('data', handleData);
+            socket.on('close', handleClose);
+            socket.on('error', handleError);
+            socket.setTimeout(30000, handleTimeout);
+
+            if (isNewConnection) {
+                socket.connect(targetPort, targetHost, () => {
+                    this.debugLog(`Connected to ${targetHost}:${targetPort}`);
+                    sendRequest();
+                });
+            } else {
+                // Socket is already connected, send request immediately
+                sendRequest();
+            }
         });
     }
 
@@ -240,8 +313,8 @@ class WebTVClientSimulator {
         request += `Accept-Language: en\r\n`;
         request += `wtv-incarnation: ${this.incarnation}\r\n`;
         // Generate a random 8 character (4 byte) hex code for wtv-connect-session-id
-        const connectSessionId = Math.random().toString(16).substr(2, 8).padEnd(8, '0');
-        request += `wtv-connect-session-id: ${connectSessionId}\r\n`
+       
+        request += `wtv-connect-session-id: ${this.connectSessionId}\r\n`
         // Add additional headers that real client sends (from PCAP analysis)
         request += `User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)\r\n`;
         request += `wtv-system-version: 7181\r\n`;
@@ -281,10 +354,6 @@ class WebTVClientSimulator {
      * Build a SECURE ON request (sent in plaintext to establish encryption)
      */
     buildSecureOnRequest() {
-        // Increment incarnation for encrypted session
-        this.incarnation++;
-        this.debugLog(`Using incarnation: ${this.incarnation}`);
-        
         // SECURE ON should match real WebTV client exactly - no URL, just the method
         let request = `SECURE ON\r\n`;
         request += `Accept-Language: en-US,en\r\n`;
@@ -304,7 +373,7 @@ class WebTVClientSimulator {
         request += `wtv-script-mod: ${Math.floor(Date.now() / 1000)}\r\n`;
         request += `wtv-incarnation:${this.incarnation}\r\n`;  // Note: no space after colon
         request += '\r\n';
-        
+        this.debugLog("Built SECURE ON request:", request);
         return Buffer.from(request, 'utf8');
     }
 
@@ -332,6 +401,7 @@ class WebTVClientSimulator {
         
         // Encrypt the request using RC4 with key 0 (server expects Decrypt(0, enc_data))
         try {
+            this.debugLog("encrypting request:", request);
             this.wtvsec.set_incarnation(this.incarnation); // Ensure WTVSec has the correct incarnation
             const encryptedBuffer = this.wtvsec.Encrypt(0, request);
             return Buffer.from(encryptedBuffer);
@@ -344,7 +414,7 @@ class WebTVClientSimulator {
     /**
      * Handle encrypted response data
      */
-    handleEncryptedResponse(responseData, resolve, reject) {
+    handleEncryptedResponse(responseData, resolve, reject, forceProcess = false) {
         try {
             // Find header/body split using CRLF CRLF (\r\n\r\n) or fallback to LF LF (\n\n)
             let idx = -1;
@@ -361,22 +431,16 @@ class WebTVClientSimulator {
             
             if (idx === -1) {
                 // Not a complete response yet
-                return;
+                return false;
             }
             
             // Split headers and body - headers are always plaintext
             const headerSection = responseData.slice(0, idx).toString('utf8');
             const bodyBuffer = responseData.slice(idx + sepLen);
             
-            this.debugLog('\nReceived encrypted response:');
-            this.debugLog('Headers:');
-            this.debugLog(headerSection);
-            
-            // Parse headers
+            // Parse headers first to check content-length
             const lines = headerSection.split(/\r?\n/);
             const statusLine = lines[0].replace('\r', '');
-
-            this.debugLog(`Status: ${statusLine}`);
 
             const headers = {};
             for (let i = 1; i < lines.length; i++) {
@@ -389,14 +453,58 @@ class WebTVClientSimulator {
                 }
             }
             
-            // Decrypt the body if we have encryption enabled and encrypted content
+            // Check if we have received the complete body based on content-length
+            const contentLength = headers['content-length'] ? parseInt(headers['content-length']) : 0;
+            
+            // Check if content is LZPF compressed (server sends wtv-lzpf: 0 header)
+            const isLZPFCompressed = headers['wtv-lzpf'] === '0';
+            const isThisResponseEncrypted = headers['wtv-encrypted'] === 'true';
+            
+            // For LZPF responses, we can't rely on content-length since it's the uncompressed size
+            if (isLZPFCompressed && bodyBuffer.length > 0 && !forceProcess) {
+                this.debugLog(`LZPF response detected with ${bodyBuffer.length} bytes (uncompressed size: ${contentLength})`);
+                // Process LZPF response after a short delay to collect all data
+                if (!this.lzpfTimeoutId) {
+                    this.lzpfTimeoutId = setTimeout(() => {
+                        this.debugLog(`LZPF timeout - processing response with ${bodyBuffer.length} bytes`);
+                        this.lzpfTimeoutId = null;
+                        // Force processing by calling again with forceProcess = true
+                        this.handleEncryptedResponse(responseData, resolve, reject, true);
+                    }, 100);
+                    return false;
+                }
+                // If timeout has expired, fall through to process the response
+                this.debugLog(`LZPF response ready - processing with ${bodyBuffer.length} bytes`);
+            }
+            
+            if (contentLength > 0 && bodyBuffer.length < contentLength && !isLZPFCompressed && !forceProcess) {
+                if (!isThisResponseEncrypted) {
+                    // For non-encrypted, non-LZPF responses, wait for exact content-length
+                    this.debugLog(`Waiting for more data: received ${bodyBuffer.length}/${contentLength} bytes`);
+                    return false;
+                } else {
+                    // For encrypted responses that are not LZPF, we need to be more conservative
+                    // Encrypted data size might not match content-length exactly
+                    this.debugLog(`Waiting for encrypted data: received ${bodyBuffer.length}/${contentLength} bytes`);
+                    return false;
+                }
+            }
+            
+            this.debugLog('\nReceived encrypted response:');
+            this.debugLog('Headers:');
+            this.debugLog(headerSection);
+            this.debugLog(`Status: ${statusLine}`);
+            this.debugLog(`Body buffer size: ${bodyBuffer.length} bytes`);
+            
+            // Decrypt the body if this specific response is marked as encrypted
             let body = Buffer.alloc(0);
-            if (bodyBuffer.length > 0 && headers['wtv-encrypted'] === 'true' && this.wtvsec) {
+            const isResponseEncrypted = headers['wtv-encrypted'] === 'true';
+            if (bodyBuffer.length > 0 && isResponseEncrypted && this.encryptionEnabled && this.wtvsec) {
                 try {
                     this.debugLog('Decrypting response body...');
                     const decryptedBuffer = this.wtvsec.Decrypt(1, bodyBuffer);
                     body = Buffer.from(decryptedBuffer);
-                    this.debugLog('Body decrypted successfully');
+                    this.debugLog(`Body decrypted successfully: ${body.length} bytes`);
                 } catch (error) {
                     console.error('Error decrypting response body:', error);
                     body = bodyBuffer;
@@ -416,20 +524,32 @@ class WebTVClientSimulator {
                 this.hasSeenEncryptedResponse = true;
             }
             
-            // Close current connection
-            if (this.currentSocket) {
-                this.currentSocket.destroy();
-                this.currentSocket = null;
+            // Don't close the current connection - keep it for reuse
+            // The socket will be managed by the socket pool
+            
+            // Check for redirects (Location header) 
+            if ((headers['Location'] || headers['location']) && statusLine.startsWith('302')) {
+                const redirectUrl = headers['Location'] || headers['location'];
+                this.debugLog(`Following redirect to: ${redirectUrl}`);
+                this.redirectCount++;
+                setTimeout(() => {
+                    this.followVisit(redirectUrl)
+                        .then(resolve)
+                        .catch(reject);
+                }, 100);
+                return true; // Redirect is being followed
             }
             
             resolve({ headers, body, status: statusLine });
+            return true; // Response was handled
             
         } catch (error) {
             console.error('Error processing encrypted response:', error);
             reject(error);
+            return true; // Error occurred, stop trying
         }
     }
-    handleResponse(responseData, resolve, reject, skipRedirects = false, currentUrl = null) {
+    handleResponse(responseData, resolve, reject, skipRedirects = false, currentUrl = null, socket = null, socketKey = null) {
         this.debugLog('\nReceived response:');
         this.debugLog(responseData);
         
@@ -486,16 +606,28 @@ class WebTVClientSimulator {
             // Decompress the body if needed
             bodyBuf = this.decompressBody(bodyBuf, headers);
 
-            this.debugLog("srv body:", bodyBuf.toString());
             // Mark that we've seen an encrypted response
             if (headers['wtv-encrypted'] === 'true') {
                 this.hasSeenEncryptedResponse = true;
             }
             
-            if (this.currentSocket) {
-                this.currentSocket.destroy();
-                this.currentSocket = null;
+            // Check if server wants to close connection
+            if (socket && socketKey) {
+                if (headers['connection'] && headers['connection'].toLowerCase() === 'close') {
+                    this.debugLog('Server requested connection close, removing socket from pool');
+                    this.socketPool.delete(socketKey);
+                    socket.destroy();
+                } else if (headers['connection'] && headers['connection'].toLowerCase() === 'keep-alive') {
+                    this.debugLog('Server supports keep-alive, keeping socket in pool');
+                    // Keep socket in pool for reuse
+                } else {
+                    // Default behavior - close connection if no explicit keep-alive
+                    this.debugLog('No explicit keep-alive, removing socket from pool');
+                    this.socketPool.delete(socketKey);
+                    socket.destroy();
+                }
             }
+            
             if (this.userIdDetected && !this.targetUrlFetched) {
                 this.targetUrlFetched = true;
                 this.debugLog(`\n*** Authentication complete! Now fetching target URL: ${this.url} ***`);
@@ -506,16 +638,28 @@ class WebTVClientSimulator {
                 }, 100);
                 return;
             }
-            if (headers['wtv-visit'] && !skipRedirects) {
+            if ((headers['wtv-visit'] || headers['Location']) && !skipRedirects) {
                 if (this.redirectCount >= this.maxRedirects) {
-                    this.debugLog(`Maximum redirects (${this.maxRedirects}) reached, stopping`);
-                    resolve({ headers, body: bodyBuf, status: statusLine, stopped: true });
-                    return;
+                    // Check if we can use tricks access for one last redirect
+                    if (this.useTricksAccess && !this.tricksAccessUsed) {
+                        this.debugLog(`Maximum redirects (${this.maxRedirects}) reached, but using tricks access for one last redirect`);
+                        this.tricksAccessUsed = true;
+                        this.redirectCount++;
+                        setTimeout(() => {
+                            this.followVisit(headers['wtv-visit'] || headers['Location'])
+                                .then(resolve)
+                                .catch(reject);
+                        }, 100);
+                        return;
+                    } else {
+                        this.debugLog(`Maximum redirects (${this.maxRedirects}) reached, stopping`);
+                        resolve({ headers, body: bodyBuf, status: statusLine, stopped: true });
+                        return;
+                    }
                 }
                 this.redirectCount++;
-                this.debugLog(`Following wtv-visit (${this.redirectCount}/${this.maxRedirects}): ${headers['wtv-visit']}`);
                 setTimeout(() => {
-                    this.followVisit(headers['wtv-visit'])
+                    this.followVisit(headers['wtv-visit'] || headers['Location'])
                         .then(resolve)
                         .catch(reject);
                 }, 100);
@@ -528,7 +672,20 @@ class WebTVClientSimulator {
                 }, 100);
             } else {
                 if (skipRedirects && headers['wtv-visit']) {
-                    this.debugLog(`Skipping wtv-visit redirect: ${headers['wtv-visit']}`);
+                    // Check if we can use tricks access for one last redirect
+                    if (this.useTricksAccess && !this.tricksAccessUsed) {
+                        this.debugLog(`Would skip wtv-visit redirect, but using tricks access for one last redirect: ${headers['wtv-visit']}`);
+                        this.tricksAccessUsed = true;
+                        this.redirectCount++;
+                        setTimeout(() => {
+                            this.followVisit(headers['wtv-visit'])
+                                .then(resolve)
+                                .catch(reject);
+                        }, 100);
+                        return;
+                    } else {
+                        this.debugLog(`Skipping wtv-visit redirect: ${headers['wtv-visit']}`);
+                    }
                 } else {
                     this.debugLog('No wtv-visit header found, resolving...');
                 }
@@ -675,7 +832,10 @@ class WebTVClientSimulator {
      */
     async fetchTargetUrl() {
         console.log(`Fetching target URL: ${this.url}`);
-
+        if (this.useTricksAccess) {
+            this.debugLog('Using tricks access for target URL');
+            this.url = `wtv-tricks:/access?url=${encodeURIComponent(this.url)}`;
+        }
         // Parse the target URL
         const match = this.url.match(/^([\w-]+):\/?(.*)/);
         if (match) {
@@ -684,7 +844,8 @@ class WebTVClientSimulator {
             this.debugLog(`Parsed target service: ${serviceName}, path: ${path}`);
 
             try {
-                const result = await this.makeRequest(serviceName, path, null, true); // Skip redirects for target URL
+                const result = await this.makeRequest(serviceName, path, null, false);
+
                 
                 // Handle the response
                 if (result.body) {
@@ -762,10 +923,9 @@ class WebTVClientSimulator {
             // Decompress the body if needed
             bodyBuf = this.decompressBody(bodyBuf, headers);
             
-            if (this.currentSocket) {
-                this.currentSocket.destroy();
-                this.currentSocket = null;
-            }
+            // Don't close the current connection - keep it for reuse
+            // The socket will be managed by the socket pool
+            
             resolve({ headers, body: bodyBuf, status: statusLine });
         } catch (error) {
             console.error('Error processing content response:', error);
@@ -790,7 +950,16 @@ class WebTVClientSimulator {
      * Clean up resources
      */
     cleanup() {
-        if (this.currentSocket) {
+        // Close all pooled sockets
+        for (const [key, socket] of this.socketPool) {
+            if (socket && !socket.destroyed) {
+                this.debugLog(`Closing pooled socket: ${key}`);
+                socket.destroy();
+            }
+        }
+        this.socketPool.clear();
+        
+        if (this.currentSocket && !this.currentSocket.destroyed) {
             this.currentSocket.destroy();
         }
     }
@@ -848,6 +1017,9 @@ function parseArgs() {
             case '--download':
                 config.request_type_download = true;
                 break;
+            case '--tricks':
+                config.useTricksAccess = true;
+                break;
             case '--encryption':
                 config.useEncryption = true;
                 break;
@@ -867,8 +1039,9 @@ Options:
   --url <url>             Target URL to fetch after authentication (default: wtv-home:/home)
   --file <filename>       Save response body to file instead of echoing to CLI
   --max-redirects <num>   Maximum number of wtv-visit redirects (default: 10)
-  --download              Enable 'wtv-request-type: download' for diskmap testing)
+  --download              Enable 'wtv-request-type: download' for diskmap testing
   --encryption            Enable RC4 encryption after authentication
+  --tricks-access         Enable tricks access for the target URL
   --debug                 Enable debug logging
   --help                  Show this help message
 
@@ -887,7 +1060,7 @@ Example:
  */
 async function main() {
     const config = parseArgs();
-    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug);
+    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess);
     
     // Handle graceful shutdown
     process.on('SIGINT', () => {
