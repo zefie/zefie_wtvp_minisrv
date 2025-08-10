@@ -317,9 +317,9 @@ class WTVSec {
     Encrypt(keynum, data) {
         let session_id;
         if (keynum === 0) {
-            session_id = (reverse) ? 1 : 0;
+            session_id = 0;
         } else if (keynum === 1) {
-            session_id = (reverse) ? 3 : 2;
+            session_id = 2;
         } else {
             throw new Error("Invalid key option (0 or 1 only)");
         }
