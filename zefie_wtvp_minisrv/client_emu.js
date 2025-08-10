@@ -190,12 +190,9 @@ class WebTVClientSimulator {
                     if (idx === -1) idx = responseData.indexOf(lflf);
                     if (idx === -1) {
                         this.debugLog('Processing incomplete response on close...');
-                        //this.handleResponse(responseData, resolve, reject, skipRedirects);
+                        this.handleResponse(responseData, resolve, reject, skipRedirects);
                     }
-                } else if (responseData.length > 0 && this.encryptionEnabled) {
-                    this.debugLog('Processing encrypted response on close...');
-                    //this.handleEncryptedResponse(responseData, resolve, reject);
-                }
+                } 
             });
 
             socket.on('error', (error) => {
