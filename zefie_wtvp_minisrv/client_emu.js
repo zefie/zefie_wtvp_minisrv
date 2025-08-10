@@ -4,6 +4,7 @@ require(classPath + "Prototypes.js");
 const WTVSec = require(classPath + "WTVSec.js");
 const WTVShared = require(classPath + "/WTVShared.js")['WTVShared'];
 const LZPF = require(classPath + "/LZPF.js");
+const WTVMime = require(classPath + "/WTVMime.js");
 
 const net = require('net');
 const crypto = require('crypto');
@@ -18,7 +19,7 @@ const AdmZip = require('adm-zip');
  * using the WTVP protocol with proper authentication and service discovery.
  */
 class WebTVClientSimulator {
-    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5) {
+    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5, requestDelay = 250, boxType = null, username = null) {
         this.host = host;
         this.port = port;
         this.ssid = ssid;
@@ -29,7 +30,9 @@ class WebTVClientSimulator {
         this.followAll = followAll;
         this.maxDepth = maxDepth;
         this.maxRetries = maxRetries;
+        this.requestDelay = requestDelay;
         this.currentDepth = 0;
+        this.authenticated = false;
         this.downloadedUrls = new Set(); // Track what we've already downloaded
         this.pendingDownloads = []; // Queue of {url, referrer} objects to download
         this.allContent = new Map(); // Store all downloaded content
@@ -55,7 +58,9 @@ class WebTVClientSimulator {
         this.hasSeenEncryptedResponse = false; // Track if we've seen an encrypted response
         this.previousUrl = null; // Store previous URL for Referer header
         this.debug = debug;
+        this.defaultBox = "plus";
         this.connectSessionId = Math.random().toString(16).substr(2, 8).padEnd(8, '0');
+        this.username = username;
 
         // Load minisrv config to get the initial shared key
         this.minisrv_config = this.wtvshared.readMiniSrvConfig(true, false);
@@ -67,6 +72,122 @@ class WebTVClientSimulator {
         if (outputFile) {
             this.debugLog(`Output file: ${outputFile}`);
         }
+
+        this.boxConfigs = {
+            "classic": [
+                "wtv-system-version: 1235",
+                "wtv-capability-flags: 1009c93bef",
+                "wtv-client-bootrom-version: 105",
+                "wtv-client-rom-type: bf0app",
+                "wtv-system-chipversion: 16842752",
+                "User-Agent: Mozilla/4.0 WebTV/1.4.2 (compatible; MSIE 3.0)",
+                "wtv-system-cpuspeed: 112790760",
+                "wtv-system-sysconfig: 736935823"
+            ],
+            "plus": [
+                "wtv-system-version: 7181",
+                "wtv-capability-flags: 10935ffc8f",
+                "wtv-client-bootrom-version: 2046",
+                "wtv-client-rom-type: US-LC2-disk-0MB-8MB",
+                "wtv-system-chipversion: 51511296",
+                "User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed: 166187148",
+                "wtv-system-sysconfig: 4163328",
+                "wtv-disk-size: 8006"
+            ],
+            "derby": [
+                "wtv-system-version: 7253",
+                "wtv-capability-flags: f1d9bdfefef",
+                "wtv-client-bootrom-version: 2243",
+                "wtv-client-rom-type: US-LC2-disk-0MB-8MB-softmodem-CPU5230",
+                "wtv-system-chipversion: 53608448",
+                "User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed: 166164434",
+                "wtv-system-sysconfig: 3115520",
+                "wtv-disk-size: 8006"
+            ],
+            "echostar": [
+                "wtv-system-version: 17015",
+                "wtv-capability-flags: 21816935fec8f",
+                "wtv-client-rom-type: US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230",
+                "wtv-client-bootrom-version: 2524",
+                "wtv-system-chipversion: 53608448",
+                "wtv-system-sysconfig: 3130128",
+                "wtv-system-cpuspeed: 166164662",
+                "User-Agent: Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)"
+            ],
+            "newclassic": [
+                "wtv-system-version: 5792",
+                "wtv-capability-flags: 5499dbafef",
+                "wtv-client-bootrom-version: 2525",
+                "wtv-client-rom-type: US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230",
+                "wtv-system-chipversion: 84017152",
+                "User-Agent: Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed: 148141518",
+                "wtv-system-sysconfig: 3133702",
+                "wtv-disk-size: 3990"
+            ],
+            "newplus": [
+                "wtv-system-version: 5792",
+                "wtv-capability-flags: 5c9bdfefef",
+                "wtv-client-bootrom-version: 2525",
+                "wtv-client-rom-type: US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230",
+                "wtv-system-chipversion: 53608448",
+                "User-Agent: Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed: 166330740",
+                "wtv-system-sysconfig: 3116068",
+                "wtv-disk-size: 8006"
+            ],
+            "ultimatetv": [
+                "wtv-system-version: 28220",
+                "wtv-capability-flags: 6f217b935dec8e",
+                "wtv-client-bootrom-version: 2545",
+                "wtv-client-rom-type: US-DTV-disk-0MB-32MB-softmodem-CPU5230",
+                "wtv-system-chipversion: 0x04120000",
+                "User-Agent: Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed: 249088032",
+                "wtv-system-sysconfig: 0x034dea33",
+                "wtv-disk-size: 156330720"
+            ],
+            "dreamcast": [
+                "wtv-system-version: 5254",
+                "wtv-capability-flags: 19d4928cf",
+                "wtv-client-bootrom-version: 5254",
+                "wtv-client-rom-type: JP-Fiji",
+                "User-Agent: Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)"
+            ]
+        };
+
+        this.defaultBoxConfig = this.boxConfigs[this.defaultBox];
+        this.boxType = this.boxConfigs[boxType] || this.defaultBoxConfig;
+    }
+
+    getBoxConfig(box) {
+        // Aliases
+        switch (box) {
+            case "bf0":
+            case "bf0app":
+                return this.boxConfigs["classic"];
+            case "webstar":
+            case "dishplayer":
+                return this.boxConfigs["echostar"];
+            case "lc2":
+            case "lucy":
+                return this.boxConfigs["plus"];
+            case "lc2.5":
+                return this.boxConfigs["newplus"];
+            case "utv":
+                return this.boxConfigs["ultimatetv"];
+            case "dc":
+                return this.boxConfigs["dreamcast"];
+        }
+        return this.boxConfigs[box] || this.defaultBoxConfig;
+    }
+
+    getBoxHeaders(box) {
+        const config = this.getBoxConfig(box);
+        console.log(config);
+        return config.join("\r\n")+"\r\n";
     }
 
     debugLog(...args) {
@@ -140,9 +261,15 @@ class WebTVClientSimulator {
     /**
      * Make a WTVP request to a service
      */
-    async makeRequest(serviceName, path, data = null, skipRedirects = false) {
+    async makeRequest(serviceName, path, data = null, skipRedirects = false, referrerUrl = null) {
         return new Promise((resolve, reject) => {
             const currentUrl = `${serviceName}:${path}`;
+            
+            // Prevent requests to client: URLs
+            if (serviceName.startsWith('client')) {
+                this.debugLog(`Blocking request to client: URL: ${currentUrl}`);                
+                return;
+            }
             
             // Increment incarnation for each new request (like real WebTV client)
             this.incarnation++;
@@ -196,9 +323,10 @@ class WebTVClientSimulator {
                 
                 let requestData;
                 
-                if (this.encryptionEnabled && this.wtvsec) {
+                if (this.encryptionEnabled && this.wtvsec && this.authenticated) {
                     // For encrypted requests, first send SECURE ON, then immediately send the encrypted request
                     // This matches the real WebTV client behavior seen in packet captures
+                    // Only send SECURE ON after successful authentication
                     this.debugLog('Sending SECURE ON request...');
                     const secureOnBuffer = this.buildSecureOnRequest();
                     socket.write(secureOnBuffer);
@@ -206,12 +334,12 @@ class WebTVClientSimulator {
                     // Send encrypted request immediately after (as seen in pcap analysis)
                     setImmediate(() => {
                         this.debugLog('Sending encrypted request...');
-                        const encryptedRequestData = this.buildEncryptedRequest(serviceName, path, data);
+                        const encryptedRequestData = this.buildEncryptedRequest(serviceName, path, data, referrerUrl);
                         socket.write(encryptedRequestData);
                     });
                 } else {
                     // Send regular request
-                    requestData = this.buildRegularRequest(serviceName, path, data);
+                    requestData = this.buildRegularRequest(serviceName, path, data, referrerUrl);
                     this.debugLog('Sending request:');
                     this.debugLog(requestData.toString());
                     socket.write(requestData);
@@ -315,23 +443,19 @@ class WebTVClientSimulator {
     /**
      * Build a regular (unencrypted) WTVP request
      */
-    buildRegularRequest(serviceName, path, data = null) {
+    buildRegularRequest(serviceName, path, data = null, referrerUrl = null) {
         const method = data ? 'POST' : 'GET';
         let request = `${method} ${serviceName}:${path}\r\n`;
         
-        // Add Referer header if we have a previous URL
-        if (this.previousUrl) {
-            request += `Referer: ${this.previousUrl}\r\n`;
+        // Add Referer header - prefer explicit referrerUrl, fallback to previousUrl
+        const refererToUse = referrerUrl || this.previousUrl;
+        if (refererToUse) {
+            request += `Referer: ${refererToUse}\r\n`;
         }
         
         // Add required headers (matching real WebTV client from PCAP)
         request += `wtv-request-type: ${((this.request_type_download) ? 'download' : 'primary')}\r\n`;
         request += `wtv-client-serial-number: ${this.ssid}\r\n`;
-        request += `wtv-client-bootrom-version: 2046\r\n`;
-        request += `wtv-client-rom-type: US-LC2-disk-0MB-8MB\r\n`;
-        request += `wtv-system-cpuspeed: 166187148\r\n`;
-        request += `wtv-system-sysconfig: 4163328\r\n`;
-        request += `wtv-disk-size: 8006\r\n`;
         request += `Accept-Language: en\r\n`;
         request += `wtv-incarnation: ${this.incarnation}\r\n`;
         // Generate a random 8 character (4 byte) hex code for wtv-connect-session-id
@@ -339,12 +463,10 @@ class WebTVClientSimulator {
         request += `wtv-connect-session-id: ${this.connectSessionId}\r\n`
         // Add additional headers that real client sends (from PCAP analysis)
         request += `User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)\r\n`;
-        request += `wtv-system-version: 7181\r\n`;
-        request += `wtv-capability-flags: 10935ffc8f\r\n`;
-        request += `wtv-system-chipversion: 51511296\r\n`;
         if (this.useEncryption) request += `wtv-encryption: true\r\n`;
         if (!this.challengeResponse) request += `wtv-script-id: -1896417432\r\n`;
         if (!this.challengeResponse) request += `wtv-script-mod: 1754789923\r\n`;
+        request += this.getBoxHeaders(this.boxType);
         request += `wtv-client-address: 0.0.0.0\r\n`;
 
         // Add challenge response if we have one
@@ -384,12 +506,7 @@ class WebTVClientSimulator {
         }
         request += `wtv-connect-session-id: ${Math.random().toString(16).substr(2, 8)}\r\n`;
         request += `wtv-client-serial-number: ${this.ssid}\r\n`;
-        request += `wtv-system-version: 7181\r\n`;
-        request += `wtv-capability-flags: 10935ffc8f\r\n`;
-        request += `wtv-client-bootrom-version: 2046\r\n`;
-        request += `wtv-client-rom-type: US-LC2-disk-0MB-8MB\r\n`;
-        request += `wtv-system-chipversion: 51511296\r\n`;
-        request += `User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)\r\n`;
+        request += this.getBoxHeaders(this.boxType);
         request += `wtv-encryption: true\r\n`;
         request += `wtv-script-id: -154276969\r\n`;
         request += `wtv-script-mod: ${Math.floor(Date.now() / 1000)}\r\n`;
@@ -402,13 +519,14 @@ class WebTVClientSimulator {
     /**
      * Build an encrypted WTVP request
      */
-    buildEncryptedRequest(serviceName, path, data = null) {
+    buildEncryptedRequest(serviceName, path, data = null, referrerUrl = null) {
         const method = data ? 'POST' : 'GET';
         let request = `${method} ${serviceName}:${path}\r\n`;
 
-        // Add Referer header if we have a previous URL
-        if (this.previousUrl) {
-            request += `Referer: ${this.previousUrl}\r\n`;
+        // Add Referer header - prefer explicit referrerUrl, fallback to previousUrl
+        const refererToUse = referrerUrl || this.previousUrl;
+        if (refererToUse) {
+            request += `Referer: ${refererToUse}\r\n`;
         }
         // For encrypted requests, only include the minimal necessary headers
         // The SECURE ON already sent the auth and session info
@@ -572,7 +690,7 @@ class WebTVClientSimulator {
                     this.followVisit(redirectUrl)
                         .then(resolve)
                         .catch(reject);
-                }, 100);
+                }, this.requestDelay);
                 return true; // Redirect is being followed
             }
             
@@ -639,8 +757,58 @@ class WebTVClientSimulator {
             }
             this.processHeaders(headers);
             this.debugLog("srv headers:", headers);
-            // Decompress the body if needed
-            bodyBuf = this.decompressBody(bodyBuf, headers);
+
+            // Special handler for wtv-head-waiter:/login-stage-two
+            if (currentUrl && currentUrl.startsWith('wtv-head-waiter:/login-stage-two')) {
+                const contentLength = headers['content-length'];
+                if (contentLength && parseInt(contentLength) > 0) {
+                    this.debugLog('Special handling for wtv-head-waiter:/login-stage-two with content-length > 0');
+                    this.debugLog(`Content-Length: ${contentLength}`);
+
+                    // Decrypt the content if we have encryption enabled
+                    if (this.wtvsec && bodyBuf.length > 0) {
+                        try {
+                            this.debugLog('Decrypting login-stage-two content...');
+                            this.wtvsec.set_incarnation(this.incarnation); // Ensure WTVSec has the correct incarnation
+                            const decryptedBuffer = this.wtvsec.Decrypt(1, bodyBuf);
+                            bodyBuf = Buffer.from(decryptedBuffer);
+                            this.debugLog(`Content decrypted successfully: ${bodyBuf.length} bytes`);
+                            
+                            // Re-decompress after decryption in case it was compressed
+                            bodyBuf = this.decompressBody(bodyBuf, headers);
+                            this.debugLog(`Final content after decrypt+decompress: ${bodyBuf.length} bytes`);
+                        } catch (error) {
+                            console.error('Error decrypting login-stage-two content:', error);
+                        }
+                    }
+                    
+                    // Parse the HTML to extract usernames and their href links
+                    if (bodyBuf.length > 0) {
+                        const parseResult = this.parseLoginStageTwoHTML(bodyBuf);
+                        
+                        if (parseResult.selectedUser) {
+                            // User was specified and found, automatically follow their link
+                            this.debugLog(`Following link for user: ${parseResult.selectedUser.username}`);
+                            setTimeout(() => {
+                                this.followVisit(parseResult.selectedUser.href)
+                                    .then(resolve)
+                                    .catch(reject);
+                            }, this.requestDelay);
+                            return; // Exit early to follow the user's link
+                        }
+                        
+                        // If we get here, either no username was specified or there was an error
+                        // The parseLoginStageTwoHTML method already handles displaying users and exiting
+                    }
+                }
+            } else {
+                if (this.encryptionEnabled && bodyBuf.length > 0) {
+                    this.debugLog('Decrypting response body...');
+                    bodyBuf = this.wtvsec.Decrypt(1, bodyBuf);
+                }
+               // Decompress the body if needed
+               bodyBuf = this.decompressBody(bodyBuf, headers);
+            }
 
             // Mark that we've seen an encrypted response
             if (headers['wtv-encrypted'] === 'true') {
@@ -676,10 +844,10 @@ class WebTVClientSimulator {
                     this.fetchTargetUrl()
                         .then(resolve)
                         .catch(reject);
-                }, 100);
+                }, this.requestDelay);
                 return;
             }
-            if ((headers['wtv-visit'] || headers['Location']) && !skipRedirects) {
+            if ((headers['wtv-visit'] || headers['location']) && !skipRedirects) {
                 if (this.redirectCount >= this.maxRedirects) {
                     // Check if we can use tricks access for one last redirect
                     if (this.useTricksAccess && !this.tricksAccessUsed) {
@@ -687,10 +855,10 @@ class WebTVClientSimulator {
                         this.tricksAccessUsed = true;
                         this.redirectCount++;
                         setTimeout(() => {
-                            this.followVisit(headers['wtv-visit'] || headers['Location'])
+                            this.followVisit(headers['wtv-visit'] || headers['location'])
                                 .then(resolve)
                                 .catch(reject);
-                        }, 100);
+                        }, this.requestDelay);
                         return;
                     } else {
                         this.debugLog(`Maximum redirects (${this.maxRedirects}) reached, stopping`);
@@ -700,17 +868,17 @@ class WebTVClientSimulator {
                 }
                 this.redirectCount++;
                 setTimeout(() => {
-                    this.followVisit(headers['wtv-visit'] || headers['Location'])
+                    this.followVisit(headers['wtv-visit'] || headers['location'])
                         .then(resolve)
                         .catch(reject);
-                }, 100);
+                }, this.requestDelay);
             } else if (headers['wtv-phone-log-url'] && headers['wtv-phone-log-url'].includes("post")) {
                 this.debugLog(`Following wtv-phone-log-url: ${headers['wtv-phone-log-url']}`);
                 setTimeout(() => {
                     this.followVisit(headers['wtv-phone-log-url'], true)
                         .then(resolve)
                         .catch(reject);
-                }, 100);
+                }, this.requestDelay);
             } else {
                 if (skipRedirects && headers['wtv-visit']) {
                     // Check if we can use tricks access for one last redirect
@@ -722,13 +890,15 @@ class WebTVClientSimulator {
                             this.followVisit(headers['wtv-visit'])
                                 .then(resolve)
                                 .catch(reject);
-                        }, 100);
+                        }, this.requestDelay);
                         return;
                     } else {
                         this.debugLog(`Skipping wtv-visit redirect: ${headers['wtv-visit']}`);
                     }
                 } else {
                     this.debugLog('No wtv-visit header found, resolving...');
+                    this.cleanup();
+                    process.exit(0);
                 }
                 resolve({ headers, body: bodyBuf, status: statusLine });
             }
@@ -803,19 +973,67 @@ class WebTVClientSimulator {
                     this.incarnation = parseInt(headers["wtv-incarnation"]);
                 }
                 
-                // Use the server's initial key for challenge processing
-                const keyToUse = this.initial_key ? CryptoJS.enc.Base64.parse(this.initial_key) : this.wtvsec.current_shared_key;
+                // Use the appropriate key for challenge processing
+                // For subsequent challenges (like during user login), use the current shared key
+                // For the first challenge, use the initial key if provided
+                let keyToUse = this.wtvsec.current_shared_key || this.initial_key
+
                 this.debugLog(`Using key for challenge: ${keyToUse.toString(CryptoJS.enc.Base64)}`);
+                this.wtvsec.set_incarnation(this.incarnation);
+                this.debugLog(`Using incarnation for challenge: ${this.wtvsec.incarnation}`);
 
                 const challengeResponse = this.wtvsec.ProcessChallenge(headers['wtv-challenge'], keyToUse);
+                
                 if (challengeResponse && challengeResponse.toString(CryptoJS.enc.Base64)) {
                     this.debugLog('Challenge processed successfully, preparing response');
                     this.debugLog(`Challenge response: ${challengeResponse.toString(CryptoJS.enc.Base64)}`);
                     // We'll send the challenge response in the next request
                     this.challengeResponse = challengeResponse.toString(CryptoJS.enc.Base64);
                     this.debugLog('Setting wtv-challenge-response header for next request');
+                    
+                    // Enable encryption preparation if requested (but don't enable encrypted communication yet)
+                    if (this.useEncryption) {
+                        this.debugLog('*** Encryption requested - preparing encryption after challenge processing ***');
+                        this.wtvsec.SecureOn(); // Initialize RC4 sessions
+                        // Note: this.encryptionEnabled will be set to true only after authentication
+                    }
                 } else {
                     console.error('Failed to process challenge - no response generated');
+                    this.debugLog('Challenge processing failed, attempting with different key...');
+                    
+                    // Try with a different key if the first attempt failed
+                    try {
+                        let alternativeKey;
+                        if (this.challengeResponse && this.initial_key) {
+                            // Try with initial key if we used current shared key
+                            alternativeKey = CryptoJS.enc.Base64.parse(this.initial_key);
+                            this.debugLog('Retrying challenge with initial key');
+                        } else if (!this.challengeResponse && this.wtvsec.current_shared_key) {
+                            // Try with current shared key if we used initial key
+                            alternativeKey = this.wtvsec.current_shared_key;
+                            this.debugLog('Retrying challenge with current shared key');
+                        }
+                        
+                        if (alternativeKey) {
+                            this.debugLog(`Retry key: ${alternativeKey.toString(CryptoJS.enc.Base64)}`);
+                            const retryResponse = this.wtvsec.ProcessChallenge(headers['wtv-challenge'], alternativeKey);
+                            if (retryResponse && retryResponse.toString(CryptoJS.enc.Base64)) {
+                                this.debugLog('Challenge retry successful!');
+                                this.challengeResponse = retryResponse.toString(CryptoJS.enc.Base64);
+                                this.debugLog('Setting wtv-challenge-response header for next request');
+                                
+                                // Enable encryption preparation if requested
+                                if (this.useEncryption) {
+                                    this.debugLog('*** Encryption requested - preparing encryption after challenge retry ***');
+                                    this.wtvsec.SecureOn(); // Initialize RC4 sessions
+                                }
+                            } else {
+                                console.error('Challenge retry also failed');
+                            }
+                        }
+                    } catch (retryError) {
+                        console.error('Challenge retry failed:', retryError.message);
+                    }
                 }
             } catch (error) {
                 console.error('Error processing challenge:', error.message);
@@ -834,18 +1052,18 @@ class WebTVClientSimulator {
             this.debugLog(`*** Authentication successful! user-id detected: ${headers['user-id']} ***`);
             this.userIdDetected = true;
             
-            // Enable encryption if requested and we have WTVSec
-            if (this.useEncryption) {
-                this.debugLog('*** Enabling encryption after successful authentication ***');
-                if (!this.wtvsec) {
-                    // Initialize with current incarnation (which was incremented when we got wtv-encrypted: true)
-                    this.wtvsec = new WTVSec(this.minisrv_config, this.incarnation);
-                }
-
+            // Enable encrypted communication if requested and we have WTVSec
+            if (this.useEncryption && this.wtvsec) {
+                this.debugLog('*** Enabling encrypted communication after successful authentication ***');
+                this.encryptionEnabled = true;
+            } else if (this.useEncryption && !this.wtvsec) {
+                this.debugLog('*** Encryption requested but no WTVSec instance - initializing ***');
+                // Initialize with current incarnation
+                this.wtvsec = new WTVSec(this.minisrv_config, this.incarnation);
                 this.wtvsec.SecureOn(); // Initialize RC4 sessions
-             
                 this.encryptionEnabled = true;
             }            
+            this.authenticated = true;
             return; // Stop processing other headers since we're authenticated
         }
     }
@@ -892,6 +1110,11 @@ class WebTVClientSimulator {
                 if (result.body) {
                     this.debugLog('\n*** Target URL Response Body ***');
                     if (this.outputFile) {
+                        // Check if target URL returned a download-list and --follow is enabled
+                        const contentType = result.headers['content-type'] || '';
+                        const normalizedContentType = contentType.toLowerCase().split(';')[0].trim();
+                        const isDownloadList = normalizedContentType === 'wtv/download-list';
+                        
                         if (this.followAll) {
                             // Store the main content first
                             this.storeContent(this.url, result);
@@ -901,6 +1124,9 @@ class WebTVClientSimulator {
                             
                             // Create comprehensive archive
                             await this.createComprehensiveArchive();
+                        } else if (this.followImages && isDownloadList) {
+                            this.debugLog('Target URL returned download-list content with --follow enabled, creating archive...');
+                            await this.createDownloadListArchive(result.body, result.headers);
                         } else if (this.followImages) {
                             await this.saveToFile(result.body, result.headers);
                         } else {
@@ -1054,7 +1280,7 @@ class WebTVClientSimulator {
         const downloadedImages = new Set();
         for (const imageUrl of imageUrls) {
             try {
-                const imageResult = await this.downloadImage(imageUrl);
+                const imageResult = await this.downloadImage(imageUrl, this.url);
                 if (imageResult && imageResult.body && !downloadedImages.has(imageUrl)) {
                     const imagePath = this.getServicePath(imageUrl, imageResult.headers || {});
                     zip.addFile(imagePath, imageResult.body);
@@ -1124,7 +1350,7 @@ class WebTVClientSimulator {
                 }
                 
                 // Small delay to avoid overwhelming the server
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, this.requestDelay));
             } catch (error) {
                 console.warn(`Failed to download referenced file ${fileUrl}: ${error.message}`);
             }
@@ -1211,7 +1437,7 @@ class WebTVClientSimulator {
     /**
      * Download an image from a WebTV service URL
      */
-    async downloadImage(imageUrl) {
+    async downloadImage(imageUrl, referrerUrl = null) {
         this.debugLog(`Downloading image: ${imageUrl}`);
         
         try {
@@ -1225,7 +1451,7 @@ class WebTVClientSimulator {
             const path = '/' + (match[2] || '');
             
             // Make request to download the image
-            const result = await this.makeRequestWithRetry(serviceName, path, null, true); // Skip redirects for images
+            const result = await this.makeRequestWithRetry(serviceName, path, null, true, referrerUrl); // Skip redirects for images
             
             if (result.body && result.body.length > 0) {
                 this.debugLog(`Downloaded image: ${imageUrl} (${result.body.length} bytes)`);
@@ -1258,9 +1484,9 @@ class WebTVClientSimulator {
         if (this.currentDepth < this.maxDepth) {
             const newUrls = this.extractAllUrls(response.body, response.headers, url);
             for (const newUrl of newUrls) {
-                if (!this.downloadedUrls.has(newUrl) && !this.pendingDownloads.includes(newUrl)) {
-                    this.pendingDownloads.push(newUrl);
-                    this.debugLog(`Queued for download: ${newUrl}`);
+                if (!this.downloadedUrls.has(newUrl) && !this.pendingDownloads.some(item => item.url === newUrl)) {
+                    this.pendingDownloads.push({ url: newUrl, referrer: url });
+                    this.debugLog(`Queued for download: ${newUrl} (referrer: ${url})`);
                 }
             }
         }
@@ -1596,15 +1822,15 @@ class WebTVClientSimulator {
     /**
      * Make request with retry logic for ECONNREFUSED errors
      */
-    async makeRequestWithRetry(serviceName, path, postData = null, downloadMode = false, retryCount = 0) {
+    async makeRequestWithRetry(serviceName, path, postData = null, downloadMode = false, referrerUrl = null, retryCount = 0) {
         try {
-            return await this.makeRequest(serviceName, path, postData, downloadMode);
+            return await this.makeRequest(serviceName, path, postData, downloadMode, referrerUrl);
         } catch (error) {
             if (error.code === 'ECONNREFUSED' && retryCount < this.maxRetries) {
                 const retryDelay = 5000; // 5 seconds
                 this.debugLog(`Connection refused, retrying in ${retryDelay/1000}s (attempt ${retryCount + 1}/${this.maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
-                return this.makeRequestWithRetry(serviceName, path, postData, downloadMode, retryCount + 1);
+                return this.makeRequestWithRetry(serviceName, path, postData, downloadMode, referrerUrl, retryCount + 1);
             }
             throw error; // Re-throw if not ECONNREFUSED or max retries exceeded
         }
@@ -1623,18 +1849,19 @@ class WebTVClientSimulator {
             
             this.debugLog(`\n--- Processing depth ${this.currentDepth} (${currentBatch.length} URLs) ---`);
             
-            for (const url of currentBatch) {
+            for (const item of currentBatch) {
+                const { url, referrer } = item;
                 if (this.downloadedUrls.has(url)) {
                     continue; // Skip if already downloaded
                 }
                 
                 try {
-                    this.debugLog(`Downloading: ${url}`);
+                    this.debugLog(`Downloading: ${url} (referrer: ${referrer})`);
                     const match = url.match(/^([\w-]+):\/?(.*)/);
                     if (match) {
                         const serviceName = match[1];
                         const path = '/' + (match[2] || '');
-                        const result = await this.makeRequestWithRetry(serviceName, path, null, true);
+                        const result = await this.makeRequestWithRetry(serviceName, path, null, true, referrer);
                         this.storeContent(url, result);
                     }
                 } catch (error) {
@@ -1642,7 +1869,7 @@ class WebTVClientSimulator {
                 }
                 
                 // Small delay to avoid overwhelming the server
-                await new Promise(resolve => setTimeout(resolve, 50));
+                await new Promise(resolve => setTimeout(resolve, this.requestDelay));
             }
         }
         
@@ -1890,6 +2117,113 @@ class WebTVClientSimulator {
     }
 
     /**
+     * Parse login-stage-two HTML to extract usernames and their respective href links
+     */
+    parseLoginStageTwoHTML(htmlContent) {
+        const userList = [];
+        
+        try {
+            const htmlString = Buffer.isBuffer(htmlContent) ? htmlContent.toString('utf8') : htmlContent;
+            this.debugLog('Parsing login-stage-two HTML for usernames and links...');
+            
+            // Pattern to match user entries in the HTML
+            // Looking for <a href="/ValidateLoginName-..." followed by username in <font> tags
+            // Note: Some usernames have <b> tags, others don't, so we make <b> optional
+            const userPattern = /<a\s+href="([^"]*ValidateLoginName[^"]*)"[^>]*>[\s\S]*?<font[^>]*color="#FFEA9C"[^>]*>(?:<b>)?([^<]+?)(?:<\/b>)?<\/font>/gi;
+            
+            let match;
+            while ((match = userPattern.exec(htmlString)) !== null) {
+                if (match[1].slice(0,1) === "/") {
+                    match[1] = "wtv-head-waiter:" + match[1];
+                }
+                const href = match[1];
+                const username = match[2].trim();
+                
+                if (username && href) {
+                    userList.push({
+                        username: username,
+                        href: href
+                    });
+                    this.debugLog(`Found user: ${username} -> ${href}`);
+                }
+            }
+            
+            // Alternative pattern in case the first one doesn't catch all cases
+            // Look for any ValidateLoginName links and try to find nearby usernames
+            if (userList.length === 0) {
+                this.debugLog('Primary pattern found no users, trying alternative pattern...');
+                const linkPattern = /href="([^"]*ValidateLoginName[^"]*)"/gi;
+                const fontPattern = /<font[^>]*color="#FFEA9C"[^>]*>(?:<b>)?([^<]+?)(?:<\/b>)?<\/font>/gi;
+                
+                const links = [];
+                const usernames = [];
+                
+                let linkMatch;
+                while ((linkMatch = linkPattern.exec(htmlString)) !== null) {
+                    if (linkMatch[1].slice(0,1) === "/") {
+                        linkMatch[1] = "wtv-head-waiter:" + linkMatch[1];
+                    }
+                    links.push(linkMatch[1]);
+                }
+                
+                let fontMatch;
+                while ((fontMatch = fontPattern.exec(htmlString)) !== null) {
+                    usernames.push(fontMatch[1].trim());
+                }
+                
+                // Try to pair them up (assuming they appear in the same order)
+                const minLength = Math.min(links.length, usernames.length);
+                for (let i = 0; i < minLength; i++) {
+                    userList.push({
+                        username: usernames[i],
+                        href: links[i]
+                    });
+                    this.debugLog(`Found user (alternative): ${usernames[i]} -> ${links[i]}`);
+                }
+            }
+            
+            this.debugLog(`Parsed ${userList.length} users from login-stage-two HTML`);
+            
+            if (this.username) {
+                // Find the specified user
+                const selectedUser = userList.find(user => user.username.toLowerCase() === this.username.toLowerCase());
+                if (selectedUser) {
+                    this.debugLog(`*** Selecting user: ${selectedUser.username} ***`);
+                    console.log(`Selecting user: ${selectedUser.username}`);
+                    // Return the user list with the selected user marked for automatic following
+                    return { userList, selectedUser };
+                } else {
+                    console.error(`\nUser '${this.username}' not found. Available users: ${userList.map(user => user.username).join(', ')}`);
+                    this.cleanup();
+                    process.exit(1);
+                }
+            } else {
+                // No username specified, list available users and exit
+                if (userList.length > 0) {
+                    console.log('\n*** Available users from login-stage-two ***');
+                    userList.forEach((user, index) => {
+                        console.log(`${index + 1}. ${user.username} -> ${user.href}`);
+                    });
+                    console.log('*** End of user list ***\n');
+                    console.error(`Please select a --user: ${userList.map(user => user.username).join(' ')}`);
+                    this.cleanup();
+                    process.exit(1);
+                } else {
+                    console.error('No users found in login-stage-two HTML');
+                    this.cleanup();
+                    process.exit(1);
+                }
+            }
+            
+            return { userList };
+            
+        } catch (error) {
+            console.error('Error parsing login-stage-two HTML:', error);
+            return [];
+        }
+    }
+
+    /**
      * Clean up resources
      */
     cleanup() {
@@ -1926,7 +2260,9 @@ function parseArgs() {
         followAll: false,
         maxDepth: 3,
         maxRetries: 5,
-        debug: false
+        requestDelay: 250,
+        debug: false,
+        username: null
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -1934,6 +2270,11 @@ function parseArgs() {
             case '--host':
                 if (i + 1 < args.length) {
                     config.host = args[++i];
+                }
+                break;
+            case '--boxtype':
+                if (i + 1 < args.length) {
+                    config.boxType = args[++i];
                 }
                 break;
             case '--port':
@@ -1991,6 +2332,16 @@ function parseArgs() {
                     config.maxRetries = parseInt(args[++i]);
                 }
                 break;
+            case '--delay':
+                if (i + 1 < args.length) {
+                    config.requestDelay = parseInt(args[++i]);
+                }
+                break;
+            case '--user':
+                if (i + 1 < args.length) {
+                    config.username = args[++i];
+                }
+                break;
             case '--help':
                 console.log(`
 WebTV Client Simulator
@@ -2001,7 +2352,9 @@ Options:
   --host <ip>             Target server IP address (default: 127.0.0.1)
   --port <port>           Target server port (default: 1615)
   --ssid <ssid>           WebTV client SSID (default: 8100000000000001)
+  --boxtype <type>        Set the WebTV box type (default: ${this.defaultBox})
   --url <url>             Target URL to fetch after authentication (default: wtv-home:/home)
+  --user <username>       Seelect username during login-stage-two (required if the account has multiple users)
   --file <filename>       Save response body to file instead of echoing to CLI
   --max-redirects <num>   Maximum number of wtv-visit redirects (default: 10)
   --dl-mode               Enable 'wtv-request-type: download' for diskmap testing on minisrv
@@ -2011,6 +2364,7 @@ Options:
   --follow-all            Aggressively download everything encountered (spider mode)
   --depth <num>           Maximum crawl depth for --follow-all mode (default: 5)
   --retries <num>         Maximum number of retries for ECONNREFUSED errors (default: 5)
+  --delay <num>           Delay between requests in milliseconds (default: 250)
   --debug                 Enable debug logging
   --help                  Show this help message
 
@@ -2031,7 +2385,7 @@ Example:
  */
 async function main() {
     const config = parseArgs();
-    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries);
+    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries, config.requestDelay, config.boxType, config.username);
     
     // Handle graceful shutdown
     process.on('SIGINT', () => {

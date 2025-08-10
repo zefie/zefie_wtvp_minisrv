@@ -329,6 +329,20 @@ function buildProfile(build) {
             }
             break;
 			
+        case 7253:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "f1d9bdfefef",
+                "wtv-client-bootrom-version": 2243,
+                "wtv-client-rom-type": "US-LC2-disk-0MB-8MB-softmodem-CPU5230",
+                "wtv-system-chipversion": 53608448,
+                "User-Agent": "Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed": 166164434,
+                "wtv-system-sysconfig": 3115520,
+                "wtv-disk-size": 8006
+            }
+            break;
+			
 		case 71810:
 			buildProfile = {
 			    "wtv-capability-flags": "d10094938ef",
@@ -338,7 +352,7 @@ function buildProfile(build) {
 				"wtv-system-chipversion": 16842752,
 				"wtv-system-sysconfig": 736935823,
 				"wtv-system-cpuspeed": 112790760,
-				"User-Agent": "Mozilla/4.0 WebTV/2.5 (compatible; MSIE 4.0)",
+				"User-Agent": "Mozilla/4.0 WebTV/2.5 (compatible; MSIE 4.0)"
 			}
 			break;
         case 16276:
@@ -352,6 +366,67 @@ function buildProfile(build) {
                 "wtv-system-cpuspeed": 166164662,
                 "wtv-system-sysconfig": 3116068,
                 "wtv-disk-size": 8006
+            }
+            break;
+			
+		case 17015:
+			buildProfile = {
+			    "wtv-capability-flags": "21816935fec8f",
+				"wtv-system-version": 17015,
+				"wtv-client-rom-type": "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230",
+				"wtv-client-bootrom-version": 2524,
+				"wtv-system-chipversion": 53608448,
+				"wtv-system-sysconfig": 3130128,
+				"wtv-system-cpuspeed": 166164662,
+				"User-Agent": "Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)"
+			}
+			break;
+        case 5792:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "5c9bdfefef",
+                "wtv-client-bootrom-version": 2525,
+                "wtv-client-rom-type": "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230",
+                "wtv-system-chipversion": 53608448,
+                "User-Agent": "Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed": 166330740,
+                "wtv-system-sysconfig": 3116068,
+                "wtv-disk-size": 8006
+            }
+            break;
+		        case 57920:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "5499dbafef",
+                "wtv-client-bootrom-version": 2525,
+                "wtv-client-rom-type": "US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230",
+                "wtv-system-chipversion": 84017152,
+                "User-Agent": "Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed": 148141518,
+                "wtv-system-sysconfig": 3133702,
+                "wtv-disk-size": 3990
+            }
+            break;	
+		        case 28220:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "6f217b935dec8e",
+                "wtv-client-bootrom-version": 2545,
+                "wtv-client-rom-type": "US-DTV-disk-0MB-32MB-softmodem-CPU5230",
+                "wtv-system-chipversion": 0x04120000,
+                "User-Agent": "Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)",
+                "wtv-system-cpuspeed": 249088032,
+                "wtv-system-sysconfig": 0x034dea33,
+                "wtv-disk-size": 156330720
+            }
+            break;
+		        case 5254:
+            buildProfile = {
+                "wtv-system-version": build,
+                "wtv-capability-flags": "19d4928cf",
+                "wtv-client-bootrom-version": 5254,
+                "wtv-client-rom-type": "JP-Fiji",
+                "User-Agent": "Mozilla/4.0 WebTV/2.8.2 (compatible; MSIE 4.0)"
             }
             break;
     }
@@ -659,8 +734,14 @@ unless you are intentionally trying to spoof a box.</em>
 <td><select name="build" id="build">
 <option value="1235">Build 1235 (Old Classic)</option>
 <option value="71810">Build 7181 (Old Classic)</option>
-<option selected value="7181">Build 7181 (Old Plus)</option>
+<option value="7253">Build 7253 (Old Plus Derby)</option>
+<option selected value="7181">Build 7181 (Old Plus **Recommended**)</option>
 <option value="16276">Build 16276 (Old Plus)</option>
+<option value="17015">Build 17015 (Dish-Echostar)</option>
+<option value="5792">Build 5792 (New Plus LC2.5)</option>
+<option value="57920">Build 5792 (New Classic bps)</option>
+<option value="28220">Build 28220 (Ultimate TV)</option>
+<option value="5254">Sega DreamCast</option>
 </select><br>
 <em>This legacy option has little impact on minisrv servers,<br>
 although certain advanced server operators may use these flags<br>
