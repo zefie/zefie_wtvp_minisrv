@@ -1938,10 +1938,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
                 if (!headers.request_url) {
                     var header_length = 0;
-                    if (data_hex.indexOf("0d0a0d0a")) {
+                    if (data_hex.includes("0d0a0d0a")) {
                         // \r\n\r\n
                         header_length = data.length + 4;
-                    } else if (data_hex.indexOf("0a0a")) {
+                    } else if (data_hex.includes("0a0a")) {
                         // \n\n
                         header_length = data.length + 2;
                     }

@@ -1,7 +1,10 @@
 const net = require('net');
 const CryptoJS = require('crypto-js');
 const WTVSec = require('./includes/classes/WTVSec.js');
+const e = require('express');
 const WTVShared = require('./includes/classes/WTVShared.js')['WTVShared'];
+const LZPF = require('./includes/classes/LZPF.js');
+const zlib = require('zlib');
 
 /**
  * WebTV Client Simulator
@@ -31,6 +34,7 @@ class WebTVClientSimulator {
         this.currentSocket = null;
         this.challengeResponse = null;
         this.initial_key = null; // Store initial key from wtv-initial-key header
+        this.hasSeenEncryptedResponse = false; // Track if we've seen an encrypted response
         this.debug = debug;
         
         // Load minisrv config to get the initial shared key
@@ -48,6 +52,49 @@ class WebTVClientSimulator {
     debugLog(...args) {
         if (this.debug) {
             console.log(...args);
+        }
+    }
+
+    /**
+     * Decompress response body based on content encoding headers
+     */
+    decompressBody(body, headers) {
+        if (!Buffer.isBuffer(body) || body.length === 0) {
+            return body;
+        }
+
+        try {
+            // Check for LZPF compression first (WebTV specific)
+            if (headers['wtv-lzpf'] === '0') {
+                this.debugLog('Decompressing LZPF compressed body...');
+                const lzpf = new LZPF();
+                const decompressed = lzpf.expand(body);
+                this.debugLog(`LZPF decompression: ${body.length} bytes -> ${decompressed.length} bytes`);
+                return decompressed;
+            }
+
+            // Check for standard gzip/deflate compression
+            if (headers['content-encoding']) {
+                const encoding = headers['content-encoding'].toLowerCase();
+                this.debugLog(`Decompressing ${encoding} compressed body...`);
+                
+                if (encoding === 'deflate') {
+                    const decompressed = zlib.inflateSync(body);
+                    this.debugLog(`Deflate decompression: ${body.length} bytes -> ${decompressed.length} bytes`);
+                    return decompressed;
+                } else if (encoding === 'gzip') {
+                    const decompressed = zlib.gunzipSync(body);
+                    this.debugLog(`Gzip decompression: ${body.length} bytes -> ${decompressed.length} bytes`);
+                    return decompressed;
+                }
+            }
+
+            // No compression detected, return original body
+            return body;
+        } catch (error) {
+            console.error('Error decompressing response body:', error);
+            this.debugLog('Returning original compressed body due to decompression error');
+            return body;
         }
     }
 
@@ -89,22 +136,27 @@ class WebTVClientSimulator {
                 let requestData;
                 
                 if (this.encryptionEnabled && this.wtvsec) {
-                    // Send encrypted request
-                    requestData = this.buildEncryptedRequest(serviceName, path, data);
+                    // For encrypted requests, first send SECURE ON, then immediately send the encrypted request
+                    // This matches the real WebTV client behavior seen in packet captures
+                    this.debugLog('Sending SECURE ON request...');
+                    const secureOnBuffer = this.buildSecureOnRequest();
+                    console.log(secureOnBuffer.toString('hex'));
+                    socket.write(secureOnBuffer);
+                    
+                    // Send encrypted request immediately after (as seen in pcap analysis)
+                    setImmediate(() => {
+                        this.debugLog('Sending encrypted request...');
+                        const encryptedRequestData = this.buildEncryptedRequest(serviceName, path, data);
+                        console.log(encryptedRequestData.toString('hex'));
+                        socket.write(encryptedRequestData);
+                    });
                 } else {
                     // Send regular request
                     requestData = this.buildRegularRequest(serviceName, path, data);
-                }
-                
-                this.debugLog('Sending request:');
-                if (this.encryptionEnabled) {
-                    this.debugLog('[ENCRYPTED REQUEST]');
-                    this.debugLog(`Length: ${requestData.length} bytes`);
-                } else {
+                    this.debugLog('Sending request:');
                     this.debugLog(requestData.toString());
+                    socket.write(requestData);
                 }
-                
-                socket.write(requestData);
             });
 
             socket.on('data', (chunk) => {
@@ -206,23 +258,20 @@ class WebTVClientSimulator {
     }
 
     /**
-     * Build an encrypted WTVP request
+     * Build a SECURE ON request (sent in plaintext to establish encryption)
      */
-    buildEncryptedRequest(serviceName, path, data = null) {
-        // First, check if this is the SECURE ON request
-        if (serviceName === 'SECURE' && path === 'ON') {
-            return Buffer.from('SECURE ON\r\n', 'utf8');
-        }
+    buildSecureOnRequest() {
+        // Increment incarnation for encrypted session
+        this.incarnation++;
+        this.debugLog(`Using incarnation: ${this.incarnation}`);
         
-        const method = data ? 'POST' : 'GET';
-        let request = `${method} ${serviceName}:${path}\r\n`;
-        
-        // Add headers for encrypted requests
+        // SECURE ON should match real WebTV client exactly - no URL, just the method
+        let request = `SECURE ON\r\n`;
         request += `Accept-Language: en-US,en\r\n`;
         if (this.ticket) {
             request += `wtv-ticket: ${this.ticket}\r\n`;
         }
-        request += `wtv-connect-session-id: ${Math.floor(Math.random() * 0xFFFFFFFF).toString(16)}\r\n`;
+        request += `wtv-connect-session-id: ${Math.random().toString(16).substr(2, 8)}\r\n`;
         request += `wtv-client-serial-number: ${this.ssid}\r\n`;
         request += `wtv-system-version: 7181\r\n`;
         request += `wtv-capability-flags: 10935ffc8f\r\n`;
@@ -231,9 +280,23 @@ class WebTVClientSimulator {
         request += `wtv-system-chipversion: 51511296\r\n`;
         request += `User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)\r\n`;
         request += `wtv-encryption: true\r\n`;
-        request += `wtv-script-id: ${Math.floor(Math.random() * 0x7FFFFFFF) - 0x40000000}\r\n`;
-        request += `wtv-script-mod: ${Math.floor(Math.random() * 0xFFFFFFFF)}\r\n`;
-        request += `wtv-incarnation: ${this.incarnation}\r\n`;
+        request += `wtv-script-id: -154276969\r\n`;
+        request += `wtv-script-mod: ${Math.floor(Date.now() / 1000)}\r\n`;
+        request += `wtv-incarnation:${this.incarnation}\r\n`;  // Note: no space after colon
+        request += '\r\n';
+        
+        return Buffer.from(request, 'utf8');
+    }
+
+    /**
+     * Build an encrypted WTVP request
+     */
+    buildEncryptedRequest(serviceName, path, data = null) {
+        const method = data ? 'POST' : 'GET';
+        let request = `${method} ${serviceName}:${path}\r\n`;
+        
+        // For encrypted requests, only include the minimal necessary headers
+        // The SECURE ON already sent the auth and session info
         
         if (this.request_type_download) request += 'wtv-request-type: download\r\n';
         
@@ -247,10 +310,10 @@ class WebTVClientSimulator {
             request += '\r\n';
         }
         
-        // Encrypt the request using RC4 with key 0
+        // Encrypt the request using RC4 with key 0 (server expects Decrypt(0, enc_data))
         try {
-            const requestBuffer = Buffer.from(request, 'utf8');
-            const encryptedBuffer = this.wtvsec.Encrypt(0, requestBuffer);
+            this.wtvsec.set_incarnation(this.incarnation); // Ensure WTVSec has the correct incarnation
+            const encryptedBuffer = this.wtvsec.Encrypt(0, request);
             return Buffer.from(encryptedBuffer);
         } catch (error) {
             console.error('Error encrypting request:', error);
@@ -263,26 +326,34 @@ class WebTVClientSimulator {
      */
     handleEncryptedResponse(responseData, resolve, reject) {
         try {
-            // Look for the double newline that separates headers from body
-            const responseStr = responseData.toString('binary');
-            const headerEndIndex = responseStr.indexOf('\n\n');
+            // Find header/body split using CRLF CRLF (\r\n\r\n) or fallback to LF LF (\n\n)
+            let idx = -1;
+            let sepLen = 0;
+            const crlfcrlf = Buffer.from('\r\n\r\n');
+            const lflf = Buffer.from('\n\n');
+            idx = responseData.indexOf(crlfcrlf);
+            if (idx !== -1) {
+                sepLen = 4;
+            } else {
+                idx = responseData.indexOf(lflf);
+                if (idx !== -1) sepLen = 2;
+            }
             
-            if (headerEndIndex === -1) {
+            if (idx === -1) {
                 // Not a complete response yet
                 return;
             }
             
-            // Split headers and body
-            const headerSection = responseStr.substring(0, headerEndIndex);
-            const bodyStart = headerEndIndex + 2;
-            const bodyBuffer = responseData.slice(bodyStart);
+            // Split headers and body - headers are always plaintext
+            const headerSection = responseData.slice(0, idx).toString('utf8');
+            const bodyBuffer = responseData.slice(idx + sepLen);
             
             this.debugLog('\nReceived encrypted response:');
             this.debugLog('Headers:');
             this.debugLog(headerSection);
             
             // Parse headers
-            const lines = headerSection.split('\n');
+            const lines = headerSection.split(/\r?\n/);
             const statusLine = lines[0].replace('\r', '');
 
             this.debugLog(`Status: ${statusLine}`);
@@ -298,7 +369,7 @@ class WebTVClientSimulator {
                 }
             }
             
-            // Decrypt the body if we have encryption enabled
+            // Decrypt the body if we have encryption enabled and encrypted content
             let body = Buffer.alloc(0);
             if (bodyBuffer.length > 0 && headers['wtv-encrypted'] === 'true' && this.wtvsec) {
                 try {
@@ -314,8 +385,16 @@ class WebTVClientSimulator {
                 body = bodyBuffer;
             }
             
+            // Decompress the body if needed
+            body = this.decompressBody(body, headers);
+            
             // Handle special headers
             this.processHeaders(headers);
+            
+            // Mark that we've seen an encrypted response
+            if (headers['wtv-encrypted'] === 'true') {
+                this.hasSeenEncryptedResponse = true;
+            }
             
             // Close current connection
             if (this.currentSocket) {
@@ -377,6 +456,15 @@ class WebTVClientSimulator {
                 }
             }
             this.processHeaders(headers);
+            
+            // Decompress the body if needed
+            bodyBuf = this.decompressBody(bodyBuf, headers);
+            
+            // Mark that we've seen an encrypted response
+            if (headers['wtv-encrypted'] === 'true') {
+                this.hasSeenEncryptedResponse = true;
+            }
+            
             if (this.currentSocket) {
                 this.currentSocket.destroy();
                 this.currentSocket = null;
@@ -492,12 +580,23 @@ class WebTVClientSimulator {
             this.userIdDetected = true;
             
             // Enable encryption if requested and we have WTVSec
-            if (this.useEncryption && this.wtvsec && !this.encryptionEnabled) {
+            if (this.useEncryption) {
                 this.debugLog('*** Enabling encryption after successful authentication ***');
+                if (!this.wtvsec) {
+                    // Initialize with current incarnation (which was incremented when we got wtv-encrypted: true)
+                    this.wtvsec = new WTVSec(this.minisrv_config, this.incarnation);
+                }
+                // Follow the same sequence as the server to ensure matching keys
+                if (this.ticket) {
+                    this.wtvsec.DecodeTicket(this.ticket);
+                    this.wtvsec.ticket_b64 = this.ticket;
+                    // Set the incarnation to match current state
+                    this.wtvsec.set_incarnation(this.incarnation);
+                }
                 this.wtvsec.SecureOn(); // Initialize RC4 sessions
+             
                 this.encryptionEnabled = true;
-            }
-            
+            }            
             return; // Stop processing other headers since we're authenticated
         }
     }
@@ -526,18 +625,6 @@ class WebTVClientSimulator {
     async fetchTargetUrl() {
         console.log(`Fetching target URL: ${this.url}`);
 
-        // If encryption is enabled, send SECURE ON first
-        if (this.encryptionEnabled) {
-            this.debugLog('Sending SECURE ON command...');
-            try {
-                await this.makeRequest('SECURE ON', '', '', {});
-                this.debugLog('Encryption successfully enabled');
-            } catch (error) {
-                console.error('Failed to enable encryption:', error.message);
-                throw error;
-            }
-        }
-        
         // Parse the target URL
         const match = this.url.match(/^([\w-]+):\/?(.*)/);
         if (match) {
@@ -620,6 +707,10 @@ class WebTVClientSimulator {
                     headers[key] = value;
                 }
             }
+            
+            // Decompress the body if needed
+            bodyBuf = this.decompressBody(bodyBuf, headers);
+            
             if (this.currentSocket) {
                 this.currentSocket.destroy();
                 this.currentSocket = null;

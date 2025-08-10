@@ -50,9 +50,8 @@ Settings
 <tr><td absheight=41>
 </table>
 </sidebar>
-<BODY BGCOLOR="#191919" TEXT="#42CC55" LINK="36d5ff" VLINK="36d5ff" FONTSIZE="large"
-hspace=0 vspace=0
->
+<BODY BGCOLOR="#191919" TEXT="#42CC55" LINK="36d5ff" VLINK="36d5ff" FONTSIZE="small" hspace=0 vspace=0>
+
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=14>
@@ -60,7 +59,7 @@ hspace=0 vspace=0
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td valign=center absheight=80>
-<shadow><blackface><font color="e7ce4a" font size="+1">
+<shadow><blackface><font color="e7ce4a" font size="5">
 Settings
 for ${session_data.getSessionData("subscriber_username") || "You"}
 </font><blackface><shadow>
@@ -77,118 +76,95 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 <td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
 <spacer type=block width=436 height=1>
 <td abswidth=20>
-<TR>
-<td>
-<font size="-1">
-<td WIDTH=150 HEIGHT=244 VALIGN=top ALIGN=left>
-<br><font size="-1"><blackface>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/mail">Mail</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-
-if (minisrv_config.config.passwords) {
-	if (minisrv_config.config.passwords.enabled) {
-		data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/edit-password">Password</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-	}
-}
-
-data += `
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/screen">Television</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/text">Text size</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/sound">Music</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-//printing
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="${notImplementedAlert}"><strike>Printing</strike></a><BR>
-<spacer type=block width=1 height=5><BR>`;
-}
-
-data += `
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/keyboard">Keyboard</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-
-if (session_data.user_id == 0) {
-	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/accounts">Extra Users</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-}
-
-data += `
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/messenger">Messenger</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/phone">Dialing</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/tweaks">Tweaks</a><BR>
-<TD WIDTH=20>
-<TD WIDTH=300 VALIGN=top ALIGN=left>
-<spacer type=block width=6 height=14><font size="2"><br>
-Signature <strike>and more</strike><BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Change your password<BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Options for your TV<BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Make text bigger or smaller<BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Play background songs<BR>
-<spacer type=block width=6 height=5><font size="2"><br>`;
-// printing
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<strike>Change how you print</strike><BR>
-<spacer type=block width=6 height=5><font size="2"><br>`;
-}
-data += `Choose an on-screen keyboard<BR>`;
-if (session_data.user_id == 0) {
-	data += `<spacer type=block width=6 height=5><font size="2"><br>
-Add, change, or remove users<BR>`;
-}
-data += `<spacer type=block width=6 height=5><font size="2"><br>
-Configure Messenger<BR>`;
-
-data += `<spacer type=block width=6 height=6><font size="2"><br>
-Connecting to WebTV<BR>
-<spacer type=block width=6 height=6><font size="2"><br>
-minisrv specific settings<BR>
-
 <tr>
-<td colspan=4 height=2>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
-<spacer type=block width=436 height=1>
-<tr>
-<TD>
-<td colspan=4 height=1 valign=top align=left>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
-<spacer type=block width=436 height=1>
-<TR>
-<TD>
-<TD COLSPAN=4 HEIGHT=4 VALIGN=top ALIGN=left>
-<TR>
-<TD>
-<TD COLSPAN=3 VALIGN=top ALIGN=right>
-<FORM
-action="wtv-home:/home" selected>
+
+<table cellspacing=0 cellpadding=2>
+<br><br>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td width=160><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/mail"><font size=2>Mail</a></td>
+    <td width=220><font size=2>Signature <strike>and more</strike></td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/edit-password"><font size=2>Password</a></td>
+    <td><font size=2>Change your password</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/screen"><font size=2>Television</a></td>
+    <td><font size=2>Options for your TV</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/text"><font size=2>Text size</a></td>
+    <td><font size=2>Make text bigger or smaller</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/sound"><font size=2>Music</a></td>
+    <td><font size=2>Play background songs</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="${notImplementedAlert}"><font size=2><strike>Printing</strike></a></td>
+    <td><strike><font size=2>Change how you print</strike></td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/keyboard"><font size=2>Keyboard</a></td>
+    <td><font size=2>Choose an on-screen keyboard</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/accounts"><font size=2>Extra Users</a></td>
+    <td><font size=2>Add, change, or remove users</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td> 
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/messenger"><font size=2>Messenger</a></td>
+    <td><font size=2>Configure Messenger</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/phone"><font size=2>Dialing</a></td>
+    <td><font size=2>Connecting to WebTV</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/region"><font size=2>Region Settings</a></td>
+    <td><font size=2>Change timezone and  zip code</td>
+  </tr>
+  <tr>
+    <td width=20>&nbsp;</td>
+    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
+<a href="wtv-setup:/tweaks"><font size=2>Tweaks</a></td>
+    <td><font size=2>minisrv specific settings</td>
+  </tr>
+</table>
+
+<table width=100%>
+<tr><td align=right>
+<spacer type=block width=436 height=4>
+<FORM action="wtv-home:/home" selected>
 <FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
-<INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Done NAME="Done" USESTYLE WIDTH=103>
+<INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Done NAME="Done" USESTYLE WIDTH=103>&nbsp;&nbsp;&nbsp;
 </SHADOW></FONT></FORM>
 <TD>
 </TABLE>
 </BODY>
 </HTML>
+
 
 `;
