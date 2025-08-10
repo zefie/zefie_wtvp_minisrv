@@ -140,14 +140,12 @@ class WebTVClientSimulator {
                     // This matches the real WebTV client behavior seen in packet captures
                     this.debugLog('Sending SECURE ON request...');
                     const secureOnBuffer = this.buildSecureOnRequest();
-                    console.log(secureOnBuffer.toString('hex'));
                     socket.write(secureOnBuffer);
                     
                     // Send encrypted request immediately after (as seen in pcap analysis)
                     setImmediate(() => {
                         this.debugLog('Sending encrypted request...');
                         const encryptedRequestData = this.buildEncryptedRequest(serviceName, path, data);
-                        console.log(encryptedRequestData.toString('hex'));
                         socket.write(encryptedRequestData);
                     });
                 } else {
