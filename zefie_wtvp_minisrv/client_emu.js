@@ -32,6 +32,7 @@ class WebTVClientSimulator {
         this.maxRetries = maxRetries;
         this.requestDelay = requestDelay;
         this.currentDepth = 0;
+        this.currentwtvsec = null;
         this.authenticated = false;
         this.downloadedUrls = new Set(); // Track what we've already downloaded
         this.pendingDownloads = []; // Queue of {url, referrer} objects to download
@@ -349,6 +350,12 @@ class WebTVClientSimulator {
             const handleData = (chunk) => {
                 responseData = Buffer.concat([responseData, chunk]);
                 this.debugLog(`Received chunk: ${chunk.length} bytes (total: ${responseData.length} bytes)`);
+                
+                // Debug: Show received data for POST requests
+                if (data) {
+                    this.debugLog('POST Response chunk:', chunk.toString('utf8').substring(0, 200) + (chunk.length > 200 ? '...' : ''));
+                    this.debugLog('POST Response hex dump:', chunk.toString('hex').substring(0, 100) + (chunk.length > 50 ? '...' : ''));
+                }
 
                 // Clear any existing timeout for LZPF completion detection
                 if (this.lzpfTimeoutId) {
@@ -375,9 +382,24 @@ class WebTVClientSimulator {
                     const lflf = Buffer.from('\n\n');
                     let idx = responseData.indexOf(crlfcrlf);
                     if (idx === -1) idx = responseData.indexOf(lflf);
-                    if (idx !== -1 && !responseHandled) {
+                    
+                    // For POST requests, also check if we have what looks like a complete HTTP response
+                    // Detect either HTTP-style or WTV-style status lines
+                    const headSample = responseData.toString('utf8', 0, Math.min(32, responseData.length));
+                    const hasHttpStatus = /^(?:HTTP\/[\d\.]+ \d+)/.test(headSample);
+                    const hasWtvStatus = /^(?:\d{3}\s)/.test(headSample); // e.g., '200 OK' without HTTP/
+                    
+                    // Debug: Show detection status for POST requests
+                    if (data) {
+                        this.debugLog(`POST response detection: headerSeparator=${idx !== -1}, httpStatus=${hasHttpStatus || hasWtvStatus}, totalBytes=${responseData.length}`);
+                    }
+                    
+                    if ((idx !== -1 || (data && (hasHttpStatus || hasWtvStatus) && responseData.length > 20)) && !responseHandled) {
                         responseHandled = true;
                         this.debugLog('Complete response detected, processing...');
+                        if (data && idx === -1) {
+                            this.debugLog('POST response without standard header separator detected');
+                        }
                         cleanupListeners();
                         socket._inUse = false;
                         this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl, socket, socketKey);
@@ -389,20 +411,60 @@ class WebTVClientSimulator {
                 this.debugLog('Connection closed, removing from socket pool');
                 this.socketPool.delete(socketKey);
                 socket._inUse = false;
-                
-                if (responseData.length > 0 && !this.encryptionEnabled && !responseHandled) {
+
+                // Clear any pending LZPF timer
+                if (this.lzpfTimeoutId) {
+                    clearTimeout(this.lzpfTimeoutId);
+                    this.lzpfTimeoutId = null;
+                }
+
+                if (responseData.length > 0 && !responseHandled) {
                     // Only process if not already processed
-                    const crlfcrlf = Buffer.from('\r\n\r\n');
-                    const lflf = Buffer.from('\n\n');
-                    let idx = responseData.indexOf(crlfcrlf);
-                    if (idx === -1) idx = responseData.indexOf(lflf);
-                    if (idx === -1) {
+                    if (this.encryptionEnabled) {
+                        // For encrypted sessions, force processing on close
+                        this.debugLog('Processing encrypted response on connection close...');
+                        if (data) {
+                            this.debugLog('POST response (enc) received on close:', responseData.toString('utf8', 0, Math.min(500, responseData.length)) + (responseData.length > 500 ? '...' : ''));
+                        }
                         responseHandled = true;
-                        this.debugLog('Processing incomplete response on close...');
                         cleanupListeners();
-                        this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl, socket, socketKey);
+                        // Force processing regardless of Content-Length completeness
+                        try {
+                            this.handleEncryptedResponse(responseData, resolve, reject, true);
+                        } catch (e) {
+                            console.error('Error handling encrypted response on close:', e);
+                            reject(e);
+                        }
+                    } else {
+                        this.debugLog('Processing response on connection close...');
+                        if (data) {
+                            this.debugLog('POST response received on close:', responseData.toString('utf8').substring(0, 500) + (responseData.length > 500 ? '...' : ''));
+                            this.debugLog('POST response hex on close:', responseData.toString('hex').substring(0, 200) + (responseData.length > 100 ? '...' : ''));
+                        }
+
+                        const crlfcrlf = Buffer.from('\r\n\r\n');
+                        const lflf = Buffer.from('\n\n');
+                        let idx = responseData.indexOf(crlfcrlf);
+                        if (idx === -1) idx = responseData.indexOf(lflf);
+                        if (idx === -1) {
+                            responseHandled = true;
+                            this.debugLog('Processing incomplete response on close...');
+                            cleanupListeners();
+                            this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl, socket, socketKey);
+                        } else {
+                            responseHandled = true;
+                            this.debugLog('Processing complete response on close...');
+                            cleanupListeners();
+                            this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl, socket, socketKey);
+                        }
                     }
-                } 
+                } else if (responseData.length === 0) {
+                    this.debugLog('Connection closed with no response data');
+                    if (data) {
+                        console.warn('POST request received no response from server');
+                        this.debugLog('POST request that got no response was to:', currentUrl || 'unknown URL');
+                    }
+                }
             };
 
             const handleError = (error) => {
@@ -414,19 +476,23 @@ class WebTVClientSimulator {
             };
 
             const handleTimeout = () => {
-                console.error('Request timed out');
+                if (data) {
+                    console.error(`POST request timed out after 10 seconds - server not responding to: ${currentUrl}`);
+                } else {
+                    console.error('Request timed out');
+                }
                 socket.destroy();
                 this.socketPool.delete(socketKey);
                 socket._inUse = false;
                 cleanupListeners();
-                reject(new Error('Request timeout'));
+                reject(new Error(data ? 'POST request timeout - server not responding' : 'Request timeout'));
             };
 
             // Set up event listeners
             socket.on('data', handleData);
             socket.on('close', handleClose);
             socket.on('error', handleError);
-            socket.setTimeout(30000, handleTimeout);
+            socket.setTimeout(data ? 10000 : 30000, handleTimeout); // Shorter timeout for POST requests
 
             if (isNewConnection) {
                 socket.connect(targetPort, targetHost, () => {
@@ -462,7 +528,6 @@ class WebTVClientSimulator {
        
         request += `wtv-connect-session-id: ${this.connectSessionId}\r\n`
         // Add additional headers that real client sends (from PCAP analysis)
-        request += `User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)\r\n`;
         if (this.useEncryption) request += `wtv-encryption: true\r\n`;
         if (!this.challengeResponse) request += `wtv-script-id: -1896417432\r\n`;
         if (!this.challengeResponse) request += `wtv-script-mod: 1754789923\r\n`;
@@ -484,8 +549,8 @@ class WebTVClientSimulator {
         // Add content if POST
         if (data) {
             const content = typeof data === 'string' ? data : JSON.stringify(data);
-            request += `Content-Length: ${content.length}\r\n`;
             request += `Content-Type: application/x-www-form-urlencoded\r\n`;
+            request += `Content-Length: ${content.length}\r\n`;
             request += `\r\n${content}`;
         } else {
             request += '\r\n';
@@ -541,8 +606,8 @@ class WebTVClientSimulator {
         // Add content if POST
         if (data) {
             const content = typeof data === 'string' ? data : JSON.stringify(data);
-            request += `Content-Length: ${content.length}\r\n`;
             request += `Content-Type: application/x-www-form-urlencoded\r\n`;
+            request += `Content-Length: ${content.length}\r\n`;
             request += `\r\n${content}`;
         } else {
             request += '\r\n';
@@ -703,10 +768,7 @@ class WebTVClientSimulator {
             return true; // Error occurred, stop trying
         }
     }
-    handleResponse(responseData, resolve, reject, skipRedirects = false, currentUrl = null, socket = null, socketKey = null) {
-        this.debugLog('\nReceived response:');
-        this.debugLog(responseData);
-        
+    handleResponse(responseData, resolve, reject, skipRedirects = false, currentUrl = null, socket = null, socketKey = null) {        
         // Update previousUrl for next request's Referer header
         if (currentUrl) {
             this.previousUrl = currentUrl;
@@ -755,6 +817,7 @@ class WebTVClientSimulator {
                     }
                 }
             }
+            
             this.processHeaders(headers);
             this.debugLog("srv headers:", headers);
 
@@ -768,15 +831,22 @@ class WebTVClientSimulator {
                     // Decrypt the content if we have encryption enabled
                     if (this.wtvsec && bodyBuf.length > 0) {
                         try {
-                            this.debugLog('Decrypting login-stage-two content...');
-                            this.wtvsec.set_incarnation(this.incarnation); // Ensure WTVSec has the correct incarnation
-                            const decryptedBuffer = this.wtvsec.Decrypt(1, bodyBuf);
-                            bodyBuf = Buffer.from(decryptedBuffer);
-                            this.debugLog(`Content decrypted successfully: ${bodyBuf.length} bytes`);
+                            // Only decrypt if not already decrypted before processing headers
+                            if (this.wtvsec && this.useEncryption && headers['wtv-encrypted']) {
+                                this.debugLog('Decrypting login-stage-two content...');
+                                this.wtvsec.set_incarnation(this.incarnation); // Ensure WTVSec has the correct incarnation
+                                const decryptedBuffer = this.wtvsec.Decrypt(1, bodyBuf);
+                                bodyBuf = Buffer.from(decryptedBuffer);
+                                this.debugLog(`Content decrypted successfully: ${bodyBuf.length} bytes`);
+                            }
                             
                             // Re-decompress after decryption in case it was compressed
                             bodyBuf = this.decompressBody(bodyBuf, headers);
                             this.debugLog(`Final content after decrypt+decompress: ${bodyBuf.length} bytes`);
+                            
+                            // Debug: Show first 200 chars of decrypted content for verification
+                            this.debugLog('Login-stage-two decrypted content preview:');
+                            this.debugLog(bodyBuf.toString('utf8').substring(0, 200));
                         } catch (error) {
                             console.error('Error decrypting login-stage-two content:', error);
                         }
@@ -801,15 +871,95 @@ class WebTVClientSimulator {
                         // The parseLoginStageTwoHTML method already handles displaying users and exiting
                     }
                 }
+            } else if (currentUrl && currentUrl.startsWith("wtv-head-waiter:/choose-user")) {
+                // minisrv
+                const contentLength = headers['content-length'];
+                if (contentLength && parseInt(contentLength) > 0) {
+                    this.debugLog('Special handling for wtv-head-waiter:/choose-user with content-length > 0');
+                    this.debugLog(`Content-Length: ${contentLength}`);
+                    if (this.wtvsec && bodyBuf.length > 0) {
+                        try {
+                            bodyBuf = this.decompressBody(bodyBuf, headers);
+                            const parseResult = this.parseMinisrvChooseUser(bodyBuf);
+                            if (parseResult.selectedUser) {
+                                // User was specified and found, automatically follow their link
+                                this.debugLog(`Following link for user: ${parseResult.selectedUser.username}`);
+                                setTimeout(() => {
+                                    this.followVisit(parseResult.selectedUser.href)
+                                        .then(resolve)
+                                        .catch(reject);
+                                }, this.requestDelay);
+                                return; // Exit early to follow the user's link
+                            }
+                        } catch (error) {
+                            console.error('Error parsing choose-user HTML:', error);
+                        }
+                    }
+                }
+            } else if (currentUrl && (currentUrl.startsWith("wtv-head-waiter:/VLN-stage-two") || currentUrl.startsWith("wtv-head-waiter:/password"))) {
+                const contentLength = headers['content-length'];
+                if (contentLength && parseInt(contentLength) > 0) {
+                    this.debugLog('Special handling for wtv-head-waiter:/VLN-stage-two with content-length > 0 (password)');
+                    this.debugLog(`Content-Length: ${contentLength}`);
+                    if (this.wtvsec && bodyBuf.length > 0) {
+                        try {
+                            // Only decrypt if not already decrypted before processing headers
+                            if (this.wtvsec && this.useEncryption && headers['wtv-encrypted']) {
+                                this.debugLog('Decrypting VLN-stage-two content...');
+                                this.wtvsec.set_incarnation(this.incarnation); // Ensure WTVSec has the correct incarnation
+                                const decryptedBuffer = this.wtvsec.Decrypt(1, bodyBuf);
+                                bodyBuf = Buffer.from(decryptedBuffer);
+                                this.debugLog(`Content decrypted successfully: ${bodyBuf.length} bytes`);
+                            }
+                            
+                            // Decompress after decryption if needed
+                            bodyBuf = this.decompressBody(bodyBuf, headers);
+                            this.debugLog(`Final content after decrypt+decompress: ${bodyBuf.length} bytes`);
+                            
+                            // Debug: Show first 500 chars of decrypted content
+                            this.debugLog('VLN-stage-two decrypted content preview:');
+                            this.debugLog(bodyBuf.toString('utf8').substring(0, 500));
+                        } catch (error) {
+                            console.error('Error decrypting VLN-stage-two content:', error);
+                        }
+                    }
+                    
+                    // Parse the HTML to extract usernames and their href links
+                    if (bodyBuf.length > 0) {
+                        const parseResult = this.parseVLNStageTwoHTML(bodyBuf);
+                        if (parseResult.formData && parseResult.formAction) {
+                            // Prepare form data as application/x-www-form-urlencoded
+                            const formBody = parseResult.formData
+                                ? Object.entries(parseResult.formData)
+                                    .map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value))
+                                    .join('&')
+                                : '';
+
+                            // Make POST request to formAction with formBody
+                            this.debugLog(`Submitting VLN-stage-two form to ${parseResult.formAction} with password`);
+                            this.makeRequestWithRetry(
+                                parseResult.formAction.split(':')[0],
+                                parseResult.formAction.replace(/^[^:]+:/, ''),
+                                formBody,
+                                false
+                            ).catch(err => {
+                                console.error('Error submitting VLN-stage-two form:', err);
+                                this.cleanup();
+                                process.exit(1);
+                            });
+                        }
+                    }
+                }
             } else {
-                if (this.encryptionEnabled && bodyBuf.length > 0) {
+                // Only decrypt if not already decrypted before processing headers
+                // We decrypt here if we have encryption enabled but the content wasn't already decrypted
+                if (this.encryptionEnabled && this.wtvsec && bodyBuf.length > 0) {
                     this.debugLog('Decrypting response body...');
                     bodyBuf = this.wtvsec.Decrypt(1, bodyBuf);
                 }
                // Decompress the body if needed
                bodyBuf = this.decompressBody(bodyBuf, headers);
             }
-
             // Mark that we've seen an encrypted response
             if (headers['wtv-encrypted'] === 'true') {
                 this.hasSeenEncryptedResponse = true;
@@ -968,7 +1118,7 @@ class WebTVClientSimulator {
                 
                 // Set incarnation from server if provided
                 if (headers["wtv-incarnation"]) {
-                    this.debugLog(`Setting incarnation from server: ${headers["wtv-incarnation"]}`);
+                    this.debugLog(`Setting incarnation from server: ${headers["wtv-incarnation"]} (previous incarnation: ${this.incarnation})`);
                     this.wtvsec.set_incarnation(parseInt(headers["wtv-incarnation"]));
                     this.incarnation = parseInt(headers["wtv-incarnation"]);
                 }
@@ -977,14 +1127,13 @@ class WebTVClientSimulator {
                 // For subsequent challenges (like during user login), use the current shared key
                 // For the first challenge, use the initial key if provided
                 let keyToUse = this.wtvsec.current_shared_key || this.initial_key
-
                 this.debugLog(`Using key for challenge: ${keyToUse.toString(CryptoJS.enc.Base64)}`);
                 this.wtvsec.set_incarnation(this.incarnation);
                 this.debugLog(`Using incarnation for challenge: ${this.wtvsec.incarnation}`);
 
                 const challengeResponse = this.wtvsec.ProcessChallenge(headers['wtv-challenge'], keyToUse);
-                
                 if (challengeResponse && challengeResponse.toString(CryptoJS.enc.Base64)) {
+                    this.initial_key = this.wtvsec.initial_shared_key.toString(CryptoJS.enc.Base64);
                     this.debugLog('Challenge processed successfully, preparing response');
                     this.debugLog(`Challenge response: ${challengeResponse.toString(CryptoJS.enc.Base64)}`);
                     // We'll send the challenge response in the next request
@@ -997,44 +1146,7 @@ class WebTVClientSimulator {
                         this.wtvsec.SecureOn(); // Initialize RC4 sessions
                         // Note: this.encryptionEnabled will be set to true only after authentication
                     }
-                } else {
-                    console.error('Failed to process challenge - no response generated');
-                    this.debugLog('Challenge processing failed, attempting with different key...');
-                    
-                    // Try with a different key if the first attempt failed
-                    try {
-                        let alternativeKey;
-                        if (this.challengeResponse && this.initial_key) {
-                            // Try with initial key if we used current shared key
-                            alternativeKey = CryptoJS.enc.Base64.parse(this.initial_key);
-                            this.debugLog('Retrying challenge with initial key');
-                        } else if (!this.challengeResponse && this.wtvsec.current_shared_key) {
-                            // Try with current shared key if we used initial key
-                            alternativeKey = this.wtvsec.current_shared_key;
-                            this.debugLog('Retrying challenge with current shared key');
-                        }
-                        
-                        if (alternativeKey) {
-                            this.debugLog(`Retry key: ${alternativeKey.toString(CryptoJS.enc.Base64)}`);
-                            const retryResponse = this.wtvsec.ProcessChallenge(headers['wtv-challenge'], alternativeKey);
-                            if (retryResponse && retryResponse.toString(CryptoJS.enc.Base64)) {
-                                this.debugLog('Challenge retry successful!');
-                                this.challengeResponse = retryResponse.toString(CryptoJS.enc.Base64);
-                                this.debugLog('Setting wtv-challenge-response header for next request');
-                                
-                                // Enable encryption preparation if requested
-                                if (this.useEncryption) {
-                                    this.debugLog('*** Encryption requested - preparing encryption after challenge retry ***');
-                                    this.wtvsec.SecureOn(); // Initialize RC4 sessions
-                                }
-                            } else {
-                                console.error('Challenge retry also failed');
-                            }
-                        }
-                    } catch (retryError) {
-                        console.error('Challenge retry failed:', retryError.message);
-                    }
-                }
+                } 
             } catch (error) {
                 console.error('Error processing challenge:', error.message);
                 console.error('Stack trace:', error.stack);
@@ -2114,6 +2226,184 @@ class WebTVClientSimulator {
         const contentTypeExt = this.getExtensionFromContentType(contentType);
         const ext = contentTypeExt || '';
         return `content_${hash}${ext}`;
+    }
+
+
+    parseVLNStageTwoHTML(htmlContent) {
+        const userList = [];
+        try {
+            const htmlString = Buffer.isBuffer(htmlContent) ? htmlContent.toString('utf8') : htmlContent;
+            this.debugLog('Parsing VLN-stage-two HTML for form and hidden fields...');
+
+            // Find the form action URL
+            var formMatch = htmlString.match(/<form[^>]+action=["']([^"']+)["'][^>]*>/i);
+            if (!formMatch) {
+                // Match <form ... action=... ...>
+                // Handles quoted and unquoted action values
+                // Improved regex: match action attribute, quoted or unquoted, non-greedy
+                var formMatch = htmlString.match(/<form[^>]*\saction\s*=\s*(?:"([^"]*?)"|'([^']*?)'|([^\s"'<>]+))/i);
+                if (!formMatch) {
+                    console.error('No form with action found in VLN-stage-two HTML');
+                    this.cleanup();
+                    process.exit(1);
+                }
+            }
+            // Pick the first non-null group (quoted or unquoted)
+            let formAction = formMatch[1] || formMatch[2] || formMatch[3];
+            if (formAction.startsWith('/')) {
+                formAction = 'wtv-head-waiter:' + formAction;
+            }
+
+            // Extract all hidden input fields
+            const hiddenInputs = {};
+            // Regex to match hidden input fields, with or without quotes around attributes
+            const hiddenRegex = /<input[^>]+type=(?:"|')?hidden(?:"|')?[^>]*name=(?:"|')?([^"'\s>]+)(?:"|')?[^>]*value=(?:"|')?([^"'\s>]*)/gi;
+            let match;
+            while ((match = hiddenRegex.exec(htmlString)) !== null) {
+                hiddenInputs[match[1]] = match[2];
+                this.debugLog(`Found hidden input: ${match[1]} = ${match[2]}`);
+            }
+            // Require password from CLI
+            const passwordArgIndex = process.argv.indexOf('--password');
+            let password = null;
+            if (passwordArgIndex !== -1 && process.argv.length > passwordArgIndex + 1) {
+                password = process.argv[passwordArgIndex + 1];
+            }
+            if (!password) {
+                console.error('\nVLN-stage-two requires a password. Please provide one with --password <password>');
+                this.cleanup();
+                process.exit(1);
+            }
+
+            if (password) {
+                // Return early to prevent further processing
+                return {
+                    formAction,
+                    formData: { ...hiddenInputs, password },
+                    userList: [],
+                    selectedUser: null
+                };
+            }
+            
+        } catch (error) {
+            console.error('Error parsing VLN-stage-two HTML:', error);
+            return [];
+        }
+    }
+
+    parseMinisrvChooseUser(htmlContent) {
+        const userList = [];
+        
+        try {
+            const htmlString = Buffer.isBuffer(htmlContent) ? htmlContent.toString('utf8') : htmlContent;
+            this.debugLog('Parsing choose-user HTML for usernames and links...');
+
+            // Pattern to match user entries in the HTML
+            // Looking for <a href="/ValidateLogin?..." followed by username in <font> tags
+            // Handle both: <font><b>username</b></font> and <font>username</font>
+            // Examples: 
+            // <a href=/ValidateLogin?user_id=0&user_login=true nocancel><font size=+1><b>minisrv_15413</b></font></a>
+            // <a href=/ValidateLogin?user_id=1&user_login=true nocancel><font size=+1>zefie2</font>
+            const userPattern = /<a\s+href=([^\s>]+)[^>]*>[\s\S]*?<font[^>]*>\s*(?:<b>)?([^<]+?)(?:<\/b>)?\s*<\/font>/gi;
+            
+            let match;
+            while ((match = userPattern.exec(htmlString)) !== null) {
+                let href = match[1];
+                // Remove quotes if present
+                href = href.replace(/^["']|["']$/g, '');
+                // Add protocol if relative path
+                if (href.slice(0,1) === "/") {
+                    href = "wtv-head-waiter:" + href;
+                }
+                const username = match[2].trim();
+                
+                if (username && href) {
+                    userList.push({
+                        username: username,
+                        href: href
+                    });
+                    this.debugLog(`Found user: ${username} -> ${href}`);
+                }
+            }
+            
+            // Alternative pattern in case the first one doesn't catch all cases
+            // Look for any ValidateLogin links and try to find nearby usernames
+            if (userList.length === 0) {
+                this.debugLog('Primary pattern found no users, trying alternative pattern...');
+                const linkPattern = /href="?([^"\s]*ValidateLogin[^"\s]*)"?/gi;
+                const fontPattern = /<font[^>]*>(?:<b>)?([^<]+?)(?:<\/b>)?<\/font>/gi;
+                
+                const links = [];
+                const usernames = [];
+                
+                let linkMatch;
+                while ((linkMatch = linkPattern.exec(htmlString)) !== null) {
+                    let href = linkMatch[1];
+                    // Remove quotes if present
+                    href = href.replace(/^["']|["']$/g, '');
+                    // Add protocol if relative path
+                    if (href.slice(0,1) === "/") {
+                        href = "wtv-head-waiter:" + href;
+                    }
+                    links.push(href);
+                }
+                
+                let fontMatch;
+                while ((fontMatch = fontPattern.exec(htmlString)) !== null) {
+                    usernames.push(fontMatch[1].trim());
+                }
+                
+                // Try to pair them up (assuming they appear in the same order)
+                const minLength = Math.min(links.length, usernames.length);
+                for (let i = 0; i < minLength; i++) {
+                    userList.push({
+                        username: usernames[i],
+                        href: links[i]
+                    });
+                    this.debugLog(`Found user (alternative): ${usernames[i]} -> ${links[i]}`);
+                }
+            }
+            
+            this.debugLog(`Parsed ${userList.length} users from choose-user HTML`);
+            
+            if (this.username) {
+                // Find the specified user
+                const selectedUser = userList.find(user => user.username.toLowerCase() === this.username.toLowerCase());
+                if (selectedUser) {
+                    this.debugLog(`*** Selecting user: ${selectedUser.username} ***`);
+                    console.log(`Selecting user: ${selectedUser.username}`);
+                    // Return the user list with the selected user marked for automatic following
+                    return { userList, selectedUser };
+                } else {
+                    console.error(`\nUser '${this.username}' not found. Available users: ${userList.map(user => user.username).join(', ')}`);
+                    this.cleanup();
+                    process.exit(1);
+                }
+            } else {
+                // No username specified, list available users and exit
+                if (userList.length > 0) {
+                    console.log('\n*** Available users from choose-user ***');
+                    userList.forEach((user, index) => {
+                        console.log(`${index + 1}. ${user.username} -> ${user.href}`);
+                    });
+                    console.log('*** End of user list ***\n');
+                    console.error(`Please select a --user: ${userList.map(user => user.username).join(' ')}`);
+                    this.cleanup();
+                    process.exit(1);
+                } else {
+                    console.error('No users found in choose-user HTML');
+                    this.cleanup();
+                    process.exit(1);
+                }
+            }
+            
+            return { userList };
+            
+        } catch (error) {
+            console.error('Error parsing choose-user HTML:', error);
+            return [];
+        }
+
     }
 
     /**
