@@ -102,7 +102,6 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 <table><tc><td>&nbsp;</td></tc><tc><td><table>`;
 
 for (i = 0; i < settings.length; i += 2) {
-  console.log(settings);
 	data += `<tr>
 <td colspan=3 height=6>
 <tr>
