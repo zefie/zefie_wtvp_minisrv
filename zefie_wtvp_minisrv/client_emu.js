@@ -30,11 +30,13 @@ class WebTVClientSimulator {
         this.wtvsec = null;
         this.wtvshared = new WTVShared();
         this.ticket = null;
-        this.incarnation = 1;
+        this.incarnation = 0; // Start at 0, will be incremented to 1 on first request
+        this.lastHost = null; // Track last host for incarnation management
         this.currentSocket = null;
         this.challengeResponse = null;
         this.initial_key = null; // Store initial key from wtv-initial-key header
         this.hasSeenEncryptedResponse = false; // Track if we've seen an encrypted response
+        this.previousUrl = null; // Store previous URL for Referer header
         this.debug = debug;
         
         // Load minisrv config to get the initial shared key
@@ -112,8 +114,14 @@ class WebTVClientSimulator {
     /**
      * Make a WTVP request to a service
      */
-    async makeRequest(serviceName, path, data = null, skipRedirects = false) {
+    async makeRequest(serviceName, path, data = null, skipRedirects = false, post = false) {
         return new Promise((resolve, reject) => {
+            const currentUrl = `${serviceName}:${path}`;
+            
+            // Increment incarnation for each new request (like real WebTV client)
+            this.incarnation++;
+            this.debugLog(`Using incarnation: ${this.incarnation} for ${serviceName}:${path}`);
+            
             // Determine host and port for the service
             let targetHost = this.host;
             let targetPort = this.port;
@@ -175,7 +183,7 @@ class WebTVClientSimulator {
                     if (idx === -1) idx = responseData.indexOf(lflf);
                     if (idx !== -1) {
                         this.debugLog('Complete response detected, processing...');
-                        this.handleResponse(responseData, resolve, reject, skipRedirects);
+                        this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl);
                     }
                 }
             });
@@ -190,7 +198,7 @@ class WebTVClientSimulator {
                     if (idx === -1) idx = responseData.indexOf(lflf);
                     if (idx === -1) {
                         this.debugLog('Processing incomplete response on close...');
-                        this.handleResponse(responseData, resolve, reject, skipRedirects);
+                        this.handleResponse(responseData, resolve, reject, skipRedirects, currentUrl);
                     }
                 } 
             });
@@ -216,20 +224,37 @@ class WebTVClientSimulator {
         const method = data ? 'POST' : 'GET';
         let request = `${method} ${serviceName}:${path}\r\n`;
         
-        // Add required headers
-        request += `wtv-client-serial-number: ${this.ssid}\r\n`;
-        request += `wtv-client-bootrom-version: 105\r\n`;
-        request += `wtv-client-rom-type: US-LC2-disk-0MB-8MB\r\n`;
-        request += `wtv-incarnation: ${this.incarnation}\r\n`;
-        request += `wtv-show-time: 0\r\n`;
+        // Add Referer header if we have a previous URL
+        if (this.previousUrl) {
+            request += `Referer: ${this.previousUrl}\r\n`;
+        }
+        
+        // Add required headers (matching real WebTV client from PCAP)
         request += `wtv-request-type: ${((this.request_type_download) ? 'download' : 'primary')}\r\n`;
+        request += `wtv-client-serial-number: ${this.ssid}\r\n`;
+        request += `wtv-client-bootrom-version: 2046\r\n`;
+        request += `wtv-client-rom-type: US-LC2-disk-0MB-8MB\r\n`;
         request += `wtv-system-cpuspeed: 166187148\r\n`;
         request += `wtv-system-sysconfig: 4163328\r\n`;
         request += `wtv-disk-size: 8006\r\n`;
+        request += `Accept-Language: en\r\n`;
+        request += `wtv-incarnation: ${this.incarnation}\r\n`;
+        // Generate a random 8 character (4 byte) hex code for wtv-connect-session-id
+        const connectSessionId = Math.random().toString(16).substr(2, 8).padEnd(8, '0');
+        request += `wtv-connect-session-id: ${connectSessionId}\r\n`
+        // Add additional headers that real client sends (from PCAP analysis)
+        request += `User-Agent: Mozilla/4.0 WebTV/2.2.6.1 (compatible; MSIE 4.0)\r\n`;
+        request += `wtv-system-version: 7181\r\n`;
+        request += `wtv-capability-flags: 10935ffc8f\r\n`;
+        request += `wtv-system-chipversion: 51511296\r\n`;
+        if (this.useEncryption) request += `wtv-encryption: true\r\n`;
+        if (!this.challengeResponse) request += `wtv-script-id: -1896417432\r\n`;
+        if (!this.challengeResponse) request += `wtv-script-mod: 1754789923\r\n`;
+        request += `wtv-client-address: 0.0.0.0\r\n`;
 
         // Add challenge response if we have one
         if (this.challengeResponse) {
-            request += `wtv-challenge-response: ${this.challengeResponse}\r\n`;
+            request += `wtv-challenge-response: ${this.challengeResponse}\r\n`;    
             this.debugLog('Added challenge response to request');
             this.challengeResponse = null; // Clear challenge response after adding to request
         }
@@ -404,9 +429,15 @@ class WebTVClientSimulator {
             reject(error);
         }
     }
-    handleResponse(responseData, resolve, reject, skipRedirects = false) {
+    handleResponse(responseData, resolve, reject, skipRedirects = false, currentUrl = null) {
         this.debugLog('\nReceived response:');
         this.debugLog(responseData);
+        
+        // Update previousUrl for next request's Referer header
+        if (currentUrl) {
+            this.previousUrl = currentUrl;
+        }
+        
         try {
             // Find header/body split using CRLF CRLF (\r\n\r\n) or fallback to LF LF (\n\n)
             let idx = -1;
@@ -451,10 +482,11 @@ class WebTVClientSimulator {
                 }
             }
             this.processHeaders(headers);
-            
+            this.debugLog("srv headers:", headers);
             // Decompress the body if needed
             bodyBuf = this.decompressBody(bodyBuf, headers);
-            
+
+            this.debugLog("srv body:", bodyBuf.toString());
             // Mark that we've seen an encrypted response
             if (headers['wtv-encrypted'] === 'true') {
                 this.hasSeenEncryptedResponse = true;
@@ -484,6 +516,13 @@ class WebTVClientSimulator {
                 this.debugLog(`Following wtv-visit (${this.redirectCount}/${this.maxRedirects}): ${headers['wtv-visit']}`);
                 setTimeout(() => {
                     this.followVisit(headers['wtv-visit'])
+                        .then(resolve)
+                        .catch(reject);
+                }, 100);
+            } else if (headers['wtv-phone-log-url'] && headers['wtv-phone-log-url'].includes("post")) {
+                this.debugLog(`Following wtv-phone-log-url: ${headers['wtv-phone-log-url']}`);
+                setTimeout(() => {
+                    this.followVisit(headers['wtv-phone-log-url'], true)
                         .then(resolve)
                         .catch(reject);
                 }, 100);
@@ -540,26 +579,49 @@ class WebTVClientSimulator {
         // Handle wtv-challenge
         if (headers['wtv-challenge']) {
             this.debugLog('Received wtv-challenge, processing...');
+            this.debugLog(`Challenge: ${headers['wtv-challenge']}`);
+            this.debugLog(`Initial key from server: ${this.initial_key}`);
+            
             if (!this.wtvsec) {
-                this.debugLog('No WTVSec instance, initializing with default key...');
+                this.debugLog('No WTVSec instance, initializing...');
                 this.wtvsec = new WTVSec(this.minisrv_config, this.incarnation);
+                
+                // Override the initial shared key with the one provided by the server
+                if (this.initial_key) {
+                    this.debugLog('Overriding WTVSec initial shared key with server-provided key');
+                    this.wtvsec.initial_shared_key = CryptoJS.enc.Base64.parse(this.initial_key);
+                    this.wtvsec.current_shared_key = this.wtvsec.initial_shared_key;
+                }
             }
             
             try {
-                this.wtvsec.IssueChallenge();
-			    this.wtvsec.set_incarnation(headers["wtv-incarnation"]);
-                const challengeResponse = this.wtvsec.ProcessChallenge(headers['wtv-challenge'], CryptoJS.enc.Base64.parse(this.initial_key));
+                // Ensure WTVSec has the correct incarnation
+                this.wtvsec.set_incarnation(this.incarnation);
+                
+                // Set incarnation from server if provided
+                if (headers["wtv-incarnation"]) {
+                    this.debugLog(`Setting incarnation from server: ${headers["wtv-incarnation"]}`);
+                    this.wtvsec.set_incarnation(parseInt(headers["wtv-incarnation"]));
+                    this.incarnation = parseInt(headers["wtv-incarnation"]);
+                }
+                
+                // Use the server's initial key for challenge processing
+                const keyToUse = this.initial_key ? CryptoJS.enc.Base64.parse(this.initial_key) : this.wtvsec.current_shared_key;
+                this.debugLog(`Using key for challenge: ${keyToUse.toString(CryptoJS.enc.Base64)}`);
+
+                const challengeResponse = this.wtvsec.ProcessChallenge(headers['wtv-challenge'], keyToUse);
                 if (challengeResponse && challengeResponse.toString(CryptoJS.enc.Base64)) {
                     this.debugLog('Challenge processed successfully, preparing response');
+                    this.debugLog(`Challenge response: ${challengeResponse.toString(CryptoJS.enc.Base64)}`);
                     // We'll send the challenge response in the next request
                     this.challengeResponse = challengeResponse.toString(CryptoJS.enc.Base64);
-                    //this.incarnation = this.wtvsec.incarnation;
                     this.debugLog('Setting wtv-challenge-response header for next request');
                 } else {
                     console.error('Failed to process challenge - no response generated');
                 }
             } catch (error) {
                 console.error('Error processing challenge:', error.message);
+                console.error('Stack trace:', error.stack);
             }
         }
 
@@ -581,13 +643,7 @@ class WebTVClientSimulator {
                     // Initialize with current incarnation (which was incremented when we got wtv-encrypted: true)
                     this.wtvsec = new WTVSec(this.minisrv_config, this.incarnation);
                 }
-                // Follow the same sequence as the server to ensure matching keys
-                if (this.ticket) {
-                    this.wtvsec.DecodeTicket(this.ticket);
-                    this.wtvsec.ticket_b64 = this.ticket;
-                    // Set the incarnation to match current state
-                    this.wtvsec.set_incarnation(this.incarnation);
-                }
+
                 this.wtvsec.SecureOn(); // Initialize RC4 sessions
              
                 this.encryptionEnabled = true;
@@ -599,7 +655,7 @@ class WebTVClientSimulator {
     /**
      * Follow a wtv-visit directive
      */
-    async followVisit(visitUrl) {
+    async followVisit(visitUrl, post = false) {
         this.debugLog(`Parsing wtv-visit URL: ${visitUrl}`);
 
         // Parse the visit URL: service:/path or service:path
@@ -608,7 +664,7 @@ class WebTVClientSimulator {
             const serviceName = match[1];
             const path = '/' + (match[2] || '');
             this.debugLog(`Parsed service: ${serviceName}, path: ${path}`);
-            return await this.makeRequest(serviceName, path);
+            return await this.makeRequest(serviceName, path, (post) ? '1' : null, null);
         } else {
             throw new Error(`Invalid wtv-visit URL: ${visitUrl}`);
         }
