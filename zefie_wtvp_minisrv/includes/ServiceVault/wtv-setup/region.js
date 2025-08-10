@@ -1,11 +1,17 @@
 var minisrv_service_file = true;
 
 var timezone = "-0000";
+var zip = "";
 if (session_data.isRegistered()) {
     timezone = session_data.getSessionData("timezone") || timezone;
+    zip = session_data.getSessionData("zipcode") || zip;
     if (request_headers.query.timezone) {
         timezone = request_headers.query.timezone;
         session_data.setSessionData("timezone", timezone);
+    }
+    if (request_headers.query.zip) {
+        zip = request_headers.query.zip;
+        session_data.setSessionData("zipcode", zip);
     }
 }
 
@@ -94,11 +100,11 @@ html += `</form>
 <p>
 <hr>
 <p>
-<form action="submit" method="post">
+<form action="wtv-setup:/region" method="post">
   <b>Zip Code Entry</b>
   <p>
     Zip Code:
-    <input type="text" name="zip" size="10" maxlength="5">
+    <input type="text" name="zip" size="10" value="${zip}" maxlength="5">
     <input type="submit" value="Submit">
 </form>
 <TR>

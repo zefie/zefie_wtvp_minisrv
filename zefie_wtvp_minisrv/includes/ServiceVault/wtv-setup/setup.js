@@ -8,6 +8,40 @@ var notImplementedAlert = new clientShowAlert({
 	'noback': true,
 }).getURL();
 
+
+var settings = [
+  ["wtv-setup:/mail", "Mail Signature"],
+  ["wtv-setup:/edit-password", "Edit Password"],
+  ["wtv-setup:/accounts", "Account & Users"],
+  ["wtv-setup:/text", "Text Size"],
+  ["wtv-setup:/sound", "Background Music"],
+  [notImplementedAlert, "Printing"],
+  ["wtv-setup:/keyboard", "On-Screen Keyboard"],
+  ["wtv-setup:/screen", "Screen"],
+  ["wtv-setup:/messenger", "MSN Messenger"],
+  ["wtv-setup:/phone", "Dialing"],
+  ["wtv-setup:/region", "Timezone & Region"],
+  ["wtv-setup:/tweaks", "Tweaks"]
+]
+
+function removeSettingByUrl(url) {
+  for (let i = settings.length - 1; i >= 0; i--) {
+    if (settings[i][0] === url) {
+      settings.splice(i, 1);
+    }
+  }
+}
+
+if (minisrv_config.config.hide_incomplete_features) {
+  removeSettingByUrl(notImplementedAlert);
+}
+
+/* We need to fix most webtv viewers for this, since they spoof a build that doesn't support messenger?
+if (!session_data.hasCap("client-can-use-messenger")) {
+  removeSettingByUrl("wtv-setup:/messenger");
+}
+*/
+
 headers = `200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-
@@ -50,7 +84,7 @@ Settings
 <tr><td absheight=41>
 </table>
 </sidebar>
-<BODY BGCOLOR="#191919" TEXT="#42CC55" LINK="36d5ff" VLINK="36d5ff" FONTSIZE="small" hspace=0 vspace=0>
+<BODY BGCOLOR="#191919" TEXT="#42CC55" LINK="36d5ff" VLINK="36d5ff" FONTSIZE="medium" hspace=0 vspace=0>
 
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -59,112 +93,32 @@ Settings
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td valign=center absheight=80>
-<shadow><blackface><font color="e7ce4a" font size="5">
+<shadow><blackface><font color="e7ce4a" size=5>
 Settings
 for ${session_data.getSessionData("subscriber_username") || "You"}
 </font><blackface><shadow>
 </table>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
-<spacer type=block width=436 height=1>
-<tr>
-<TD>
-<td colspan=4 height=1 valign=top align=left>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
-<spacer type=block width=436 height=1>
-<td abswidth=20>
-<tr>
+<table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
+<table><tc><td>&nbsp;</td></tc><tc><td><table>`;
 
-<table cellspacing=0 cellpadding=2>
-<br><br>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td width=160><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/mail"><font size=2>Mail</a></td>
-    <td width=220><font size=2>Signature <strike>and more</strike></td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/edit-password"><font size=2>Password</a></td>
-    <td><font size=2>Change your password</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/screen"><font size=2>Television</a></td>
-    <td><font size=2>Options for your TV</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/text"><font size=2>Text size</a></td>
-    <td><font size=2>Make text bigger or smaller</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/sound"><font size=2>Music</a></td>
-    <td><font size=2>Play background songs</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="${notImplementedAlert}"><font size=2><strike>Printing</strike></a></td>
-    <td><strike><font size=2>Change how you print</strike></td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/keyboard"><font size=2>Keyboard</a></td>
-    <td><font size=2>Choose an on-screen keyboard</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/accounts"><font size=2>Extra Users</a></td>
-    <td><font size=2>Add, change, or remove users</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td> 
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/messenger"><font size=2>Messenger</a></td>
-    <td><font size=2>Configure Messenger</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/phone"><font size=2>Dialing</a></td>
-    <td><font size=2>Connecting to WebTV</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/region"><font size=2>Region Settings</a></td>
-    <td><font size=2>Change timezone and  zip code</td>
-  </tr>
-  <tr>
-    <td width=20>&nbsp;</td>
-    <td><img src="ROMCache/BulletArrow.gif" width=6 height=6 valign=absmiddle>
-<a href="wtv-setup:/tweaks"><font size=2>Tweaks</a></td>
-    <td><font size=2>minisrv specific settings</td>
-  </tr>
-</table>
-
-<table width=100%>
-<tr><td align=right>
-<spacer type=block width=436 height=4>
-<FORM action="wtv-home:/home" selected>
-<FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
-<INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Done NAME="Done" USESTYLE WIDTH=103>&nbsp;&nbsp;&nbsp;
-</SHADOW></FONT></FORM>
-<TD>
-</TABLE>
-</BODY>
-</HTML>
+for (i = 0; i < settings.length; i += 2) {
+  console.log(settings);
+	data += `<tr>
+<td colspan=3 height=6>
+<tr>
+<td>${(settings[i][0] != "") ? `&#128; <a href="${settings[i][0]}">${settings[i][1]}</a>` : `<!-- TODO --> &nbsp;`}
+<td width=25>
+<td>`
+	if (i + 1 < settings.length) {
+		data += (settings[i + 1][0] != "") ? `&#128; <a href="${settings[i + 1][0]}">${settings[i + 1][1]}</a>` : `<!-- TODO --> &nbsp;`
+	} else {
+		// require even number of settings
+		data += "<!-- TODO --> &nbsp;"
+	}
+}
+data += `</table></td></tc></table>
+</body>
+</html>
 
 
 `;
