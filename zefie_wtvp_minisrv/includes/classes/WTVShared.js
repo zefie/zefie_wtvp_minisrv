@@ -274,7 +274,7 @@ class WTVShared {
      * @param {string} service_name (optional) Service to check
      */
     isAdmin(wtvclient, service_name = "wtv-admin") {
-        const  WTVAdmin = require("./WTVAdmin.js");
+        const WTVAdmin = require("./WTVAdmin.js");
         const wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
         const result = wtva.isAuthorized(true);
         return result;
