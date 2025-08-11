@@ -242,7 +242,9 @@
       // wtv-log
       "port": 1609,
       "connections": 1,
-      "write_logs_to_disk": false // set this to true to save logs to the error_log_file set above
+      "write_logs_to_disk": true, // set this to false to not save logs the ServiceLogPost folder
+      "dont_save_chat_logs": true, // They just take up space unless you want to monitor your user's joins and disconnects, doesn't log messages either way
+      "max_logs_per_ssid": 50
     },
     "wtv-favorite": {
       // wtv-favorite
