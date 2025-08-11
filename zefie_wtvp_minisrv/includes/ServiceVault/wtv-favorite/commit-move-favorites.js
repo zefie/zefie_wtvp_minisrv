@@ -33,7 +33,6 @@ else {
 Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire-all: wtv-favorite:
-wtv-visit: ${gourl}
 Location: ${gourl}`
 	} else {
 		var err = doErrorPage(500);
