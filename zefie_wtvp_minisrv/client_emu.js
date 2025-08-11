@@ -927,27 +927,29 @@ class WebTVClientSimulator {
                     
                     // Parse the HTML to extract usernames and their href links
                     if (bodyBuf.length > 0) {
-                        const parseResult = this.parseVLNStageTwoHTML(bodyBuf);
-                        if (parseResult.formData && parseResult.formAction) {
-                            // Prepare form data as application/x-www-form-urlencoded
-                            const formBody = parseResult.formData
-                                ? Object.entries(parseResult.formData)
-                                    .map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value))
-                                    .join('&')
-                                : '';
+                        if (!headers['user-id']) {
+                            const parseResult = this.parseVLNStageTwoHTML(bodyBuf);
+                            if (parseResult.formData && parseResult.formAction) {
+                                // Prepare form data as application/x-www-form-urlencoded
+                                const formBody = parseResult.formData
+                                    ? Object.entries(parseResult.formData)
+                                        .map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value))
+                                        .join('&')
+                                    : '';
 
-                            // Make POST request to formAction with formBody
-                            this.debugLog(`Submitting VLN-stage-two form to ${parseResult.formAction} with password`);
-                            this.makeRequestWithRetry(
-                                parseResult.formAction.split(':')[0],
-                                parseResult.formAction.replace(/^[^:]+:/, ''),
-                                formBody,
-                                false
-                            ).catch(err => {
-                                console.error('Error submitting VLN-stage-two form:', err);
-                                this.cleanup();
-                                process.exit(1);
-                            });
+                                // Make POST request to formAction with formBody
+                                this.debugLog(`Submitting VLN-stage-two form to ${parseResult.formAction} with password`);
+                                this.makeRequestWithRetry(
+                                    parseResult.formAction.split(':')[0],
+                                    parseResult.formAction.replace(/^[^:]+:/, ''),
+                                    formBody,
+                                    false
+                                ).catch(err => {
+                                    console.error('Error submitting VLN-stage-two form:', err);
+                                    this.cleanup();
+                                    process.exit(1);
+                                });
+                            }
                         }
                     }
                 }
