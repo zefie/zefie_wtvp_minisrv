@@ -34,8 +34,9 @@ const express = require('express');
 
 let wtvirc = null;
 let wtvnewsserver = null;
-let wtvmime = null;
-let minisrv_config = null;
+
+const minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
+const wtvmime = new WTVMime(minisrv_config);
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -90,7 +91,6 @@ function getPortByService(service) {
 
 function getSocketServer(socket) {
     let server;
-
     if (socket._server) {
         if (socket._server._connectionKey) server = socket._server;
     } else if (socket._parent) {
@@ -185,11 +185,11 @@ function configureService(service_name, service_obj, initial = false) {
 }
 
 // Where we store our session information
-var ssid_sessions = [];
-var socket_sessions = [];
+const ssid_sessions = [];
+let socket_sessions = [];
 
-var ports = [];
-var pc_ports = [];
+const ports = [];
+const pc_ports = [];
 
 function moveArrayKey(array, from, to) {
     array.splice(to, 0, array.splice(from, 1)[0]);
@@ -199,7 +199,6 @@ function moveArrayKey(array, from, to) {
 function getServiceString(service, overrides = {}) {
     return wtvshared.getServiceString(service, overrides);
 }
-
 
 async function sendRawFile(socket, path) {
     if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Found " + path + " to handle request (Direct File Mode) [Socket " + socket.id + "]");
@@ -285,12 +284,12 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     }
 
     // per service overrides
-    var modules_loaded = [];
+    const modules_loaded = [];
     if (minisrv_config.services[contextObj.service_name]) {
         if (minisrv_config.services[contextObj.service_name].modules) {
-            var vm_modules = minisrv_config.services[contextObj.service_name].modules;
+            const vm_modules = minisrv_config.services[contextObj.service_name].modules;
             Object.keys(vm_modules).forEach(function (k) {
-                var module_file = classPath + path.sep + vm_modules[k] + ".js"
+                const module_file = classPath + path.sep + vm_modules[k] + ".js"
                 try {
                     contextObj[vm_modules[k]] = require(module_file);
                     modules_loaded.push(module_file)
@@ -342,9 +341,6 @@ var runScriptInVM = function (script_data, user_contextObj = {}, privileged = fa
     } catch (e) {
         throw e;
     }
-
-    // unload any loaded modules for this vm
-    modules_loaded = null;
     return contextObj; // updated context object with whatever global varibles the script set
 }
 
@@ -1774,7 +1770,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             delete socket_sessions[socket.id].headers;
         }
     }
-    var data = Buffer.from(data_hex, 'hex').toString('ascii');
+    let data = Buffer.from(data_hex, 'hex').toString('ascii');
     if (typeof data === "string") {
         if ((data.includes("\r\n\r\n") || data.includes("\n\n") || data.includes("\n\r\n")) && typeof socket_sessions[socket.id].post_data == "undefined") {
             if (data.includes("\r\n\r\n")) {
@@ -1791,7 +1787,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     Object.keys(new_header_obj).forEach(function (k, v) {
                         headers[k] = new_header_obj[k];
                     });
-                    new_header_obj = null;
                 } else {
                     headers = wtvshared.headerStringToObj(data);
                 }
@@ -2064,7 +2059,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             socket_sessions[socket.id].headers = headers;
                         }
                         if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
-                            new_header_obj = null;
                             const enc_data = CryptoJS.enc.Hex.parse(data_hex);
                             if (socket_sessions[socket.id].secure) {
                                 // decrypt if encrypted
@@ -2321,7 +2315,7 @@ function reloadConfig() {
     const temp = { "version": minisrv_config.version }
     if (minisrv_config.config.git_commit) temp.git_commit = minisrv_config.config.git_commit;
 
-    minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
+    const minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
     minisrv_config.version = temp.version
     if (temp.git_commit) minisrv_config.config.git_commit = temp.git_commit;
     if (!minisrv_config.config.service_logo.includes(':')) {
@@ -2345,11 +2339,6 @@ console.log("**** Welcome to " + z_title + "  ****");
 console.log("**** Detected nodejs v" + process.versions.node + " ****")
 const application_root = wtvshared.getAbsolutePath('', __dirname)
 console.log("**** Application Root Path:", application_root, "****")
-
-
-
-minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
-wtvmime = new WTVMime(minisrv_config);
 
 if (git_commit) {
     minisrv_config.config.git_commit = git_commit;
