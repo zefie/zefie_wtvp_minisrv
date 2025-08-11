@@ -910,7 +910,7 @@ async function processURL(socket, request_headers, pc_services = false) {
     request_headers.query = {};
 
     if (request_headers.request_url) {
-        service_name = socket.service_name || verifyServicePort(unescape(request_headers.request_url).split(':/')[0], socket);
+        service_name = socket.service_name || verifyServicePort(decodeURIComponent(request_headers.request_url).split(':/')[0], socket);
         if (minisrv_config.services[service_name]) {
             allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
             enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
@@ -928,7 +928,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                     const qraw_split = param.split("=");
                     if (qraw_split.length === 2) {
                         const k = qraw_split[0];
-                        const value = unescape(qraw_split[1].replace(/\+/g, "%20"));
+                        const value = decodeURIComponent(qraw_split[1].replace(/\+/g, "%20"));
                         if (request_headers.query[k] && enable_multi_query) {
                             console.log("yes")
                             if (typeof request_headers.query[k] === 'string') {
@@ -944,7 +944,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                 });
             }
         } else {
-            shortURL = unescape(request_headers.request_url);
+            shortURL = decodeURIComponent(request_headers.request_url);
         }
 
         if (request_headers['wtv-request-type']) socket_sessions[socket.id].wtv_request_type = request_headers['wtv-request-type'];
@@ -1866,7 +1866,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 // log all client wtv- headers to the SessionData for that SSID
                 // this way we can pull up client info such as wtv-client-rom-type or wtv-system-sysconfig
                 Object.keys(headers).forEach(function (k) {
-                    if (k.substr(0, 4) === "wtv-") {
+                    if (k.slice(0, 4) === "wtv-") {
                         if (k === "wtv-incarnation" && socket_sessions[socket.id].wtvsec) {
                             socket_sessions[socket.id].wtvsec.set_incarnation(headers[k]);
                         }
@@ -1978,7 +1978,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             } else if (skipSecure) {
                 if (headers) {
                     if (headers['request']) {
-                        if (headers['request'].substring(0, 4) == "POST") {
+                        if (headers['request'].slice(0, 4) == "POST") {
                             if (socket_sessions[socket.id].secure_buffer) delete socket_sessions[socket.id].secure_buffer;
                         } else {
                             return headers;
@@ -1992,7 +1992,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             }
             // handle POST
             if (headers['request'] && !socket_sessions[socket.id].expecting_post_data) {
-                if (headers['request'].substring(0, 4) == "POST") {
+                if (headers['request'].slice(0, 4) == "POST") {
                     socket.setTimeout(minisrv_config.config.post_data_socket_timeout * 1000);
                     if (typeof socket_sessions[socket.id].post_data == "undefined") {
                         if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
@@ -2172,7 +2172,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                     headers[k] = secure_headers[k];
                                 });
                                 if (headers['request']) {
-                                    if (headers['request'].substring(0, 4) == "POST") {
+                                    if (headers['request'].slice(0, 4) == "POST") {
                                         if (!socket_sessions[socket.id].post_data) {
                                             socket_sessions[socket.id].post_data_length = headers['Content-length'] || headers['Content-Length'] || 0;
                                             socket_sessions[socket.id].post_data = "";
@@ -2244,7 +2244,7 @@ function getSocketRandomID(socket) {
         crypto.createHash('sha256')
             .update(String(socket.remoteAddress) + String(socket.remotePort))
             .digest('hex')
-            .substring(0, 8), 16
+            .slice(0, 8), 16
     ) % 100000000;
 }
 
@@ -2302,9 +2302,9 @@ function getGitRevision() {
     try {
         const rev = fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + "HEAD").toString().trim();
         if (!rev.includes(':')) {
-            return rev;
+            return rev.slice(0, 8);
         } else {
-            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.substring(5)).toString().trim().substring(0, 8) + "-" + rev.split('/').pop();
+            return fs.readFileSync(__dirname + path.sep + ".." + path.sep + ".git" + path.sep + rev.slice(5)).toString().trim().slice(0, 8) + "-" + rev.split('/').pop();
         }
     } catch (e) {
         return null;

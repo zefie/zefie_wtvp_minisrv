@@ -252,7 +252,7 @@ class WTVIRC {
             data = data.toString('ascii');
         }
         if (data.length > this.max_message_len) {
-            data = data.substring(0, this.max_message_len - 2) + '\r\n';
+            data = data.alice(0, this.max_message_len - 2) + '\r\n';
             this.debugLog('warn', `Data length exceeds max_message_len (${this.max_message_len}), truncating: ${data.length} > ${this.max_message_len}`);
         }
         
@@ -351,23 +351,23 @@ class WTVIRC {
         switch (type) {
             case 'nickname':
                 // IRC nicknames: A-Z a-z 0-9 [ ] \ ` _ ^ { | }
-                return input.replace(/[^A-Za-z0-9\[\]\\`_^{|}]/g, '').substring(0, this.nicklen);
+                return input.replace(/[^A-Za-z0-9\[\]\\`_^{|}]/g, '').slice(0, this.nicklen);
             
             case 'channel':
                 // Channel names: start with #, no spaces, commas, or control chars
                 if (!input.startsWith('#')) return '';
-                return input.replace(/[^A-Za-z0-9#\-_.]/g, '').substring(0, this.channellen);
+                return input.replace(/[^A-Za-z0-9#\-_.]/g, '').slice(0, this.channellen);
             
             case 'message':
                 // Messages: no control chars, reasonable length
-                return input.substring(0, 512);
+                return input.slice(0, 512);
             
             case 'username':
                 // Usernames: alphanumeric and some special chars
-                return input.replace(/[^A-Za-z0-9\-_.]/g, '').substring(0, 32);
+                return input.replace(/[^A-Za-z0-9\-_.]/g, '').slice(0, 32);
             
             default:
-                return input.substring(0, 512);
+                return input.slice(0, 512);
         }
     }
 
@@ -4141,9 +4141,9 @@ class WTVIRC {
             var gitPath = __dirname + path.sep + ".." + path.sep + ".." + path.sep + ".." + path.sep + ".git" + path.sep
             const rev = fs.readFileSync(gitPath + "HEAD").toString().trim();
             if (rev.indexOf(':') === -1) {
-                return rev;
+                return rev.slice(0, 8);
             } else {
-                return fs.readFileSync(gitPath + rev.substring(5)).toString().trim().substring(0, 8) + "-" + rev.split('/').pop();
+                return fs.readFileSync(gitPath + rev.slice(5)).toString().trim().slice(0, 8) + "-" + rev.split('/').pop();
             }
         } catch (e) {
             return null;
