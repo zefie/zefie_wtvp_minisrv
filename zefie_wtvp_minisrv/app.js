@@ -211,7 +211,7 @@ async function sendRawFile(socket, path) {
     });
 }
 
-var runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null, debug_name = null) {
+const runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null, debug_name = null) {
     // Here we define the ServiceVault Script Context Object
     // The ServiceVault scripts will only be allowed to access the following functions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.
@@ -350,7 +350,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     vault = path.resolve(vault);
     if (!vault.startsWith(SAFE_ROOT)) {
         console.error("Invalid vault path:", vault);
-        var errpage = wtvshared.doErrorPage(403);
+        const errpage = wtvshared.doErrorPage(403);
         sendToClient(socket, errpage[0], errpage[1]);
         return;
     }
@@ -427,7 +427,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     if (request_headers['content-length']) env.CONTENT_LENGTH = request_headers['content-length'];
     else delete env['CONTENT_LENGTH'];
 
-    var post_data = (request_headers['post_data']) ? request_headers['post_data'] : "";
+    const post_data = (request_headers['post_data']) ? request_headers['post_data'] : "";
     env.MINISRV_SESSION_STORE = serialize((session_data) ? session_data.getSessionData() : null);
     env.MINISRV_DATA_STORE = serialize((session_data) ? session_data.get() : null);
 
@@ -480,7 +480,7 @@ async function handlePHP(socket, request_headers, php_file, vault, service_name,
 }
 
 async function processPath(socket, service_vault_file_path, request_headers = [], service_name, shared_romcache = null, pc_services = false) {
-    var headers, data = null;
+    let headers, data = null;
     let request_is_async = false;
     let service_vault_found = false;
     let service_path = decodeURIComponent(service_vault_file_path);
@@ -559,7 +559,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                     if (minisrv_catchall) {
                         if (service_path_request_file == minisrv_catchall) {
                             request_is_async = true;
-                            var errpage = wtvshared.doErrorPage(401, null, null, pc_services);
+                            const errpage = wtvshared.doErrorPage(401, null, null, pc_services);
                             sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
@@ -746,7 +746,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                 if (!status) {
                                     if (line.match(/minisrv\_service\_file.*true/i)) {
                                         request_is_async = true;
-                                        var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
+                                        const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                         return;
                                     } else {
@@ -754,7 +754,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                     }
                                 } else {
                                     request_is_async = true;
-                                    var errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+                                    const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
                                     sendToClient(socket, errpage[0], errpage[1]);
                                     return;
                                 }
@@ -766,7 +766,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                 if (!status) {
                                     if (line.match(/^#!minisrv/i)) {
                                         request_is_async = true;
-                                        var errpage = wtvshared.doErrorPage(403, null, null, pc_services);
+                                        const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                         return;
                                     } else {
@@ -774,7 +774,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                     }
                                 } else {
                                     request_is_async = true;
-                                    var errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+                                    const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
                                     sendToClient(socket, errpage[0], errpage[1]);
                                     return;
                                 }
@@ -906,6 +906,7 @@ function getDirectoryIndex(svpath) {
 async function processURL(socket, request_headers, pc_services = false) {
     let shortURL, headers, data, service_name;
     let original_service_name = "";
+    let shared_romcache = null;
     let allow_double_slash = false, enable_multi_query = false, use_external_proxy = false;
     request_headers.query = {};
 
@@ -1099,7 +1100,7 @@ minisrv-no-mail-count: true`;
                 }
             }
             const urlToPath = wtvshared.fixPathSlashes(service_name + path.sep + shortURL.split(':/')[1]);
-            let shared_romcache = null;
+            
             if ((shortURL.includes(":/ROMCache/") || shortURL.includes("://ROMCache/")) && minisrv_config.config.enable_shared_romcache) {
                 shared_romcache = wtvshared.fixPathSlashes(minisrv_config.config.SharedROMCache + path.sep + shortURL.split(':/')[1]);
             } 
@@ -1294,7 +1295,7 @@ async function doHTTPProxy(socket, request_headers) {
         if (request_type === "https") request_data.port = 443;
         else request_data.port = 80;
     }
-    for (var i = 0; i < 3; i++) request_url_split.shift();
+    for (let i = 0; i < 3; i++) request_url_split.shift();
     request_data.path = "/" + request_url_split.join('/');
     if (request_data.method && request_data.host && request_data.path) {
 
@@ -1479,13 +1480,14 @@ async function sendToClient(socket, headers_obj, data = null) {
                         wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "php" ||
                         wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "cgi" ||
                         socket_sessions[socket.id].request_headers.raw_file === true) {
+                        let last_modified_formatted = null;
                             if (socket.res) {
-                                var last_modified_formatted = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
+                                last_modified_formatted = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
                             } else {
-                                var last_modified = wtvshared.getFileLastModifiedUTCObj(socket_sessions[socket.id].request_headers.service_file_path);
-                                var strftime = require('strftime');
-                                var strf = strftime.timezone(timezone);
-                                var last_modified_formatted = strf("%a, %d %b %Y %H:%M:%S", last_modified);                             
+                                const last_modified = wtvshared.getFileLastModifiedUTCObj(socket_sessions[socket.id].request_headers.service_file_path);
+                                const strftime = require('strftime');
+                                const strf = strftime.timezone(timezone);
+                                last_modified_formatted = strf("%a, %d %b %Y %H:%M:%S", last_modified);
                             }
                         if (last_modified_formatted) headers_obj["Last-Modified"] = last_modified_formatted;
                     }
@@ -1561,8 +1563,7 @@ async function sendToClient(socket, headers_obj, data = null) {
             headers_obj = wtvshared.moveObjectKey('wtv-encrypted', 'Connection', headers_obj);
             if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
                 if (!minisrv_config.config.debug_flags.quiet) console.debug(" * Encrypting response to client ...")
-                var enc_data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
-                data = enc_data;
+                data = socket_sessions[socket.id].wtvsec.Encrypt(1, data);
             }
         }
 
@@ -1646,7 +1647,7 @@ async function sendToClient(socket, headers_obj, data = null) {
                 headers += headers_obj[k] + eol;
             } else {
                 if (k.indexOf('_') >= 0) {
-                    var j = k.split('_')[0];
+                    let j = k.split('_')[0];
                     headers += j + ": " + headers_obj[k] + eol;
                 } else {
                     headers += k + ": " + headers_obj[k] + eol;
@@ -1683,11 +1684,11 @@ async function sendToClient(socket, headers_obj, data = null) {
             toClient = headers + eol + data;
             sendToSocket(socket, Buffer.from(toClient));
         } else if (typeof data === 'object') {
-            if (minisrv_config.config.debug_flags.quiet) var verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
+            const verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
             if (socket_sessions[socket.id].secure_headers == true) {
                 // encrypt headers
                 if (minisrv_config.config.debug_flags.quiet) verbosity_mod += " with encrypted headers";
-                var enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + eol);
+                const enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + eol);
                 sendToSocket(socket, new Buffer.from(concatArrayBuffer(enc_headers, data)));
             } else {
                 sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + eol), data)));
@@ -1764,6 +1765,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
     // This function sucks and needs to be rewritten
 
     let headers = [];
+    let header_length = 0;
     if (socket_sessions[socket.id]) {
         if (socket_sessions[socket.id].headers) {
             headers = socket_sessions[socket.id].headers;
@@ -1783,7 +1785,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             }
             if (isUnencryptedString(data)) {
                 if (headers.length != 0) {
-                    var new_header_obj = wtvshared.headerStringToObj(data);
+                    const new_header_obj = wtvshared.headerStringToObj(data);
                     Object.keys(new_header_obj).forEach(function (k, v) {
                         headers[k] = new_header_obj[k];
                     });
@@ -1801,18 +1803,15 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         socket_sessions[socket.id].wtvsec.SecureOn();
                         socket_sessions[socket.id].secure = true;
                     }
-                    var enc_data = CryptoJS.enc.Hex.parse(data_hex.slice(header_length * 2));
+                    const enc_data = CryptoJS.enc.Hex.parse(data_hex.slice(header_length * 2));
                     if (enc_data.sigBytes > 0) {
                         if (!socket_sessions[socket.id].wtvsec) {
-                            var errpage = wtvshared.doErrorPage(400);
-                            headers = errpage[0];
-                            headers += "wtv-visit: client:relog\n";
-                            data = errpage[1];
-                            sendToClient(socket, headers, data);
+                            const errpage = wtvshared.doErrorPage(400);
+                            sendToClient(socket, errpage[0] + "wtv-visit: client:relog\n", errpage[1]);
                             return;
                         }
-                        var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
-                        var secure_headers = await processRequest(socket, dec_data.toString(CryptoJS.enc.Hex), true, true);
+                        const dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
+                        const secure_headers = await processRequest(socket, dec_data.toString(CryptoJS.enc.Hex), true, true);
                         if (secure_headers) {
                             headers = [];
                             headers.encrypted = true;
@@ -1832,11 +1831,9 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     if (!wtvshared.checkSSID(socket.ssid)) {
                         if (!socket.ssid.startsWith("1SEGA") && !socket.ssid.startsWith("MSTVSIMU")) {
                             // reject invalid SSIDs, but let Dreamcast and MSTV Sim through for now until we figure out their checksumming method.
-                            var errpage = wtvshared.doErrorPage(400, "minisrv ran into a technical problem. Reason: Your SSID is not valid.");
-                            headers = errpage[0];
-                            data = errpage[1];
+                            const errpage = wtvshared.doErrorPage(400, "minisrv ran into a technical problem. Reason: Your SSID is not valid.");
                             socket.close_me = true;
-                            sendToClient(socket, headers, data);
+                            sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
                     }
@@ -1926,7 +1923,6 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     socket_sessions[socket.id].secure = true;
                 }
                 if (!headers.request_url) {
-                    var header_length = 0;
                     if (data_hex.includes("0d0a0d0a")) {
                         // \r\n\r\n
                         header_length = data.length + 4;
@@ -1934,11 +1930,11 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         // \n\n
                         header_length = data.length + 2;
                     }
-                    var enc_data = CryptoJS.enc.Hex.parse(data_hex.slice(header_length * 2));
+                    const enc_data = CryptoJS.enc.Hex.parse(data_hex.slice(header_length * 2));
                     if (enc_data.sigBytes > 0) {
 
                         // SECURE ON and detected encrypted data
-                        var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
+                        const dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
                         if (!socket_sessions[socket.id].secure_buffer) socket_sessions[socket.id].secure_buffer = "";
                         socket_sessions[socket.id].secure_buffer += dec_data.toString(CryptoJS.enc.Hex);
                         let secure_headers = null;
@@ -1959,10 +1955,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (minisrv_config.config.debug_flags.debug) console.debug(" # Encrypted Request (SECURE ON)", "on", socket.id);
                         if (!secure_headers.request) {
                             socket_sessions[socket.id].secure = false;
-                            var errpage = wtvshared.doErrorPage(400);
-                            headers = errpage[0];
-                            data = errpage[1];
-                            sendToClient(socket, headers, data);
+                            const errpage = wtvshared.doErrorPage(400);
+                            sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
 
@@ -1993,13 +1987,14 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
             // handle POST
             if (headers['request'] && !socket_sessions[socket.id].expecting_post_data) {
                 if (headers['request'].slice(0, 4) == "POST") {
+                    let post_string = "POST";
                     socket.setTimeout(minisrv_config.config.post_data_socket_timeout * 1000);
                     if (typeof socket_sessions[socket.id].post_data == "undefined") {
                         if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
                         socket_sessions[socket.id].post_data_length = parseInt(headers['Content-length'] || headers['Content-Length'] || 0);
                         socket_sessions[socket.id].post_data = "";
                         socket_sessions[socket.id].headers = headers;
-                        var post_string = "POST";
+                       
                         if (socket_sessions[socket.id].secure) post_string = "Encrypted " + post_string;
 
                         // the client may have just sent the data with the primary headers, so lets look for that.
@@ -2023,10 +2018,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         processURL(socket, headers);
                     } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                         // got too much data ? ... should not ever reach this code (section 2)
-                        var errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
-                        headers = errpage[0];
-                        data = errpage[1];
-                        sendToClient(socket, headers, data);
+                        const errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
+                        sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     } else {
                         // expecting more data (see below)
@@ -2060,17 +2053,18 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         }
                         if (socket_sessions[socket.id].post_data.length < (socket_sessions[socket.id].post_data_length * 2)) {
                             const enc_data = CryptoJS.enc.Hex.parse(data_hex);
+                            let dec_data;
                             if (socket_sessions[socket.id].secure) {
                                 // decrypt if encrypted
-                                var dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data))
+                                dec_data = CryptoJS.lib.WordArray.create(socket_sessions[socket.id].wtvsec.Decrypt(0, enc_data));
                             } else {
                                 // just pass it over
-                                var dec_data = enc_data;
+                                dec_data = enc_data;
                             }
 
                             socket_sessions[socket.id].post_data += dec_data.toString(CryptoJS.enc.Hex);
 
-                            var post_string = "POST";
+                            let post_string = "POST";
                             if (socket_sessions[socket.id].secure == true) post_string = "Encrypted " + post_string;
 
                             if (minisrv_config.config.post_debug) {
@@ -2078,7 +2072,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                                 console.debug(" * ", Math.floor(new Date().getTime() / 1000), "Receiving", post_string, "data on", socket.id, "[", socket_sessions[socket.id].post_data.length / 2, "of", socket_sessions[socket.id].post_data_length, "bytes ]");
                             } else {
                                 // calculate and display percentage of data received
-                                var postPercent = wtvshared.getPercentage(socket_sessions[socket.id].post_data.length, (socket_sessions[socket.id].post_data_length * 2));
+                                const postPercent = wtvshared.getPercentage(socket_sessions[socket.id].post_data.length, (socket_sessions[socket.id].post_data_length * 2));
                                 if (minisrv_config.config.post_percentages) {
                                     if (minisrv_config.config.post_percentages.includes(postPercent)) {
                                         if (!socket_sessions[socket.id].post_data_percents_shown) socket_sessions[socket.id].post_data_percents_shown = new Array();
@@ -2097,10 +2091,8 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                             if (headers.length == 0) {
-                                var errpage = wtvshared.doErrorPage(400, `${minisrv_config.config.service_name} ran into a technical problem, please try again.`);
-                                headers = errpage[0];
-                                data = errpage[1];
-                                sendToClient(socket, headers, data);
+                                const errpage = wtvshared.doErrorPage(400, `${minisrv_config.config.service_name} ran into a technical problem, please try again.`);
+                                sendToClient(socket, errpage[0], errpage[1]);
                                 return;
                             }
                             headers.post_data = CryptoJS.enc.Hex.parse(socket_sessions[socket.id].post_data);
@@ -2118,12 +2110,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                             // got too much data ? ... should not ever reach this code
-                            var errmsg = "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length;
+                            const errmsg = "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length;
                             console.error(errmsg);
-                            var errpage = wtvshared.doErrorPage(400, null, errmsg);
-                            headers = errpage[0];
-                            data = errpage[1];
-                            sendToClient(socket, headers, data);
+                            const errpage = wtvshared.doErrorPage(400, null, errmsg);
+                            sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
                     }
@@ -2140,8 +2130,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (enc_data.sigBytes > 0) {
                             if (!socket_sessions[socket.id].wtvsec) {
                                 const errpage = wtvshared.doErrorPage(400);
-                                const head = errpage[0] + "wtv-visit: client:relog\n";
-                                sendToClient(socket, head, errpage[1]);
+                                sendToClient(socket, errpage[0] + "wtv-visit: client:relog\n", errpage[1]);
                                 return;
                             }
                             const str_test = enc_data.toString(CryptoJS.enc.Latin1);
@@ -2476,7 +2465,7 @@ const bind_ports = [...new Set(ports)]
 if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 bind_ports.every(function (v) {
     try {
-        var server = net.createServer(handleSocket);
+        const server = net.createServer(handleSocket);
         server.listen(v, minisrv_config.config.bind_ip);
         return true;
     } catch (e) {
@@ -2491,12 +2480,12 @@ const pc_bind_ports = [...new Set(pc_ports)]
 if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 pc_bind_ports.every(function (v) {
     try {
-        var server = express();
+        const server = express();
         server.use(express.raw({ type: '*/*' }))
-        var service_name = getServiceByPort(v);
-        var service_handler = http;
-        var server_opts = {};
-        var using_tls = (minisrv_config.services[service_name].https_cert && minisrv_config.services[service_name].use_https) ? true : false;
+        const service_name = getServiceByPort(v);
+        let service_handler = http;
+        let server_opts = {};
+        const using_tls = (minisrv_config.services[service_name].https_cert && minisrv_config.services[service_name].use_https) ? true : false;
 
         if (using_tls) {
             service_handler = httpx;
@@ -2515,10 +2504,10 @@ pc_bind_ports.every(function (v) {
         service_handler.createServer(server_opts, server).listen(v, minisrv_config.config.bind_ip);
         
         server.get('*', (req, res) => {
-            var ssl = (req.socket.ssl) ? true : false;
-            var service_name = getServiceByPort(v);
-            var request_headers = {};
-            
+            const ssl = (req.socket.ssl) ? true : false;
+            let service_name = getServiceByPort(v);
+            const request_headers = {};
+
             request_headers['request'] = "GET " + req.originalUrl + " HTTP/1.1";
             request_headers.request_url = req.originalUrl;
             request_headers.raw_headers = "Request: " + request_headers['request'] + "\r\n";
@@ -2528,7 +2517,7 @@ pc_bind_ports.every(function (v) {
             });
             request_headers.query = req.query;
 
-            var host_name = (request_headers['host']) ? request_headers['host'] : null;
+            let host_name = (request_headers['host']) ? request_headers['host'] : null;
 
             if (host_name) {
                 if (host_name.includes(":")) host_name = host_name.slice(0, host_name.indexOf(":"));
@@ -2546,7 +2535,7 @@ pc_bind_ports.every(function (v) {
                 else debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC GET Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
 
                 if (!ssl && minisrv_config.services[service_name].force_https && minisrv_config.services[service_name].https_cert) {
-                    var headers = `302 Moved
+                    const headers = `302 Moved
 Location: https://${(minisrv_config.services[service_name].https_cert.domain) ? minisrv_config.services[service_name].https_cert.domain : minisrv_config.services[service_name].host}:${minisrv_config.services[service_name].port}${req.originalUrl}
 Content-type: text/html`;
                     sendToClient(req.socket, headers);
@@ -2554,7 +2543,7 @@ Content-type: text/html`;
                     processURL(req.socket, request_headers, true)
                 }
             } else {
-                var errpage = wtvshared.doErrorPage(404, "Service Not Found ("+service_name+")", null, true);
+                const errpage = wtvshared.doErrorPage(404, "Service Not Found ("+service_name+")", null, true);
                 sendToClient(req.socket, errpage[0], errpage[1]);
             }
         })
@@ -2595,11 +2584,10 @@ Content-type: text/html`;
                         if (req.body.length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
                             errpage = wtvshared.doErrorPage("400", "POST size too large", null, true);
                         } else {
-                            var data = "";
-                            for (var i = 0; i < req.body.length; i++) {
-                                data += String.fromCharCode(req.body[i]);
+                            request_headers.post_data = "";
+                            for (let  i = 0; i < req.body.length; i++) {
+                                request_headers.post_data += String.fromCharCode(req.body[i]);
                             }
-                            request_headers.post_data = data;
                         }
                     } else {
                         request_headers.post_data = "";
