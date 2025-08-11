@@ -1260,7 +1260,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
             headers['wtv-explanation-url'] = minisrv_config.services['http']['wtv-explanation'][res.statusCode];
         }
     }
-    let  data_hex = Buffer.concat(data).toString('hex');
+    let data_hex = Buffer.concat(data).toString('hex');
     if (data_hex.startsWith("0d0a0d0a")) data_hex = data_hex.slice(8);
     if (data_hex.startsWith("0a0d0a")) data_hex = data_hex.slice(6);
     if (data_hex.startsWith("0a0a")) data_hex = data_hex.slice(4);

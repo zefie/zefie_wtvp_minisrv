@@ -14,7 +14,7 @@
 		},
 		"addressbook": {
 			"word": "Address book",
-			"definition": "The Address book is feature that allows you to store e-mail addresses. Your Address book can hold up to 140 different e-mail addresses."
+			"definition": "The Address book is a feature that allows you to store e-mail addresses. Your Address book can hold up to 140 different e-mail addresses."
 		},
 		"altkey": {
 			"word": "alt key",
@@ -90,7 +90,7 @@
 		},
 		"bps": {
 			"word": "BPS (Bits Per Second)",
-			"definition": "The amount of information traveling within an area of space in any given second.</ul>"
+			"definition": "The amount of information traveling within an area of space in any given second."
 		},
 		"browser": {
 			"word": "browser",
@@ -148,7 +148,7 @@
 		},
 		"crossoverlink": {
 			"word": "Crossover link",
-			"definition": "A hyperlink in the form of a small circled <b>i</b> thatsometimes appears on your screen during a television program.If selected, a crossover link will take you to a Web pagerelated to the TV program you are viewing.",
+			"definition": "A hyperlink in the form of a small circled <b>i</b> that sometimes appears on your screen during a television program. If selected, a crossover link will take you to a Web page related to the TV program you are viewing.",
 			"plusonly": true
 		},
 		"cross-post": {
@@ -171,11 +171,11 @@
 		},
 		"dialingoptions": {
 			"word": "Dialing options",
-			"definition": "The place to make adjustments to your dialing settings. From the Dialing Options page, you can choose a dialing prefix, set up your terminal to work with a call waiting service,and activate audible dialing. Only the primary user can access and modify Dialing options.<p>To access Dialing options:<ol><li>Choose <b>Settings</b> from <webhome>.<li>Choose <b>Dialing</b>.</ol>"
+			"definition": "The place to make adjustments to your dialing settings. From the Dialing Options page, you can choose a dialing prefix, set up your terminal to work with a call waiting service, and activate audible dialing. Only the primary user can access and modify Dialing options.<p>To access Dialing options:<ol><li>Choose <b>Settings</b> from <webhome>.<li>Choose <b>Dialing</b>.</ol>"
 		},
 		"discuss": {
 			"word": "Discuss",
-			"definition": "WebTV's newsgroup section, which contains a list of featured newsgroups,a moderated newsgroup especially for WebTV users, and a search featureto help you find groups on specific discussion topics.To access Discuss:<ol><li>Choose <b>Community</b> from <webhome><li>Choose <b>Discuss</b>.</ol>"
+			"definition": "WebTV's newsgroup section, which contains a list of featured newsgroups, a moderated newsgroup especially for WebTV users, and a search feature to help you find groups on specific discussion topics. To access Discuss:<ol><li>Choose <b>Community</b> from <webhome><li>Choose <b>Discuss</b>.</ol>"
 		},
 		"discussiongroup": {
 			"word": "discussion group",
@@ -187,29 +187,29 @@
 		},
 		"domainname": {
 			"word": "domain name",
-			"definition": "The part of a URL or e-mail address that indicates where a Web page or mail box resides.For example, the <b>webtv.net</b> portion of the URL <b>http://www.webtv.net</b>lets you know that this URL belongs to the WebTV domain. The same applies tothe webtv.net part of your e-mail address."
+			"definition": "The part of a URL or e-mail address that indicates where a Web page or mail box resides. For example, the <b>webtv.net</b> portion of the URL <b>http://www.webtv.net</b> lets you know that this URL belongs to the WebTV domain. The same applies to the webtv.net part of your e-mail address."
 		},
 		"download": {
 			"word": "download",
-			"definition": "To move information from a host computer or server to a personal computer or device. For example, when an upgrade is available for<boxname_plus>, our host computers move the upgrade information toyour <boxname>. <p>We maintain all of the information that is downloaded to your terminal. Therefore, it is not possible for you to download programs on your own."
+			"definition": "To move information from a host computer or server to a personal computer or device. For example, when an upgrade is available for <boxname_plus>, our host computers move the upgrade information to your <boxname>. <p>We maintain all of the information that is downloaded to your terminal. Therefore, it is not possible for you to download programs on your own."
 		},
 		"dpi": {
 			"word": "dpi",
-			"definition": "The number of \"dots per inch\" in an image or Web page. Regardless of the <b>dpi</b> of a particular image, your terminal's maximum printing capability with most printers is 72 dpi .Because of this, the items you print may not appear exactly as they do on your television screen. If you're using an HP printer that has <b>Smart Focus technology</b>, however, yourmaximum printing capability is increased to 144 dpi."
+			"definition": "The number of \"dots per inch\" in an image or Web page. Regardless of the <b>dpi</b> of a particular image, your terminal's maximum printing capability with most printers is 72 dpi. Because of this, the items you print may not appear exactly as they do on your television screen. If you're using an HP printer that has <b>Smart Focus technology</b>, however, your maximum printing capability is increased to 144 dpi."
 		}
 	},
 	"E": {
 		"editkey": {
 			"word": "Edit key",
-			"definition": "Modifies what you have written in a text entry field. After highlighting a text entry field, pressing the <b>Edit</b> key onyour keyboard allows you to move the cursor within that text field."
+			"definition": "Modifies what you have written in a text entry field. After highlighting a text entry field, pressing the <b>Edit</b> key on your keyboard allows you to move the cursor within that text field."
 		},
 		"e-mail": {
 			"word": "e-mail",
-			"definition": "Short for <b>electronic mail</b>, e-mail is a message sent from one Internet user to another. To send e-mail to another Internet user,you need that user's e-mail address. Likewise, someone will need your e-mail address to send e-mail to you."
+			"definition": "Short for <b>electronic mail</b>, e-mail is a message sent from one Internet user to another. To send e-mail to another Internet user, you need that user's e-mail address. Likewise, someone will need your e-mail address to send e-mail to you."
 		},
 		"e-mailaddress": {
 			"word": "e-mail address",
-			"definition": "The address of an Internet user's e-mail account. An e-mail address includes a user name, as well as a domain name, which is thename of the company, organization that sponsors the address.<p>For example, in the e-mail address <b>yourname@webtv.net</b>,<b>yourname</b> is the user name, while <b>webtv.net</b> is the domain name."
+			"definition": "The address of an Internet user's e-mail account. An e-mail address includes a user name, as well as a domain name, which is the name of the company, organization that sponsors the address.<p>For example, in the e-mail address <b>yourname@webtv.net</b>, <b>yourname</b> is the user name, while <b>webtv.net</b> is the domain name."
 		},
 		"emoticons": {
 			"word": "emoticons",
@@ -217,11 +217,11 @@
 		},
 		"encryption": {
 			"word": "encryption",
-			"definition": "A coding method used to help protect information on the Internet.Encrypted information is translated into a secret code, sentover the Internet, then translated back to its original form when it reaches its destination. <boxname_plus> supports a very high level of encryption."
+			"definition": "A coding method used to help protect information on the Internet. Encrypted information is translated into a secret code, sent over the Internet, then translated back to its original form when it reaches its destination. <boxname_plus> supports a very high level of encryption."
 		},
 		"extras": {
 			"word": "Extras",
-			"definition": "Mail features that are available only when activated in Settings. The following features are Extras:<p><ul><li><word=replyall>Reply to All</word><li><word=attachments>Attach</word><li><word=carboncopy>CC (Carbon Copy)</word>"
+			"definition": "Mail features that are available only when activated in Settings. The following features are Extras:<p><ul><li><word=replyall>Reply to All</word><li><word=attachments>Attach</word><li><word=carboncopy>CC (Carbon Copy)</word></ul>"
 		}
 	},
 	"F": {
@@ -235,7 +235,7 @@
 		},
 		"favoritesfolders": {
 			"word": "Favorites folders",
-			"definition": "A feature that allows you to organizes the Web pages you save as <b>Favorites</b>.You can name your Favorite folders anything you'd like, and can store yourFavorites accordingly. For example, you might store your favorite sports-related Web page in a folder named <b>Sports</b>. Each <boxname_plus> user can create up to 20 Favorites folders."
+			"definition": "A feature that allows you to organizes the Web pages you save as <b>Favorites</b>. You can name your Favorite folders anything you'd like, and can store your Favorites accordingly. For example, you might store your favorite sports-related Web page in a folder named <b>Sports</b>. Each <boxname_plus> user can create up to 20 Favorites folders."
 		},
 		"file": {
 			"word": "File",
@@ -243,11 +243,11 @@
 		},
 		"fileformats": {
 			"word": "File formats",
-			"definition": "The particular method by which information is put into a file.Every file is created using a particular computer program. The following is a complete listing of the file formats supported by <boxname_plus>:<p><ul><font size=small><li>AIFF  AU  SND  WAV <li>GIF  GSM  JPEG <li>Macromedia Flash 1.0 <li>MIDI + Karaoke <li>MOD  MPEG Video<li>MPEG-2, 3 Audio<li>QuickTime Audio  RealAudio 1.0, 2.0, 3.0 <li>Shockwave Audio</font>"
+			"definition": "The particular method by which information is put into a file. Every file is created using a particular computer program. The following is a complete listing of the file formats supported by <boxname_plus>:<p><ul><font size=small><li>AIFF  AU  SND  WAV <li>GIF  GSM  JPEG <li>Macromedia Flash 1.0 <li>MIDI + Karaoke <li>MOD  MPEG Video<li>MPEG-2, 3 Audio<li>QuickTime Audio  RealAudio 1.0, 2.0, 3.0 <li>Shockwave Audio</font></ul>"
 		},
 		"findkey": {
 			"word": "Find key",
-			"definition": "A key on your keyboard that lets you look for specific words or phrases on a Web page. For example, if you wanted to find the word <b>astronaut</b> on NASA's Web page, you could use the <b>Find</b> keyto quickly locate that word. You can use the <b>Find</b> key on your keyboard, or press the <b>Options</b> button on your remote and choose <b>find</b> from the on-screen panel that appears."
+			"definition": "A key on your keyboard that lets you look for specific words or phrases on a Web page. For example, if you wanted to find the word <b>astronaut</b> on NASA's Web page, you could use the <b>Find</b> key to quickly locate that word. You can use the <b>Find</b> key on your keyboard, or press the <b>Options</b> button on your remote and choose <b>find</b> from the on-screen panel that appears."
 		},
 		"flame": {
 			"word": "Flame",
@@ -283,7 +283,7 @@
 	"H": {
 		"hangupoption": {
 			"word": "Hang up option",
-			"definition": "An advanced option that allows you to temporarily disconnect your terminal from the service. When you're ready to connect again, select <b>Reconnect</b>. You'll be taken to the page you were viewing prior to hanging up. The <b>Hang up</b> feature does not power off your <boxname> it simply disconnects it, freeing up your phone line."
+			"definition": "An advanced option that allows you to temporarily disconnect your terminal from the service. When you're ready to connect again, select <b>Reconnect</b>. You'll be taken to the page you were viewing prior to hanging up. The <b>Hang up</b> feature does not power off your <boxname>; it simply disconnects it, freeing up your phone line."
 		},
 		"harddrive": {
 			"word": "hard drive",
@@ -299,11 +299,11 @@
 		},
 		"hoaxes": {
 			"word": "hoaxes",
-			"definition": "Messages purposefully crafted to fool or trick other Internet users. Hoaxes can be sent by e-mail and posted in newsgroups. One popular hoax attempts to fool people into thinking they have just downloaded a virus.If you encounter a hoax message such as this, it is best to simply ignore it."
+			"definition": "Messages purposefully crafted to fool or trick other Internet users. Hoaxes can be sent by e-mail and posted in newsgroups. One popular hoax attempts to fool people into thinking they have just downloaded a virus. If you encounter a hoax message such as this, it is best to simply ignore it."
 		},
 		"homepage": {
 			"word": "Home page",
-			"definition": "The first Web page you are taken to when you connect to the Internet.To get to <webhome> at any time, press the <b>Home</b> button on your remote or keyboard."
+			"definition": "The first Web page you are taken to when you connect to the Internet. To get to <webhome> at any time, press the <b>Home</b> button on your remote or keyboard."
 		},
 		"hotlink": {
 			"word": "hot link",
@@ -315,21 +315,21 @@
 		},
 		"http": {
 			"word": "http",
-			"definition": "(Hypertext Transfer Protocol)<p>The format by which Web pages are transferred back and forth on the Internet.You'll notice that the Internet address, or URL, of every Web page you view begins with http://"
+			"definition": "(Hypertext Transfer Protocol)<p>The format by which Web pages are transferred back and forth on the Internet. You'll notice that the Internet address, or URL, of every Web page you view begins with http://"
 		},
 		"hyperlink": {
 			"word": "hyperlink",
-			"definition": "Words or symbols on a Web page that, when selected, take you to a new location on the Internet. Hyperlinks can take you to a different spot on the page you are viewing , or to a new page altogether. Hyperlinks are typically a different color or design than the rest of the text on a given page. On <boxname_plus>, any word or image you can highlight with the yellowbox is a hyperlink."
+			"definition": "Words or symbols on a Web page that, when selected, take you to a new location on the Internet. Hyperlinks can take you to a different spot on the page you are viewing, or to a new page altogether. Hyperlinks are typically a different color or design than the rest of the text on a given page. On <boxname_plus>, any word or image you can highlight with the yellow box is a hyperlink."
 		}
 	},
 	"I": {
 		"icon": {
 			"word": "icon",
-			"definition": "A selectable symbol or small picture on a Web page that, when selected,takes you to a different location on the Internet."
+			"definition": "A selectable symbol or small picture on a Web page that, when selected, takes you to a different location on the Internet."
 		},
 		"icq": {
 			"word": "ICQ",
-			"definition": "(I Seek You)<p>A program that informs Internet users when a specified person is online.ICQ can also be used to send real time messages. At this time, <boxname_plus> does not support ICQ."
+			"definition": "(I Seek You)<p>A program that informs Internet users when a specified person is online. ICQ can also be used to send real time messages. At this time, <boxname_plus> does not support ICQ."
 		},
 		"imagemap": {
 			"word": "image map",
@@ -337,7 +337,7 @@
 		},
 		"infobutton": {
 			"word": "Info button",
-			"definition": "Used to find the Internet address (URL) of a Web page. Selecting the <b>Info</b> buttonwhile viewing a Web page will indicate the URL of that Web page. The Info button can be found on both the keyboard and the on-screen Options panel."
+			"definition": "Used to find the Internet address (URL) of a Web page. Selecting the <b>Info</b> button while viewing a Web page will indicate the URL of that Web page. The Info button can be found on both the keyboard and the on-screen Options panel."
 		},
 		"instantmessenger": {
 			"word": "Instant Messenger",
@@ -379,15 +379,15 @@
 	"J": {
 		"jarhead": {
 			"word": "JarHead (aka JarHead4)",
-			"definition": "One of the developers of the WebTV <b><word>minisrv</word></b> project. JarHead has done a lot of work to create a service that recreates the experience of the original production WebTV Service.<br<br>See also: <b><word>zefie</word></b>"
+			"definition": "One of the developers of the WebTV <b><word>minisrv</word></b> project. JarHead has done a lot of work to create a service that recreates the experience of the original production WebTV Service.<br><br>See also: <b><word>zefie</word></b>"
 		},
 		"java": {
 			"word": "Java",
-			"definition": "A multipurpose computer language developed by Sun Microsystems Inc.Among other applications, Java is used to create animated graphics for Web pages. <boxname_plus> does not currently support Java."
+			"definition": "A multipurpose computer language developed by Sun Microsystems Inc. Among other applications, Java is used to create animated graphics for Web pages. <boxname_plus> does not currently support Java."
 		},
 		"javascript": {
 			"word": "Javascript",
-			"definition": "A scripting language that adds functionality to Web pages. For example,Javascript is used to create drop down menus on many Web pages.Javascript is often confused with Java, but the two languages are not related. <boxname_plus> supports Javascript."
+			"definition": "A scripting language that adds functionality to Web pages. For example, Javascript is used to create drop down menus on many Web pages. Javascript is often confused with Java, but the two languages are not related. <boxname_plus> supports Javascript."
 		},
 		"jpeg": {
 			"word": "JPEG",
@@ -401,7 +401,7 @@
 		},
 		"kid-friendly": {
 			"word": "Kid-Friendly",
-			"definition": "Software that reduces the chance of children accessing adult material on the Internet. Kid-Friendly provides content that is both educational and appropriate for children under the age of eleven. Once set up, thisservice helps to filter out inappropriate material on the Internet and allowsonly pre-approved content to be viewed. The option to set up Kid-Friendly accounts is provided to <boxname_plus> customers free of charge."
+			"definition": "Software that reduces the chance of children accessing adult material on the Internet. Kid-Friendly provides content that is both educational and appropriate for children under the age of eleven. Once set up, this service helps to filter out inappropriate material on the Internet and allows only pre-approved content to be viewed. The option to set up Kid-Friendly accounts is provided to <boxname_plus> customers free of charge."
 		},
 		"kilobyte": {
 			"word": "kilobyte",
@@ -449,7 +449,7 @@
 		},
 		"messagelight": {
 			"word": "Message light",
-			"definition": "A small red light on the front of your <boxname> that illuminates when a user has new e-mail. The <b>message light</b> is activated when you connect to the service and new e-mail is available. It canalso be activated by setting up the Message watch feature."
+			"definition": "A small red light on the front of your <boxname> that illuminates when a user has new e-mail. The <b>message light</b> is activated when you connect to the service and new e-mail is available. It can also be activated by setting up the Message watch feature."
 		},
 		"messagewatch": {
 			"word": "Message watch",
@@ -477,7 +477,7 @@
 		},
 		"mosaic": {
 			"word": "Mosaic",
-			"definition": "The first Internet browser used to navigate the World Wide Web.The Mosaic browser was developed at the National Center for Supercomputing Applications (NCSA) at the University of Illinois."
+			"definition": "The first Internet browser used to navigate the World Wide Web. The Mosaic browser was developed at the National Center for Supercomputing Applications (NCSA) at the University of Illinois."
 		},
 		"mouse": {
 			"word": "mouse",
@@ -485,7 +485,7 @@
 		},
 		"mpeg": {
 			"word": "MPEG",
-			"definition": "A file format used to make animated video clips.<boxname_plus> supports MPEG video files, which are widely available on the Internet."
+			"definition": "A file format used to make animated video clips. <boxname_plus> supports MPEG video files, which are widely available on the Internet."
 		},
 		"mud": {
 			"word": "MUD",
@@ -547,7 +547,7 @@
 		},
 		"pip": {
 			"word": "PIP",
-			"definition": "(Picture-in-Picture)<p>Also known as the TV Window. A feature that lets you watch television while surfing the Web. To activate PIP, select <b>TV window</b>from the <b>Options </B> panel, or press the <b>Cmd</b> key and the <b>W</b> key on your keyboard at the same time.",
+			"definition": "(Picture-in-Picture)<p>Also known as the TV Window. A feature that lets you watch television while surfing the Web. To activate PIP, select <b>TV window</b> from the <b>Options</b> panel, or press the <b>Cmd</b> key and the <b>W</b> key on your keyboard at the same time.",
 			"plusonly": true
 		},
 		"pop": {
@@ -564,7 +564,7 @@
 		},
 		"primaryuser": {
 			"word": "Primary user",
-			"definition": "Subscriber who originally registered for the <boxname_plus> service. The Primary user is responsible for payment of the <boxname_plus> service and for the actions of all secondary users.Additionally, only the Primary user can add or remove users,adjust dialing options, and set up access restrictions, such as SurfWatch and Kid Friendly."
+			"definition": "Subscriber who originally registered for the <boxname_plus> service. The Primary user is responsible for payment of the <boxname_plus> service and for the actions of all secondary users. Additionally, only the Primary user can add or remove users, adjust dialing options, and set up access restrictions, such as SurfWatch and Kid Friendly."
 		},
 		"printeradapter": {
 			"word": "printer adapter",
@@ -572,26 +572,26 @@
 		},
 		"printercable": {
 			"word": "printer cable",
-			"definition": "A cable that is used to connect a printer to a computer or Internet device.You must use an IEEE-1284 compliant bi-directional cable to print with yourterminal."
+			"definition": "A cable that is used to connect a printer to a computer or Internet device. You must use an IEEE-1284 compliant bi-directional cable to print with your terminal."
 		},
 		"privateroom": {
 			"word": "private room",
-			"definition": "A chat room not listed on a chat service's list of public rooms. Private rooms are only available in IRC and are temporary.Once all participants have left a private room, the room no longer exists."
+			"definition": "A chat room not listed on a chat service's list of public rooms. Private rooms are only available in IRC and are temporary. Once all participants have left a private room, the room no longer exists."
 		},
 		"programinformation": {
 			"word": "program information",
-			"definition": "Information that is related to the television program you are viewing.Program information gives you:<p><ul><li>A brief description of a television program<li> The amount of time remaining in the program<li>The rating of the television program (if available)<li>Closed captioning information</ul>",
+			"definition": "Information that is related to the television program you are viewing. Program information gives you:<p><ul><li>A brief description of a television program<li> The amount of time remaining in the program<li>The rating of the television program (if available)<li>Closed captioning information</ul>",
 			"plusonly": true
 		},
 		"protocol": {
 			"word": "protocol",
-			"definition": "A standard format computers use to communicate.One popular protocol is http, the underlying format of the World Wide Web."
+			"definition": "A standard format computers use to communicate. One popular protocol is http, the underlying format of the World Wide Web."
 		}
 	},
 	"Q": {
 		"quicktime": {
 			"word": "Quicktime",
-			"definition": "A file format used to produce sound and video clips on the Internet. <boxname_plus> currently supports the audio portion of Quicktime files, butdoes not support Quicktime video."
+			"definition": "A file format used to produce sound and video clips on the Internet. <boxname_plus> currently supports the audio portion of Quicktime files, but does not support Quicktime video."
 		}
 	},
 	"R": {
@@ -605,7 +605,7 @@
 		},
 		"recent": {
 			"word": "Recent",
-			"definition": "The <b>Recent</b> feature allows you to see a list of the Web pages that you've just visited. To see this list, press <b>Recent</b> on yourkeyboard or remote."
+			"definition": "The <b>Recent</b> feature allows you to see a list of the Web pages that you've just visited. To see this list, press <b>Recent</b> on your keyboard or remote."
 		},
 		"reload": {
 			"word": "Reload",
@@ -639,7 +639,7 @@
 		},
 		"scrollbuttons": {
 			"word": "Scroll buttons",
-			"definition": "To move up and down on a Web page. Both the keyboard and the remote have<b>Scroll up</b> and <b>Scroll down</b> buttons."
+			"definition": "To move up and down on a Web page. Both the keyboard and the remote have <b>Scroll up</b> and <b>Scroll down</b> buttons."
 		},
 		"search": {
 			"word": "Search",
@@ -683,7 +683,7 @@
 		},
 		"ssl": {
 			"word": "SSL",
-			"definition": "A security protocol on the Internet. SSL encrypts data in order to help protectthe transmission of confidential information over the Internet.We support this standard, allowing you to conduct online banking, shopping and trading. To be sure that you are making an SSL-backed transaction, you can select the <b>Info</b> button on the keyboard while on a Web page. If the page is encrypted, an icon on the bottom left of the screen will appeargiving you the option to view the page's security details."
+			"definition": "A security protocol on the Internet. SSL encrypts data in order to help protect the transmission of confidential information over the Internet. We support this standard, allowing you to conduct online banking, shopping and trading. To be sure that you are making an SSL-backed transaction, you can select the <b>Info</b> button on the keyboard while on a Web page. If the page is encrypted, an icon on the bottom left of the screen will appear giving you the option to view the page's security details."
 		},
 		"storage": {
 			"word": "Storage",
@@ -699,7 +699,7 @@
 		},
 		"surfwatch": {
 			"word": "SurfWatch",
-			"definition": "Software that reduces the likelihood of children accessing adult material on the Internet. SurfWatch blocks access to sites that it has identified as containing adult material. SurfWatch has also compiled a list of words which, when used in searches, may find inappropriate Web content. SurfWatch prevents these words from being used.<p>SurfWatch can be set up by the Primary user (subscriber) for any secondary userbut cannot be set up on the Primary user's account."
+			"definition": "Software that reduces the likelihood of children accessing adult material on the Internet. SurfWatch blocks access to sites that it has identified as containing adult material. SurfWatch has also compiled a list of words which, when used in searches, may find inappropriate Web content. SurfWatch prevents these words from being used.<p>SurfWatch can be set up by the Primary user (subscriber) for any secondary user but cannot be set up on the Primary user's account."
 		},
 		"s-video": {
 			"word": "S-video",
@@ -709,7 +709,7 @@
 	"T": {
 		"telnet": {
 			"word": "Telnet",
-			"definition": "A protocol used to access information on a remote computer.<boxname_plus> does not support Telnet connections."
+			"definition": "A protocol used to access information on a remote computer. <boxname_plus> does not support Telnet connections."
 		},
 		"termsofservice": {
 			"word": "Terms of Service",
@@ -729,15 +729,15 @@
 		},
 		"transloader": {
 			"word": "Transloader",
-			"definition": "A Web site that allows you to capture images from other Web pages and savethem in your Scrapbook. You can then add these images to Web pages youcreate with <b><word>Page Builder</word></b>."
+			"definition": "A Web site that allows you to capture images from other Web pages and save them in your Scrapbook. You can then add these images to Web pages you create with <b><word>Page Builder</word></b>."
 		},
 		"troll": {
 			"word": "troll",
-			"definition": "Someone who attempts to disrupt the fluidity of newsgroup conversationby posting irrelevant and sometimes hostile messages.If you encounter a troll, it is best to not respond publicly to their messages."
+			"definition": "Someone who attempts to disrupt the fluidity of newsgroup conversation by posting irrelevant and sometimes hostile messages. If you encounter a troll, it is best to not respond publicly to their messages."
 		},
 		"tvhome": {
 			"word": "TV Home",
-			"definition": "Your home base for watching TV, browsing television listings,and setting up your TV for use with your <boxname>.",
+			"definition": "Your home base for watching TV, browsing television listings, and setting up your TV for use with your <boxname>.",
 			"plusonly": true
 		},
 		"tvlistings": {
@@ -747,7 +747,7 @@
 		},
 		"tvwindow": {
 			"word": "TV Window",
-			"definition": "Also known as <b>Picture-in-Picture</b> or <b><word>PIP</word></b>. A feature that lets you watch television while surfing the Web. To activate the TV window, select <b>PIP</b>from the <b>Options </B> panel, or press the <b>Cmd</b> key and the <b>W</b> key on your keyboard at the same time.",
+			"definition": "Also known as <b>Picture-in-Picture</b> or <b><word>PIP</word></b>. A feature that lets you watch television while surfing the Web. To activate the TV window, select <b>PIP</b> from the <b>Options</b> panel, or press the <b>Cmd</b> key and the <b>W</b> key on your keyboard at the same time.",
 			"plusonly": true
 		}
 	},
@@ -784,7 +784,7 @@
 	"V": {
 		"vidcap": {
 			"word": "Vidcap",
-			"definition": "Video capture, or vidcap, lets you connect a VCR, video camera, or digital camerato your terminal and capture a picture. You can send vidcaps in e-mail messages or keep them in your scrapbook in Page Builder.",
+			"definition": "Video capture, or vidcap, lets you connect a VCR, video camera, or digital camera to your terminal and capture a picture. You can send vidcaps in e-mail messages or keep them in your scrapbook in Page Builder.",
 			"plusonly": true
 		},
 		"videoflash": {
@@ -793,7 +793,7 @@
 		},
 		"viewbutton": {
 			"word": "view button",
-			"definition": "Button on the remote control and keyboard used to switch between Web Homeand the TV Home page."
+			"definition": "Button on the remote control and keyboard used to switch between Web Home and the TV Home page."
 		},
 		"virus": {
 			"word": "virus",
@@ -807,7 +807,7 @@
 	"W": {
 		"web": {
 			"word": "Web",
-			"definition": "An enormous network of computers that can read and exchange information created by a single programming language, known as HTML. HTML is a simple and flexible programming language that is used to display text, audio, images, and animations. The World Wide Web is often referred to as the Internet. However, the World Wide Web is a subset of the Internet, not the Internet itself.Internet users navigate the World Wide Web using Web browsers."
+			"definition": "An enormous network of computers that can read and exchange information created by a single programming language, known as HTML. HTML is a simple and flexible programming language that is used to display text, audio, images, and animations. The World Wide Web is often referred to as the Internet. However, the World Wide Web is a subset of the Internet, not the Internet itself. Internet users navigate the World Wide Web using Web browsers."
 		},
 		"webaddress": {
 			"word": "Web address",
@@ -823,7 +823,7 @@
 		},
 		"webpage": {
 			"word": "Web page",
-			"definition": "An HTML formatted document that resides on the World Wide Web.Web pages generally combine text and pictures, but can also contain animation and video. Each Web page on the World Wide Webis identified by a unique Internet address, or URL."
+			"definition": "An HTML formatted document that resides on the World Wide Web. Web pages generally combine text and pictures, but can also contain animation and video. Each Web page on the World Wide Web is identified by a unique Internet address, or URL."
 		},
 		"website": {
 			"word": "Web site",
@@ -835,7 +835,7 @@
 		},
 		"webtvplus": {
 			"word": "WebTV Plus",
-			"definition": "An Internet set-top box that connects to the WebTV Plus service.The WebTV Plus receiver, manufactured by Sony, Phillips Magnavox, Samsung, RCA, and Mitsubishi, is WebTV's second product offering."
+			"definition": "An Internet set-top box that connects to the WebTV Plus service. The WebTV Plus receiver, manufactured by Sony, Phillips Magnavox, Samsung, RCA, and Mitsubishi, is WebTV's second product offering."
 		},
 		"whispering": {
 			"word": "whispering",
@@ -847,13 +847,13 @@
 		},
 		"worldwideweb": {
 			"word": "World Wide Web",
-			"definition": "An enormous network of computers that can read and exchange information created by a single programming language, known as HTML.HTML is a simple and flexible programming language that is usedto display text, audio, images, and animations. The World Wide Webis often referred to as the Internet. However, the World Wide Web is a subset of the Internet, not the Internet itself. Internet users navigate the World Wide Web using Web browsers."
+			"definition": "An enormous network of computers that can read and exchange information created by a single programming language, known as HTML. HTML is a simple and flexible programming language that is used to display text, audio, images, and animations. The World Wide Web is often referred to as the Internet. However, the World Wide Web is a subset of the Internet, not the Internet itself. Internet users navigate the World Wide Web using Web browsers."
 		}
 	},
 	"Z": {
 		"zefie": {
 			"word": "zefie",
-			"definition": "Primary developer of the WebTV <b><word>minisrv</word></b> project. zefie is responsible for creating the project, as well maintaining the open-source project on GitHub.<br<br>See also: <b><word>JarHead</word></b>"
+			"definition": "Primary developer of the WebTV <b><word>minisrv</word></b> project. zefie is responsible for creating the project, as well maintaining the open-source project on GitHub.<br><br>See also: <b><word>JarHead</word></b>"
 		}
 	}
 }
