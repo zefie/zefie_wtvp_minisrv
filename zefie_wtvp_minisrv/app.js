@@ -917,9 +917,14 @@ async function processURL(socket, request_headers, pc_services = false) {
     var original_service_name = "";
     var allow_double_slash = false, enable_multi_query = false, use_external_proxy = false;
     request_headers.query = {};
-    
+
     if (request_headers.request_url) {
-        service_name = socket.service_name;
+        service_name = socket.service_name || verifyServicePort(unescape(request_headers.request_url).split(':/')[0], socket);
+        if (minisrv_config.services[service_name]) {
+            allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
+            enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
+            use_external_proxy = minisrv_config.services[service_name].use_external_proxy || false;
+        }
         if (pc_services) {           
             original_service_name = socket.service_name; // store service name
             service_name = verifyServicePort(socket.service_name, socket); // get the actual ServiceVault path
@@ -934,6 +939,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                         const k = qraw_split[0];
                         const value = unescape(qraw_split[1].replace(/\+/g, "%20"));
                         if (request_headers.query[k] && enable_multi_query) {
+                            console.log("yes")
                             if (typeof request_headers.query[k] === 'string') {
                                 request_headers.query[k] = [request_headers.query[k]];
                             }
@@ -1067,15 +1073,7 @@ minisrv-no-mail-count: true`;
             var ssl = (socket.ssl) ? true : false;
             if (original_service_name == service_name) console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
             else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
-        } else {
-            var service_name = verifyServicePort(shortURL.split(':/')[0], socket);
-        }
-        if (minisrv_config.services[service_name]) {
-            allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
-            enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
-            use_external_proxy = minisrv_config.services[service_name].use_external_proxy || false;
-        }
-
+        } 
 
         if ((shortURL.includes(':/')) && (!shortURL.includes('://') || (shortURL.includes('://') && allow_double_slash))) {
             var ssid = socket.ssid;
@@ -1217,7 +1215,7 @@ function handleProxy(socket, request_type, request_headers, res, data) {
         
         // Transform HTML content for WebTV compatibility
         if (res.headers['Content-Type'].includes('html') && 
-            minisrv_config.services[request_type]?.use_minifying_proxy !== false) {
+            minisrv_config.services[request_type]?.use_minifying_proxy === true) {
             try {
                 const WTVMinifyingProxy = require('./includes/classes/WTVMinifyingProxy.js');
                 const proxy = new WTVMinifyingProxy(minisrv_config);
@@ -1938,10 +1936,10 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 }
                 if (!headers.request_url) {
                     var header_length = 0;
-                    if (data_hex.indexOf("0d0a0d0a")) {
+                    if (data_hex.includes("0d0a0d0a")) {
                         // \r\n\r\n
                         header_length = data.length + 4;
-                    } else if (data_hex.indexOf("0a0a")) {
+                    } else if (data_hex.includes("0a0a")) {
                         // \n\n
                         header_length = data.length + 2;
                     }

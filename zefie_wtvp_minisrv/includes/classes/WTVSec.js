@@ -207,6 +207,7 @@ class WTVSec {
         const challenge_md5_challenge = CryptoJS.MD5(CryptoJS.enc.Hex.parse(challenge_dec_hex.slice(0, 160))).toString(CryptoJS.enc.Hex); // 80 bytes * 2
 
         if (challenge_dec_hex.slice(160, 192) !== challenge_md5_challenge) { // 96 bytes * 2
+            console.log("Failed to process challenge (invalid key?)")
             return "";
         }
 
@@ -345,7 +346,30 @@ class WTVSec {
      * @notice This function is an alias for Encrypt, as WTVSec uses the same method for both encryption and decryption.
      */
     Decrypt(keynum, data) {
-        return this.Encrypt(keynum, data)
+        // Decryption must use the paired RC4 session for the opposite direction
+        // Sessions:
+        //   0 = encrypt with key1, 1 = decrypt with key1
+        //   2 = encrypt with key2, 3 = decrypt with key2
+        let session_id;
+        if (keynum === 0) {
+            session_id = 1;
+        } else if (keynum === 1) {
+            session_id = 3;
+        } else {
+            throw new Error("Invalid key option (0 or 1 only)");
+        }
+
+        if (!this.RC4Session[session_id]) {
+            this.SecureOn(session_id);
+        }
+
+        if (data.words) {
+            data = this.wtvshared.wordArrayToBuffer(data);
+        } else if (data instanceof ArrayBuffer || typeof data === 'string') {
+            data = Buffer.from(data);
+        }
+
+        return this.RC4Session[session_id].updateFromBuffer(data);
     }
 }
 

@@ -90,7 +90,7 @@ class WTVFavorites {
 		var self = this;
 		if (folder_templates[folder]) {
 			Object.keys(folder_templates[folder]).forEach(function (k) {
-				self.createFavorite(folder_templates[folder][k].title, folder_templates[folder][k].url, folder, (folder_templates[folder][k].image_type == "image/wtv-bitmap") ? btoa(folder_templates[folder][k].image) : folder_templates[folder][k].image, folder_templates[folder][k].image_type);
+				self.createFavorite(folder_templates[folder][k].title, folder_templates[folder][k].url, folder, (folder_templates[folder][k].image_type == "image/wtv-bitmap") ? atob(folder_templates[folder][k].image) : folder_templates[folder][k].image, folder_templates[folder][k].image_type);
             })
         } 
 	}
@@ -149,7 +149,7 @@ class WTVFavorites {
 		var favoritefile = favoriteid + this.favFileExt;
 		var favoritefileout = folderpath + favoritefile;
 		if (imagetype != "url")
-			image = atob(image);
+			image = btoa(image);
 
 		title = decodeURIComponent(title).replaceAll("+", " ");
 		url = decodeURIComponent(url)

@@ -8,6 +8,40 @@ var notImplementedAlert = new clientShowAlert({
 	'noback': true,
 }).getURL();
 
+
+var settings = [
+  ["wtv-setup:/mail", "Mail Signature"],
+  ["wtv-setup:/edit-password", "Edit Password"],
+  ["wtv-setup:/accounts", "Account & Users"],
+  ["wtv-setup:/text", "Text Size"],
+  ["wtv-setup:/sound", "Background Music"],
+  [notImplementedAlert, "Printing"],
+  ["wtv-setup:/keyboard", "On-Screen Keyboard"],
+  ["wtv-setup:/screen", "Screen"],
+  ["wtv-setup:/messenger", "MSN Messenger"],
+  ["wtv-setup:/phone", "Dialing"],
+  ["wtv-setup:/region", "Timezone & Region"],
+  ["wtv-setup:/tweaks", "Tweaks"]
+]
+
+function removeSettingByUrl(url) {
+  for (let i = settings.length - 1; i >= 0; i--) {
+    if (settings[i][0] === url) {
+      settings.splice(i, 1);
+    }
+  }
+}
+
+if (minisrv_config.config.hide_incomplete_features) {
+  removeSettingByUrl(notImplementedAlert);
+}
+
+/* We need to fix most webtv viewers for this, since they spoof a build that doesn't support messenger?
+if (!session_data.hasCap("client-can-use-messenger")) {
+  removeSettingByUrl("wtv-setup:/messenger");
+}
+*/
+
 headers = `200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-
@@ -50,9 +84,8 @@ Settings
 <tr><td absheight=41>
 </table>
 </sidebar>
-<BODY BGCOLOR="#191919" TEXT="#42CC55" LINK="36d5ff" VLINK="36d5ff" FONTSIZE="large"
-hspace=0 vspace=0
->
+<BODY BGCOLOR="#191919" TEXT="#42CC55" LINK="36d5ff" VLINK="36d5ff" FONTSIZE="medium" hspace=0 vspace=0>
+
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=14>
@@ -60,135 +93,31 @@ hspace=0 vspace=0
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td valign=center absheight=80>
-<shadow><blackface><font color="e7ce4a" font size="+1">
+<shadow><blackface><font color="e7ce4a" size=5>
 Settings
 for ${session_data.getSessionData("subscriber_username") || "You"}
 </font><blackface><shadow>
 </table>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
-<spacer type=block width=436 height=1>
-<tr>
-<TD>
-<td colspan=4 height=1 valign=top align=left>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
-<spacer type=block width=436 height=1>
-<td abswidth=20>
-<TR>
-<td>
-<font size="-1">
-<td WIDTH=150 HEIGHT=244 VALIGN=top ALIGN=left>
-<br><font size="-1"><blackface>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/mail">Mail</a><BR>
-<spacer type=block width=1 height=5><BR>`;
+<table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
+<table><tc><td>&nbsp;</td></tc><tc><td><table>`;
 
-if (minisrv_config.config.passwords) {
-	if (minisrv_config.config.passwords.enabled) {
-		data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/edit-password">Password</a><BR>
-<spacer type=block width=1 height=5><BR>`;
+for (i = 0; i < settings.length; i += 2) {
+	data += `<tr>
+<td colspan=3 height=6>
+<tr>
+<td>${(settings[i][0] != "") ? `&#128; <a href="${settings[i][0]}">${settings[i][1]}</a>` : `<!-- TODO --> &nbsp;`}
+<td width=25>
+<td>`
+	if (i + 1 < settings.length) {
+		data += (settings[i + 1][0] != "") ? `&#128; <a href="${settings[i + 1][0]}">${settings[i + 1][1]}</a>` : `<!-- TODO --> &nbsp;`
+	} else {
+		// require even number of settings
+		data += "<!-- TODO --> &nbsp;"
 	}
 }
+data += `</table></td></tc></table>
+</body>
+</html>
 
-data += `
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/screen">Television</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/text">Text size</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/sound">Music</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-//printing
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="${notImplementedAlert}"><strike>Printing</strike></a><BR>
-<spacer type=block width=1 height=5><BR>`;
-}
-
-data += `
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/keyboard">Keyboard</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-
-if (session_data.user_id == 0) {
-	data += `<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/accounts">Extra Users</a><BR>
-<spacer type=block width=1 height=5><BR>`;
-}
-
-data += `
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/messenger">Messenger</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/phone">Dialing</a><BR>
-<spacer type=block width=1 height=5><BR>
-<img src="ROMCache/BulletArrow.gif" width=6 height=13 valign=absmiddle><spacer type=block width=6 height=1>
-<a href="wtv-setup:/tweaks">Tweaks</a><BR>
-<TD WIDTH=20>
-<TD WIDTH=300 VALIGN=top ALIGN=left>
-<spacer type=block width=6 height=14><font size="2"><br>
-Signature <strike>and more</strike><BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Change your password<BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Options for your TV<BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Make text bigger or smaller<BR>
-<spacer type=block width=6 height=5><font size="2"><br>
-Play background songs<BR>
-<spacer type=block width=6 height=5><font size="2"><br>`;
-// printing
-if (!minisrv_config.config.hide_incomplete_features) {
-	data += `<strike>Change how you print</strike><BR>
-<spacer type=block width=6 height=5><font size="2"><br>`;
-}
-data += `Choose an on-screen keyboard<BR>`;
-if (session_data.user_id == 0) {
-	data += `<spacer type=block width=6 height=5><font size="2"><br>
-Add, change, or remove users<BR>`;
-}
-data += `<spacer type=block width=6 height=5><font size="2"><br>
-Configure Messenger<BR>`;
-
-data += `<spacer type=block width=6 height=6><font size="2"><br>
-Connecting to WebTV<BR>
-<spacer type=block width=6 height=6><font size="2"><br>
-minisrv specific settings<BR>
-
-<tr>
-<td colspan=4 height=2>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=middle align=center bgcolor="2B2B2B">
-<spacer type=block width=436 height=1>
-<tr>
-<TD>
-<td colspan=4 height=1 valign=top align=left>
-<tr>
-<TD>
-<td colspan=4 height=2 valign=top align=left bgcolor="0D0D0D">
-<spacer type=block width=436 height=1>
-<TR>
-<TD>
-<TD COLSPAN=4 HEIGHT=4 VALIGN=top ALIGN=left>
-<TR>
-<TD>
-<TD COLSPAN=3 VALIGN=top ALIGN=right>
-<FORM
-action="wtv-home:/home" selected>
-<FONT COLOR="#E7CE4A" SIZE=-1><SHADOW>
-<INPUT TYPE=SUBMIT BORDERIMAGE="file://ROM/Borders/ButtonBorder2.bif" Value=Done NAME="Done" USESTYLE WIDTH=103>
-</SHADOW></FONT></FORM>
-<TD>
-</TABLE>
-</BODY>
-</HTML>
 
 `;
