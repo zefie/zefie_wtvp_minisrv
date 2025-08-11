@@ -234,7 +234,7 @@ if (request_headers['wtv-request-type'] == 'download') {
                 if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
                     var diskmap_data_filename = path.basename(diskmap_data_file);
                     var gunzipped = zlib.gunzipSync(diskmap_file_data);
-                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
+                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
                     var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
                     if (!diskmap_group_data.files[k].dont_extract_filename) {
                         diskmap_group_data.files[k].original_filename = diskmap_group_data.files[k].file.replace(diskmap_group_data.base,"").replace(diskmap_data_filename, diskmap_file_data.toString('utf8', 10, gzip_fn_end));

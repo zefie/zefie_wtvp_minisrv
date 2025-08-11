@@ -188,7 +188,6 @@ class WebTVClientSimulator {
 
     getBoxHeaders(box) {
         const config = this.getBoxConfig(box);
-        console.log(config);
         return config.join("\r\n")+"\r\n";
     }
 
@@ -854,7 +853,7 @@ class WebTVClientSimulator {
                     }
                     
                     // Parse the HTML to extract usernames and their href links
-                    if (bodyBuf.length > 0) {
+                    if (bodyBuf.length > 0 && !this.authenticated) {
                         const parseResult = this.parseLoginStageTwoHTML(bodyBuf);
                         
                         if (parseResult.selectedUser) {
@@ -1887,30 +1886,13 @@ class WebTVClientSimulator {
             
             // Check for other WebTV-specific headers that might contain URLs
             const urlHeaders = [
-                'wtv-boot-url',
-                'wtv-favorite-url', 
-                'wtv-home-url',
-                'wtv-mail-url',
-                'wtv-log-url',
                 'wtv-phone-log-url',
-                'wtv-relogin-url',
-                'wtv-reconnect-url',
-                'wtv-datadownload-url',
-                'wtv-datadownload-login-url',
-                'wtv-ssl-certs-download-url',
-                'wtv-offline-mail-connect-url',
-                'wtv-messenger-login-url',
-                'wtv-notifications-url',
-                'wtv-addresses-url',
-                'wtv-settings-url',
-                'wtv-search-url',
-                'wtv-explore-url'
             ];
             
             for (const headerName of urlHeaders) {
                 if (headers[headerName]) {
                     const headerUrl = headers[headerName];
-                    if (headerUrl && !headerUrl.startsWith('client:')) {
+                    if (headerUrl && headerUrl.startsWith('wtv-1800:')) {
                         const normalizedUrl = this.normalizeUrl(headerUrl, baseUrl);
                         if (normalizedUrl && this.isValidWebTVUrl(normalizedUrl)) {
                             urls.push(normalizedUrl);
