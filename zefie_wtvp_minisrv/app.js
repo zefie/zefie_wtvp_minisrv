@@ -1661,10 +1661,6 @@ async function sendToClient(socket, headers_obj, data = null) {
                     headers_obj[k].forEach(function (v) {
                         headers += k + ": " + v + eol;
                     });
-                }
-                if (k.indexOf('_') >= 0) {
-                    let j = k.split('_')[0];
-                    headers += j + ": " + headers_obj[k] + eol;
                 } else {
                     headers += k + ": " + headers_obj[k] + eol;
                 }
