@@ -2,11 +2,11 @@
 	"A": {
 		"accessnumber": {
 			"word": "access number",
-			"definition": "The phone number your <boxname> dials to connect to the WebTV service.The access number is displayed on your TV screen each time you turn yourterminal on. If you are unsure whether the connection to your access number is local or toll, contact your phone company."
+			"definition": "The phone number your <boxname> dials to connect to the WebTV service. The access number is displayed on your TV screen each time you turn your terminal on. If you are unsure whether the connection to your access number is local or toll, contact your phone company."
 		},
 		"accessrestriction": {
 			"word": "access restriction",
-			"definition": "A feature that lets parents limit what a young viewer can see on the Internet. WebTV provides two restrictive services for kids: Kidfriendly,recommended for children under age 11, and Surfwatch, recommended for older children. Access restrictions can only be set up on secondary accounts and are controlled by the Primary user."
+			"definition": "A feature that lets parents limit what a young viewer can see on the Internet. WebTV provides two restrictive services for kids: Kid friendly, recommended for children under age 11, and Surfwatch, recommended for older children. Access restrictions can only be set up on secondary accounts and are controlled by the Primary user."
 		},
 		"address": {
 			"word": "address",
@@ -22,11 +22,11 @@
 		},
 		"americaonline": {
 			"word": "America Online",
-			"definition": "An Online Service Provider for personal computer users. WebTV subscriberscannot connect to any portion of America Online's service, as it is notcompatible with WebTV. You can, however, send e-mailto AOL subscribers, as well as chat with them in non-AOL chat rooms."
+			"definition": "An Online Service Provider for personal computer users. WebTV subscribers cannot connect to any portion of America Online's service, as it is not compatible with WebTV. You can, however, send e-mail to AOL subscribers, as well as chat with them in non-AOL chat rooms."
 		},
 		"analog": {
 			"word": "analog",
-			"definition": "A process by which information is transmitted from one location to another. Most phone communication is conducted over an analog connection. Yourterminal is compatible with analog lines only."
+			"definition": "A process by which information is transmitted from one location to another. Most phone communication is conducted over an analog connection. Your terminal is compatible with analog lines only."
 		},
 		"artemisresearch": {
 			"word": "Artemis Research",
@@ -34,7 +34,7 @@
 		},
 		"attachments": {
 			"word": "attachments",
-			"definition": "Files or documents that are sent with e-mail messages. To read an attachment, the e-mail program you are using must support the program in which the attachment was created. WebTV's e-mail system supports someattachments but not others. At this time, attachments created with Microsoft's Word and Excel do not work with WebTV."
+			"definition": "Files or documents that are sent with e-mail messages. To read an attachment, the e-mail program you are using must support the program in which the attachment was created. WebTV's e-mail system supports some attachments but not others. At this time, attachments created with Microsoft's Word and Excel do not work with WebTV."
 		},
 		"audibledialing": {
 			"word": "audible dialing",
@@ -78,7 +78,7 @@
 		},
 		"blindcarboncopy": {
 			"word": "blind carbon copy (BCC)",
-			"definition": "A feature that allows computer users to send e-mail to someone without that person's e-mail address appearing on the message.If you have ever received e-mail that does not contain your e-mail address, you may have been blind carbon copied. <boxname_plus> does not allow users to send messages using <b>Blind carbon copy</b>."
+			"definition": "A feature that allows computer users to send e-mail to someone without that person's e-mail address appearing on the message. If you have ever received e-mail that does not contain your e-mail address, you may have been blind carbon copied. <boxname_plus> does not allow users to send messages using <b>Blind carbon copy</b>."
 		},
 		"bookmark": {
 			"word": "bookmark",
@@ -86,7 +86,7 @@
 		},
 		"bounce": {
 			"word": "bounce",
-			"definition": "Any time an e-mail message cannot reach its intended destination,it is returned, or bounced, to the original sender. An e-mail messagecan be bounced for any of the following reasons:<p><ul><li>The sender typed the e-mail address incorrectly<li>The e-mail address no longer exists<li>The recipient's mail box is full<li>There may be server problems.</ul>"
+			"definition": "Any time an e-mail message cannot reach its intended destination, it is returned, or bounced, to the original sender. An e-mail message can be bounced for any of the following reasons:<p><ul><li>The sender typed the e-mail address incorrectly<li>The e-mail address no longer exists<li>The recipient's mail box is full<li>There may be server problems.</ul>"
 		},
 		"bps": {
 			"word": "BPS (Bits Per Second)",
@@ -94,37 +94,37 @@
 		},
 		"browser": {
 			"word": "browser",
-			"definition": "A program used to access Web pages on the World Wide Web.Your <boxname> comes equipped with its own browser that is specifically designed to view Web pages on a television screen.</ul>"
+			"definition": "A program used to access Web pages on the World Wide Web. Your <boxname> comes equipped with its own browser that is specifically designed to view Web pages on a television screen."
 		},
 		"bug": {
 			"word": "bug",
-			"definition": "An error in the software or hardware that causes a program to perform abnormally.</ul>"
+			"definition": "An error in the software or hardware that causes a program to perform abnormally."
 		},
 		"byte": {
 			"word": "byte",
-			"definition": "A measure of computer memory. One thousand bytes is equal to one <b>kilobyte </b>and one million bytes is equal to one <b>megabyte</b>.</ul>"
+			"definition": "A measure of computer memory. One thousand bytes is equal to one <b>kilobyte</b> and one million bytes is equal to one <b>megabyte</b>."
 		}
 	},
 	"C": {
 		"cablemodem": {
 			"word": "cable modem",
-			"definition": "A modem that transmits data over television cable lines.A standard analog modem transmits data over telephone lines.Cable modems process data much faster than analog modems.At this time, the majority of cable providers do not providecable modem Internet access.</ul>"
+			"definition": "A modem that transmits data over television cable lines. A standard analog modem transmits data over telephone lines. Cable modems process data much faster than analog modems. At this time, the majority of cable providers do not provide cable modem Internet access."
 		},
 		"cache": {
 			"word": "cache",
-			"definition": "A type of memory used to temporarily store Web pages.Cached Web pages load more quickly because they are stored locally in your terminal.<p>If your cache memory fills up, you may experience slower Web surfing,or receive an error message that says, <b>This page is too big to beshown completely</b>. To clear your cache memory, simply power off your terminaland turn it on again."
+			"definition": "A type of memory used to temporarily store Web pages. Cached Web pages load more quickly because they are stored locally in your terminal.<p>If your cache memory fills up, you may experience slower Web surfing, or receive an error message that says, <b>This page is too big to be shown completely</b>. To clear your cache memory, simply power off your terminal and turn it on again."
 		},
 		"callwaiting": {
 			"word": "call waiting",
-			"definition": "A service provided by your phone company that lets you receive incomingphone calls while your phone line is in use.If you subscribe to a call waiting service, follow these steps:<p><ol><li>Log on as the Primary user.<li>Choose <b>Settings</b> from <webhome>,<li>Choose <b>Dialing</b>.<li>Choose <b>Call waiting</b>.<li>Choose the box next to <b>Accept calls</b>.<li>Choose <b>Done</b>.</ol>"
+			"definition": "A service provided by your phone company that lets you receive incoming phone calls while your phone line is in use. If you subscribe to a call waiting service, follow these steps:<p><ol><li>Log on as the Primary user.<li>Choose <b>Settings</b> from <webhome>.<li>Choose <b>Dialing</b>.<li>Choose <b>Call waiting</b>.<li>Choose the box next to <b>Accept calls</b>.<li>Choose <b>Done</b>.</ol>"
 		},
 		"carboncopy": {
 			"word": "carbon copy (cc)",
-			"definition": "A feature that allows you to send an e-mail message to both a primaryrecipient and multiple secondary recipients at the same time."
+			"definition": "A feature that allows you to send an e-mail message to both a primary recipient and multiple secondary recipients at the same time."
 		},
 		"casesensitive": {
 			"word": "case sensitive",
-			"definition": "When letters typed in uppercase are read differently thanletters typed in lowercase.<p>For example, your <boxname_plus> e-mail address <b>is not</b>case sensitive. If your e-mail address is yourname@webtv.net,someone can send a message to YoUrNaMe@webtv.net, and it will stillget to you.<p>Your <boxname_plus> password <b>is</b> case sensitive. For example, if yourpassword is Surfwatch, you must type it in exactly that way."
+			"definition": "When letters typed in uppercase are read differently than letters typed in lowercase.<p>For example, your <boxname_plus> e-mail address <b>is not</b> case sensitive. If your e-mail address is yourname@webtv.net, someone can send a message to YoUrNaMe@webtv.net, and it will still get to you.<p>Your <boxname_plus> password <b>is</b> case sensitive. For example, if your password is Surfwatch, you must type it in exactly that way."
 		},
 		"cd-rom": {
 			"word": "CD-ROM",
@@ -132,19 +132,19 @@
 		},
 		"chat": {
 			"word": "chat",
-			"definition": "A forum on the Internet where people communicate by exchanging typedmessages in real time.`;<boxname_plus> supports both HTML chat and real time IRC (Internet Relay Chat).At this time, we do not support Java-based chat."
+			"definition": "A forum on the Internet where people communicate by exchanging typed messages in real time. <boxname_plus> supports both HTML chat and real time IRC (Internet Relay Chat). At this time, we do not support Java-based chat."
 		},
 		"client": {
 			"word": "client",
-			"definition": "A program or device that relies on a larger computer, or server,to perform the majority of its functions. Your <boxname> can be thoughtof as a client, and so can some of the programs that run within it (e.g. <boxname_plus>'s e-mail system)."
+			"definition": "A program or device that relies on a larger computer, or server, to perform the majority of its functions. Your <boxname> can be thought of as a client, and so can some of the programs that run within it (e.g. <boxname_plus>'s e-mail system)."
 		},
 		"commandkey": {
 			"word": "Command key",
-			"definition": "The <b>Command</b> key (Cmd), when pressed simultaneously withspecific keys on the keyboard, activates a number of features.For example, pressing <b>Cmd</b> and the < b>R</b> keyat the same time reloads the page you're viewing."
+			"definition": "The <b>Command</b> key (Cmd), when pressed simultaneously with specific keys on the keyboard, activates a number of features. For example, pressing <b>Cmd</b> and the <b>R</b> key at the same time reloads the page you're viewing."
 		},
 		"cookies": {
 			"word": "cookies",
-			"definition": "Cookies are electronic packets of information that a Web page givesout to visiting Internet users. Cookies have many uses, the mostcommon of which lets Web pages offer custom information to its visitors.For example, while viewing a specific Web page, you may be askedto provide your name and a few comments about your personal interests.The next time you visit that page, you may be presented with a welcomemessage that includes your name and content specific to your personal interests."
+			"definition": "Cookies are electronic packets of information that a Web page gives out to visiting Internet users. Cookies have many uses, the most common of which lets Web pages offer custom information to its visitors. For example, while viewing a specific Web page, you may be asked to provide your name and a few comments about your personal interests. The next time you visit that page, you may be presented with a welcome message that includes your name and content specific to your personal interests."
 		},
 		"crossoverlink": {
 			"word": "Crossover link",
@@ -153,7 +153,7 @@
 		},
 		"cross-post": {
 			"word": "cross-post",
-			"definition": "To submit a single post to several different newsgroups. To cross-posta message, simply add the newsgroup names to the post you have written,separating each name with a comma. Posts should only be cross-posted ifthey are relevant to all receiving newsgroups. Doing otherwise isconsidered bad netiquette."
+			"definition": "To submit a single post to several different newsgroups. To cross-post a message, simply add the newsgroup names to the post you have written, separating each name with a comma. Posts should only be cross-posted if they are relevant to all receiving newsgroups. Doing otherwise is considered bad netiquette."
 		},
 		"cursor": {
 			"word": "cursor",
@@ -161,7 +161,7 @@
 		},
 		"cutcopyandpaste": {
 			"word": "Cut, Copy, and Paste",
-			"definition": "A feature that lets you copy text from one place, such as a Web page, and pasteit somewhere else, such as in an e-mail message you're writing."
+			"definition": "A feature that lets you copy text from one place, such as a Web page, and paste it somewhere else, such as in an e-mail message you're writing."
 		}
 	},
 	"D": {
