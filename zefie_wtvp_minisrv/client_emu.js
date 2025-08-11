@@ -19,11 +19,12 @@ const AdmZip = require('adm-zip');
  * using the WTVP protocol with proper authentication and service discovery.
  */
 class WebTVClientSimulator {
-    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5, requestDelay = 250, boxType = null, username = null) {
+    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5, requestDelay = 250, boxType = null, username = null, keepgz = false) {
         this.host = host;
         this.port = port;
         this.ssid = ssid;
         this.url = url;
+        this.keepgz = keepgz;
         this.request_type_download = request_type_download;
         this.outputFile = outputFile;
         this.followImages = followImages;
@@ -1211,7 +1212,9 @@ class WebTVClientSimulator {
         const match = this.url.match(/^([\w-]+):\/?(.*)/);
         if (match) {
             const serviceName = match[1];
-            const path = '/' + (match[2] || '');
+            let path = '/' + (match[2] || '');
+        
+            
             this.debugLog(`Parsed target service: ${serviceName}, path: ${path}`);
 
             try {
@@ -1338,21 +1341,36 @@ class WebTVClientSimulator {
             const contentType = headers['content-type'] || '';
             const normalizedContentType = contentType.split(';')[0].trim().toLowerCase();
             
+            // Handle gzip decompression if content-type is application/gzip and keepgz is false
+            let processedContent = content;
+            if (normalizedContentType === 'application/gzip' && !this.keepgz) {
+                this.debugLog('Decompressing gzip content...');
+                try {
+                    const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content, 'binary');
+                    processedContent = zlib.gunzipSync(buffer);
+                    this.debugLog('Gzip decompression successful');
+                } catch (error) {
+                    console.error('Error decompressing gzip content:', error);
+                    this.debugLog('Falling back to original content');
+                    processedContent = content;
+                }
+            }
+            
             const isHtml = /text\/html/i.test(contentType) || 
-                           (typeof content === 'string' && /<html/i.test(content)) ||
-                           (Buffer.isBuffer(content) && /<html/i.test(content.toString('utf8')));
+                           (typeof processedContent === 'string' && /<html/i.test(processedContent)) ||
+                           (Buffer.isBuffer(processedContent) && /<html/i.test(processedContent.toString('utf8')));
             
             const isDownloadList = normalizedContentType === 'wtv/download-list';
             
             if (this.followImages && isHtml) {
                 this.debugLog('HTML content detected with --follow enabled, creating archive...');
-                await this.createHtmlArchive(content, headers);
+                await this.createHtmlArchive(processedContent, headers);
             } else if (this.followImages && isDownloadList) {
                 this.debugLog('Download-list content detected with --follow enabled, creating archive...');
-                await this.createDownloadListArchive(content, headers);
+                await this.createDownloadListArchive(processedContent, headers);
             } else {
                 // Regular file save
-                await fs.writeFile(this.outputFile, Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf8'));
+                await fs.writeFile(this.outputFile, Buffer.isBuffer(processedContent) ? processedContent : Buffer.from(processedContent, 'utf8'));
             }
         } catch (error) {
             console.error('Error saving to file:', error);
@@ -1395,7 +1413,26 @@ class WebTVClientSimulator {
                 const imageResult = await this.downloadImage(imageUrl, this.url);
                 if (imageResult && imageResult.body && !downloadedImages.has(imageUrl)) {
                     const imagePath = this.getServicePath(imageUrl, imageResult.headers || {});
-                    zip.addFile(imagePath, imageResult.body);
+                    
+                    // Handle gzip decompression if content-type is application/gzip and keepgz is false
+                    let imageContent = imageResult.body;
+                    const contentType = imageResult.headers ? imageResult.headers['content-type'] : '';
+                    const normalizedContentType = contentType.split(';')[0].trim().toLowerCase();
+                    
+                    if (normalizedContentType === 'application/gzip' && !this.keepgz) {
+                        this.debugLog(`Decompressing gzip image for ${imageUrl}...`);
+                        try {
+                            const buffer = Buffer.isBuffer(imageResult.body) ? imageResult.body : Buffer.from(imageResult.body, 'binary');
+                            imageContent = zlib.gunzipSync(buffer);
+                            this.debugLog(`Gzip decompression successful for ${imageUrl}`);
+                        } catch (error) {
+                            console.error(`Error decompressing gzip image for ${imageUrl}:`, error);
+                            this.debugLog(`Falling back to original content for ${imageUrl}`);
+                            imageContent = imageResult.body;
+                        }
+                    }
+                    
+                    zip.addFile(imagePath, imageContent);
                     downloadedImages.add(imageUrl);
                     this.debugLog(`Added image: ${imagePath} (from ${imageUrl})`);
                 }
@@ -1454,8 +1491,29 @@ class WebTVClientSimulator {
                         // Validate checksum if we have one
                         this.validateDownloadChecksum(fileUrl, fileResult.body);
                         
-                        const filePath = this.getServicePath(fileUrl, fileResult.headers || {});
-                        zip.addFile(filePath, fileResult.body);
+                        // Handle gzip decompression if content-type is application/gzip and keepgz is false
+                        let fileContent = fileResult.body;
+                        const contentType = fileResult.headers ? fileResult.headers['content-type'] : '';
+                        const normalizedContentType = contentType.split(';')[0].trim().toLowerCase();
+                        var isgzip = false;
+
+                        if (normalizedContentType === 'application/gzip' && !this.keepgz) {
+                            this.debugLog(`Decompressing gzip file for ${fileUrl}...`);
+                            try {
+                                const buffer = Buffer.isBuffer(fileResult.body) ? fileResult.body : Buffer.from(fileResult.body, 'binary');
+                                fileContent = zlib.gunzipSync(buffer);
+                                isgzip = true;
+                                this.debugLog(`Gzip decompression successful for ${fileUrl}`);
+                            } catch (error) {
+                                console.error(`Error decompressing gzip file for ${fileUrl}:`, error);
+                                this.debugLog(`Falling back to original content for ${fileUrl}`);
+                                fileContent = fileResult.body;
+                            }
+                        }
+                        
+                        var filePath = this.getServicePath(fileUrl, fileResult.headers || {});
+                        if (isgzip) filePath = filePath.slice(0, -3);
+                        zip.addFile(filePath, fileContent);
                         downloadedFiles.add(fileUrl);
                         this.debugLog(`Added referenced file: ${filePath}`);
                     }
@@ -2011,12 +2069,30 @@ class WebTVClientSimulator {
         for (const [url, response] of this.allContent) {
             try {
                 const servicePath = this.getServicePath(url, response.headers || {});
-                zip.addFile(servicePath, response.body);
+                
+                // Handle gzip decompression if content-type is application/gzip and keepgz is false
+                let contentToAdd = response.body;
+                const contentType = response.headers ? response.headers['content-type'] : '';
+                const normalizedContentType = contentType.split(';')[0].trim().toLowerCase();
+                
+                if (normalizedContentType === 'application/gzip' && !this.keepgz) {
+                    this.debugLog(`Decompressing gzip content for ${url}...`);
+                    try {
+                        const buffer = Buffer.isBuffer(response.body) ? response.body : Buffer.from(response.body, 'binary');
+                        contentToAdd = zlib.gunzipSync(buffer);
+                        this.debugLog(`Gzip decompression successful for ${url}`);
+                    } catch (error) {
+                        console.error(`Error decompressing gzip content for ${url}:`, error);
+                        this.debugLog(`Falling back to original content for ${url}`);
+                        contentToAdd = response.body;
+                    }
+                }
+                
+                zip.addFile(servicePath, contentToAdd);
                 addedFiles++;
                 this.debugLog(`Added to archive: ${servicePath} (from ${url})`);
                 
                 // Log content type for debugging
-                const contentType = response.headers ? response.headers['content-type'] : 'unknown';
                 if (contentType === 'text/tellyscript' || contentType === 'text/dialscript') {
                     this.debugLog(`  -> TellyScript/DialScript content detected, saved as .tok file`);
                 }
@@ -2552,7 +2628,8 @@ function parseArgs() {
         maxRetries: 5,
         requestDelay: 250,
         debug: false,
-        username: null
+        username: null,
+        keepgz: false
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -2632,6 +2709,9 @@ function parseArgs() {
                     config.username = args[++i];
                 }
                 break;
+            case '--keepgz':
+                config.keepgz = true;
+                break;
             case '--help':
                 console.log(`
 WebTV Client Simulator
@@ -2655,6 +2735,7 @@ Options:
   --depth <num>           Maximum crawl depth for --follow-all mode (default: 5)
   --retries <num>         Maximum number of retries for ECONNREFUSED errors (default: 5)
   --delay <num>           Delay between requests in milliseconds (default: 250)
+  --keepgz                Keep .gz files compressed when following wtv/download-list (default: false)
   --debug                 Enable debug logging
   --help                  Show this help message
 
@@ -2675,7 +2756,7 @@ Example:
  */
 async function main() {
     const config = parseArgs();
-    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries, config.requestDelay, config.boxType, config.username);
+    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries, config.requestDelay, config.boxType, config.username, config.keepgz);
     
     // Handle graceful shutdown
     process.on('SIGINT', () => {
