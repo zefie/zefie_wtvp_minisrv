@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
 var mailto = request_headers.request_url;
-mailto = mailto.substring(mailto.indexOf(":") + 1);
+mailto = mailto.slice(mailto.indexOf(":") + 1);
 mailto = mailto.split("?")[0];
 var subject = request_headers.query.subject || "";
 var body = request_headers.query.body || "";

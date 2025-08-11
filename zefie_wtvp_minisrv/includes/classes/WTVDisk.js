@@ -160,7 +160,7 @@ class WTVDownloadList {
         this.download_list += `file-permission: ${file_permission}\n`;
         if (checksum != null) this.download_list += `wtv-checksum: ${checksum}\n`;
         if (uncompressed_size != null) this.download_list += `wtv-uncompressed-filesize: ${uncompressed_size}\n`;
-        this.download_list += `service-source-location: /webtv/content/${source.substring(source.indexOf('-') + 1, source.indexOf(':/'))}d/${source.substring(source.indexOf(':/') + 2)}\n`;        
+        this.download_list += `service-source-location: /webtv/content/${source.slice(source.indexOf('-') + 1, source.indexOf(':/'))}d/${source.slice(source.indexOf(':/') + 2)}\n`;        
         this.download_list += `client-dest-location: ${path}\n\n`;
     }
 
@@ -182,7 +182,7 @@ class WTVDownloadList {
         if (typeof post_data == 'string') post_data = post_data.split("\n\n");
         const group_data = [];
         post_data.forEach(function (v) {
-            if (v.substring(0, 4) == "file") {
+            if (v.slice(0, 4) == "file") {
                 const block_split = v.split("\n");
                 const group_data_entry = {};
                 group_data_entry.path = block_split[0];

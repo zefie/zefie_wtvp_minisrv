@@ -328,7 +328,7 @@ class WTVMail {
                     else return a.time - b.time;
                 })
                 .map(function (v) {
-                    if (v.name.substring((v.name.length - self.msgFileExt.length)) === self.msgFileExt) return v.name.substring(0, (v.name.length - 5));
+                    if (v.name.slice((v.name.length - self.msgFileExt.length)) === self.msgFileExt) return v.name.slice(0, (v.name.length - 5));
                 });
 
             if (files.length == 0) return false; // no messages
@@ -398,7 +398,7 @@ class WTVMail {
                         var path_after_replace = search_dir.replace(accounts_dir, '');
                         // Remove leading path separator if present
                         if (path_after_replace.startsWith(self.path.sep)) {
-                            path_after_replace = path_after_replace.substring(1);
+                            path_after_replace = path_after_replace.slice(1);
                         }
                         var path_split = path_after_replace.split(self.path.sep);
                         // The path should be like "ssid/user0", so extract ssid and user_id

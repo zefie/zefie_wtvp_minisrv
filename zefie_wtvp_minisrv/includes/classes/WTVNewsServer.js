@@ -94,7 +94,7 @@ class WTVNewsServer {
                     Object.keys(message.headers).forEach((k) => {
                         if (k.length > 0) out += `${k}: ${message.headers[k]}\r\n`;
                     });
-                    out = out.substr(0, out.length - 2);
+                    out = out.slice(0, out.length - 2);
                     return out;
                 },
 

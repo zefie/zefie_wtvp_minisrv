@@ -29,7 +29,7 @@ const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const WTVIRC = require(classPath + "/WTVIRC.js");
 const WTVFTP = require(classPath + "/WTVFTP.js");
 const vm = require('vm');
-const debug = require('debug')('minisrv_main');
+const debug = require('debug')('app');
 const express = require('express');
 
 let wtvirc = null;
@@ -1831,7 +1831,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     if (!wtvshared.checkSSID(socket.ssid)) {
                         if (!socket.ssid.startsWith("1SEGA") && !socket.ssid.startsWith("MSTVSIMU")) {
                             // reject invalid SSIDs, but let Dreamcast and MSTV Sim through for now until we figure out their checksumming method.
-                            const errpage = wtvshared.doErrorPage(400, "minisrv ran into a technical problem. Reason: Your SSID is not valid.");
+                            const errpage = wtvshared.doErrorPage(400, `${minisrv_config.config.service_name} ran into a technical problem. Reason: Your SSID is not valid.`);
                             socket.close_me = true;
                             sendToClient(socket, errpage[0], errpage[1]);
                             return;
@@ -2091,7 +2091,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                             if (headers.length == 0) {
-                                const errpage = wtvshared.doErrorPage(400, `${minisrv_config.config.service_name} ran into a technical problem, please try again.`);
+                                const errpage = wtvshared.doErrorPage(400);
                                 sendToClient(socket, errpage[0], errpage[1]);
                                 return;
                             }

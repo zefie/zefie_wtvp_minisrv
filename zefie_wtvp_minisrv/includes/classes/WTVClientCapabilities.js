@@ -99,7 +99,7 @@ class WTVClientCapabilities {
                     //In case remaining hex length (or initial) is not multiple of 8
                     var blockSize = remainingSize < 8 ? remainingSize : 8;
 
-                    binary += parseInt(hex.substr(p * 8, blockSize), 16).toString(2);
+                    binary += parseInt(hex.slice(p * 8, blockSize), 16).toString(2);
 
                     remainingSize -= blockSize;
                 }

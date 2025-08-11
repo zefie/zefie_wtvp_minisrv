@@ -292,7 +292,7 @@ class WTVMinifyingProxy {
         for (const [selector, styles] of cssRules) {
             if (selector.startsWith('.')) {
                 // Handle class selectors (e.g., .lst)
-                const className = selector.substring(1);
+                const className = selector.slice(1);
                 const regex = new RegExp(`<(input[^>]*class\\s*=\\s*["'][^"']*\\b${className}\\b[^"']*["'][^>]*)>`, 'gi');
                 html = html.replace(regex, (match, tagContent) => {
                     // Convert CSS styles to attributes for this element (input tag)
@@ -545,7 +545,7 @@ class WTVMinifyingProxy {
             // No body tag found, extract everything after head or use all content
             const headEndMatch = html.match(/<\/head>/i);
             if (headEndMatch) {
-                bodyContent = html.substring(html.indexOf(headEndMatch[0]) + headEndMatch[0].length);
+                bodyContent = html.slice(html.indexOf(headEndMatch[0]) + headEndMatch[0].length);
             } else {
                 bodyContent = html;
             }
@@ -711,19 +711,19 @@ ${bodyContent}
     intelligentTruncate(content, maxLength) {
         if (content.length <= maxLength) return content;
         
-        let truncated = content.substring(0, maxLength);
+        let truncated = content.slice(0, maxLength);
         
         // Try to cut at a tag boundary
         const lastCloseTag = truncated.lastIndexOf('>');
         const lastOpenTag = truncated.lastIndexOf('<');
         
         if (lastCloseTag > lastOpenTag) {
-            truncated = truncated.substring(0, lastCloseTag + 1);
+            truncated = truncated.slice(0, lastCloseTag + 1);
         } else {
             // Cut at word boundary
             const lastSpace = truncated.lastIndexOf(' ');
             if (lastSpace > maxLength * 0.8) { // Only if we don't lose too much
-                truncated = truncated.substring(0, lastSpace);
+                truncated = truncated.slice(0, lastSpace);
             }
         }
         
@@ -769,7 +769,7 @@ ${bodyContent}
             // No body tag found, extract content after head or use transformed content
             const headEndMatch = transformed.match(/<\/head>/i);
             if (headEndMatch) {
-                bodyContent = transformed.substring(transformed.indexOf(headEndMatch[0]) + headEndMatch[0].length);
+                bodyContent = transformed.slice(transformed.indexOf(headEndMatch[0]) + headEndMatch[0].length);
             } else {
                 bodyContent = transformed;
             }

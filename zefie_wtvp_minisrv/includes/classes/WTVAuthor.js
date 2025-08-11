@@ -91,7 +91,7 @@ class WTVAuthor {
 				this.debug("createPage","pages",pages)
 				var pagenums = [];
 				for(let i = 0; i < pagelen; i++) {
-					var toarr = pages[i].substr(0, pages[i].indexOf('.')); 
+					var toarr = pages[i].slice(0, pages[i].indexOf('.')); 
 					pagenums.push(parseInt(toarr));
 				}
 				pagenums = pagenums.sort()
@@ -469,7 +469,7 @@ this.fs.writeFile(destDir + this.wtvclient.session_store.subscriber_username + '
 			break;
 			
 			case "clipart":
-				this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo).substr(0, atob(thisblock.photo).lastIndexOf("/")), { recursive: true })
+				this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo).slice(0, atob(thisblock.photo).lastIndexOf("/")), { recursive: true })
 				this.fs.copyFile('includes/ServiceVault/wtv-author/' + atob(thisblock.photo), destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo), (err) => {
 				if (err) throw err;
 				});
@@ -840,7 +840,7 @@ html += `">next page</a>
 		var publishname = null;
 
 		if (pagedata.published != true) {
-			publishname = pagedata.title.substring(0, 50).replaceAll(" ", "").replace(/[^A-Za-z0-9]/g, "-");
+			publishname = pagedata.title.slice(0, 50).replaceAll(" ", "").replace(/[^A-Za-z0-9]/g, "-");
 			pagedata.publishname = publishname;
 			this.editPage(pagedata, pagenum);
 			if (this.fs.existsSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname)) {
@@ -867,7 +867,7 @@ html += `">next page</a>
 			});
 		}
 		for (let i = 0; i < this.stylemedia.length; i++) {
-			this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + this.stylemedia[i].substr(0, this.stylemedia[i].lastIndexOf("/")), { recursive: true })
+			this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + this.stylemedia[i].slice(0, this.stylemedia[i].lastIndexOf("/")), { recursive: true })
 			this.fs.copyFile('includes/ServiceVault/wtv-author' + this.stylemedia[i], destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + this.stylemedia[i], (err) => {
 				if (err) throw err;
 			});

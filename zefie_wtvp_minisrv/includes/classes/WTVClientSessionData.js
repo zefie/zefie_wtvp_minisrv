@@ -610,7 +610,7 @@ class WTVClientSessionData {
         Object.keys(cookie_data).forEach(function (k) {
             outstring += k + "=" + escape(cookie_data[k]) + "&";
         });
-        return outstring.substring(0, outstring.length - 1);
+        return outstring.slice(0, outstring.length - 1);
         */
         return cookie_data.cookie;
     }

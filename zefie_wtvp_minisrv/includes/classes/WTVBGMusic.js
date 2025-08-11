@@ -1331,10 +1331,10 @@ class WTVBGMusic {
     getSongCategory(songid) {
         if (String(songid).length === 3) {
             // 3 digit song id
-            return parseInt(String(songid).substr(0, 1));
+            return parseInt(String(songid).slice(0, 1));
         } else if (String(songid).length === 4) {
             // 4 digit song id
-            return parseInt(String(songid).substr(0, 2));
+            return parseInt(String(songid).slice(0, 2));
         }
         return null;
     }
@@ -1353,10 +1353,10 @@ class WTVBGMusic {
             musiclist[k].id = k;
             if (String(category).length === 1) {
                 // 3 digit song id
-                if (parseInt(k.substr(0, 1)) == parseInt(category) && String(k).length === 3) songList.push(musiclist[k]);
+                if (parseInt(k.slice(0, 1)) == parseInt(category) && String(k).length === 3) songList.push(musiclist[k]);
             } else if (String(category).length === 2) {
                 // 4 digit song id
-                if (parseInt(k.substr(0, 2)) == parseInt(category) && String(k).length === 4) songList.push(musiclist[k]);
+                if (parseInt(k.slice(0, 2)) == parseInt(category) && String(k).length === 4) songList.push(musiclist[k]);
             }
         });
         return songList.filter(value => Object.keys(value).length !== 0);

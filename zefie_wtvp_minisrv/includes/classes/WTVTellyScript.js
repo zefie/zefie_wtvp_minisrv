@@ -229,7 +229,7 @@ class WTVTellyScriptTokenizer {
             // Process as a constant.
             let hexString = "";
             if (checkSequence.startsWith("0x") || checkSequence.startsWith("0X")) {
-                hexString = checkSequence.substring(2);
+                hexString = checkSequence.slice(2);
             } else {
                 hexString = parseInt(checkSequence, 10).toString(16).toUpperCase();
             }

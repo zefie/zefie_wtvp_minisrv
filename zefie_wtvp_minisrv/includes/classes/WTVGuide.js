@@ -70,28 +70,28 @@ class WTVGuide {
 								var start = start + search.length;
 								original_start = start;
 								// handle <word="whatever">
-								if (definition.substr(start, 1) != ">") {
+								if (definition.slice(start, 1) != ">") {
 									start++; // +1 to skip =
 									end = definition.indexOf(">", start);
-									link_word_override = definition.substring(start, end);
+									link_word_override = definition.slice(start, end);
 									// strip any quotes
-									if (link_word_override.substr(0, 1).match(/[\"\']/)) link_word_override = link_word_override.substring(1);
-									if (link_word_override.substr(link_word_override.length - 1, 1).match(/[\"\']/)) link_word_override = link_word_override.substr(0, link_word_override.length - 1);
+									if (link_word_override.slice(0, 1).match(/[\"\']/)) link_word_override = link_word_override.slice(1);
+									if (link_word_override.slice(link_word_override.length - 1, 1).match(/[\"\']/)) link_word_override = link_word_override.slice(0, link_word_override.length - 1);
 
 									link_word_for_link = link_word_override.replace(/ /g, '').replace(/\'/g, '').replace(/\"/g, '').toLowerCase();
-									link_word_start_letter = link_word_for_link.substr(0, 1).toUpperCase();
+									link_word_start_letter = link_word_for_link.slice(0, 1).toUpperCase();
 									start = end + 1; // update start pos for rest of processing
 								} else {
 									start++;
 								}
 								end = definition.indexOf("</word>", start);
-								var link_word = definition.substring(start, end);
+								var link_word = definition.slice(start, end);
 								if (!link_word_for_link) link_word_for_link = link_word.replace(/ /g, '').replace(/\'/g,'').replace(/\"/g,'').toLowerCase();
-								if (!link_word_start_letter) link_word_start_letter = link_word.substr(0, 1).toUpperCase();
+								if (!link_word_start_letter) link_word_start_letter = link_word.slice(0, 1).toUpperCase();
 								if (!link_word_override) link_word_override = link_word;
 
 								var link_url = `wtv-guide:/help?topic=Glossary&subtopic=${link_word_start_letter}&page=${link_word_for_link}&word=${encodeURIComponent(link_word_override)}`
-								var new_definition = definition.substring(0, original_start - search.length) + `<a href="${link_url}">${link_word}</a>` + definition.substring(end + 7);
+								var new_definition = definition.slice(0, original_start - search.length) + `<a href="${link_url}">${link_word}</a>` + definition.slice(end + 7);
 								definition = new_definition;
 							}
 							// replaces <boxname> with the friendly name of the type of unit the user has

@@ -143,7 +143,7 @@ if (session_data.data_store.wtvsec_login) {
 				break;
 		}
 
-		if (socket.ssid.substr(0, 8) == "MSTVSIMU") {
+		if (socket.ssid.slice(0, 8) == "MSTVSIMU") {
 			prereg_contype = "text/dialscript";
 			var file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_hsd.tok", true);
 		}

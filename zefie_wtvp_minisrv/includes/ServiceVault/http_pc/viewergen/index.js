@@ -106,7 +106,7 @@ function getPatchDataType(type, invert = false) {
 
 function getResData(file) {
     var res_data = null;
-    if (file.substr(-2, 2).toLowerCase() == "gz") {
+    if (file.slice(-2, 2).toLowerCase() == "gz") {
         var res_gz_data = wtvshared.getServiceDep("/viewergen/" + file);
         res_data = zlib.gunzipSync(res_gz_data);
     } else {
@@ -228,34 +228,34 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
         if (typeof val === 'string') {
             // start url override
             if (start_url != patch_defaults.start_url && start_url.length <= patch_limits.start_url) {
-                if (val.substr(0, patch_defaults.start_url.length) == patch_defaults.start_url)
+                if (val.slice(0, patch_defaults.start_url.length) == patch_defaults.start_url)
                     customized_patch_data[idx] = start_url + "\x00";
             }
 
             // default service ip override
             if (default_ip != patch_defaults.default_ip && default_ip.length <= patch_limits.default_ip) {
-                if (val.substr(0, patch_defaults.default_ip.length) == patch_defaults.default_ip)
+                if (val.slice(0, patch_defaults.default_ip.length) == patch_defaults.default_ip)
                     customized_patch_data[idx] = default_ip + "\x00";
             }
         } else {
             if (!val.byteLength) {
                 // not a buffer object
                 var block_length = val['length'];
-                var patch_data = getPatchDataType(val['type'], (fname.substr(12, 3) != "1.1"));
+                var patch_data = getPatchDataType(val['type'], (fname.slice(12, 3) != "1.1"));
                 if (patch_data) {
                     var patch_data_array = patch_data.split("\r\n");
                     var patch_data_string = "";
                     Object.keys(patch_data_array).forEach(function (didx) {
                         var header_end = patch_data_array[didx].indexOf(":");
                         if (header_end) {
-                            var patch_data_header = patch_data_array[didx].substr(0, header_end);
+                            var patch_data_header = patch_data_array[didx].slice(0, header_end);
                             var client_value = client_data_obj[patch_data_header];
                             if (client_value)
                                 patch_data_string += patch_data_array[didx].replace("%s", client_value) + "\r\n";
                         }
                     });
                 }
-                if (fname.substr(12, 3) != "2.5") {
+                if (fname.slice(12, 3) != "2.5") {
                     var length_difference = block_length - patch_data_string.length;
                     if (length_difference > 0)
                         patch_data_string += "\x00".repeat(length_difference - (val['type'].length + 1));
@@ -493,8 +493,8 @@ if (request_headers.query.viewer &&
                 var patched_file = patchBinary(patchDataObject);
                 var enabled_feature_bits = [];
                 Object.keys(request_headers.query).forEach((k) => {
-                    if (k.substring(0, 12) === "feature_bit_") {
-                        enabled_feature_bits.push(parseInt(k.substring(12)));
+                    if (k.slice(0, 12) === "feature_bit_") {
+                        enabled_feature_bits.push(parseInt(k.slice(12)));
                     }
                 });
                 Object.keys(enabled_feature_bits).forEach((k) => {
@@ -553,8 +553,8 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
 
                     var embed_modpacks = [];
                     Object.keys(request_headers.query).forEach((k) => {
-                        if (k.substring(0, 8) === "modpack_") {
-                            embed_modpacks.push(parseInt(k.substring(8)));
+                        if (k.slice(0, 8) === "modpack_") {
+                            embed_modpacks.push(parseInt(k.slice(8)));
                         }
                     });
 
@@ -601,9 +601,9 @@ window.onload = function() {
 
 function getSSIDCRC(ssid) {
     let crc = 0;
-    var ssid = ssid.substr(0, 14);
+    var ssid = ssid.slice(0, 14);
     for (let i = 0; i < ssid.length; i += 2) {
-        let inbyte = parseInt(ssid.substring(i, i+2), 16);
+        let inbyte = parseInt(ssid.slice(i, i+2), 16);
 		for (let ii = 8; ii > 0; ii--) {
 		    let mix = (crc ^ inbyte) & 0x01;
 			crc >>= 1;
@@ -667,9 +667,9 @@ function validateSSID(ssid) {
         alert("Please choose a valid SSID and try again.");
         return false;
     }
-    if ((ssid.substr(0,1) != "0" && ssid.substr(0,1) != "8" && ssid.substr(0,1) != "9") ||
-        (ssid.substr(6,1) != "0") ||
-        (ssid.substr(9,5) != "0b002")) {
+    if ((ssid.slice(0,1) != "0" && ssid.slice(0,1) != "8" && ssid.slice(0,1) != "9") ||
+        (ssid.slice(6,1) != "0") ||
+        (ssid.slice(9,5) != "0b002")) {
         alert("Your SSID is not proper, but I'll allow it.")
     }
     return true;
