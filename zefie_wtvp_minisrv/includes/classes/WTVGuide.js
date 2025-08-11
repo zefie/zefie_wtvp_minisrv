@@ -70,24 +70,26 @@ class WTVGuide {
 								var start = start + search.length;
 								original_start = start;
 								// handle <word="whatever">
-								if (definition.slice(start, 1) != ">") {
+								if (definition.charAt(start) != ">") {
 									start++; // +1 to skip =
 									end = definition.indexOf(">", start);
+									if (end === -1) break; // malformed tag, exit loop
 									link_word_override = definition.slice(start, end);
 									// strip any quotes
-									if (link_word_override.slice(0, 1).match(/[\"\']/)) link_word_override = link_word_override.slice(1);
-									if (link_word_override.slice(link_word_override.length - 1, 1).match(/[\"\']/)) link_word_override = link_word_override.slice(0, link_word_override.length - 1);
+									if (link_word_override.length > 0 && link_word_override.charAt(0).match(/[\"\']/)) link_word_override = link_word_override.slice(1);
+									if (link_word_override.length > 0 && link_word_override.charAt(link_word_override.length - 1).match(/[\"\']/)) link_word_override = link_word_override.slice(0, link_word_override.length - 1);
 
 									link_word_for_link = link_word_override.replace(/ /g, '').replace(/\'/g, '').replace(/\"/g, '').toLowerCase();
-									link_word_start_letter = link_word_for_link.slice(0, 1).toUpperCase();
+									if (link_word_for_link.length > 0) link_word_start_letter = link_word_for_link.charAt(0).toUpperCase();
 									start = end + 1; // update start pos for rest of processing
 								} else {
 									start++;
 								}
 								end = definition.indexOf("</word>", start);
+								if (end === -1) break; // malformed tag, exit loop
 								var link_word = definition.slice(start, end);
 								if (!link_word_for_link) link_word_for_link = link_word.replace(/ /g, '').replace(/\'/g,'').replace(/\"/g,'').toLowerCase();
-								if (!link_word_start_letter) link_word_start_letter = link_word.slice(0, 1).toUpperCase();
+								if (!link_word_start_letter && link_word_for_link.length > 0) link_word_start_letter = link_word_for_link.charAt(0).toUpperCase();
 								if (!link_word_override) link_word_override = link_word;
 
 								var link_url = `wtv-guide:/help?topic=Glossary&subtopic=${link_word_start_letter}&page=${link_word_for_link}&word=${encodeURIComponent(link_word_override)}`
