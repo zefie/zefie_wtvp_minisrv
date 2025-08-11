@@ -56,7 +56,7 @@ if (session_data.data_store.wtvsec_login) {
 	}
 
 	// if relogin and wtv-script-id != 0, skip tellyscript
-	session_data.set("wtv-open-access", (request_headers['wtv-open-access'] == "true") ? true : false);
+	session_data.set("wtv-open-access", (request_headers['wtv-open-access'] === "true") ? true : false);
 	var file_path = null;
 	var template = null;
 	var template_preprocessor = {};
@@ -69,7 +69,7 @@ if (session_data.data_store.wtvsec_login) {
 	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscript = false;
 	if (wtv_script_id !== 0 && wtv_script_mod !== 0) send_tellyscript = false;
 	if (!minisrv_config.services[service_name].send_tellyscript_to_mame) {
-		if (wtvshared.parseSSID(socket.ssid).boxType == "MAME") {
+		if (wtvshared.parseSSID(socket.ssid).boxType === "MAME") {
 			send_tellyscript = false;
 		}
 	}
@@ -109,7 +109,7 @@ if (session_data.data_store.wtvsec_login) {
 					else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
 				} else {
 					prereg_contype = "text/dialscript";
-					if (session_data.get("wtv-lan") == "true") {
+					if (session_data.get("wtv-lan") === "true") {
 						file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_hsd.tok", true);
 					} else {
 						// todo OpenISP telly
@@ -143,7 +143,7 @@ if (session_data.data_store.wtvsec_login) {
 				break;
 		}
 
-		if (socket.ssid.slice(0, 8) == "MSTVSIMU") {
+		if (socket.ssid.slice(0, 8) === "MSTVSIMU") {
 			prereg_contype = "text/dialscript";
 			var file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_hsd.tok", true);
 		}
