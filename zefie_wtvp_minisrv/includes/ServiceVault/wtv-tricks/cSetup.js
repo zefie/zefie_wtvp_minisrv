@@ -131,7 +131,7 @@ Content-Type: text/html`
                 <spacer W="24" type="block">
                 <select width="440" name="preset" onchange="updateService()" selected>
                     <option value="mattman69" selected>MattMan's (HTV) MiniSrv - Public</option>
-                    <option value="mm69bak">MattMan's (HTV) MiniSrv - Bakup</option>
+                    <option value="mm69bak">MattMan's (HTV) MiniSrv - Backup</option>
                     <option value="mm69pri">MattMan's Revival Server</option>
                     <option value="zefie">Zefie's MiniSrv - Public</option>
                     <option value="jarhead">WebTV Redialed - Public</option>
