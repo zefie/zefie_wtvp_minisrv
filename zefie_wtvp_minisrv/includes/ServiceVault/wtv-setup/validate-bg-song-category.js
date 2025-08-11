@@ -31,8 +31,8 @@ if (request_headers.query && session_data) {
                 var qraw_split = qraw[i].split("=");
                 if (qraw_split.length == 2) {
                     var k = qraw_split[0];
-                    if (k == "enableCategory") music_obj['enableCategories'].push(unescape(qraw[i].split("=")[1].replace(/\+/g, "%20")));
-                    if (k == "enableSong") music_obj['enableSongs'].push(unescape(qraw[i].split("=")[1].replace(/\+/g, "%20")));
+                    if (k == "enableCategory") music_obj['enableCategories'].push(decodeURIComponent(qraw[i].split("=")[1].replace(/\+/g, "%20")));
+                    if (k == "enableSong") music_obj['enableSongs'].push(decodeURIComponent(qraw[i].split("=")[1].replace(/\+/g, "%20")));
                 }
             }
         }

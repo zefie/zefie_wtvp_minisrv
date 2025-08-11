@@ -15,8 +15,8 @@ if (!request_headers.query.registering ||
     data = errpage[1];
 } else {
     if (request_headers.query['Change']) {
-        var changeUrl = "wtv-register:/ValidateAgreement?registering=" + escape(request_headers.query.registering) + "&subscriber_name=" + escape(request_headers.query.subscriber_name);
-        changeUrl += "&subscriber_username=" + escape(request_headers.query.subscriber_username) + "&subscriber_contact=" + escape(request_headers.query.subscriber_contact) + "&subscriber_contact_method=" + escape(request_headers.query.subscriber_contact_method) 
+        var changeUrl = "wtv-register:/ValidateAgreement?registering=" + encodeURIComponent(request_headers.query.registering) + "&subscriber_name=" + encodeURIComponent(request_headers.query.subscriber_name);
+        changeUrl += "&subscriber_username=" + encodeURIComponent(request_headers.query.subscriber_username) + "&subscriber_contact=" + encodeURIComponent(request_headers.query.subscriber_contact) + "&subscriber_contact_method=" + encodeURIComponent(request_headers.query.subscriber_contact_method);
         var errpage = wtvshared.doRedirect(changeUrl);
         headers = errpage[0];
         data = errpage[1];

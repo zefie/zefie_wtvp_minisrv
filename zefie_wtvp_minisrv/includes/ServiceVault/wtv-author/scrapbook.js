@@ -214,7 +214,7 @@ if (files.length > 0) {
     for (let i = start; i < Math.min(files.length, start + 6); i++) {
         url = "wtv-tricks:/view-scrapbook-image?id=" + files[i];
         if (request_headers.query.addMediaURL) {
-            url = unescape(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i];
+            url = decodeURIComponent(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i];
         }
 data += `
 <td align=center valign=middle>

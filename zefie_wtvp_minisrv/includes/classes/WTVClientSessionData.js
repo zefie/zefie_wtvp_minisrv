@@ -549,10 +549,10 @@ class WTVClientSessionData {
         } else {
             if (path && expires && data) {
                 var cookie_data = {};
-                cookie_data['cookie'] = unescape(data);
-                cookie_data['expires'] = unescape(expires);
-                cookie_data['path'] = unescape(path);
-                cookie_data['domain'] = unescape(domain);
+                cookie_data['cookie'] = decodeURIComponent(data);
+                cookie_data['expires'] = decodeURIComponent(expires);
+                cookie_data['path'] = decodeURIComponent(path);
+                cookie_data['domain'] = decodeURIComponent(domain);
             } else {
                 return false;
             }
@@ -608,7 +608,7 @@ class WTVClientSessionData {
         /*
          var outstring = "";
         Object.keys(cookie_data).forEach(function (k) {
-            outstring += k + "=" + escape(cookie_data[k]) + "&";
+            outstring += k + "=" + encodeURIComponent(cookie_data[k]) + "&";
         });
         return outstring.slice(0, outstring.length - 1);
         */

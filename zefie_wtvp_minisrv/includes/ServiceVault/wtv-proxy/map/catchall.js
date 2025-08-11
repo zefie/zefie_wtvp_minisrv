@@ -59,7 +59,7 @@ lib.get(targetUrl, (res) => {
         } else {
             var idx = data.indexOf('<BR>');
             data = data.substring(0, idx);
-            var redirectUrl = `${service_name}:/proxy?err=${escape(data)}`;
+            var redirectUrl = `${service_name}:/proxy?err=${encodeURIComponent(data)}`;
             sendToClient(socket, {'Status': 302, 'Location': redirectUrl}, '');
         }
     });
