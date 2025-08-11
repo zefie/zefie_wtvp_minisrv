@@ -1619,7 +1619,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     headers_obj = wtvshared.moveObjectKey("Connection", 1, headers_obj); // move Connection to second
     headers_obj = wtvshared.moveObjectKey("Content-type", -1, headers_obj); // move Content-type to last
     headers_obj = wtvshared.moveObjectKey("Content-length", "Content-type", headers_obj); // move Content-length to before Content-type
-
+    
     // remove x-powered-by header if client is WebTV
     let xpower = wtvshared.getCaseInsensitiveKey("x-powered-by", headers_obj);
     if (!xpower && socket.service_name) {
@@ -1657,6 +1657,11 @@ async function sendToClient(socket, headers_obj, data = null) {
             if (k == "Status") {
                 headers += headers_obj[k] + eol;
             } else {
+                if (typeof headers_obj[k] === 'object') {
+                    headers_obj[k].forEach(function (v) {
+                        headers += k + ": " + v + eol;
+                    });
+                }
                 if (k.indexOf('_') >= 0) {
                     let j = k.split('_')[0];
                     headers += j + ": " + headers_obj[k] + eol;

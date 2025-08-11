@@ -601,7 +601,7 @@ class WebTVClientSimulator {
         request += `wtv-system-cpuspeed: 166187148\r\n`;
         request += `wtv-system-sysconfig: 4163328\r\n`;
         request += `wtv-disk-size: 8006\r\n`;
-        request += `wtv-viewer: zefie-minisrv-client_emu\r\n`;  // Note: no space after colon
+        request += `wtv-viewer: zefie-minisrv-client-sim\r\n`;  // Note: no space after colon
 
         // Add content if POST
         if (data) {

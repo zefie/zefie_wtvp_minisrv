@@ -475,15 +475,18 @@ class WTVShared {
             } else if (d.indexOf(":") > 0) {
                 const d_split = d.split(':');
                 let header_name = d_split[0];
-                if (headers_obj[header_name] != null) {
-                    header_name = header_name + "_" + inc_headers;
-                    inc_headers++;
-                }
-                d_split.shift();
-                d = d_split.join(':');
-                headers_obj[header_name] = (d).trim("\r");
-                if (headers_obj[header_name].startsWith(" ")) {
-                    headers_obj[header_name] = headers_obj[header_name].slice(1);
+                if (typeof headers_obj[header_name] === 'string') {
+                    headers_obj[header_name] = [headers_obj[header_name]];
+                    headers_obj[header_name].push((d_split.slice(1).join(':')).trim("\r"));
+                } else if (typeof headers_obj[header_name] === 'object') {
+                    headers_obj[header_name].push((d_split.slice(1).join(':')).trim("\r"));
+                } else {
+                    d_split.shift();
+                    d = d_split.join(':');
+                    headers_obj[header_name] = (d).trim("\r");
+                    if (headers_obj[header_name].startsWith(" ")) {
+                        headers_obj[header_name] = headers_obj[header_name].slice(1);
+                    }
                 }
             }
         });
@@ -1443,8 +1446,7 @@ class WTVShared {
     findObjectKeyIndex(key, obj, case_insensitive = false) {
         const keys = Object.keys(obj);
         if (case_insensitive) {
-            key = key.toLowerCase();
-            return keys.findIndex(k => k.toLowerCase() === key);
+            return keys.findIndex(k => k.toLowerCase() === key.toLowerCase());
         }
         return keys.indexOf(key);
     }
