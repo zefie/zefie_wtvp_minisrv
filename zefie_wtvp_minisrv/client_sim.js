@@ -1042,7 +1042,7 @@ class WebTVClientSimulator {
                             this.followVisit(headers['wtv-visit'])
                                 .then(resolve)
                                 .catch(reject);
-                        }, this.requestDelay);
+                        }, this.requestDelay);                       
                         return;
                     } else {
                         this.debugLog(`Skipping wtv-visit redirect: ${headers['wtv-visit']}`);
@@ -1252,7 +1252,7 @@ class WebTVClientSimulator {
                     } else {
                         // Detect text content for CLI output
                         const contentType = result.headers['content-type'] || '';
-                        if (/^text\//.test(contentType) || /json|xml|javascript|download-list/.test(contentType)) {
+                        if (/^text\//.test(contentType) || /json|xml|javascript||download-list/.test(contentType) || contentType === "x-wtv-addresses") {
                             console.log(result.body.toString('utf8'));
                         } else if (result.body.length === 0) {
                             console.log('<empty response>');

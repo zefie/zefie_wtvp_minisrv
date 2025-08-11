@@ -12,7 +12,7 @@ class WTVFlashrom {
 
 
 	constructor(minisrv_config, service_vaults, service_name, use_zefie_server = true, bf0app_update = false, no_debug = false) {
-		var { WTVShared } = require("./WTVShared.js");
+		const { WTVShared } = require("./WTVShared.js");
 		this.service_vaults = service_vaults;
 		this.service_name = service_name;
 		this.use_zefie_server = use_zefie_server;
@@ -24,14 +24,12 @@ class WTVFlashrom {
 
 	async doLocalFlashROM(flashrom_file_path, request_path, callback, info_only = false) {
 		// use local flashrom files;
-		var self = this;
+		const self = this;
 		try {
 			this.fs.readFile(flashrom_file_path, null, function (err, data) {
 				if (err) {
-					errpage = wtvshared.doErrorPage(400)
-					var headers = errpage[0];
-					data = err.toString();
-					callback(data, headers);
+					const errpage = self.wtvshared.doErrorPage(400);
+					callback(err.toString(), errpage[0]);
 				} else {
 					if (info_only) {
 						callback(self.getFlashromInfo(data, request_path));
@@ -41,10 +39,8 @@ class WTVFlashrom {
 				}
 			});
 		} catch (e) {
-			var errpage = this.wtvshared.doErrorPage(404, "The service could not find the requested ROM.")
-			var headers = errpage[0];
-			var data = errpage[1];
-			callback(data, headers);
+			const errpage = this.wtvshared.doErrorPage(404, "The service could not find the requested ROM.")
+			callback(errpage[1], errpage[0]);
 		}
 	}
 
@@ -56,16 +52,16 @@ class WTVFlashrom {
 
 
 	getFlashromInfo(data, path) {
-		var flashrom_info = new Array();
-		var flashrom_magic = "96031889";
-		var part_header = new Buffer.alloc(32);
+		const flashrom_info = new Array();
+		const flashrom_magic = "96031889";
+		let part_header = new Buffer.alloc(32);
 		data.copy(part_header, 0, 0, 32);
 		flashrom_info.header_length = data.readUInt16BE(26);
 
 		flashrom_info.is_bootrom = (/\.brom$/).test(path);
 
 		// re-read entire header
-		var part_header = new Buffer.alloc(flashrom_info.header_length);
+		part_header = new Buffer.alloc(flashrom_info.header_length);
 		data.copy(part_header, 0, 0, flashrom_info.header_length);
 
 		flashrom_info.magic = part_header.toString('hex', 0, 4);
@@ -118,8 +114,8 @@ class WTVFlashrom {
 	}
 
 	async sendToClient(data, request_path, callback) {
-		var headers = "200 OK\n";
-		var flashrom_info = this.getFlashromInfo(data, request_path)
+		let headers = "200 OK\n";
+		const flashrom_info = this.getFlashromInfo(data, request_path)
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
 		if (flashrom_info.next_rompath != null && this.bf0app_update) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
@@ -134,8 +130,8 @@ class WTVFlashrom {
     }
 
 	async getFlashRom(request_path, callback, length = 0) {
-		var headers, flashrom_file_path = null;
-		var self = this;
+		let headers, data, flashrom_file_path = null;
+		const self = this;
 		Object.keys(self.service_vaults).forEach(function (g) {
 			if (flashrom_file_path != null) return;
 			flashrom_file_path = self.service_vaults[g] + "/" + self.service_name + "/" + request_path;
@@ -143,7 +139,7 @@ class WTVFlashrom {
 		});
 		if (this.use_zefie_server && !flashrom_file_path) {
 			// get flashrom files from flashrom.webtv.onl
-			var options = {
+			const options = {
 				host: "flashrom.webtv.onl",
 				path: "/" + request_path,
 				timeout: 5000,
@@ -156,7 +152,7 @@ class WTVFlashrom {
 			}
 
 			const req = this.https.request(options, function (res) {
-				var data_hex = '';
+				let data_hex = '';
 				res.setEncoding('hex');
 
 				res.on('data', d => {
@@ -166,17 +162,17 @@ class WTVFlashrom {
 				res.on('end', function () {
 					if (self.minisrv_config.config.debug_flags.debug) console.log(` * minisrv FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
 					if (res.statusCode == 200) {
-						var data = Buffer.from(data_hex, 'hex');
+						data = Buffer.from(data_hex, 'hex');
 					} else if (res.statusCode == 206) {
-						var data = self.getFlashromInfo(Buffer.from(data_hex, 'hex'), request_path);
+						data = self.getFlashromInfo(Buffer.from(data_hex, 'hex'), request_path);
 					} else if (res.statusCode == 404) {
-						var errpage = self.wtvshared.doErrorPage(404, "The service could not find the requested ROM on the minisrv FlashROM server.")
+						const errpage = self.wtvshared.doErrorPage(404, "The service could not find the requested ROM on the minisrv FlashROM server.")
 						headers = errpage[0];
-						var data = errpage[1];
+						data = errpage[1];
 					} else {
-						var errpage = self.wtvshared.doErrorPage(400)
+						const errpage = self.wtvshared.doErrorPage(400)
 						headers = errpage[0];
-						var data = errpage[1];
+						data = errpage[1];
 					}
 					if (!headers && res.statusCode != 206) {
 						self.sendToClient(data, request_path, callback);

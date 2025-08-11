@@ -41,14 +41,11 @@ Location: wtv-mail:/listmail`;
 Content-type: text/html`;
 
 
-                var message_colors = null;
+                let message_colors = session_data.mailstore.defaultColors;
                 if (message.body) {
                     if (message.body.indexOf("<body")) {
-                        var default_colors = session_data.mailstore.defaultColors;
-                        var message_colors = session_data.mailstore.getSignatureColors(message.body);
+                        message_colors = session_data.mailstore.getSignatureColors(message.body);
                     }
-                } else {
-                    message_colors = session_data.mailstore.defaultColors;
                 }
                 if (message.signature) message_colors = session_data.mailstore.getSignatureColors(message.signature);
 

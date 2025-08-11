@@ -1074,7 +1074,7 @@ class WTVTellyScript {
      * It handles directives like #ifdef, #ifndef, #if, #else, #endif.
      */
     preprocess() {
-        var definitions = this.preprocessor_definitions || {};
+        const definitions = this.preprocessor_definitions || {};
         // Split input into lines (handling CRLF and LF)
         const lines = this.raw_data.split(/\r?\n/);
         const output = [];

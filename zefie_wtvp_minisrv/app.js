@@ -232,7 +232,7 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
     }
 
     // create global context object
-    const contextObj = {
+    let contextObj = {
         // node core variables and functions
         "console": console, // needed for per-script debugging
         "__dirname": __dirname, // needed by services such as wtv-flashrom and wtv-disk
@@ -1478,9 +1478,9 @@ async function sendToClient(socket, headers_obj, data = null) {
         if (socket_sessions[socket.id].request_headers) {
             if (socket_sessions[socket.id].request_headers.service_file_path) {
                 // Don't change Last-modified header if provided already
-                if (!headers['Last-Modified']) {
-                    // Only add the header if not a js, php, or cgi file                    
-                    if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js" || 
+                if (!headers['Last-Modified'] && !headers['minisrv-no-last-modified']) {
+                    // Only add the header if not a js, php, or cgi file
+                    if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js" ||
                         wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "php" ||
                         wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "cgi" ||
                         socket_sessions[socket.id].request_headers.raw_file === true) {
@@ -1499,6 +1499,14 @@ async function sendToClient(socket, headers_obj, data = null) {
             }
         }
     }
+
+    if (headers_obj['minisrv-no-last-modified']) {
+        if (headers_obj['Last-Modified']) {
+            delete headers_obj['Last-Modified'];
+        }
+        delete headers_obj['minisrv-no-last-modified'];
+    }
+
 
 
     // if client can do compression, see if its worth enabling
@@ -1667,7 +1675,7 @@ async function sendToClient(socket, headers_obj, data = null) {
 
     // Delete any other stray minisrv headers (we process them all before this)
     Object.keys(headers_obj).forEach(function (k) {
-        if (k.indexOf("minisrv-") == 0) {
+        if (k.startsWith("minisrv-")) {
             delete headers_obj[k];
         }
     });
