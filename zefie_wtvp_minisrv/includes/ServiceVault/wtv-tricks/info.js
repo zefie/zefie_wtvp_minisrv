@@ -4,7 +4,7 @@ let client_caps = null;
 
 if (socket.ssid != null) {
     if (session_data.capabilities) {
-        client_caps = session_data.capabilities;
+        client_caps = session_data.capabilities.get();
     }
 }
 

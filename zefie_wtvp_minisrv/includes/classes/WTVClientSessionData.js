@@ -827,7 +827,7 @@ class WTVClientSessionData {
 
     hasCap(cap) {
         if (this.capabilities) {
-            return this.capabilities[cap] || false;
+            return this.capabilities.get(cap) || false;
         }
         return false;
     }

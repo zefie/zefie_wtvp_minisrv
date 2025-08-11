@@ -252,7 +252,7 @@ class WTVIRC {
             data = data.toString('ascii');
         }
         if (data.length > this.max_message_len) {
-            data = data.alice(0, this.max_message_len - 2) + '\r\n';
+            data = data.slice(0, this.max_message_len - 2) + '\r\n';
             this.debugLog('warn', `Data length exceeds max_message_len (${this.max_message_len}), truncating: ${data.length} > ${this.max_message_len}`);
         }
         

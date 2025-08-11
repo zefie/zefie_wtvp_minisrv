@@ -185,7 +185,7 @@ function configureService(service_name, service_obj, initial = false) {
 }
 
 // Where we store our session information
-const ssid_sessions = [];
+let ssid_sessions = [];
 let socket_sessions = [];
 
 const ports = [];
@@ -626,8 +626,10 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                         try {
                             if (typeof vmResults[item[1]] !== "undefined") {
                                 // Safely assign without eval
-                                if (item[0] === `ssid_sessions['${socket.ssid}']` && privileged) {
+                                if (item[0] === `ssid_sessions['${socket.ssid}']`) {
                                     ssid_sessions[socket.ssid] = vmResults[item[1]];
+                                } else if (item[0] === 'ssid_sessions' && privileged) {
+                                    ssid_sessions = vmResults[item[1]];  
                                 } else if (item[0] === 'headers') {
                                     headers = vmResults[item[1]];
                                 } else if (item[0] === 'data') {
@@ -808,8 +810,10 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                             try {
                                                 if (typeof vmResults[item[1]] !== "undefined") {
                                                     // Safely assign without eval
-                                                    if (item[0] === `ssid_sessions['${socket.ssid}']` && privileged) {
+                                                    if (item[0] === `ssid_sessions['${socket.ssid}']`) {
                                                         ssid_sessions[socket.ssid] = vmResults[item[1]];
+                                                    } else if (item[0] === 'ssid_sessions' && privileged) {
+                                                        ssid_sessions = vmResults[item[1]];  
                                                     } else if (item[0] === 'headers') {
                                                         headers = vmResults[item[1]];
                                                     } else if (item[0] === 'data') {
@@ -1530,7 +1534,6 @@ async function sendToClient(socket, headers_obj, data = null) {
                 headers_obj["wtv-lzpf"] = 0;
                 const wtvcomp = new LZPF();
                 data = wtvcomp.compress(data);
-                wtvcomp = null; // Makes the garbage gods happy so it cleans up our mess
                 break;
 
             case 2:
