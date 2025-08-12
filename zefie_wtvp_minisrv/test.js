@@ -45,7 +45,37 @@ function checkScopeErrors(file) {
 				"block-scoped-var": 2,
 				"no-const-assign": 2,
 				"prefer-const": 1,
-				"no-var": 1
+				"no-var": 1,
+				"no-restricted-globals": [
+					"warn",
+					{
+						"name": "escape",
+						"message": "escape() is deprecated. Use encodeURIComponent() instead."
+					},
+					{
+						"name": "unescape", 
+						"message": "unescape() is deprecated. Use decodeURIComponent() instead."
+					}
+				],
+				"no-restricted-syntax": [
+					"warn",
+					{
+						"selector": "CallExpression[callee.type='MemberExpression'][callee.property.name='substr']",
+						"message": "String.prototype.substr() is deprecated. Use String.prototype.slice() instead."
+					},
+					{
+						"selector": "CallExpression[callee.name='substr']",
+						"message": "substr() is deprecated. Use slice() instead."
+					},
+					{
+						"selector": "CallExpression[callee.type='MemberExpression'][callee.property.name='substring']",
+						"message": "substring() found, for continuity, please use String.prototype.slice() instead."
+					},
+					{
+						"selector": "CallExpression[callee.name='substring']",
+						"message": "substring() found, for continuity, please use slice() instead."
+					}
+				]
 			}
 		};
 		

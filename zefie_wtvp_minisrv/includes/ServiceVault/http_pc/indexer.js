@@ -3,7 +3,7 @@
 try {
     let relativePath = request_headers.request_url;
     if (relativePath.indexOf('?') > -1) relativePath = relativePath.split('?')[0];
-    while (relativePath.endsWith('/')) relativePath = relativePath.substring(0, relativePath.length - 1);
+    while (relativePath.endsWith('/')) relativePath = relativePath.slice(0, relativePath.length - 1);
 
     const dir = service_name + relativePath;
     const num_per_page = 25;

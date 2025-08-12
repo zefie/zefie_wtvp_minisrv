@@ -6,6 +6,7 @@ const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
 
 const fs = require('fs');
+const util = require('util');
 const nunjucks = require('nunjucks');
 const zlib = require('zlib');
 const {serialize, unserialize} = require('php-serialize');
