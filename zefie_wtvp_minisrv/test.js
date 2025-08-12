@@ -56,6 +56,7 @@ function checkScopeErrors(file) {
 				"http": "readonly",
 				"https": "readonly",
 				"sharp": "readonly",
+				"util": "readonly",
 				"nunjucks": "readonly",
 				"URL": "readonly",
 				"URLSearchParams": "readonly",

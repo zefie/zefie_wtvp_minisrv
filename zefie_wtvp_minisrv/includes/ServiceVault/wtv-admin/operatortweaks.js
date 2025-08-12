@@ -1,28 +1,31 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var WTVAdmin = require(classPath + "/WTVAdmin.js");
-var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
-var auth = wtva.isAuthorized();
+const WTVAdmin = require(classPath + "/WTVAdmin.js");
+const wtva = new WTVAdmin(minisrv_config, session_data, service_name);
+const auth = wtva.isAuthorized();
 
 function generateFormField(type, confvar, options = null) {
+    let confvar_value;
+    const user_config = wtvshared.getUserConfig();
     if (confvar.indexOf('.') > 0) {
-        var confvar_split = confvar.split('.');
+        const confvar_split = confvar.split('.');
         // not operater error resistant, be mindful if you modify this page
-        if (user_config.config[confvar_split[0]])
-            var confvar_value = user_config.config[confvar_split[0]][confvar_split[1]] || minisrv_config.config[confvar_split[0]][confvar_split[1]]
-        else
-            var confvar_value = minisrv_config.config[confvar_split[0]][confvar_split[1]];
-
+        if (user_config.config[confvar_split[0]]) {
+            confvar_value = user_config.config[confvar_split[0]][confvar_split[1]] || minisrv_config.config[confvar_split[0]][confvar_split[1]];
+        } else {
+            confvar_value = minisrv_config.config[confvar_split[0]][confvar_split[1]];
+        }
         confvar = confvar.replace(".", "-");
-    } else
-        var confvar_value = user_config.config[confvar] || minisrv_config.config[confvar];
+    } else {
+        confvar_value = user_config.config[confvar] || minisrv_config.config[confvar];
+    }
 
     if (type == "input")
         return `<input bgcolor="101010" text="ee44bb" type="text" name="${confvar}" value="${confvar_value}"${(options) ? ' '+options : ''}>`
     if (type == "checkbox")
         return `<input type="hidden" name="${confvar}" value="false">\n<input type=checkbox name="${confvar}" ${wtvshared.parseBool(confvar_value) ? "checked=checked" : ''}${(options) ? ' ' + options : ''}>`
     if (type == "select") {
-        var out = `<select name="${confvar}">\n`
+        let out = `<select name="${confvar}">\n`
         if (options) {
             Object.keys(options).forEach((k) => {
                 out += `<option value="${options[k].value}"${(confvar_value == options[k].value) ? ' selected' : ''}>${options[k].name}</option>\n`
@@ -33,16 +36,16 @@ function generateFormField(type, confvar, options = null) {
 }
 
 if (auth === true) {
-    var password = null;
+    let password = null;
     if (request_headers.Authorization) {
-        var authheader = request_headers.Authorization.split(' ');
+        const authheader = request_headers.Authorization.split(' ');
         if (authheader[0] == "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
     }
     if (wtva.checkPassword(password)) {
-        var user_config = wtvshared.getUserConfig();
+        const user_config = wtvshared.getUserConfig();
         headers = "200 OK\r\nContent-Type: text/html";
         data = `<html>
 <body>
@@ -255,12 +258,12 @@ ${generateFormField('input', 'passwords.form_size', "size=2 onkeypress='return f
 </html>
 `;
     } else {
-        var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
+        const errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(403, auth);
+    const errpage = wtvshared.doErrorPage(403, auth);
     headers = errpage[0];
     data = errpage[1];
 }

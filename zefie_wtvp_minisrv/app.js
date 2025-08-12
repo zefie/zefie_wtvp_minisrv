@@ -242,6 +242,7 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
         "wtvmime": wtvmime,
         "http": http,
         "https": https,
+        "util": util,
         "sharp": sharp,
         "nunjucks": nunjucks,
         "URL": URL,

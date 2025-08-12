@@ -1,13 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var WTVAdmin = require(classPath + "/WTVAdmin.js");
-var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
-var auth = wtva.isAuthorized();
-var ssids_removed = [];
+const WTVAdmin = require(classPath + "/WTVAdmin.js");
+const wtva = new WTVAdmin(minisrv_config, session_data, service_name);
+const auth = wtva.isAuthorized();
+const ssids_removed = [];
+
 if (auth === true) {
-    var password = null;
+    let config_changed = false;
+    let password = null;
     if (request_headers.Authorization) {
-        var authheader = request_headers.Authorization.split(' ');
+        const authheader = request_headers.Authorization.split(' ');
         if (authheader[0] == "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
@@ -15,8 +17,7 @@ if (auth === true) {
     }
     if (wtva.checkPassword(password)) {
         if (request_headers.query.unban_ssid) {
-            var config_changed = false;
-            var fake_config = wtvshared.getUserConfig();
+            const fake_config = wtvshared.getUserConfig();
             if (!fake_config.config) fake_config.config = {};
             if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
             if (typeof request_headers.query.unban_ssid === 'string') {
@@ -70,7 +71,7 @@ wtv-expire-all: wtv-admin:/unban`;
                 data += '<form action="wtv-admin:/unban" method="POST">';
                 data += '<select name="unban_ssid" multiple size="8">';
                 Object.keys(minisrv_config.config.ssid_block_list).forEach(function (k) {
-                    var ssid = minisrv_config.config.ssid_block_list[k];
+                    const ssid = minisrv_config.config.ssid_block_list[k];
                     data += "<option value=\"" + ssid + "\">" + ssid + "</option>\n";
                 });
                 data += '</select><br><input type="submit" value="Unban SSID(s)"></form>';
@@ -97,12 +98,12 @@ wtv-expire-all: wtv-admin:/unban`;
 </html>
 `;
     } else {
-        var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
+        const errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(403, auth);
+    const errpage = wtvshared.doErrorPage(403, auth);
     headers = errpage[0];
     data = errpage[1];
 }
