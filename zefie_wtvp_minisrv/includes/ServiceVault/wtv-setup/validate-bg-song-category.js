@@ -3,10 +3,10 @@ const minisrv_service_file = true;
 const wtvbgm = new WTVBGMusic(minisrv_config, session_data);
 
 if (request_headers.query && session_data) {
-
+    let music_obj = wtvbgm.getMusicObj();
+    const old_music_obj = Object.assign({}, music_obj);
     if (request_headers.request_url.indexOf('?') >= 0) {
         const category = (request_headers.query.category) ? request_headers.query.category : null;
-        const music_obj = wtvbgm.getMusicObj();
 
         if (category == null) music_obj.enableCategories = [];
         else {
@@ -52,7 +52,7 @@ wtv-backgroundmusic-load-playlist: wtv-setup:/get-playlist`;
 Content-type: text/html`;
     }
 } else {
-    const outdata = doErrorPage();
+    const outdata = wtvshared.doErrorPage();
     headers = outdata[0];
     data = outdata[1];
 }

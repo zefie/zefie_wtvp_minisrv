@@ -6,7 +6,7 @@ if (Object.keys(session_data.listPrimaryAccountUsers()).length == 1) {
 }
 else if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to remove users from this account.");
 
-var usersToRemove = [];
+const usersToRemove = [];
 Object.keys(request_headers.query).forEach(function (k) {
 	if (k.substr(0, 4) === "user" && request_headers.query[k] === "on") {
 		usersToRemove.push(parseInt(k.replace("user", "")));

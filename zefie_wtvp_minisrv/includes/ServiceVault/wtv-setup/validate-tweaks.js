@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 
 const fast_splash = wtvshared.parseBool(request_headers.query.fast_splash);

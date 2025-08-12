@@ -30,7 +30,7 @@ if (!session_data.getUserPasswordEnabled()) {
     headers = errpage[0];
     data = errpage[1];
 } else if (session_data.getUserPasswordEnabled() && session_data.user_id === 0 && request_headers.query.ssid && request_headers.query.password) {
-    validPassword = session_data.validateUserPassword(request_headers.query.password);
+    const validPassword = session_data.validateUserPassword(request_headers.query.password);
     if (!validPassword) {
         const errpage = wtvshared.doErrorPage(400, "Incorrect Password");
         headers = errpage[0];

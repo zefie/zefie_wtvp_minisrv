@@ -9,7 +9,7 @@ if (request_headers.query && session_data) {
     headers = `200 OK
 Content-type: text/html`
 } else {
-    const outdata = doErrorPage();
+    const outdata = wtvshared.doErrorPage();
     headers = outdata[0];
     data = outdata[1];
 }

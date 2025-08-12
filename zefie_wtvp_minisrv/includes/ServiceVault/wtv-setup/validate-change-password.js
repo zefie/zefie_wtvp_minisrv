@@ -7,14 +7,14 @@ let user_id = null;
 if (request_headers.query.user_id) {
     user_id = request_headers.query.user_id;
 } else {
-    errpage = doErrorPage(400, "User was not specified.");
+    errpage = wtvshared.doErrorPage(400, "User was not specified.");
     headers = errpage[0];
     data = errpage[1];
 }
 
 if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
-    errpage = doErrorPage(400, "You are not authorized to edit the selected user.");
+    errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
     data = errpage[1];
 }
@@ -31,7 +31,7 @@ Content-Type: text/html`
     }
 
     if (!userSession.loadSessionData()) {
-        errpage = doErrorPage(400, "Invalid user ID.");
+        errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
         headers = errpage[0];
         data = errpage[1];
     }
