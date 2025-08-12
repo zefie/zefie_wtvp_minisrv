@@ -1,12 +1,12 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var irc_nick = "";
+let irc_nick = "";
 headers = "200 OK";
 if (request_headers.query.nick) headers += "\n" + session_data.setIRCNick(request_headers.query.nick);
-else if (!session_data.getSessionData("subscriber_irc_nick")) session_data.getSessionData("subscriber_username") || session_data.setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).substring(0, 16);
+else if (!session_data.getSessionData("subscriber_irc_nick")) session_data.getSessionData("subscriber_username") || session_data.setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).slice(0, 16);
 headers += "\nContent-Type: text/html";
 
-var irc_nick = session_data.getSessionData("subscriber_irc_nick") || session_data.getSessionData("subscriber_username");
+irc_nick = session_data.getSessionData("subscriber_irc_nick") || session_data.getSessionData("subscriber_username");
 
 data = `<html>
 <head>
