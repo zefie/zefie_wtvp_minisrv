@@ -1,11 +1,11 @@
 const process = require('process');
 const fs = require('fs');
 const path = require('path');
-var classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;
-var { WTVShared, clientShowAlert } = require(classPath + "/WTVShared.js");
+const classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;
+const { WTVShared, clientShowAlert } = require(classPath + "/WTVShared.js");
 
 const wtvshared = new WTVShared(); // creates minisrv_config
-var minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
+const minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
 
 // primitive recursive diskmap generator, usage:
 // node diskmap_gen.js path_in_servicevault diskmap_name wtvdest [service_name]
@@ -19,11 +19,12 @@ if (process.argv.length < 6) {
     process.exit(1);
 }
 
-var service_vault_subdir = process.argv[2];
-var out_file = process.argv[3];
-var group_name = process.argv[4];
-var client_dest = process.argv[5];
-if (process.argv.length >= 7) var service_name = process.argv[6];
+const service_vault_subdir = process.argv[2];
+const out_file = process.argv[3];
+const group_name = process.argv[4];
+let client_dest = process.argv[5];
+let service_name;
+if (process.argv.length >= 7) service_name = process.argv[6];
 else service_name = "wtv-disk";
 
 // find which service_vault the files are in
@@ -32,12 +33,12 @@ else service_name = "wtv-disk";
 // Can be any vault, and after the scan you could technically move files across vaults
 // so long as they are on the same service still
 
-var service_vault = null;
-var service_vault_dir = null;
+let service_vault = null;
+let service_vault_dir = null;
 if (minisrv_config.config.ServiceVaults) {
     Object.keys(minisrv_config.config.ServiceVaults).forEach(function (k) {
         if (service_vault_dir) return;
-        var test = wtvshared.makeSafePath(wtvshared.returnAbsolutePath(minisrv_config.config.ServiceVaults[k]), service_name + path.sep + service_vault_subdir);
+        const test = wtvshared.makeSafePath(wtvshared.returnAbsolutePath(minisrv_config.config.ServiceVaults[k]), service_name + path.sep + service_vault_subdir);
         console.log(" * Looking for", test);
         if (fs.existsSync(test)) {
             console.log(" * Found", test);
@@ -53,7 +54,7 @@ if (!service_vault) {
 }
 
 const recursiveDirList = function (dirPath, arrayOfFiles = null) {
-    files = fs.readdirSync(dirPath)
+    const files = fs.readdirSync(dirPath)
 
     arrayOfFiles = arrayOfFiles || []
 
@@ -67,10 +68,10 @@ const recursiveDirList = function (dirPath, arrayOfFiles = null) {
     return arrayOfFiles
 }
 
-var fileList = recursiveDirList(service_vault_dir);
+const fileList = recursiveDirList(service_vault_dir);
 
 if (fileList.length > 0) {
-    var diskmap = {};
+    const diskmap = {};
     diskmap[group_name] = {};
     if (client_dest.substring(client_dest.length - 1, 1) != '/') client_dest += '/';
     diskmap[group_name].base = client_dest;

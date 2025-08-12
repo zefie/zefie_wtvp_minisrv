@@ -1130,7 +1130,7 @@ class WebTVClientSimulator {
                 // Use the appropriate key for challenge processing
                 // For subsequent challenges (like during user login), use the current shared key
                 // For the first challenge, use the initial key if provided
-                let keyToUse = this.wtvsec.current_shared_key || this.initial_key
+                const keyToUse = this.wtvsec.current_shared_key || this.initial_key
                 this.debugLog(`Using key for challenge: ${keyToUse.toString(CryptoJS.enc.Base64)}`);
                 this.wtvsec.set_incarnation(this.incarnation);
                 this.debugLog(`Using incarnation for challenge: ${this.wtvsec.incarnation}`);
@@ -1270,8 +1270,8 @@ class WebTVClientSimulator {
         const match = this.url.match(/^([\w-]+):\/?(.*)/);
         if (match) {
             const serviceName = match[1];
-            let path = '/' + (match[2] || '');
-            
+            const path = '/' + (match[2] || '');
+
             this.debugLog(`Parsed target service: ${serviceName}, path: ${path}`);
 
             try {

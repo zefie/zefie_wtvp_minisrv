@@ -103,14 +103,11 @@ function checkScopeErrors(file) {
 					// Try both with and without wtv- prefix
 					const serviceNameWithPrefix = serviceName.startsWith('wtv-') ? serviceName : `wtv-${serviceName}`;
 					const serviceNameWithoutPrefix = serviceName.startsWith('wtv-') ? serviceName.replace('wtv-', '') : serviceName;
-
-					console.log(`Detected service: ${serviceNameWithPrefix} or ${serviceNameWithoutPrefix}`);
 					
 					// Check if either service name exists and is privileged
 					const service = config.services[serviceNameWithPrefix] || config.services[serviceNameWithoutPrefix];
 					
 					if (service && service.privileged === true) {
-						console.log(`Service ${serviceNameWithPrefix || serviceNameWithoutPrefix} is privileged - adding extra globals`);
 						// Add additional globals for privileged services
 						eslintConfig.globals = {
 							...eslintConfig.globals,
@@ -121,6 +118,11 @@ function checkScopeErrors(file) {
 							"classPath": "readonly",
 							"session_data": "readonly",
 						};
+						if (service.modules) {
+							for (const moduleName of service.modules) {
+								eslintConfig.globals[moduleName] = "readonly";
+							}
+						}
 					}
 				}
 			} catch (e) {
