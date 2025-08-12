@@ -137,9 +137,6 @@ contact the server operator (eg. email, Discord, Twitter, etc...)
 <font size=-1><b>verbosity</b><br>Console log debug level.
 <tr><td absheight=60 valign=top>
 <font size=-1><b>show_diskmap</b><br>Useful for debugging wtv-disk downloads.
-<tr><td absheight=140 valign=top>
-<font size=-1><b>allow_guests</b><br>Allows users to use the service without having to register. 
-Guest session data is destroyed upon logout, and some features are not available to guests.
 <tr><td absheight=90 valign=top>
 <font size=-1><b>enable_<br>lzpf_compression</b><br>Toggles whether LZPF compression will be considered or not
 <tr><td absheight=90 valign=top>
@@ -210,9 +207,6 @@ ${generateFormField('select', 'verbosity', [
 <tr>
 <td absheight=60 valign=top>
 ${generateFormField('checkbox', 'show_diskmap')}
-<tr>
-<td absheight=140 valign=top>
-${generateFormField('checkbox', 'allow_guests')}
 <tr>
 <td absheight=85 valign=top>
 ${generateFormField('checkbox', 'enable_lzpf_compression')}

@@ -56,17 +56,14 @@ class WTVMail {
 
 
     mailstoreExists() {
-        if (!this.isguest) {
-            if (this.mailstore_dir === null) {
-                // set mailstore directory local var so we don't call the function every time
-                const userstore_dir = this.wtvclient.getUserStoreDirectory();
-                // MailStore
-                const store_dir = "MailStore" + this.path.sep;
-                this.mailstore_dir = userstore_dir + store_dir;
-            }
-            return this.fs.existsSync(this.mailstore_dir);
+        if (this.mailstore_dir === null) {
+            // set mailstore directory local var so we don't call the function every time
+            const userstore_dir = this.wtvclient.getUserStoreDirectory();
+            // MailStore
+            const store_dir = "MailStore" + this.path.sep;
+            this.mailstore_dir = userstore_dir + store_dir;
         }
-        return null;
+        return this.fs.existsSync(this.mailstore_dir);
     }
 
     getSignatureColors(signature = null, sendmail = true) {

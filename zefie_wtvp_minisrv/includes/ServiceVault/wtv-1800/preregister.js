@@ -51,10 +51,6 @@ if (request_headers.query.reconnect && session_data.getSessionData("registered")
 if (session_data.data_store.wtvsec_login) {
 	var prereg_contype = "text/html";
 
-	if (request_headers.query.relogin || request_headers.query.guest_login) { // relogin
-		session_data.data_store.wtvsec_login.ticket_b64 = null; // clear old ticket
-	}
-
 	// if relogin and wtv-script-id != 0, skip tellyscript
 	session_data.set("wtv-open-access", (request_headers['wtv-open-access'] === "true") ? true : false);
 	var file_path = null;
@@ -63,7 +59,7 @@ if (session_data.data_store.wtvsec_login) {
 	var bf0app_update = false;
 	var romtype = session_data.get("wtv-client-rom-type");
 	var bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
-	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin && !request_headers.query.guest_login && !bootrom !== 0);
+	var send_tellyscript = (minisrv_config.services[service_name].send_tellyscripts && !request_headers.query.relogin && !bootrom !== 0);
 	var wtv_script_id = parseInt(session_data.get("wtv-script-id"));
 	var wtv_script_mod = parseInt(session_data.get("wtv-script-mod"));
 	if ((request_headers.query.reconnect || request_headers.query.relogin) && wtv_script_id != 0) send_tellyscript = false;
@@ -165,12 +161,6 @@ if (session_data.data_store.wtvsec_login) {
 
 	if (request_headers.query.reconnect) gourl = null;
 
-	if (request_headers.query.guest_login) {
-		send_tellyscript = false;
-		if (gourl != null) gourl += "&guest_login=true"
-		if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
-	}
-
 	if (file_path != null && send_tellyscript && !minisrv_config.config.debug_flags.quiet) console.log(" * Sending TellyScript", file_path, "on socket", socket.id);
 	if (template != null && send_tellyscript && !minisrv_config.config.debug_flags.quiet) console.log(" * Generating TellyScript on socket", socket.id);
 
@@ -193,7 +183,6 @@ if (session_data.data_store.wtvsec_login) {
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {
 		headers += "wtv-boot-url: wtv-head-waiter:/login?relogin=true";
-		if (request_headers.query.guest_login) headers += "&guest_login=true";
 		headers += "\n";
 	}
 	if (gourl != null) headers += "wtv-visit: " + gourl + "\n";

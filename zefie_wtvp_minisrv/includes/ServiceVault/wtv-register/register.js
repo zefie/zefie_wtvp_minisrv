@@ -10,7 +10,6 @@ var nickname = (minisrv_config.config.service_name + '_' + namerand)
 var human_name = nickname;
 var isOldBuild = wtvshared.isOldBuild(session_data);
 var form_data = `<input type=button action="ValidateAgreement?registering=true&subscriber_name=${human_name}&subscriber_username=${nickname}" text="#dddddd" Value="Quick Reg" name="speedyreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" width=130>`;
-if (minisrv_config.config.allow_guests) form_data += `<input type=button text="#dddddd" action="BeMyGuest" Value="Sign in as Guest" name="noreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" width=170 >`;
 var main_data = `<form action="ValidateAgreement"
 ENCTYPE="x-www-form-encoded" METHOD="POST">
 <input type=hidden name=registering value="true">

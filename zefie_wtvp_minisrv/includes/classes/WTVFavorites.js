@@ -39,18 +39,15 @@ class WTVFavorites {
     }
 	
 	favstoreExists() {
-        if (!this.isguest) {
-            if (this.favstore_dir === null) {
-                // set favstore directory local var so we don't call the function every time
-                const userstore_dir = this.wtvclient.getUserStoreDirectory();
+		if (this.favstore_dir === null) {
+			// set favstore directory local var so we don't call the function every time
+			const userstore_dir = this.wtvclient.getUserStoreDirectory();
 
-                // FavStore
-                const store_dir = "FavStore" + this.path.sep;
-                this.favstore_dir = userstore_dir + store_dir;
-            }
-            return this.fs.existsSync(this.favstore_dir);
-        }
-        return null;
+			// FavStore
+			const store_dir = "FavStore" + this.path.sep;
+			this.favstore_dir = userstore_dir + store_dir;
+		}
+		return this.fs.existsSync(this.favstore_dir);
     }
 
 	folderExists(foldername) {

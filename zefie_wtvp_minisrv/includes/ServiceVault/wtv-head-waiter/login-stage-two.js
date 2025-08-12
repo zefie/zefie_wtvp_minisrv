@@ -3,14 +3,14 @@ var gourl = null;
 
 var bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
 
-if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
+if (!session_data.isRegistered()) gourl = "wtv-register:/splash?";
 var home_url = "wtv-home:/home?";
 
 if (gourl) {
 	headers = "200 OK\n";
 	if (bootrom !== 0) headers += "wtv-open-isp-disabled: false\n";
 
-	if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
+	if (!session_data.isRegistered()) {
 		// fake logged in for reg
 		session_data.setUserLoggedIn(true);
 		headers += `wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}
@@ -27,17 +27,6 @@ Content-type: text/html`;
 else {
 	if (session_data.lockdown) {
 		home_url = minisrv_config.config.unauthorized_url;
-	}
-	else if (request_headers.query.guest_login && minisrv_config.config.allow_guests) {
-		var namerand = Math.floor(Math.random() * 100000);
-		var nickname = (minisrv_config.config.service_name + '_' + namerand)
-		var human_name = nickname;
-		var userid = '1' + Math.floor(Math.random() * 1000000000000000000);
-		var messenger_enabled = 0;
-		var messenger_authorized = 0;		
-		var timezone = "-0000";
-		if (request_headers.query.skip_splash) gourl = "wtv-home:/home?";
-		else gourl = "wtv-home:/splash?";
 	} else if (!session_data.getSessionData("registered")) {
 		var errpage = wtvshared.doErrorPage(400);
 		headers = errpage[0];
@@ -174,13 +163,8 @@ wtv-inactive-timeout: 1440
 
 		if (!limitedLogin && !limitedLoginRegistered) {
 			headers += "wtv-relogin-url: wtv-head-waiter:/relogin?relogin=true\n";
-			if (request_headers.query.guest_login) headers += "&guest_login=true\n";
-
 			headers += "wtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true\n";
-			if (request_headers.query.guest_login) headers += "&guest_login=true\n";
-
-			headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true\n";
-			if (request_headers.query.guest_login) headers += "&guest_login=true\n ";			
+			headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true\n";	
 			headers += "wtv-home-url: " + home_url + "\n";
 		}
 

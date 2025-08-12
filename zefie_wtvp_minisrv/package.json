@@ -9,7 +9,8 @@
     "start": "node app.js",
     "irc": "node irconly.js",
     "test": "node test.js",
-    "debug": "cross-env DEBUG=* node app.js"
+    "debug": "cross-env DEBUG=* node app.js",
+    "modem-proxy": "node modem_proxy.js"
   },
   "author": {
     "name": "zefie",

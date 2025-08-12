@@ -346,13 +346,11 @@ class WTVClientSessionData {
     }
 
     scrapbookExists() {
-		if (!this.isguest) {
-			if (this.scrapbook_dir === null) {
-				var userstore_dir = this.getUserStoreDirectory();
-				var store_dir = "Scrapbook" + this.path.sep;
-                this.scrapbook_dir = userstore_dir + store_dir;
-			}
-		}
+        if (this.scrapbook_dir === null) {
+            var userstore_dir = this.getUserStoreDirectory();
+            var store_dir = "Scrapbook" + this.path.sep;
+            this.scrapbook_dir = userstore_dir + store_dir;
+        }
 		return this.fs.existsSync(this.scrapbook_dir);
 	}
     

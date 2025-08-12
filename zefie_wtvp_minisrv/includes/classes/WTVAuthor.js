@@ -55,17 +55,14 @@ class WTVAuthor {
     }
 	
 	pagestoreExists() {
-        if (!this.isguest) {
-            if (this.pagestore_dir === null) {
-                // set pagestore directory local var so we don't call the function every time
-                var userstore_dir = this.wtvclient.getUserStoreDirectory();
-                // PageStore
-                var store_dir = "PageStore" + this.path.sep;
-                this.pagestore_dir = userstore_dir + store_dir;			
-            }
-            return this.fs.existsSync(this.pagestore_dir);
-        }
-        return true;
+		if (this.pagestore_dir === null) {
+			// set pagestore directory local var so we don't call the function every time
+			var userstore_dir = this.wtvclient.getUserStoreDirectory();
+			// PageStore
+			var store_dir = "PageStore" + this.path.sep;
+			this.pagestore_dir = userstore_dir + store_dir;			
+		}
+		return this.fs.existsSync(this.pagestore_dir);
     }
 	
 	createPagestore() {
