@@ -85,6 +85,7 @@ function checkScopeErrors(file) {
 				"cwd": "readonly",
 				"request_headers": "readonly",
 				"session_data": "readonly",
+				"service_name": "readonly"
 			};
 			
 			// Check if this is a privileged service by examining the file path

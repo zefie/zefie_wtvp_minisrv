@@ -1,14 +1,15 @@
-﻿var minisrv_service_file = true;
+﻿const minisrv_service_file = true;
+
 try {
-    var relativePath = request_headers.request_url;
+    let relativePath = request_headers.request_url;
     if (relativePath.indexOf('?') > -1) relativePath = relativePath.split('?')[0];
     while (relativePath.endsWith('/')) relativePath = relativePath.substring(0, relativePath.length - 1);
 
-    var dir = service_name + relativePath;
-    var num_per_page = 25;
-    var dirs = ['<tr><td>Directory</td><td><a href="' + relativePath + '/..">Parent Directory</a></td><td>-</td><td>-</td></tr > '];
-    var files = [];
-    vault_found = false;
+    const dir = service_name + relativePath;
+    const num_per_page = 25;
+    const dirs = ['<tr><td>Directory</td><td><a href="' + relativePath + '/..">Parent Directory</a></td><td>-</td><td>-</td></tr > '];
+    const files = [];
+    let vault_found = false;
     
 
     // Iterate through each service vault to find the first occurrence
@@ -25,7 +26,7 @@ try {
 
                 // Check if entry exists in all service vaults
                 let found = false;
-                var checkPath = "";
+                let checkPath = "";
                 for (let j = 0; j < service_vaults.length; j++) {
                     checkPath = path.join(service_vaults[j], dir || '', entry);
                     if (fs.existsSync(checkPath)) {
@@ -41,7 +42,7 @@ try {
                 const stats = fs.statSync(fullPath);
                 const isDir = stats.isDirectory();
                 const mimeType = (isDir) ? "Directory" : wtvmime.getContentType(fullPath)[1];
-                var readableSize = '-';
+                let readableSize = '-';
                 // Get file size with unit
                 if (!isDir) {
                     const fileSize = stats.size;
@@ -85,7 +86,7 @@ try {
     }
 
     if (!vault_found) {
-        var errpage = wtvshared.doErrorPage(404);
+        const errpage = wtvshared.doErrorPage(404);
         headers = errpage[0];
         data = errpage[1];
     } else {
@@ -105,7 +106,7 @@ try {
         const merged_files = dirs.concat(files);
         const paginatedFiles = merged_files.slice(start_index, end_index);
 
-        let paginationHtml = `
+        const paginationHtml = `
     <div style="text-align: center; margin-top: 20px;">
         <form action="" method="get" style="display: inline;">
         <input type=button onclick="window.location.href='?page=1'" ${(current_page === 1) ? 'disabled' : ''} value="First"></input>
@@ -156,7 +157,7 @@ try {
     }
 } catch (err) {
     console.error('Error:', err);
-    var err = wtvshared.doErrorPage(404);
-    headers = err[0];
-    data = err[1];
+    const errpage = wtvshared.doErrorPage(404);
+    headers = errpage[0];
+    data = errpage[1];
 }

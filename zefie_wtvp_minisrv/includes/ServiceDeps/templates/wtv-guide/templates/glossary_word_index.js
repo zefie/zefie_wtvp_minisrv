@@ -7,7 +7,7 @@ class WTVTemplate {
     }
 
     getTemplatePage() {
-        var data = `<html>
+        let data = `<html>
 <head>
 <title>Web words: ${this.page_args.letter}</title>
 <display
@@ -56,9 +56,9 @@ Choose a word to see what it means.
 <td width=180>
 <tr>
 <td>`;
-        var table_split = Math.floor(this.page_args.words.length / 2);
-        var words_rendered = 0;
-        var self = this;
+        const table_split = Math.floor(this.page_args.words.length / 2);
+        let words_rendered = 0;
+        const self = this;
         Object.keys(this.page_args.words).forEach(function (k) {
             // test
             data += `<a href="wtv-guide:/help?topic=Glossary&subtopic=${self.page_args.letter}&page=${self.page_args.words[k].link}" selected>${self.page_args.words[k].word}</a><br>\n`

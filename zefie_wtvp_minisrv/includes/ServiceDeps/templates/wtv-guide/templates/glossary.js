@@ -7,7 +7,7 @@ class WTVTemplate {
     }
 
     getTemplatePage() {
-        var data = `<html>
+        return `<html>
 <head>
 <title>Web words: ${this.page_args.word}</title>
 <display
@@ -77,7 +77,6 @@ selected>
 </table>
 </body>
 </html>`;
-        return data;
     }
 }
 module.exports = WTVTemplate;

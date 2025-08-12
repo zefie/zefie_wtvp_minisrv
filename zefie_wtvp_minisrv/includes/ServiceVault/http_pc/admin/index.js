@@ -1,12 +1,12 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-WTVAdmin = require(classPath + "/WTVAdmin.js")
-var wtva = new WTVAdmin(minisrv_config, socket, service_name);
-var auth = wtva.isAuthorized();
+const WTVAdmin = require(classPath + "/WTVAdmin.js")
+const wtva = new WTVAdmin(minisrv_config, socket, service_name);
+const auth = wtva.isAuthorized();
 if (auth === true) {
-    var password = null;
+    let password = null;
     if (request_headers.authorization) {
-        var authheader = request_headers.authorization.split(' ');
+        const authheader = request_headers.authorization.split(' ');
         console.log(request_headers)
 
         if (authheader[0] == "Basic") {
@@ -18,7 +18,7 @@ if (auth === true) {
         headers = `200 OK
 Content-Type: text/html`
 
-        htmlhead = `<html>
+        data = `<html>
 <head>
 <title>zefie minisrv v${minisrv_config.version} account administration</title>
 </head>
@@ -27,7 +27,6 @@ Content-Type: text/html`
 Welcome to the zefie minisrv v${minisrv_config.version} Account Administration
 </p>
 `;
-        data = htmlhead;
         data += `Please select an option to get started:
         <hr>
             <a href="/admin/ssid?cmd=list">List all SSIDs and their Primary User</a><br>
@@ -36,13 +35,13 @@ Welcome to the zefie minisrv v${minisrv_config.version} Account Administration
 </html >`;
 
     } else {
-        var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
+        const errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
         headers += "\nWWW-Authenticate: Basic";
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(403, auth);
+    const errpage = wtvshared.doErrorPage(403, auth);
     headers = errpage[0];
     data = errpage[1];
 }
