@@ -485,7 +485,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
     let service_vault_found = false;
     let service_path = decodeURIComponent(service_vault_file_path);
     let pc_service_name = null;
-	const vaults_to_scan = service_vaults;
+	let vaults_to_scan = service_vaults;
     let usingSharedROMCache = false;
     const contextObj = {
         "privileged": false,
