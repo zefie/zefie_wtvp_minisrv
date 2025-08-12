@@ -232,7 +232,7 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
     }
 
     // create global context object
-    let contextObj = {
+    const contextObj = {
         // node core variables and functions
         "console": console, // needed for per-script debugging
         "__dirname": __dirname, // needed by services such as wtv-flashrom and wtv-disk
@@ -356,7 +356,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     }
     const env = wtvshared.cloneObj(process.env);
     env.QUERY_STRING = "";
-    let request_data = [];
+    const request_data = [];
     const split_req = request_headers.request.split(' ');
     request_data.method = split_req[0];
     let request_type = (request_headers.request_url.indexOf(":/")) ? request_headers.request_url.split(":/")[0] : 'http';
@@ -440,7 +440,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     }
 
 
-    const options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'uid': process.getuid(), 'gid': process.getgid(), 'stdio': 'overlapped' };
+    let options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'uid': process.getuid(), 'gid': process.getgid(), 'stdio': 'overlapped' };
     if (!minisrv_config.config.debug_flags.quiet) (executable == cgi_file) ? console.debug(" * Executing CGI:", executable) : console.debug(" * Executing CGI:", executable, cgi_file);
     const cgi = (executable == cgi_file) ? spawn(cgi_file, options=options) : spawn(executable, [cgi_file], options)
     let data = "";
@@ -915,7 +915,7 @@ async function processURL(socket, request_headers, pc_services = false) {
     request_headers.query = {};
 
     if (request_headers.request_url) {
-        service_name = socket.service_name || verifyServicePort(decodeURIComponent(request_headers.request_url).split(':/')[0], socket);
+        service_name = socket.service_name || verifyServicePort(decodeURIComponent(request_headers.request_url).split(':')[0], socket);
         if (minisrv_config.services[service_name]) {
             allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
             enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
@@ -1015,7 +1015,7 @@ async function processURL(socket, request_headers, pc_services = false) {
             shortURL_split.shift();
             const shortURL_service_path = shortURL_split.join(":");
             shortURL = shortURL_service_name + ":/" + shortURL_service_path;
-        } 
+        }
 
         if (socket.ssid) {
             // skip box auth tests for pc mode
@@ -1286,8 +1286,8 @@ async function doHTTPProxy(socket, request_headers) {
             break;
     }
 
-    let request_data = [];
-    let data = [];
+    const request_data = [];
+    const data = [];
 
     request_data.method = request_headers.request.split(' ')[0];
     const request_url_split = request_headers.request.split(' ')[1].split('/');
@@ -1386,13 +1386,9 @@ async function doHTTPProxy(socket, request_headers) {
                 const errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
                 sendToClient(socket, errpage[0], errpage[1]);
             } else {
-                if (minisrv_config.services[request_type].external_proxy_is_http1) {
-                    handleProxy(socket, request_type, request_headers, res, data);
-                } else {
-                    console.error(" * Unhandled Proxy Request Error:", err);
-                    const errpage = wtvshared.doErrorPage(400);
-                    sendToClient(socket, errpage[0], errpage[1]);
-                }
+                console.error(" * Unhandled Proxy Request Error:", err);
+                const errpage = wtvshared.doErrorPage(400);
+                sendToClient(socket, errpage[0], errpage[1]);
             }
            
         });
@@ -1696,7 +1692,7 @@ async function sendToClient(socket, headers_obj, data = null) {
             toClient = headers + eol + data;
             sendToSocket(socket, Buffer.from(toClient));
         } else if (typeof data === 'object') {
-            const verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
+            let verbosity_mod = (headers_obj["wtv-encrypted"] == 'true') ? " encrypted response" : "";
             if (socket_sessions[socket.id].secure_headers == true) {
                 // encrypt headers
                 if (minisrv_config.config.debug_flags.quiet) verbosity_mod += " with encrypted headers";
@@ -1719,7 +1715,7 @@ async function sendToSocket(socket, data) {
         if (expected_data_out === 0) expected_data_out = data.byteLength + (socket_sessions[socket.id].socket_total_written || 0);
         if (socket.bytesWritten == expected_data_out) break;
 
-        let data_left = (expected_data_out - socket.bytesWritten);
+        const data_left = (expected_data_out - socket.bytesWritten);
         // buffer size = lesser of chunk_size or size remaining
         const buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
         if (buffer_size < 0) {
@@ -2056,7 +2052,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                 // handle streaming POST
                 if (socket_sessions[socket.id].expecting_post_data) {
                     if (socket_sessions[socket.id].post_data_length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
-                        closeSocket(socket);
+                        cleanupSocket(socket);
                     } else {
                         if (headers.length == 0) {
                             headers = socket_sessions[socket.id].headers;
@@ -2314,21 +2310,23 @@ function getGitRevision() {
 
 function reloadConfig() {
     const temp = { "version": minisrv_config.version }
-    if (minisrv_config.config.git_commit) temp.git_commit = minisrv_config.config.git_commit;
+    const config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
 
-    const minisrv_config = wtvshared.readMiniSrvConfig(true, false, true); // snatches minisrv_config
-    minisrv_config.version = temp.version
-    if (temp.git_commit) minisrv_config.config.git_commit = temp.git_commit;
-    if (!minisrv_config.config.service_logo.includes(':')) {
-        minisrv_config.config.service_logo_pc = "/ROMCache/" + minisrv_config.config.service_logo;
-        minisrv_config.config.service_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_logo;
+    if (temp.git_commit) config.config.git_commit = temp.git_commit;
+    if (!config.config.service_logo.includes(':')) {
+        config.config.service_logo_pc = "/ROMCache/" + config.config.service_logo;
+        config.config.service_logo = "wtv-star:/ROMCache/" + config.config.service_logo;
     }
-    if (!minisrv_config.config.service_splash_logo.includes(':')) minisrv_config.config.service_splash_logo = "wtv-star:/ROMCache/" + minisrv_config.config.service_splash_logo;
-    Object.keys(minisrv_config.services).forEach((k) => {
-        configureService(k, minisrv_config.services[k])
+
+    if (config.config.git_commit) temp.git_commit = config.config.git_commit;
+    config.version = temp.version
+
+    if (!config.config.service_splash_logo.includes(':')) config.config.service_splash_logo = "wtv-star:/ROMCache/" + config.config.service_splash_logo;
+    Object.keys(config.services).forEach((k) => {
+        configureService(k, config.services[k])
     });
    
-    return minisrv_config;
+    return config;
 }
 
 // SERVER START
@@ -2563,9 +2561,9 @@ Content-type: text/html`;
         server.post('*', (req, res) => {
             let errpage = null;
             const ssl = (req.socket.ssl) ? true : false;
-            const service_name = getServiceByPort(v);
+            let service_name = getServiceByPort(v);
 
-            let request_headers = {};           
+            const request_headers = {};           
             request_headers['request'] = "POST " + req.originalUrl + " HTTP/1.1";
             request_headers.request_url = req.originalUrl;
             request_headers.raw_headers = "Request: "+request_headers['request']+"\r\n";
@@ -2575,7 +2573,7 @@ Content-type: text/html`;
             });
             request_headers.query = req.query;
 
-            const host_name = (request_headers['host']) ? request_headers['host'] : null;
+            let host_name = (request_headers['host']) ? request_headers['host'] : null;
 
             if (host_name) {
                 if (host_name.includes(":")) host_name = host_name.slice(0, host_name.indexOf(":"));
