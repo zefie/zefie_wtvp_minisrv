@@ -108,7 +108,7 @@ Choose the songs that you'd like to include.
 		let strLenLimit = 16;
 		if (musicList.length > 14) strLenLimit = 20;
 		let songTitle = musicList[k]['title'];
-		if (songTitle.length > strLenLimit) songTitle = musicList[k]['title'].substr(0, strLenLimit - 3) + "...";
+		if (songTitle.length > strLenLimit) songTitle = musicList[k]['title'].slice(0, strLenLimit - 3) + "...";
 		if (musicList.length > 14) data += '<font size="-2">';
 		data += `<a href="${musicList[k]['url']}?wtv-title=${encodeURIComponent(musicList[k]['title'])}" onmouseout="clearTitle()" onmouseover="showTitle('${musicList[k]['title'].replace(/\'/g, "\\'")}')">${songTitle}</a>
 </td></tr></tbody></table>`;

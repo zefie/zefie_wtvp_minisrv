@@ -49,5 +49,5 @@ Content-Type: text/html`;
         data += k + "=" + encodeURIComponent(settings_obj[k]) + "&";
     });
 
-    data = data.substring(0, (data.length - 1));
+    data = data.slice(0, (data.length - 1));
 }

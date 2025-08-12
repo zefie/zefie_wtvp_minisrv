@@ -1,4 +1,4 @@
-minisrv_service_file = true;
+const minisrv_service_file = true;
 request_is_async = true;
 
 
@@ -6,7 +6,7 @@ request_is_async = true;
 async function handleRequest(request_headers) {
     const imageUrl = request_headers.query.url;
     if (!imageUrl) {
-        var errpage = wtvshared.doErrorPage(400, "Missing url parameter");
+        const errpage = wtvshared.doErrorPage(400, "Missing url parameter");
         sendToClient(socket, errpage[0], errpage[1]);
         return;
     }
@@ -16,7 +16,7 @@ async function handleRequest(request_headers) {
         const lib = urlObj.protocol === 'https:' ? https : http;
         const fetch = (lib, options) => new Promise((resolve, reject) => {
             const req = lib.request(imageUrl, options, (res) => {
-                let data = [];
+                const data = [];
                 res.on('data', chunk => data.push(chunk));
                 res.on('end', () => {
                     res.buffer = async () => Buffer.concat(data);
@@ -29,7 +29,7 @@ async function handleRequest(request_headers) {
         });
         const imgRes = await fetch(lib, { method: 'GET', headers: { 'User-Agent': 'Mozilla/4.0 WebTV/2.6 (compatible; MSIE 4.0)' } });
         if (!imgRes.ok) {
-            var errpage = wtvshared.doErrorPage(502, "Failed to fetch image");
+            const errpage = wtvshared.doErrorPage(502, "Failed to fetch image");
             sendToClient(socket, errpage[0], errpage[1]);
             return;
         }
@@ -44,7 +44,7 @@ Content-Type: image/png`;
         data = resized;
         sendToClient(socket, headers, data);
     } catch (err) {
-        var errpage = wtvshared.doErrorPage(500, "Error processing image: " + err.message);
+        const errpage = wtvshared.doErrorPage(500, "Error processing image: " + err.message);
         sendToClient(socket, errpage[0], errpage[1]);
     }
 }

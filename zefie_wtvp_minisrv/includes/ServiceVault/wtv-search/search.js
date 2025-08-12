@@ -1,7 +1,7 @@
-minisrv_service_file = true;
+const minisrv_service_file = true;
 request_is_async = true;
 
-var searchUrl = minisrv_config.services[service_name].searxng_url;
+let searchUrl = minisrv_config.services[service_name].searxng_url;
 if (!searchUrl.endsWith('/')) {
     searchUrl += '/';
 }
@@ -42,7 +42,7 @@ if (!request_headers.query.q) {
     params.append('limit', '10');
     const urlObj = new URL(searchUrl);
     const lib = urlObj.protocol === 'https:' ? https : http;
-    var post_data = params.toString();
+    const post_data = params.toString();
     const options = {
         protocol: urlObj.protocol,
         hostname: urlObj.hostname,
@@ -68,7 +68,7 @@ if (!request_headers.query.q) {
 
 function fetch(lib, options, post_data) {
     return new Promise((resolve, reject) => {
-        var req = lib.request(options, (res) => {
+        const req = lib.request(options, (res) => {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => resolve({ text: () => Promise.resolve(data) }));

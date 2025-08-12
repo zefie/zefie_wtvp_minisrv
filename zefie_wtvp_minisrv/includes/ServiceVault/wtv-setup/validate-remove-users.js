@@ -8,7 +8,7 @@ else if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You ar
 
 const usersToRemove = [];
 Object.keys(request_headers.query).forEach(function (k) {
-	if (k.substr(0, 4) === "user" && request_headers.query[k] === "on") {
+	if (k.slice(0, 4) === "user" && request_headers.query[k] === "on") {
 		usersToRemove.push(parseInt(k.replace("user", "")));
 	}
 });
@@ -31,7 +31,7 @@ if (errpage) {
 		}
 		let removeurl = request_headers.request_url;
 		if (removeurl.indexOf('?') >= 0) {
-			removeurl = removeurl.substring(0, removeurl.indexOf('?'));
+			removeurl = removeurl.slice(0, removeurl.indexOf('?'));
 		}
 		removeurl += "?";
 

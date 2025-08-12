@@ -1,9 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 const wtvnews = new WTVNews(minisrv_config, service_name);
-var service_config = minisrv_config.services[service_name];
+const service_config = minisrv_config.services[service_name];
 if (service_config.local_nntp_port && wtvnewsserver) {
-    var tls_options = {
+    const tls_options = {
         ca: this.wtvshared.getServiceDep('wtv-news/localserver_ca.pem'),
         key: this.wtvshared.getServiceDep('wtv-news/localserver_key.pem'),
         cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
@@ -22,7 +22,7 @@ if (service_config.local_nntp_port && wtvnewsserver) {
  
 async function throwError(e) {
     console.log(e);
-    var errpage = wtvshared.doErrorPage(400, null, e.toString());
+    const errpage = wtvshared.doErrorPage(400, null, e.toString());
     sendToClient(socket, errpage[0], errpage[1]);
 }
 
@@ -34,22 +34,22 @@ function isToday (chkdate) {
 }
 
 async function WebTVListGroup(group) {
-    var page_limit_default = 100;
+    const page_limit_default = 100;
     wtvnews.connectUsenet().then(() => {
         wtvnews.selectGroup(group).then((response) => {
-            var limit_per_page = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : page_limit_default;
-            var page = (request_headers.query.chunk) ? parseInt(request_headers.query.chunk) : 0;
+            let limit_per_page = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : page_limit_default;
+            const page = (request_headers.query.chunk) ? parseInt(request_headers.query.chunk) : 0;
             console.log(response);
-            var page_start = (limit_per_page * page) + 1;
-            var page_end = (page + 1) * limit_per_page;
+            let page_start = (limit_per_page * page) + 1;
+            let page_end = (page + 1) * limit_per_page;
             if (page_end > response.group.high) {
                 page_end = response.group.high;
                 limit_per_page = (page_end - (limit_per_page / (page + 1))) + limit_per_page;
             }
             wtvnews.listGroup(group, page, limit_per_page).then((response) => {
                 if (response.code == 211) {
-                    NGCount = response.group.number;
-                    NGArticles = response.group.articleNumbers;
+                    const NGCount = response.group.number;
+                    const NGArticles = response.group.articleNumbers;
                     page_start = (limit_per_page * page) + 1;
                     page_end = (page + 1) * limit_per_page;
                     wtvnews.getHeaderObj(NGArticles).then((messages) => {
@@ -251,10 +251,10 @@ ${page_start}-${page_end}
 </TABLE>`
                         if (NGCount > 0) {
                             Object.keys(messages).forEach(function (k) {
-                                var message = messages[k].article;
-                                var has_relation = (messages[k].relation !== null) ? true : false;
-                                var date_obj = new Date(Date.parse(message.headers.DATE));
-                                var date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d '%y", date_obj)
+                                const message = messages[k].article;
+                                const has_relation = (messages[k].relation !== null) ? true : false;
+                                const date_obj = new Date(Date.parse(message.headers.DATE));
+                                const date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d '%y", date_obj)
                                 data += `
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -317,21 +317,21 @@ ${(message.headers.FROM.indexOf(' ') > 0) ? message.headers.FROM.split(' ')[0] :
 }
 
 async function WebTVShowMessage(group, article) {
-    var article = parseInt(article);
+    const theArticle = parseInt(article);
     wtvnews.connectUsenet().then(() => {
         wtvnews.selectGroup(group).then((response) => {
-            wtvnews.getArticle(article).then((response) => {
+            wtvnews.getArticle(theArticle).then((response) => {
                 wtvnews.quitUsenet();
                 headers = `200 OK
 Content-type: text/html
 wtv-expire-all: wtv-news:/news?group=${group}&article=`;
-                var signature = null;
-                var message_colors = session_data.mailstore.defaultColors;
-                var display_signature = true; // todo make a toggle
-                var message = wtvnews.parseAttachments(response);
-                var message_body = message.text;
-                var attachments = null;
-                var signature_index = null;
+                let signature = null;
+                let message_colors = session_data.mailstore.defaultColors;
+                const display_signature = true; // todo make a toggle
+                const message = wtvnews.parseAttachments(response);
+                const message_body = message.text;
+                let attachments = null;
+                let signature_index = null;
                 wtvnews.debug(message);
                 if (message.attachments) attachments = message.attachments;
                 if (attachments) {
@@ -348,8 +348,8 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                 }
 
                 if (message_body.indexOf("<body")) {
-                    var default_colors = session_data.mailstore.defaultColors;
-                    var message_colors = session_data.mailstore.getSignatureColors(message_body);
+                    const default_colors = session_data.mailstore.defaultColors;
+                    message_colors = session_data.mailstore.getSignatureColors(message_body);
                     if ((message_colors == default_colors) && signature) message_colors = null;
                 }
                 if (!message_colors && signature) message_colors = session_data.mailstore.getSignatureColors(signature);
@@ -612,10 +612,10 @@ From:
 <tr>
 <td>
 `;
-                var allow_html = false;
-                var body_data = '';
-                var attachment_data = '';
-                var signature_data = '';
+                let allow_html = false;
+                let body_data = '';
+                let attachment_data = '';
+                let signature_data = '';
 
                 if (message_body) {
                     if (message_body.indexOf("<html>") >= 0) {
@@ -635,8 +635,8 @@ From:
                             delete attachments[0];
                         }
                     }
-                    var supported_images = /image\/(jpe?g|png|gif|x-wtv-bitmap)/;
-                    var supported_audio = /audio\/(mp[eg|2|3]|midi?|wav|x-wav|mod|x-mod)/;
+                    const supported_images = /image\/(jpe?g|png|gif|x-wtv-bitmap)/;
+                    const supported_audio = /audio\/(mp[eg|2|3]|midi?|wav|x-wav|mod|x-mod)/;
                     attachments.forEach((v, k) => {
                         if (v.content_type) {
                             if (v.content_type.match(supported_images))
@@ -666,7 +666,7 @@ From:
 
             }).catch((e) => {
                 // no such article
-                var post_unavailable_file = this.wtvshared.getServiceDep('wtv-news/post-unavailable.html');
+                const post_unavailable_file = this.wtvshared.getServiceDep('wtv-news/post-unavailable.html');
                 console.log(e);
                 if (fs.existsSync(post_unavailable_file)) {
                     headers = "200 OK\nContent-type: text/html";
@@ -865,11 +865,11 @@ Do you want to look for something else?<br>
 
 
 if (!wtvnews.client) {
-    var errpage = doErrorPage();
+    const errpage = wtvshared.doErrorPage();
     headers = errpage[0];
     data = errpage[1];
 } else {
-    var request_is_async = true;
+    request_is_async = true;
     if (request_headers.query.search) {
         WebTVSearchGroups(request_headers.query.search)
     } else if (request_headers.query.group) {
