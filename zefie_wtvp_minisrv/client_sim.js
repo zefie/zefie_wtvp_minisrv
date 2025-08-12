@@ -19,12 +19,14 @@ const AdmZip = require('adm-zip');
  * using the WTVP protocol with proper authentication and service discovery.
  */
 class WebTVClientSimulator {
-    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5, requestDelay = 250, boxType = null, username = null, keepgz = false) {
+    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5, requestDelay = 250, boxType = null, username = null, keepgz = false, request_type_post = false, postData = null) {
         this.host = host;
         this.port = port;
         this.ssid = ssid;
         this.url = url;
         this.keepgz = keepgz;
+        this.request_type_post = request_type_post;
+        this.postData = postData;
         this.request_type_download = request_type_download;
         this.outputFile = outputFile;
         this.followImages = followImages;
@@ -367,7 +369,7 @@ class WebTVClientSimulator {
                 if (this.encryptionEnabled) {
                     // For encrypted responses, we need to handle differently
                     if (!responseHandled) {
-                        const result = this.handleEncryptedResponse(responseData, resolve, reject);
+                        const result = this.handleEncryptedResponse(responseData, resolve, reject, false, skipRedirects);
                         if (result === true) { // If response was handled
                             responseHandled = true;
                             cleanupListeners();
@@ -430,7 +432,7 @@ class WebTVClientSimulator {
                         cleanupListeners();
                         // Force processing regardless of Content-Length completeness
                         try {
-                            this.handleEncryptedResponse(responseData, resolve, reject, true);
+                            this.handleEncryptedResponse(responseData, resolve, reject, true, skipRedirects);
                         } catch (e) {
                             console.error('Error handling encrypted response on close:', e);
                             reject(e);
@@ -628,7 +630,7 @@ class WebTVClientSimulator {
     /**
      * Handle encrypted response data
      */
-    handleEncryptedResponse(responseData, resolve, reject, forceProcess = false) {
+    handleEncryptedResponse(responseData, resolve, reject, forceProcess = false, skipRedirects = false) {
         try {
             // Find header/body split using CRLF CRLF (\r\n\r\n) or fallback to LF LF (\n\n)
             let idx = -1;
@@ -683,7 +685,7 @@ class WebTVClientSimulator {
                         this.debugLog(`LZPF timeout - processing response with ${bodyBuffer.length} bytes`);
                         this.lzpfTimeoutId = null;
                         // Force processing by calling again with forceProcess = true
-                        this.handleEncryptedResponse(responseData, resolve, reject, true);
+                        this.handleEncryptedResponse(responseData, resolve, reject, true, false);
                     }, 100);
                     return false;
                 }
@@ -747,7 +749,7 @@ class WebTVClientSimulator {
             // The socket will be managed by the socket pool
             
             // Check for redirects (Location header) 
-            if ((headers['Location'] || headers['location']) && statusLine.startsWith('302')) {
+            if ((headers['Location'] || headers['location']) && statusLine.startsWith('302') && !skipRedirects) {
                 const redirectUrl = headers['Location'] || headers['location'];
                 this.debugLog(`Following redirect to: ${redirectUrl}`);
                 this.redirectCount++;
@@ -1205,70 +1207,85 @@ class WebTVClientSimulator {
      */
     async fetchTargetUrl() {
         console.log(`Fetching target URL: ${this.url}`);
-        if (this.useTricksAccess) {
+        
+        // Handle special case for tricks access with POST
+        if (this.useTricksAccess && this.request_type_post) {
+            this.debugLog('Using tricks access with POST - first GET the tricks page, then POST to wtv-visit');
+            
+            // First, GET the tricks page to get the wtv-visit URL
+            const tricksUrl = `wtv-tricks:/access?url=${encodeURIComponent(this.url)}`;
+            const match = tricksUrl.match(/^([\w-]+):\/?(.*)/);
+            if (match) {
+                const serviceName = match[1];
+                const path = '/' + (match[2] || '');
+                
+                try {
+                    // GET the tricks page (skip automatic redirects so we can handle them manually)
+                    const tricksResult = await this.makeRequestWithRetry(serviceName, path, null, true);
+                    
+                    // Extract wtv-visit URL or Location from headers
+                    if (tricksResult.headers['Location'] || tricksResult.headers['location']) {
+                        const visitUrl = tricksResult.headers['Location'] || tricksResult.headers['location'];
+                        this.debugLog(`Got Location URL from tricks page: ${visitUrl}`);
+                        
+                        // Now POST to the Location URL
+                        const visitMatch = visitUrl.match(/^([\w-]+):\/?(.*)/);
+                        if (visitMatch) {
+                            const visitServiceName = visitMatch[1];
+                            const visitPath = '/' + (visitMatch[2] || '');
+                            
+                            this.debugLog(`Making POST request to Location URL: ${visitUrl} with data: ${this.postData}`);
+                            const result = await this.makeRequestWithRetry(visitServiceName, visitPath, this.postData, false);
+                            return this.handleTargetUrlResponse(result);
+                        }
+                    } else if (tricksResult.headers['wtv-visit']) {
+                        const visitUrl = tricksResult.headers['wtv-visit'];
+                        this.debugLog(`Got wtv-visit URL from tricks page: ${visitUrl}`);
+                        
+                        // Now POST to the wtv-visit URL
+                        const visitMatch = visitUrl.match(/^([\w-]+):\/?(.*)/);
+                        if (visitMatch) {
+                            const visitServiceName = visitMatch[1];
+                            const visitPath = '/' + (visitMatch[2] || '');
+                            
+                            this.debugLog(`Making POST request to wtv-visit URL: ${visitUrl} with data: ${this.postData}`);
+                            const result = await this.makeRequestWithRetry(visitServiceName, visitPath, this.postData, false);
+                            return this.handleTargetUrlResponse(result);
+                        }
+                    } else {
+                        throw new Error('No Location or wtv-visit header found in tricks page response');
+                    }
+                } catch (error) {
+                    console.error('Error during tricks access with POST:', error);
+                    throw error;
+                }
+            }
+        } else if (this.useTricksAccess && !this.request_type_post) {
+            // Regular tricks access (GET)
             this.debugLog('Using tricks access for target URL');
             this.url = `wtv-tricks:/access?url=${encodeURIComponent(this.url)}`;
         }
+        
         // Parse the target URL
         const match = this.url.match(/^([\w-]+):\/?(.*)/);
         if (match) {
             const serviceName = match[1];
             let path = '/' + (match[2] || '');
-        
             
             this.debugLog(`Parsed target service: ${serviceName}, path: ${path}`);
 
             try {
-                const result = await this.makeRequestWithRetry(serviceName, path, null, false);
-
-                
-                // Handle the response
-                if (result.body) {
-                    this.debugLog('\n*** Target URL Response Body ***');
-                    if (this.outputFile) {
-                        // Check if target URL returned a download-list and --follow is enabled
-                        const contentType = result.headers['content-type'] || '';
-                        const normalizedContentType = contentType.toLowerCase().split(';')[0].trim();
-                        const isDownloadList = normalizedContentType === 'wtv/download-list';
-                        
-                        if (this.followAll) {
-                            // Store the main content first
-                            this.storeContent(this.url, result);
-                            
-                            // Process all pending downloads
-                            await this.processAllDownloads();
-                            
-                            // Create comprehensive archive
-                            await this.createComprehensiveArchive();
-                        } else if (this.followImages && isDownloadList) {
-                            this.debugLog('Target URL returned download-list content with --follow enabled, creating archive...');
-                            await this.createDownloadListArchive(result.body, result.headers);
-                        } else if (this.followImages) {
-                            await this.saveToFile(result.body, result.headers);
-                        } else {
-                            await this.saveToFile(result.body, result.headers);
-                        }
-                        console.log(`Content saved to: ${this.outputFile}`);
-                    } else {
-                        // Detect text content for CLI output
-                        const contentType = result.headers['content-type'] || '';
-                        if (/^text\//.test(contentType) || /json|xml|javascript||download-list/.test(contentType) || contentType === "x-wtv-addresses") {
-                            console.log(result.body.toString('utf8'));
-                        } else if (result.body.length === 0) {
-                            console.log('<empty response>');
-                        } else {
-                            console.log('<binary data>');
-                        }
-                    }
+                // Determine if this should be a POST request
+                const requestData = this.request_type_post ? this.postData : null;
+                if (this.request_type_post) {
+                    this.debugLog(`Making POST request to ${serviceName}:${path} with data: ${requestData}`);
                 } else {
-                    this.debugLog('No body content received from target URL');
+                    this.debugLog(`Making GET request to ${serviceName}:${path}`);
                 }
-
-                this.debugLog('\n*** Request completed successfully ***');
-                this.cleanup();
-                process.exit(0);
                 
-                return result;
+                const result = await this.makeRequestWithRetry(serviceName, path, requestData, false);
+                return this.handleTargetUrlResponse(result);
+                
             } catch (error) {
                 console.error('Error fetching target URL:', error);
                 throw error;
@@ -1276,6 +1293,59 @@ class WebTVClientSimulator {
         } else {
             throw new Error(`Invalid target URL: ${this.url}`);
         }
+    }
+
+    /**
+     * Handle the response from the target URL
+     */
+    async handleTargetUrlResponse(result) {
+        // Handle the response
+        if (result.body) {
+            this.debugLog('\n*** Target URL Response Body ***');
+            if (this.outputFile) {
+                // Check if target URL returned a download-list and --follow is enabled
+                const contentType = result.headers['content-type'] || '';
+                const normalizedContentType = contentType.toLowerCase().split(';')[0].trim();
+                const isDownloadList = normalizedContentType === 'wtv/download-list';
+                
+                if (this.followAll) {
+                    // Store the main content first
+                    this.storeContent(this.url, result);
+                    
+                    // Process all pending downloads
+                    await this.processAllDownloads();
+                    
+                    // Create comprehensive archive
+                    await this.createComprehensiveArchive();
+                } else if (this.followImages && isDownloadList) {
+                    this.debugLog('Target URL returned download-list content with --follow enabled, creating archive...');
+                    await this.createDownloadListArchive(result.body, result.headers);
+                } else if (this.followImages) {
+                    await this.saveToFile(result.body, result.headers);
+                } else {
+                    await this.saveToFile(result.body, result.headers);
+                }
+                console.log(`Content saved to: ${this.outputFile}`);
+            } else {
+                // Detect text content for CLI output
+                const contentType = result.headers['content-type'] || '';
+                if (/^text\//.test(contentType) || /json|xml|javascript||download-list/.test(contentType) || contentType === "x-wtv-addresses") {
+                    console.log(result.body.toString('utf8'));
+                } else if (result.body.length === 0) {
+                    console.log('<empty response>');
+                } else {
+                    console.log('<binary data>');
+                }
+            }
+        } else {
+            this.debugLog('No body content received from target URL');
+        }
+
+        this.debugLog('\n*** Request completed successfully ***');
+        this.cleanup();
+        process.exit(0);
+        
+        return result;
     }
 
     /**
@@ -2613,7 +2683,9 @@ function parseArgs() {
         requestDelay: 250,
         debug: false,
         username: null,
-        keepgz: false
+        keepgz: false,
+        request_type_post: false,
+        postData: null
     };
 
     for (let i = 0; i < args.length; i++) {
@@ -2696,6 +2768,14 @@ function parseArgs() {
             case '--keepgz':
                 config.keepgz = true;
                 break;
+            case '--post':
+                config.request_type_post = true;
+                break;
+            case '--data':
+                if (i + 1 < args.length) {
+                    config.postData = args[++i];
+                }
+                break;
             case '--help':
                 console.log(`
 WebTV Client Simulator
@@ -2720,6 +2800,8 @@ Options:
   --retries <num>         Maximum number of retries for ECONNREFUSED errors (default: 5)
   --delay <num>           Delay between requests in milliseconds (default: 250)
   --keepgz                Keep .gz files compressed when following wtv/download-list (default: false)
+  --post                  Use POST method for the final target URL request
+  --data <data>           POST data to send with --post requests (required with --post)
   --debug                 Enable debug logging
   --help                  Show this help message
 
@@ -2727,9 +2809,17 @@ Example:
   node client_emu.js --host 192.168.1.100 --port 1615 --ssid 8100000000000001 --url wtv-home:/home --file output.html
   node client_emu.js --host 127.0.0.1 --url wtv-home:/home --file archive.zip --follow --debug
   node client_emu.js --host 127.0.0.1 --url wtv-home:/home --file complete.zip --follow-all --depth 2 --debug
+  node client_emu.js --host 127.0.0.1 --url wtv-mail:/sendmail --post --data "to=user@example.com&subject=test&body=Hello" --file response.html
+  node client_emu.js --host 127.0.0.1 --url wtv-mail:/sendmail --post --data "to=user@example.com&subject=test&body=Hello" --tricks
                 `);
                 process.exit(0);
         }
+    }
+
+    // Validate POST requirements
+    if (config.request_type_post && !config.postData) {
+        console.error('Error: --post requires --data to be specified');
+        process.exit(1);
     }
 
     return config;
@@ -2740,7 +2830,7 @@ Example:
  */
 async function main() {
     const config = parseArgs();
-    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries, config.requestDelay, config.boxType, config.username, config.keepgz);
+    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries, config.requestDelay, config.boxType, config.username, config.keepgz, config.request_type_post, config.postData);
     
     // Handle graceful shutdown
     process.on('SIGINT', () => {
