@@ -1,13 +1,14 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var message_snapshot_data = null;
-var message_voicemail_data = null;
+let message_snapshot_data = null;
+let message_voicemail_data = null;
 
-var intro_seen = session_data.mailstore.checkMailIntroSeen();
+const intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail?came-from=" + encodeURIComponent(request_headers.request_url);
 } else if (request_headers.query.clear == "true") {
+    let gourl;
     if (request_headers.Referer)
         gourl = request_headers.Referer.replace(/[\?\&]clear\=true/, '');
     else
@@ -30,8 +31,8 @@ wtv-expire-all: wtv-mail:/listmail
 wtv-expire-all: wtv-mail:/sendmail
 Location: ${gourl}`;
 } else {
-    var doClientError = function (msg) {
-        var clientErrorMsg = new clientShowAlert({
+    const doClientError = function (msg) {
+        const clientErrorMsg = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
             'message': msg,
             'buttonlabel1': "Okay",
@@ -42,23 +43,23 @@ Location: ${gourl}`;
         return "200 OK\nwtv-visit: " + clientErrorMsg;
     }
 
-    var newsgroup = null;
+    let newsgroup = null;
     if (wtvshared.parseBool(request_headers.query.discuss)) {
         newsgroup = request_headers.query.group || request_headers.query.message_to || null;
     }
 
-    var gourl = "wtv-mail:/sendmail";
-    var msg_subject, to_addr, to_name;
+    let gourl = "wtv-mail:/sendmail";
+    let msg_subject, to_addr, to_name, pageTitle, article, reply_message;
 
     if (newsgroup !== null) {
-        var to_addr = newsgroup;
-        var pageTitle = "Post to " + newsgroup;
-        var article = request_headers.query.article || null;
-        var gourl = gourl + "?group=" + newsgroup;
+        to_addr = newsgroup;
+        pageTitle = "Post to " + newsgroup;
+        article = request_headers.query.article || null;
+        gourl = gourl + "?group=" + newsgroup;
 
     } else {
-        var to_addr = request_headers.query.message_to || null;
-        var pageTitle = "Write an e-mail message";
+        to_addr = request_headers.query.message_to || null;
+        pageTitle = "Write an e-mail message";
         if (request_headers.query.message_reply_id) {
             reply_message = session_data.mailstore.getMessageByID(request_headers.query.message_reply_id);
             if (reply_message) {
@@ -69,16 +70,16 @@ Location: ${gourl}`;
         }
     }
 
-    var msg_subject = msg_subject || request_headers.query.message_subject || null;
-    var msg_body = request_headers.query.message_body || null;
-    var to_name = to_name || request_headers.query.whatever_webtv_sends_this_as || null;
-    var msg_url = request_headers.query.message_url || null;
-    var msg_url_title = request_headers.query.message_title || null;
-    var no_signature = false;
+    msg_subject = msg_subject || request_headers.query.message_subject || null;
+    let msg_body = request_headers.query.message_body || null;
+    to_name = to_name || request_headers.query.whatever_webtv_sends_this_as || null;
+    let msg_url = request_headers.query.message_url || null;
+    let msg_url_title = request_headers.query.message_title || null;
+    let no_signature = false;
 
 
-    mail_draft_data = {};
-    mail_draft_attachments = {};
+    let mail_draft_data = {};
+    let mail_draft_attachments = {};
     if (!wtvshared.parseBool(request_headers.query.discuss)) {
         mail_draft_data = session_data.getSessionData("mail_draft");
         mail_draft_attachments = session_data.getSessionData("mail_draft_attachments") || {};
@@ -124,10 +125,10 @@ Content-Type: audio/wav`;
         data = message_voicemail_data;
     } else {
 
-        var username = session_data.getSessionData("subscriber_username");
-        var userdisplayname = wtvshared.htmlEntitize(session_data.getSessionData("subscriber_name"));
-        var address = username + "@" + minisrv_config.config.service_name //minisrv_config.config.domain_name
-        var notImplementedAlert = new clientShowAlert({
+        const username = session_data.getSessionData("subscriber_username");
+        const userdisplayname = wtvshared.htmlEntitize(session_data.getSessionData("subscriber_name"));
+        const address = username + "@" + minisrv_config.config.service_name //minisrv_config.config.domain_name
+        const notImplementedAlert = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
             'message': "This feature is not available.",
             'buttonlabel1': "Okay",
@@ -136,14 +137,14 @@ Content-Type: audio/wav`;
         }).getURL();
 
         if ((typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) || request_headers.query.saveoff || request_headers.query.get_snap || request_headers.query.get_gab) {
-            var from_addr = address;
-            var signature = session_data.getSessionData("subscriber_signature") || null;
+            let from_addr = address;
+            const signature = session_data.getSessionData("subscriber_signature") || null;
             if (typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) {
-                var attachments = [];
+                const attachments = [];
 
 
                 if (message_snapshot_data) {
-                    var attachment = {
+                    const attachment = {
                         'mime': 'image/jpeg',
                         'filename': 'snapshot.jpg'
                     }
@@ -157,7 +158,7 @@ Content-Type: audio/wav`;
                 }
 
                 if (message_voicemail_data) {
-                    var attachment = {
+                    const attachment = {
                         'mime': 'audio/wav',
                         'filename': 'voicemail.wav'
                     }
@@ -171,15 +172,14 @@ Content-Type: audio/wav`;
                     attachments.push(attachment);
                 }
 
-                console.log("DEBUG sendmail: Before send decision - newsgroup =", newsgroup, "to_addr =", to_addr);
                 if (newsgroup !== null) {
-                    console.log("DEBUG sendmail: Taking newsgroup path");
-                    var request_is_async = true;
-                    var local_service_name = request_headers.query['discuss-prefix'] || "wtv-news"
+                    request_is_async = true;
+                    const local_service_name = request_headers.query['discuss-prefix'] || "wtv-news"
                     const wtvnews = new WTVNews(minisrv_config, local_service_name);
-                    var service_config = minisrv_config.services[local_service_name];
+                    const service_config = minisrv_config.services[local_service_name];
+                    let news_headers;
                     if (wtvnewsserver) {
-                        var tls_options = {
+                        const tls_options = {
                             ca: this.wtvshared.getServiceDep('wtv-news/localserver_ca.pem'),
                             key: this.wtvshared.getServiceDep('wtv-news/localserver_key.pem'),
                             cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
@@ -193,12 +193,10 @@ Content-Type: audio/wav`;
                         if (service_config.upstream_auth)
                             wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null, service_config.upstream_auth.username || null, service_config.upstream_auth.password || null);
                         else
-                            wtvnews.initializeUsenet(service_config.upstream_address, service_configupstream_port, service_config.upstream_tls || null);
+                            wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null);
                     }
                     from_addr = userdisplayname + " <" + from_addr + ">";
-                    news_headers = null;
                     if (signature && signature != "" && !no_signature) {
-                        var signature_tuple = null;
                         if (signature.indexOf('<html>') >= 0) {
                             attachments.push({
                                 "mime": 'text/html',
@@ -216,7 +214,7 @@ Content-Type: audio/wav`;
 
                     if (attachments.length > 0 || msg_body.indexOf('<html>') >= 0) {
                         // usenet attachments
-                        var tuples = [];
+                        let tuples = [];
                         if (msg_body.indexOf('<html>') >= 0) {
                             tuples.push({
                                 "mime": 'text/html',
@@ -231,9 +229,9 @@ Content-Type: audio/wav`;
                                 "use_base64": false
                             }];
                         }
-                        if (signature_tuple) tuples.push(signature_tuple);
+                        //if (signature_tuple) tuples.push(signature_tuple);
                         attachments.forEach((attachment) => {
-                            var tuple = {};
+                            const tuple = {};
                             tuple.mime = attachment.mime;
                             tuple.content = attachment.content;
                             tuple.use_base64 = (typeof attachment.use_base64 === 'boolean') ? attachment.use_base64 : true;
@@ -241,7 +239,7 @@ Content-Type: audio/wav`;
                             tuple.filename = attachment.filename || null;
                             tuples.push(tuple);
                         });
-                        var multipart_data = wtvmime.generateMultipartMIME(tuples);
+                        const multipart_data = wtvmime.generateMultipartMIME(tuples);
                         news_headers = {
                             "Content-Type": multipart_data.content_type,
                             "MIME-Version": multipart_data.mime_version,
@@ -259,16 +257,16 @@ wtv-expire-all wtv-mail:/sendmail
 Location: wtv-news:/news?group=${newsgroup}`;
                         sendToClient(socket, headers, '');
                     }).catch((e) => {
-                        var err = this.wtvshared.doErrorPage(500, null, e.toString())
+                        const err = this.wtvshared.doErrorPage(500, null, e.toString())
                         sendToClient(socket, err[0], err[1]);
                     });
 
 
                 } else {
                     console.log("DEBUG sendmail: Taking email path with to_addr =", to_addr);
-                    var messagereturn = session_data.mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
+                    const messagereturn = session_data.mailstore.sendMessageToAddr(from_addr, to_addr, msg_body, msg_subject, userdisplayname, to_name, signature, attachments, msg_url, msg_url_title);
                     if (messagereturn !== true) {
-                        var errpage = wtvshared.doErrorPage(400, messagereturn);
+                        const errpage = wtvshared.doErrorPage(400, messagereturn);
                         headers = errpage[0];
                         data = errpage[1];
                     } else {
@@ -282,7 +280,7 @@ Location: wtv-mail:/listmail`;
                 }
 
             } else if (request_headers.query.saveoff) {
-                var mail_draft_data = {
+                mail_draft_data = {
                     to_addr: to_addr,
                     msg_subject: msg_subject,
                     msg_body: msg_body,
@@ -300,7 +298,7 @@ wtv-expire-all: wtv-mail:/sendmail`;
 
             headers = `200 OK
 Content-type: text/html`;
-            var mail_draft_data = session_data.getSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments") || {};
+            mail_draft_data = session_data.getSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments") || {};
             if (request_headers.query.snapping == "false") {
                 headers += "\nwtv-expire-all: cache:snapshot.jpg";
                 if (mail_draft_data.message_snapshot_data) mail_draft_data.message_snapshot_data = null;
@@ -322,7 +320,7 @@ Content-type: text/html`;
                 mail_draft_data.message_voicemail_data = request_headers.query.message_voicemail_data
                 session_data.setSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments", mail_draft_data);
             }
-            var message_colors = null;
+            let message_colors = null;
             if (no_signature) message_colors = session_data.mailstore.getSignatureColors(null, true);
             else message_colors = session_data.mailstore.getSignatureColors(session_data.getSessionData("subscriber_signature"), true);
 

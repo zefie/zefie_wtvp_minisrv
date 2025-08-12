@@ -139,12 +139,6 @@ function checkScopeErrors(file) {
 					// Check if either service name exists and is privileged
 					const service = config.services[serviceNameWithPrefix] || config.services[serviceNameWithoutPrefix];
 
-					if (serviceName === "wtv-news") {
-						eslintConfig.globals = {
-							...eslintConfig.globals,
-							"wtvnewsserver": "readonly"
-						};
-					}
 					
 					if (service && service.privileged === true) {
 						// Add additional globals for privileged services
@@ -161,6 +155,9 @@ function checkScopeErrors(file) {
 					if (service.modules) {
 						for (const moduleName of service.modules) {
 							eslintConfig.globals[moduleName] = "readonly";
+							if (moduleName === "WTVNews") {
+								eslintConfig.globals["wtvnewsserver"] = "readonly";
+							}
 						}
 					}					
 				}

@@ -1,14 +1,12 @@
-var minisrv_service_file = true;
-
-var mailstore_exists = false;
+const minisrv_service_file = true;
 
 function mail_end_error(msg) {
-    var errpage = wtvshared.doErrorPage("400", msg);
+    const errpage = wtvshared.doErrorPage("400", msg);
     headers = errpage[0];
     data = errpage[1];
 }
 
-var intro_seen = session_data.mailstore.checkMailIntroSeen();
+const intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
@@ -16,13 +14,13 @@ if (!intro_seen && !request_headers.query.intro_seen) {
     if (!request_headers.query.message_id) {
         mail_end_error("Message ID Required");
     } else {
-        var messageid = request_headers.query.message_id;
-        var message = session_data.mailstore.getMessageByID(messageid);
+        const messageid = request_headers.query.message_id;
+        const message = session_data.mailstore.getMessageByID(messageid);
         if (!message) {
             mail_end_error("Invalid Message ID");
         } else {
             session_data.mailstore.setMessageReadStatus(messageid);
-            var notImplementedAlert = new clientShowAlert({
+            const notImplementedAlert = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "This feature is not available.",
                 'buttonlabel1': "Okay",
