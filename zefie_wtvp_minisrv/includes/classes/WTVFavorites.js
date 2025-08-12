@@ -180,12 +180,11 @@ class WTVFavorites {
 		self.messageArr = [];
 		this.fs.readdirSync(folderpath)
 			.map(function (v) {
-				var favorite_data_raw = null;
-				var favoritepath = folderpath + self.path.sep + v;
+				const favorite_data_raw = null;
+				const favoritepath = folderpath + self.path.sep + v;
 				if (self.fs.existsSync(favoritepath)) favorite_data_raw = self.fs.readFileSync(favoritepath);
 				if (favorite_data_raw) {
-					var favorite_data = JSON.parse(favorite_data_raw);
-					self.messageArr.push(favorite_data);
+					self.messageArr.push(JSON.parse(favorite_data_raw));
 				}
 
 			})

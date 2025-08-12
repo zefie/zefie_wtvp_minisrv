@@ -34,8 +34,8 @@ class WTVClientSessionData {
 
     constructor(minisrv_config, ssid) {
         if (!minisrv_config) throw ("minisrv_config required");
-        var WTVShared = require("./WTVShared.js")['WTVShared'];
-        var WTVMime = require("./WTVMime.js");
+        const WTVShared = require("./WTVShared.js")['WTVShared'];
+        const WTVMime = require("./WTVMime.js");
         this.minisrv_config = minisrv_config;
         this.cryptoKey = this.minisrv_config.config.keys.user_data_key;
         this.wtvshared = new WTVShared(minisrv_config);
@@ -73,12 +73,12 @@ class WTVClientSessionData {
         if (this.user_id > 0) return false; // not primary user or pre-login
 
 
-        var total_unread_messages = 0;
-        var accounts = this.listPrimaryAccountUsers();
-        var self = this;
+        let total_unread_messages = 0;
+        const accounts = this.listPrimaryAccountUsers();
+        const self = this;
         Object.keys(accounts).forEach((k) => {
-            var user_id = accounts[k].user_id;
-            var subUserSession = new self.constructor(self.minisrv_config, self.ssid);
+            const user_id = accounts[k].user_id;
+            const subUserSession = new self.constructor(self.minisrv_config, self.ssid);
             subUserSession.switchUserID(user_id, false, false);
             subUserSession.assignMailStore();
             if (subUserSession.mailstore) {
@@ -158,13 +158,12 @@ class WTVClientSessionData {
 
     findFreeUserSlot() {
         if (this.user_id != 0) return false; // subscriber only command
-        var master_directory = this.getUserStoreDirectory(true);
+        let master_directory = this.getUserStoreDirectory(true);
         if (this.fs.existsSync(master_directory)) {
-            for (var i = 0; i < this.minisrv_config.config.user_accounts.max_users_per_account; i++) {
-                var test_dir = master_directory + this.path.sep + "user" + i;
+            for (let i = 0; i < this.minisrv_config.config.user_accounts.max_users_per_account; i++) {
+                const test_dir = master_directory + this.path.sep + "user" + i;
                 if (!this.fs.existsSync(test_dir)) {
                     return i;
-                    break;
                 }
             }
         }
@@ -184,13 +183,13 @@ class WTVClientSessionData {
     listPrimaryAccountUsers() {
         if (this.user_id != 0) return false; // subscriber only command
 
-        var master_directory = this.getUserStoreDirectory(true);
-        var account_data = [];
-        var self = this;        
+        const master_directory = this.getUserStoreDirectory(true);
+        let account_data = [];
+        const self = this;
         this.fs.readdirSync(master_directory).forEach(f => {
             if (self.fs.lstatSync(master_directory + self.path.sep + f).isDirectory()) {
                 if (f.startsWith("user")) {
-                    var user_file = this.path.resolve(master_directory + self.path.sep + f + self.path.sep + f + ".json");
+                    const user_file = this.path.resolve(master_directory + this.path.sep + f + this.path.sep + f + ".json");
                     if (self.fs.existsSync(user_file)) {
                         if (f == "user0") {
                             account_data['subscriber'] = JSON.parse(this.fs.readFileSync(user_file));
@@ -231,11 +230,10 @@ class WTVClientSessionData {
      */
     getUserStoreDirectory(subscriber = false, user_id = null) {
         if (user_id === null) user_id = this.user_id;
-        var userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
+        let userstore = this.getAccountStoreDirectory() + this.path.sep + this.ssid + this.path.sep;
         if (!subscriber) userstore += "user" + user_id + this.path.sep;
         // getAccountStoreDirectory() already returns an absolute path, so we don't need getAbsolutePath again
-        var result = userstore + this.path.sep;
-        return result;
+        return userstore + this.path.sep;
     }
 
     removeUser(user_id) {
@@ -243,7 +241,7 @@ class WTVClientSessionData {
         if (parseInt(this.user_id) !== 0) return false; // not primary account
         if (user_id === 0) return false; // cannot delete primary account in this fashion
 
-        var userstore = this.getUserStoreDirectory(false, user_id);
+        const userstore = this.getUserStoreDirectory(false, user_id);
         if (this.fs.existsSync(userstore)) {
             this.fs.rmSync(userstore, { recursive: true });
             return true;
@@ -252,23 +250,24 @@ class WTVClientSessionData {
     }
 
     setPendingTransfer(ssid) {
-        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
-        var ssidobj = { "ssid": ssid, "type": "source" };
+        const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        let ssidobj = { "ssid": ssid, "type": "source" };
         this.fs.writeFileSync(pending_file, JSON.stringify(ssidobj));
-        var new_userstore = this.getAccountStoreDirectory() + this.path.sep + ssidobj.ssid;
+       
+        const new_userstore = this.getAccountStoreDirectory() + this.path.sep + ssidobj.ssid;
         if (!this.fs.existsSync(new_userstore)) this.fs.mkdirSync(new_userstore);
-        var dest_pending_file = new_userstore + this.path.sep + "pending_transfer.json";
-        var ssidobj = { "ssid": this.ssid, "type": "target" };
+        const dest_pending_file = new_userstore + this.path.sep + "pending_transfer.json";
+        ssidobj = { "ssid": this.ssid, "type": "target" };
         this.fs.writeFileSync(dest_pending_file, JSON.stringify(ssidobj));
     }
 
     cancelPendingTransfer() {
-        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
         if (this.fs.existsSync(pending_file)) {
-            var file = this.fs.readFileSync(pending_file)
-            var ssidobj = JSON.parse(file);
-            var new_userstore = this.getAccountStoreDirectory() + this.path.sep + ssidobj.ssid;
-            var dest_pending_file = new_userstore + this.path.sep + "pending_transfer.json";
+            const file = this.fs.readFileSync(pending_file)
+            const ssidobj = JSON.parse(file);
+            const new_userstore = this.getAccountStoreDirectory() + this.path.sep + ssidobj.ssid;
+            const dest_pending_file = new_userstore + this.path.sep + "pending_transfer.json";
             if (this.fs.existsSync(dest_pending_file)) this.fs.unlinkSync(dest_pending_file);
             this.fs.unlinkSync(pending_file);
             if (this.fs.existsSync(new_userstore)) this.fs.rmdirSync(new_userstore);
@@ -278,13 +277,13 @@ class WTVClientSessionData {
     }
 
     finalizePendingTransfer() {
-        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
-        var file = this.fs.readFileSync(pending_file)
-        var ssidobj = JSON.parse(file);
+        const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        const file = this.fs.readFileSync(pending_file)
+        const ssidobj = JSON.parse(file);
         if (ssidobj.type != "target") return false; // Only allow completion from target
-        var source_ssid = ssidobj.ssid
-        var old_account = this.getAccountStoreDirectory() + this.path.sep + source_ssid
-        var new_account = this.getUserStoreDirectory(true);
+        const source_ssid = ssidobj.ssid
+        const old_account = this.getAccountStoreDirectory() + this.path.sep + source_ssid
+        const new_account = this.getUserStoreDirectory(true);
         this.fs.cpSync(old_account, new_account, {
             filter: (source, _destination) => {
                 return source != "pending_transfer.json";
@@ -297,9 +296,9 @@ class WTVClientSessionData {
     }
 
     hasPendingTransfer(dtype = null) {
-        var pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
+        const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
         if (this.fs.existsSync(pending_file)) {
-            var ssidobj = JSON.parse(this.fs.readFileSync(pending_file));
+            const ssidobj = JSON.parse(this.fs.readFileSync(pending_file));
             console.log(ssidobj)
             if (dtype) {
                 (ssidobj.type == dtype) ? ssidobj.ssid : false;
@@ -321,22 +320,22 @@ class WTVClientSessionData {
      * @returns {boolean} Whether or not the file was written
      */
     storeUserStoreFile(path, data, last_modified = null, overwrite = true) {
-        var store_dir = this.getUserStoreDirectory();
+        let store_dir = this.getUserStoreDirectory();
         if (!store_dir) return false; // unregistered
         // FileStore
         store_dir += "FileStore" + this.path.sep;
-        var result = false;        
-        var path_split = path.split('/');
-        var file_name = path_split.pop();
-        var store_dir_path = this.wtvshared.makeSafePath(store_dir, path_split.join('/').replace('/', this.path.sep));
-        var store_full_path = this.wtvshared.makeSafePath(store_dir_path, file_name);
+        let result = false;
+        const path_split = path.split('/');
+        const file_name = path_split.pop();
+        const store_dir_path = this.wtvshared.makeSafePath(store_dir, path_split.join('/').replace('/', this.path.sep));
+        const store_full_path = this.wtvshared.makeSafePath(store_dir_path, file_name);
 
         try {
             if (!this.fs.existsSync(store_dir_path)) this.fs.mkdirSync(store_dir_path, { recursive: true });
-            var file_exists = this.fs.existsSync(store_full_path);
+            const file_exists = this.fs.existsSync(store_full_path);
             if (!file_exists || (file_exists && overwrite)) result = this.fs.writeFileSync(store_full_path, data);
             if (result !== false && last_modified) {
-                var file_timestamp = new Date(last_modified * 1000);
+                const file_timestamp = new Date(last_modified * 1000);
                 fs.utimesSync(store_full_path, Date.now(), file_timestamp)
             }
         } catch (e) {
@@ -347,8 +346,8 @@ class WTVClientSessionData {
 
     scrapbookExists() {
         if (this.scrapbook_dir === null) {
-            var userstore_dir = this.getUserStoreDirectory();
-            var store_dir = "Scrapbook" + this.path.sep;
+            const userstore_dir = this.getUserStoreDirectory();
+            const store_dir = "Scrapbook" + this.path.sep;
             this.scrapbook_dir = userstore_dir + store_dir;
         }
 		return this.fs.existsSync(this.scrapbook_dir);
@@ -389,8 +388,8 @@ class WTVClientSessionData {
 		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
-		var id = 1;
-		var files = this.fs.readdirSync(this.scrapbook_dir);
+		let id = 1;
+		let files = this.fs.readdirSync(this.scrapbook_dir);
 		if (files.length === 0) {
 			return id;
 		}
@@ -405,11 +404,11 @@ class WTVClientSessionData {
         if (!this.scrapbookExists()) {
             this.createScrapbook();
         }
-        var total_size = 0;
-        var files = this.fs.readdirSync(this.scrapbook_dir);
+        let total_size = 0;
+        let files = this.fs.readdirSync(this.scrapbook_dir);
         files.forEach(file => {
             if (!file.endsWith('.meta')) {
-                var file_path = this.scrapbook_dir + file;
+                const file_path = this.scrapbook_dir + file;
                 if (this.fs.existsSync(file_path)) {
                     total_size += this.fs.statSync(file_path).size;
                 }
@@ -422,10 +421,10 @@ class WTVClientSessionData {
         if (!this.scrapbookExists()) {
             this.createScrapbook();
         }
-        var total_size = this.getScrapbookUsage();
-        var max_size = this.minisrv_config.config.user_accounts.scrapbook_storage * 1024 * 1024; // convert to bytes
+        const total_size = this.getScrapbookUsage();
+        const max_size = this.minisrv_config.config.user_accounts.scrapbook_storage * 1024 * 1024; // convert to bytes
         if (max_size <= 0) return 0; // no storage limit set
-        var usage_percent = (total_size / max_size) * 100;
+        const usage_percent = (total_size / max_size) * 100;
         return Math.round(usage_percent, 2);
     }
 
@@ -433,7 +432,7 @@ class WTVClientSessionData {
 		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
-		var file = this.scrapbook_dir + id;
+		const file = this.scrapbook_dir + id;
 		if (this.fs.existsSync(file)) {
 			return this.fs.readFileSync(file);
 		}
@@ -444,11 +443,11 @@ class WTVClientSessionData {
 		if (!this.scrapbookExists()) {
 			this.createScrapbook();
 		}
-		var file = this.scrapbook_dir + id + ".meta";
+		const file = this.scrapbook_dir + id + ".meta";
 		if (this.fs.existsSync(file)) {
-			var meta = this.fs.readFileSync(file, 'utf8');
+			const meta = this.fs.readFileSync(file, 'utf8');
 			try {
-				var metaData = JSON.parse(meta);
+				const metaData = JSON.parse(meta);
 				return metaData.contentType;
 			} catch (e) {
 				this.debug("getScrapbookImageType", "Error parsing metadata for image ID", id, e);
@@ -462,8 +461,8 @@ class WTVClientSessionData {
 			if (!this.scrapbookExists()) {
 				this.createScrapbook();
 			}
-			var fileout = this.scrapbook_dir + filename;
-			var fileout_meta = this.scrapbook_dir + filename + ".meta";
+			const fileout = this.scrapbook_dir + filename;
+			const fileout_meta = this.scrapbook_dir + filename + ".meta";
 			this.fs.writeFileSync(fileout, data);
 			this.fs.writeFileSync(fileout_meta, JSON.stringify({
 				"contentType": contentType
@@ -481,11 +480,11 @@ class WTVClientSessionData {
      * @returns {Buffer|false} Buffer data, or false if could not open file
      */
     getUserStoreFile(path) {
-        var store_dir = this.getUserStoreDirectory();
+        let store_dir = this.getUserStoreDirectory();
         if (!store_dir) return false; // unregistered
         // FileStore
         store_dir += "FileStore" + this.path.sep;
-        var store_dir_path = this.wtvshared.getAbsolutePath(this.wtvshared.makeSafePath(store_dir, path.replace('/', this.path.sep)));
+        const store_dir_path = this.wtvshared.getAbsolutePath(this.wtvshared.makeSafePath(store_dir, path.replace('/', this.path.sep)));
         if (this.fs.existsSync(store_dir_path)) return this.fs.readFileSync(store_dir_path);
         else return false;
     }
@@ -496,10 +495,10 @@ class WTVClientSessionData {
      * @returns {Buffer|false} Buffer data, or false if could not open file
      */
     getUserStoreFileByURL(url) {
-        var path_split = url.split('/');
+        let path_split = url.split('/');
         path_split.shift();
         path_split.shift();
-        var store_dir_path = path_split.join('/').replace('/', this.path.sep);
+        const store_dir_path = path_split.join('/').replace('/', this.path.sep);
         return this.getUserStoreFile(store_dir_path);
     }
 
@@ -538,15 +537,16 @@ class WTVClientSessionData {
      * @return {boolean} True if the cookie was added successfully, false otherwise
      */
     addCookie(domain, path = null, expires = null, data = null) {
+        let cookie_data;
         if (!this.checkCookies()) this.resetCookies();
         if (!domain) return false;
         else if (typeof (domain) == 'object') {
             // accept array as first argument
-            if (domain.domain && domain.path && domain.expires && domain.data) var cookie_data = domain;
+            if (domain.domain && domain.path && domain.expires && domain.data) cookie_data = domain;
             else return false;
         } else {
             if (path && expires && data) {
-                var cookie_data = {};
+                cookie_data = {};
                 cookie_data['cookie'] = decodeURIComponent(data);
                 cookie_data['expires'] = decodeURIComponent(expires);
                 cookie_data['path'] = decodeURIComponent(path);
@@ -556,8 +556,8 @@ class WTVClientSessionData {
             }
         }
 
-        var self = this;
-        var cookie_index = -1;
+        const self = this;
+        let cookie_index = -1;
         // see if we have a cookie for this domain/path
         Object.keys(this.session_store.cookies).forEach(function (k) {
             if (cookie_index >= 0) return;
@@ -579,15 +579,15 @@ class WTVClientSessionData {
      */
     getCookie(domain, path) {
         if (!this.checkCookies()) this.resetCookies();
-        var self = this;
-        var result = false;
+        const self = this;
+        let result = false;
         Object.keys(this.session_store['cookies']).forEach(function (k) {
             if (result !== false) return;
             if (self.session_store['cookies'][k].domain == domain &&
                 self.session_store['cookies'][k].path == path) {
 
-                var current_epoch_utc = Date.parse((new Date()).toUTCString());
-                var cookie_expires_epoch_utc = Date.parse(new Date(Date.parse(self.session_store['cookies'][k].expires)).toUTCString());
+                const current_epoch_utc = Date.parse((new Date()).toUTCString());
+                const cookie_expires_epoch_utc = Date.parse(new Date(Date.parse(self.session_store['cookies'][k].expires)).toUTCString());
                 if (cookie_expires_epoch_utc <= current_epoch_utc) self.deleteCookie(self.session_store['cookies'][k]);
                 else result = self.session_store['cookies'][k];
             }
@@ -602,15 +602,7 @@ class WTVClientSessionData {
      * @return {string|false} Cookie string if found, false otherwise
      */
     getCookieString(domain, path) {
-        var cookie_data = this.getCookie(domain, path);
-        /*
-         var outstring = "";
-        Object.keys(cookie_data).forEach(function (k) {
-            outstring += k + "=" + encodeURIComponent(cookie_data[k]) + "&";
-        });
-        return outstring.slice(0, outstring.length - 1);
-        */
-        return cookie_data.cookie;
+        return this.getCookie(domain, path);
     }
 
     /**
@@ -620,7 +612,7 @@ class WTVClientSessionData {
      * @return {boolean} True if the cookie was deleted successfully, false otherwise
      */
     deleteCookie(domain, path = null) {
-        var result = false;
+        let result = false;
         if (!this.checkCookies()) {
             this.resetCookies();
             return true;
@@ -636,7 +628,7 @@ class WTVClientSessionData {
             return false;
         }
 
-        var self = this;
+        const self = this;
         Object.keys(this.session_store['cookies']).forEach(function (k) {
             if (self.session_store['cookies'][k].domain == domain && self.session_store['cookies'][k].path == path) {
                 delete self.session_store['cookies'][k];
@@ -664,8 +656,8 @@ class WTVClientSessionData {
      */
     listCookies() {
         if (!this.checkCookies()) this.resetCookies();
-        var outstring = "";
-        var self = this;
+        let outstring = "";
+        const self = this;
         Object.keys(this.session_store.cookies).forEach(function (k) {
             outstring += self.session_store.cookies[k].domain + "\0" + self.session_store.cookies[k].path + "\0";
         });
@@ -675,11 +667,9 @@ class WTVClientSessionData {
     loadSessionData(raw_data = false) {
         try {
             if (this.fs.lstatSync(this.getUserStoreDirectory() + "user" + this.user_id + ".json")) {
-                var json_data = this.fs.readFileSync(this.getUserStoreDirectory() + "user" + this.user_id + ".json", 'Utf8')
+                const json_data = this.fs.readFileSync(this.getUserStoreDirectory() + "user" + this.user_id + ".json", 'Utf8')
                 if (raw_data) return JSON.parse(json_data);
-
-                var session_data = JSON.parse(json_data);
-                this.session_store = session_data;
+                this.session_store = JSON.parse(json_data);
                 return true;
             }
         } catch (e) {
@@ -700,24 +690,21 @@ class WTVClientSessionData {
     }
 
     encodePassword(passwd) {
-        var encoded_passwd = CryptoJS.SHA512(passwd);
-        return encoded_passwd.toString(CryptoJS.enc.Base64);
+        return CryptoJS.SHA512(passwd).toString(CryptoJS.enc.Base64);
     }
 
     setUserPassword(passwd) {
-        var encoded_passwd = this.encodePassword(passwd);
-        this.setSessionData("subscriber_password", encoded_passwd);
+        this.setSessionData("subscriber_password", this.encodePassword(passwd));
         this.saveSessionData();
     }
 
     setUserSMTPPassword(passwd) {
-        var encoded_passwd = this.encryptPassword(passwd);
-        this.setSessionData("subscriber_smtp_password", encoded_passwd);
+        this.setSessionData("subscriber_smtp_password", this.encryptPassword(passwd));
         this.saveSessionData();
     }
 
     getUserSMTPPassword() {
-        return this.decryptPassword(this.setSessionData("subscriber_smtp_password"))
+        return this.decryptPassword(this.getSessionData("subscriber_smtp_password"))
     }
 
     disableUserPassword() {
@@ -727,20 +714,17 @@ class WTVClientSessionData {
 
     getUserPasswordEnabled() {
         if (!this.minisrv_config.config.passwords.enabled) return false; // master config override
-        var enabled = this.getSessionData("subscriber_password");
+        const enabled = this.getSessionData("subscriber_password");
         return (enabled !== null && typeof enabled !== 'undefined'); // true if set, false if null/disabled
     }
 
     validateUserPassword(passwd) {
         if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
-
-        var encoded_passwd = this.encodePassword(passwd);
-        return (encoded_passwd == this.getSessionData("subscriber_password"));
+        return (this.encodePassword(passwd) == this.getSessionData("subscriber_password"));
     }
 
     isUserLoggedIn() {
-        var password_valid = this.get("password_valid") || false;
-        return (password_valid);
+        return (this.get("password_valid") || false);
     }
 
     setUserLoggedIn(value) {
@@ -755,9 +739,8 @@ class WTVClientSessionData {
         if (this.isRegistered()) {
             if (!skip_merge) {
                 // load data from disk and merge new data
-                var temp_data = this.loadSessionData(true);                
+                const temp_data = this.loadSessionData(true);                
                 if (temp_data) this.session_store = Object.assign(temp_data, this.session_store);
-                temp_data = null;
             }
         } else {
             // do not write file if user is not registered, return true because this is not an error
@@ -767,11 +750,11 @@ class WTVClientSessionData {
         
         try {
             // only save if file has changed
-            var sessionToStore = this.session_store;
-            var json_save_data = JSON.stringify(sessionToStore);
-            var json_load_data = (skip_merge) ? {} : this.loadSessionData(true);
+            const sessionToStore = this.session_store;
+            const json_save_data = JSON.stringify(sessionToStore);
+            const json_load_data = (skip_merge) ? {} : this.loadSessionData(true);
 
-            var storeDir = this.getUserStoreDirectory();
+            const storeDir = this.getUserStoreDirectory();
             if (!this.fs.existsSync(storeDir)) this.mkdirRecursive(storeDir);
 
             if (sessionToStore.password_valid) delete sessionToStore.password_valid; // do not save validity state of password login, resets when session expires
@@ -806,7 +789,7 @@ class WTVClientSessionData {
     }
 
     unregisterBox() {
-        var user_store_base = this.wtvshared.makeSafePath(this.wtvshared.getAbsolutePath(this.getAccountStoreDirectory()), this.path.sep + this.ssid);
+        const user_store_base = this.wtvshared.makeSafePath(this.wtvshared.getAbsolutePath(this.getAccountStoreDirectory()), this.path.sep + this.ssid);
         try {
             if (this.fs.existsSync(user_store_base + ".json")) {
                 this.fs.unlinkSync(user_store_base + ".json");
@@ -939,15 +922,15 @@ class WTVClientSessionData {
     }
 
     checkSecurity() {
-        var self = this;
-        var rejectReason = null;
-        var ip2long = function (ip) {
-            var components;
+        const self = this;
+        const rejectReason = null;
+        const ip2long = function (ip) {
+            let components;
 
             if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
-                var iplong = 0;
-                var power = 1;
-                for (var i = 4; i >= 1; i -= 1) {
+                let iplong = 0;
+                let power = 1;
+                for (let i = 4; i >= 1; i -= 1) {
                     iplong += power * parseInt(components[i]);
                     power *= 256;
                 }
@@ -956,22 +939,7 @@ class WTVClientSessionData {
             else return -1;
         };
 
-        var isInSubnet = function (ip, subnet) {
-            if (!subnet.includes('/')) {
-                var mask, base_ip, long_ip = this.ip2long(ip);
-                var mask2, base_ip2, long_ip2 = this.ip2long(ip);
-                return (long_ip == long_ip2);
-            } else {
-                var mask, base_ip, long_ip = this.ip2long(ip);
-                if ((mask = subnet.match(/^(.*?)\/(\d{1,2})$/)) && ((base_ip = this.ip2long(mask[1])) >= 0)) {
-                    var freedom = Math.pow(2, 32 - parseInt(mask[2]));
-                    return (long_ip > base_ip) && (long_ip < base_ip + freedom - 1);
-                }
-            }
-            return false;
-        };
-
-        var rejectSSIDConnection = function (blacklist) {
+        const rejectSSIDConnection = function (blacklist) {
             if (blacklist) {
                 rejectReason = self.ssid + " is in the blacklist.";
                 console.log(" * Request from SSID", self.wtvshared.filterSSID(self.ssid), "(" + self.clientAddress + "), but that SSID is in the blacklist.");
@@ -981,13 +949,13 @@ class WTVClientSessionData {
             }
         }
 
-        var checkSSIDIPWhitelist = function (ssid, blacklist) {
-            var ssid_access_list_ip_override = false;
+        const checkSSIDIPWhitelist = function (ssid, blacklist) {
+            let ssid_access_list_ip_override = false;
             if (self.minisrv_config.config.ssid_ip_allow_list) {
                 if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid]) {
                     Object.keys(self.minisrv_config.config.ssid_ip_allow_list[self.ssid]).forEach(function (k) {
                         if (self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k].includes('/')) {
-                            if (isInSubnet(self.clientAddress, self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k])) {
+                            if (this.wtvshared.isInSubnet(self.clientAddress, self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k])) {
                                 // remoteAddr is in allowed subnet
                                 ssid_access_list_ip_override = true;
                             }
@@ -1010,7 +978,7 @@ class WTVClientSessionData {
 
         // process whitelist first
         if (self.ssid && self.minisrv_config.config.ssid_allow_list) {
-            var ssid_is_in_whitelist = self.minisrv_config.config.ssid_allow_list.findIndex(element => element == self.ssid);
+            const ssid_is_in_whitelist = self.minisrv_config.config.ssid_allow_list.findIndex(element => element == self.ssid);
             if (ssid_is_in_whitelist === -1) {
                 // no whitelist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, false);
@@ -1019,7 +987,7 @@ class WTVClientSessionData {
 
         // now check blacklist
         if (self.ssid && self.minisrv_config.config.ssid_block_list) {
-            var ssid_is_in_blacklist = self.minisrv_config.config.ssid_block_list.findIndex(element => element == self.ssid);
+            const ssid_is_in_blacklist = self.minisrv_config.config.ssid_block_list.findIndex(element => element == self.ssid);
             if (ssid_is_in_blacklist !== -1) {
                 // blacklist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, true);
@@ -1041,8 +1009,8 @@ class WTVClientSessionData {
         if (whitelist == 'lockdown' && !this.lockdown && !ignore_lockdown) return true;
 
         // in lockdown, check whitelisted urls
-        var self = this;
-        var authorized = false;
+        const self = this;
+        let authorized = false;
         switch (whitelist) {
             case "lockdown":
                 Object.keys(this.lockdownWhitelist).forEach(function (k) {
@@ -1091,9 +1059,9 @@ class WTVClientSessionData {
     }
 
     getManufacturer(url = false) {
-        var isPlus = this.hasCap("client-has-tv-experience")
-        var romtype = this.get("wtv-client-rom-type");
-        var brandId = this.ssid.charAt(8)
+        const isPlus = this.hasCap("client-has-tv-experience")
+        const romtype = this.get("wtv-client-rom-type");
+        const brandId = this.ssid.charAt(8)
 
         if (brandId == 0)
             if (url && romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
