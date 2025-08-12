@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 session_data.setUserLoggedIn(false);
 
-var gourl = "wtv-1800:/preregister?";
+let gourl = "wtv-1800:/preregister?";
 if (request_headers.query.relogin) gourl += "relogin=true";
 else if (request_headers.query.reconnect) gourl += "reconnect=true";
 

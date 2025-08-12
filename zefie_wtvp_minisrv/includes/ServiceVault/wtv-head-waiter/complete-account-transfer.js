@@ -1,8 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var result = session_data.finalizePendingTransfer();
+const result = session_data.finalizePendingTransfer();
+let transferCanceled;
 if (result) {
-    var transferCanceled = new clientShowAlert({
+    transferCanceled = new clientShowAlert({
         'image': minisrv_config.config.service_logo,
         'message': "The transfer is complete.",
         'buttonlabel1': "Login",
@@ -10,7 +11,7 @@ if (result) {
         'noback': true,
     }).getURL();
 } else {
-    var transferCanceled = new clientShowAlert({
+    transferCanceled = new clientShowAlert({
         'image': minisrv_config.config.service_logo,
         'message': "The transfer failed.",
         'buttonlabel1': "Try to Login",
