@@ -1,5 +1,5 @@
-var minisrv_service_file = true;
-var errpage;
+const minisrv_service_file = true;
+let errpage;
 if (request_headers.query.email.length < 2) errpage = wtvshared.doErrorPage(400, "Your User Name includes at least 2 characters.");
 else if (request_headers.query.email.length > 16) errpage = wtvshared.doErrorPage(400, "Your User Name includes less than 17 characters.");
 else if (request_headers.query.password.length < 8) errpage = wtvshared.doErrorPage(400, "Your password includes at least 8 characters.");
@@ -10,7 +10,7 @@ if (errpage) {
     headers = errpage[0];
     data = errpage[1];
 } else {
-    var encryptedpass = session_data.encryptPassword(request_headers.query.password);
+    const encryptedpass = session_data.encryptPassword(request_headers.query.password);
 
     session_data.setSessionData("messenger_password", encryptedpass);
     session_data.setSessionData("messenger_email", request_headers.query.email);

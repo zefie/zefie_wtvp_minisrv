@@ -1,5 +1,5 @@
-var minisrv_service_file = true;
-var errpage;
+const minisrv_service_file = true;
+let errpage;
 
 if (Object.keys(session_data.listPrimaryAccountUsers()).length == 1) {
 	errpage = wtvshared.doErrorPage(400, "There are no more users to remove.");
@@ -20,16 +20,16 @@ if (errpage) {
 	data = errpage[1];
 } else {
 	if (!request_headers.query.confirm_remove) {
-		var message = '';
+		let message = '';
 		if (usersToRemove.length == 1) {
-			var userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
+			const userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
 			userSession.switchUserID(usersToRemove[0]);
-			var userName = userSession.getSessionData("subscriber_username");
+			const userName = userSession.getSessionData("subscriber_username");
 			message = `Removing <b>${userName}</b> will permanently remove all of <b>${userName}</b>'s e-mail and favorites as well. You will not be able to restore <b>${userName}</b>.`;
 		} else {
 			message = "Removing the selected users will permanently remove their e-mail and favorites as well. You will not be able to restore the users.";
 		}
-		var removeurl = request_headers.request_url;
+		let removeurl = request_headers.request_url;
 		if (removeurl.indexOf('?') >= 0) {
 			removeurl = removeurl.substring(0, removeurl.indexOf('?'));
 		}
@@ -40,7 +40,7 @@ if (errpage) {
 		});
 		removeurl += "confirm_remove=true";
 
-		var confirmAlert = new clientShowAlert({
+		const confirmAlert = new clientShowAlert({
 			'image': minisrv_config.config.service_logo,
 			'message': message,
 			'buttonlabel1': "Don't Remove",
@@ -59,8 +59,8 @@ Location: ${confirmAlert}`
 		Object.keys(usersToRemove).forEach(function (k) {
 			session_data.removeUser(usersToRemove[k]);
 		})
-		var num_accounts = session_data.getNumberOfUserAccounts();
-		var gourl = "wtv-setup:/remove-users?";
+		const num_accounts = session_data.getNumberOfUserAccounts();
+		let gourl = "wtv-setup:/remove-users?";
 		if (num_accounts == 1) gourl = "wtv-setup:/accounts?";
 
 		headers = `300 OK

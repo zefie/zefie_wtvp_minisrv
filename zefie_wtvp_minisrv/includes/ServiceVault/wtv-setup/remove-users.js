@@ -1,5 +1,5 @@
-var minisrv_service_file = true;
-var errpage;
+const minisrv_service_file = true;
+let errpage;
 
 if (Object.keys(session_data.listPrimaryAccountUsers()).length == 1) {
 	errpage = wtvshared.doErrorPage(400, "There are no more users to remove.");
@@ -95,16 +95,16 @@ noscroll>
 <P><FORM ACTION="wtv-setup:/validate-remove-users" METHOD="POST">
 `;
 
-	var accounts = session_data.listPrimaryAccountUsers();
+	const accounts = session_data.listPrimaryAccountUsers();
 
-	var num_accounts = session_data.getNumberOfUserAccounts();
+	const num_accounts = session_data.getNumberOfUserAccounts();
 	if (num_accounts > 1) {
 		delete accounts.subscriber;
 		for (const [key, value] of Object.entries(accounts)) {
-			var userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
+			const userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
 			userSession.user_id = parseInt(key.replace("user", ''));
 
-			var mailcount = 0;
+			let mailcount = 0;
 			if (userSession.mailstore.mailstoreExists()) {
 				if (userSession.mailstore.mailboxExists(0)) {
 					mailcount = userSession.mailstore.countUnreadMessages(0);

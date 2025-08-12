@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var music_obj = {};
+const music_obj = {};
 session_data.setSessionData("wtv-bgmusic", music_obj);
 session_data.saveSessionData();
 headers = `300 OK

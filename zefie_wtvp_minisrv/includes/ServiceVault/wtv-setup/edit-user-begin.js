@@ -1,7 +1,7 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 session_data.loadSessionData();
+let userSession, user_id;
 
-var user_id = null;
 if (request_headers.query.user_id) {
     user_id = request_headers.query.user_id;
 } else {
@@ -11,7 +11,7 @@ if (request_headers.query.user_id) {
 // security
 if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
-    var errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the selected user.");
+    const errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
     data = errpage[1];
 }
@@ -22,7 +22,7 @@ Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire-all: wtv-setup:/edit-user
 wtv-noback-all: wtv-setup:/edit-user`
-    var userSession = null;
+    
     if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
@@ -30,7 +30,7 @@ wtv-noback-all: wtv-setup:/edit-user`
     }
 
     if (!userSession.loadSessionData()) {
-        var errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
+        const errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
         headers = errpage[0];
         data = errpage[1];
     } else {

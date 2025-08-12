@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var notImplementedAlert = new clientShowAlert({
+const notImplementedAlert = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
 	'message': "This feature is not available.",
 	'buttonlabel1': "Okay",
@@ -9,7 +9,7 @@ var notImplementedAlert = new clientShowAlert({
 }).getURL();
 
 
-var settings = [
+const settings = [
   ["wtv-setup:/mail", "Mail Signature"],
   ["wtv-setup:/edit-password", "Edit Password"],
   ["wtv-setup:/accounts", "Account & Users"],
@@ -101,7 +101,7 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 <table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
 <table><tc><td>&nbsp;</td></tc><tc><td><table>`;
 
-for (i = 0; i < settings.length; i += 2) {
+for (let i = 0; i < settings.length; i += 2) {
 	data += `<tr>
 <td colspan=3 height=6>
 <tr>

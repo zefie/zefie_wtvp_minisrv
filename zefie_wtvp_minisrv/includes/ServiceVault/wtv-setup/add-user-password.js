@@ -1,5 +1,5 @@
-var minisrv_service_file = true;
-var errpage = null;
+const minisrv_service_file = true;
+let errpage = null;
 
 const wtvr = new WTVRegister(minisrv_config, SessionStore);
 

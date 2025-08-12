@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var settings_obj = session_data.getSessionData("wtv-setup");
+let settings_obj = session_data.getSessionData("wtv-setup");
 if (settings_obj === null) settings_obj = {};
 
 headers = `200 OK

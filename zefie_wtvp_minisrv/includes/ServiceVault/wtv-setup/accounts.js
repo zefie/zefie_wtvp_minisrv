@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 session_data.loadSessionData();
 
 if (session_data.user_id != 0) {
-    var errpage = doErrorPage(400, "You are not authorized to edit the primary account.");
+    const errpage = doErrorPage(400, "You are not authorized to edit the primary account.");
     headers = errpage[0];
     data = errpage[1];
 } else {
@@ -66,9 +66,9 @@ ${minisrv_config.config.service_name} users
 <FONT COLOR="44cc55"><B>
 Subscriber:
 <P>`;
-    var accounts = session_data.listPrimaryAccountUsers();
+    const accounts = session_data.listPrimaryAccountUsers();
 
-    var num_accounts = session_data.getNumberOfUserAccounts();
+    const num_accounts = session_data.getNumberOfUserAccounts();
     if (num_accounts > 1) data += "Additional users:</B></FONT>";
 
     data += "<TD WIDTH=20><TD WIDTH=198 VALIGN=top ALIGN=left>";

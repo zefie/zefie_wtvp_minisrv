@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
-var userSession = null;
-var errpage = null;
+const minisrv_service_file = true;
+let userSession = null;
+let errpage = null;
 
 if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
 
@@ -16,7 +16,7 @@ if (!errpage) {
 }
 
 if (!errpage) {
-    var wtvr = new WTVRegister(minisrv_config, SessionStore);
+    const wtvr = new WTVRegister(minisrv_config, SessionStore);
 
     if (session_data.getNumberOfUserAccounts() > minisrv_config.config.user_accounts.max_users_per_account) errpage = wtvshared.doErrorPage(400, "You are not authorized to add more than " + minisrv_config.config.user_accounts.max_users_per_account + ` account${minisrv_config.config.user_accounts.max_users_per_account > 1 ? 's' : ''}.`);
 
@@ -34,15 +34,15 @@ if (errpage) {
 } else {
     if (!request_headers.query.display_name) request_headers.query.display_name = request_headers.query.username;
     userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
-    var freeUserId = session_data.findFreeUserSlot();
+    const freeUserId = session_data.findFreeUserSlot();
     if (freeUserId) {
         userSession.user_id = freeUserId;
         userSession.setSessionData("subscriber_userid", freeUserId);
         userSession.setSessionData("subscriber_name", request_headers.query.display_name);
         userSession.setSessionData("subscriber_username", request_headers.query.user_name);
         userSession.setSessionData("registered", true);
-        var mailstore_exists = userSession.mailstore.mailstoreExists();
-        var mailbox_exists = false;
+        let mailstore_exists = userSession.mailstore.mailstoreExists();
+        let mailbox_exists = false;
         if (!mailstore_exists) mailstore_exists = userSession.mailstore.createMailstore();
         if (mailstore_exists) {
             if (!userSession.mailstore.mailboxExists(0)) {
@@ -55,7 +55,7 @@ if (errpage) {
             }
         }
         if (!userSession.saveSessionData(true, true)) {
-            var errpage = wtvshared.doErrorPage(400);
+            errpage = wtvshared.doErrorPage(400);
             headers = errpage[0];
             data = errpage[1];
         } else {

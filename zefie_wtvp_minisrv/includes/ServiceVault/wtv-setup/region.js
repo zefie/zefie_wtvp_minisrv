@@ -1,7 +1,7 @@
 var minisrv_service_file = true;
 
-var timezone = "-0000";
-var zip = "";
+let timezone = "-0000";
+let zip = "";
 if (session_data.isRegistered()) {
     timezone = session_data.getSessionData("timezone") || timezone;
     zip = session_data.getSessionData("zipcode") || zip;
