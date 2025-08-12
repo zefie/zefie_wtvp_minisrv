@@ -1,5 +1,4 @@
-var minisrv_service_file = true;
-
+const minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -17,22 +16,22 @@ data = `<html>
 <br>
 <h1>${minisrv_config.config.service_name} Tricks</h1>`;
 
-var start_time = parseInt(session_data.getTicketData("benchmark_starttime"));
+const start_time = parseInt(session_data.getTicketData("benchmark_starttime"));
 if (isNaN(start_time)) {
 	data += "Invalid data, please try your benchmark again";
 } else {
-	var end_time = Math.floor(new Date().getTime());
+	let end_time = Math.floor(new Date().getTime());
 	if (!session_data.getTicketData("benchmark_endtime")) {
 		session_data.setTicketData("benchmark_endtime", end_time);
 	} else {
 		end_time = session_data.getTicketData("benchmark_endtime");
 	}
-	var download_time = end_time - start_time;
-	var image_filename = wtvshared.getServiceDep("/wtv-tricks/benchmark.jpg", true);
-	var image_size = fs.statSync(image_filename).size
-	var image_size_kb = parseFloat(image_size / 1024).toFixed(3);
-	var throughput = parseFloat((image_size / download_time) * 1024).toFixed(0);
-	var throughput_bps = parseInt(throughput * 8)
+	const download_time = end_time - start_time;
+	const image_filename = wtvshared.getServiceDep("/wtv-tricks/benchmark.jpg", true);
+	const image_size = fs.statSync(image_filename).size
+	const image_size_kb = parseFloat(image_size / 1024).toFixed(3);
+	const throughput = parseFloat((image_size / download_time) * 1024).toFixed(0);
+	const throughput_bps = parseInt(throughput * 8)
 	data += `
 <table>
 <tr>
@@ -58,11 +57,11 @@ if (isNaN(start_time)) {
 <tr>
 	<td valign=top align=right><shadow>Start Time:</shadow>
 	<td width=10>
-	<td valign=top>${new Date(start_time).toISOString().replace('T', ' ').substr(0, 19)}
+	<td valign=top>${new Date(start_time).toISOString().replace('T', ' ').slice(0, 19)}
 <tr>
 	<td valign=top align=right><shadow>End Time:</shadow>
 	<td width=10>
-	<td valign=top>${new Date(end_time).toISOString().replace('T', ' ').substr(0, 19)}
+	<td valign=top>${new Date(end_time).toISOString().replace('T', ' ').slice(0, 19)}
 <tr>
 	<td valign=top align=right><shadow>Total Time:</shadow>
 	<td width=10>

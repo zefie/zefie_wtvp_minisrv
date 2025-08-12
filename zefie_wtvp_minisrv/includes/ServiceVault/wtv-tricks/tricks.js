@@ -1,7 +1,5 @@
-var minisrv_service_file = true;
-
-
-var notAdminAlert = new clientShowAlert({
+const minisrv_service_file = true;
+const notAdminAlert = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
 	'message': "Sorry, you are not configured as an admin on this server.<br><br>If you are the server operator, please<br> see <strong>user_config.example.json</strong><br> for an example on how to configure yourself as an administrator.",
 	'buttonlabel1': "Ugh, fine.",
@@ -12,7 +10,7 @@ var notAdminAlert = new clientShowAlert({
 headers = `200 OK
 Content-Type: text/html`
 
-tricks = [
+const tricks = [
 	["wtv-tricks:/info", minisrv_config.config.service_name + " info"],
 	["wtv-cookie:list", "List Cookies"],
 	["wtv-cookie:reset", "Clear Cookies"],
@@ -45,7 +43,7 @@ data = `<html>
 <table cellspacing=0 cellpadding=0><tr><td abswidth=10>&nbsp;<td colspan=3>
 <table><tc><td>&nbsp;</td></tc><tc><td><table>`;
 
-for (i = 0; i < tricks.length; i += 2) {
+for (let i = 0; i < tricks.length; i += 2) {
 	data += `<tr>
 <td colspan=3 height=6>
 <tr>

@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -28,7 +28,7 @@ Content-type: text/html`
 </BODY>
 </HTML>`;
 } else {
-	var start_time = Math.floor(new Date().getTime());
+	const start_time = Math.floor(new Date().getTime());
 	session_data.setTicketData("benchmark_starttime", start_time);
 	headers += "wtv-expire-all: wtv-tricks:/benchmark\nContent-type: image/jpg"
 	data = wtvshared.getServiceDep("/wtv-tricks/benchmark.jpg", false);

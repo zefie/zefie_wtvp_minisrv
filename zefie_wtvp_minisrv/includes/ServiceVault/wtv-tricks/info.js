@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 let client_caps = null;
 
@@ -71,6 +71,7 @@ const boardRev = (sysConfigHex & 0xf00) >> 8;
 const boardRevB = (sysConfigHex & 0xf0) >> 4;
 
 // determine box ASIC type
+let chip;
 switch (chipVersionStr >> 0x18) {
     case 1:
         chip = "FIDO1";
@@ -88,30 +89,37 @@ switch (chipVersionStr >> 0x18) {
 // ========================= LC2 SYSCONFIG DECODE START =========================
 
 // determine box video type
+let video;
 if ((sysConfigHex & 8) == 0) video = "NTSC";
 else video = "PAL";
 
 // determine box storage type
+let storage;
 if ((sysConfigHex & 4) == 0) storage = "disk";
 else storage = "flash";
 
 // determine box CPU endianness
+let endianness;
 if ((sysConfigHex & 0x80000) == 0) endianness = "little";
 else endianness = "big";
 
 // determine box CPU type
+let cpu;
 if ((sysConfigHex & 0x100000) == 0) cpu = 5230;
 else cpu = 4640;
 
 // determine box CPU clock multiplier
+let cpuMult;
 if ((sysConfigHex & 0x20000) == 0) cpuMult = 3;
 else cpuMult = 2;
 
 // determine smartcard 0 support
+let sc0;
 if ((sysConfigHex & 0x400000) == 0) sc0 = "supported";
 else sc0 = "not supported";
 
 //determine smartcard 1 support
+let sc1;
 if ((sysConfigHex & 0x200000) == 0) sc1 = "supported";
 else sc1 = "not supported";
 
@@ -121,12 +129,13 @@ else sc1 = "not supported";
     -Bruce Leak, Thursday, October 12, 1995 1:53:28 AM */
 
 // determine box CPU output bufs
+let outputBufs;
 if ((sysConfigHex & 0x2000) == 0) outputBufs = 100;
 else outputBufs = 50;
 
 // determine box SGRAM speed
 function getSGSpeed() {
-    let SGRAMand = sysConfigHex & 0xc00000;
+    const SGRAMand = sysConfigHex & 0xc00000;
     if (SGRAMand == 0x400000) return 66;
     else if (0x400000 < SGRAMand)
         if (SGRAMand == 0x800000) return 77;
@@ -135,16 +144,18 @@ function getSGSpeed() {
 }
 
 // determine box audio chip type
+let audio;
 if ((sysConfigHex & 0xc0000) == 0xc0000) audio = "AKM4310/4309";
 else audio = "Unknown";
 
 // determine box audio clock source
+let audioClk;
 if ((sysConfigHex & 0x20000) == 0) audioClk = "SPOT";
 else audioClk = "External";
 
 // determine box video chip
 function getVideoChip() {
-    let videoChipAnd = sysConfigHex & 0x600;
+    const videoChipAnd = sysConfigHex & 0x600;
 
     if (videoChipAnd == 0x200) return "Bt851";
     else if (videoChipAnd < 0x201 && videoChipAnd !== 0) return "Unknown";
@@ -153,14 +164,17 @@ function getVideoChip() {
 }
 
 // determine box video type
+let videoB;
 if ((sysConfigHex & 0x800) == 0) videoB = "PAL";
 else videoB = "NTSC";
 
 // determine box video clock source
+let videoClk;
 if ((sysConfigHex & 0x10000) == 0) videoClk = "External";
 else videoClk = "SPOT";
 
 // determine box board type
+let boardTypeB;
 switch (sysConfigHex & 0xc) {
     case 8:
         boardTypeB = "Trial";
@@ -173,18 +187,22 @@ switch (sysConfigHex & 0xc) {
 }
 
 // determine bank 0 type
+let bank0Type;
 if (sysConfigHex < 0) bank0Type = "Mask";
 else bank0Type = "Flash";
 
 // determine bank 0 mode
+let bank0Mode;
 if ((sysConfigHex & 0x40000000) == 0) bank0Mode = "Normal";
 else bank0Mode = "PageMode";
 
 // determine bank 1 type
+let bank1Type;
 if ((sysConfigHex & 0x8000000) == 0) bank1Type = "Flash";
 else bank1Type = "Mask";
 
 // determine bank 1 mode
+let bank1Mode;
 if ((sysConfigHex & 0x40000000) == 0) bank1Mode = "Normal";
 else bank1Mode = "PageMode";
 

@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
-var request_is_async = true;
+const minisrv_service_file = true;
+request_is_async = true;
 
 function handleError(reason) {
-    var errpage = wtvshared.doErrorPage(400, reason);
+    const errpage = wtvshared.doErrorPage(400, reason);
     sendToClient(socket,  errpage[0], errpage[1]);
 }
 
