@@ -9,7 +9,7 @@ if (session_data.isRegistered()) {
         timezone = request_headers.query.timezone;
         session_data.setSessionData("timezone", timezone);
     }
-    if (request_headers.query.zip) {
+    if (typeof request_headers.query.zip !== 'undefined') {
         zip = request_headers.query.zip;
         session_data.setSessionData("zipcode", zip);
     }
