@@ -60,9 +60,9 @@ class WTVAuthor {
 	pagestoreExists() {
 		if (this.pagestore_dir === null) {
 			// set pagestore directory local var so we don't call the function every time
-			var userstore_dir = this.wtvclient.getUserStoreDirectory();
+			const userstore_dir = this.wtvclient.getUserStoreDirectory();
 			// PageStore
-			var store_dir = "PageStore" + this.path.sep;
+			const store_dir = "PageStore" + this.path.sep;
 			this.pagestore_dir = userstore_dir + store_dir;			
 		}
 		return this.fs.existsSync(this.pagestore_dir);
@@ -79,66 +79,68 @@ class WTVAuthor {
     }
 
 	createPage(style) {
-			this.pagestoreExists()
-			var pagestorepath = this.pagestore_dir;
-			// All this shit is to work around the part where I don't use UUIDs to store pages, which is bad
-			var pages = this.fs.readdirSync(pagestorepath)
-			if (pages.length == 0) {
-				pagenum = 0;
-			} else {
-				var pagelen = pages.length;
-				if (pagelen < 0) pagelen = 0;
-				this.debug("createPage","pages",pages)
-				var pagenums = [];
-				for(let i = 0; i < pagelen; i++) {
-					var toarr = pages[i].slice(0, pages[i].indexOf('.')); 
-					pagenums.push(parseInt(toarr));
-				}
-				pagenums = pagenums.sort()
-				this.debug("createPage", "pagenums", pagenums)
-				var pagenum = parseInt(pagenums[pagelen - 1]);
-				this.debug("createPage", "pagenum", pagenum)
-				this.debug("createPage", "pagelen", pagelen)
+		this.pagestoreExists()
+		let pagenum = 0;
+		let pagefile = null;
+		const pagestorepath = this.pagestore_dir;
+		// All this shit is to work around the part where I don't use UUIDs to store pages, which is bad
+		const pages = this.fs.readdirSync(pagestorepath)
+		if (pages.length === 0) {
+			pagenum = 0;
+		} else {
+			let pagelen = pages.length;
+			if (pagelen < 0) pagelen = 0;
+			this.debug("createPage","pages",pages)
+			let pagenums = [];
+			for(let i = 0; i < pagelen; i++) {
+				const toarr = pages[i].slice(0, pages[i].indexOf('.')); 
+				pagenums.push(parseInt(toarr));
 			}
-			if (pages.length == 0) {
-				pagenum = 0
-				var pagefile = pagenum + this.pageFileExt;
-			} else {
-				var pagefile = (pagenum + 1) + this.pageFileExt;
-			}
-            var pagefileout = this.pagestore_dir + pagefile;
-			// JSON data structure
-            var pagedata = {
-                "style": style,
-				"title": "(Untitled)",
-				"description": "(no description)",
-				"pagebreaks": [],
-				"showtitle": true,
-				"inlist": true,
-				"published": false,
-				"publishdate": null,
-				"publishname": null,
-				"blocks": []
-            }
-                if (this.fs.existsSync(pagefileout)) {
-                    console.error(" * ERROR: Page already exists (should never happen). Page lost.");
-                    return false;
-                }
+			pagenums = pagenums.sort()
+			this.debug("createPage", "pagenums", pagenums)
+			const pagenum = parseInt(pagenums[pagelen - 1]);
+			this.debug("createPage", "pagenum", pagenum)
+			this.debug("createPage", "pagelen", pagelen)
+		}
+		if (pages.length == 0) {
+			pagenum = 0
+			pagefile = pagenum + this.pageFileExt;
+		} else {
+			pagefile = (pagenum + 1) + this.pageFileExt;
+		}
+		const pagefileout = this.pagestore_dir + pagefile;
+		// JSON data structure
+		const pagedata = {
+			"style": style,
+			"title": "(Untitled)",
+			"description": "(no description)",
+			"pagebreaks": [],
+			"showtitle": true,
+			"inlist": true,
+			"published": false,
+			"publishdate": null,
+			"publishname": null,
+			"blocks": []
+		}
+		if (this.fs.existsSync(pagefileout)) {
+			console.error(" * ERROR: Page already exists (should never happen). Page lost.");
+			return false;
+		}
 
-                // Encode page data into JSON
-				var returnval = pages.length
-                var result = this.fs.writeFileSync(pagefileout, JSON.stringify(pagedata));
-			if (returnval != 0) {
-				var npages = this.fs.readdirSync(pagestorepath)
-				var returnval = npages.length - 1;
-			}
+		// Encode page data into JSON
+		let returnval = pages.length
+		this.fs.writeFileSync(pagefileout, JSON.stringify(pagedata));
+		if (returnval != 0) {
+			const npages = this.fs.readdirSync(pagestorepath)
+			returnval = npages.length - 1;
+		}
 		return returnval;
 	}
 	
 	loadPage(pagenum) {
 		this.pagestoreExists()
-            var page_file = this.listPages();
-            var page_data_raw = page_file[pagenum];
+            const page_file = this.listPages();
+            const page_data_raw = page_file[pagenum];
 
             if (page_data_raw) {
                     return page_data_raw;
@@ -149,13 +151,13 @@ class WTVAuthor {
 	setStyle(style, title, desc, state, docName) {
 		// There's probably a better way to do this involving external files for each style, but no
 		this.debug("setStyle", "this.wtvshared.makeSafeStringPath(style) (before load)", this.wtvshared.makeSafeStringPath(style));
-		var template_data_file = this.wtvshared.getTemplate("wtv-author", "styles/" + this.wtvshared.makeSafeStringPath(style) + ".js", true);
+		const template_data_file = this.wtvshared.getTemplate("wtv-author", "styles/" + this.wtvshared.makeSafeStringPath(style) + ".js", true);
 		if (template_data_file) {
 			this.debug("setStyle", "template_data_file", template_data_file);
 			const PBTemplate = require(template_data_file);
-			var pbtemplate = new PBTemplate(this, title, desc, state, docName);
-			var template_data = pbtemplate.get();
-			var self = this;
+			const pbtemplate = new PBTemplate(this, title, desc, state, docName);
+			const template_data = pbtemplate.get();
+			const self = this;
 			Object.keys(template_data).forEach((k) => {
 				self[k] = template_data[k];
             })
@@ -291,8 +293,8 @@ class WTVAuthor {
 	}
 	
 	generatePage(state, pagenum, page) {
-		var pagedata = this.loadPage(pagenum);
-		var title
+		const pagedata = this.loadPage(pagenum);
+		let title;
 		// Should probably have a better way to know if the page has no title
 		if (pagedata.title == "(Untitled)" && state == "editing")
 			title = "<i>Choose this to add a title to your document</i>"
@@ -300,7 +302,7 @@ class WTVAuthor {
 			title = pagedata.title
 		// Set the page style with too many paramaters
 		this.setStyle(pagedata.style, title, pagedata.description, state, pagenum);
-		var html = this.header
+		let html = this.header
 		if (page == 1) {
 			if (pagedata.showtitle == true){
 					html += this.titheader
@@ -310,12 +312,10 @@ class WTVAuthor {
 		// This generates blocks on separate pages in the most neat and optimized way possible (i think, i hate past jar)
 		if (page != 1) {
 			for (let i = pagedata.pagebreaks[page - 2]; i < (pagedata.pagebreaks[page - 1] || pagedata.blocks.length); i++) {
-				var type = pagedata.blocks[i].type
 				html += this.generateBlock(i, pagenum, state)
 			} 
 		} else if (pagedata.pagebreaks.length != 0){
 			for (let i = 0; i < pagedata.pagebreaks[0]; i++) {
-				var type = pagedata.blocks[i].type
 				html += this.generateBlock(i, pagenum, state)
 				if (this.afterblock1 && i == 0) {
 					html += this.afterblock1
@@ -323,7 +323,6 @@ class WTVAuthor {
 			}
 		} else {
 			for (let i = 0; i < pagedata.blocks.length; i++) {
-				var type = pagedata.blocks[i].type
 				html += this.generateBlock(i, pagenum, state)
 				if (this.afterblock1 && i == 0) {
 					html += this.afterblock1
@@ -334,18 +333,18 @@ class WTVAuthor {
 		// Add the footer if we're not in edit mode
 		html += this.getPaginationFooter(state, pagedata, page, pagenum)
 		html += this.footerend
-	return html;
+		return html;
 	}
 	
 	editPage(pagedata, pagenum, callPublish = true) {
 		// just stolen from favorites lmao
-		var pageout = new Object();
-		var pagepath = this.pagestore_dir;
+		const pageout = new Object();
+		const pagepath = this.pagestore_dir;
         Object.assign(pageout, pagedata);
-		var pagestorepath = this.pagestore_dir;
-		var pages = this.fs.readdirSync(pagestorepath)
-		var page = pages[pagenum]
-		var result = this.fs.writeFileSync(pagepath + page, JSON.stringify(pageout));
+		const pagestorepath = this.pagestore_dir;
+		const pages = this.fs.readdirSync(pagestorepath)
+		const page = pages[pagenum]
+		const result = this.fs.writeFileSync(pagepath + page, JSON.stringify(pageout));
 		if (pagedata.published == true && callPublish) {
 			this.publishPage(pagenum, pagedata.inlist, false)
         }
@@ -353,44 +352,39 @@ class WTVAuthor {
 	}
 	
 	editMetadata(title, description, showtitle, pagenum) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
-		
-		if (showtitle == "true")
-			var showtitle2 = false
-		else
-			var showtitle2 = true
 
-        pagedata.title = title
-		pagedata.description = description
-		pagedata.showtitle = showtitle2
+        pagedata.title = title;
+		pagedata.description = description;
+		pagedata.showtitle = !showtitle;
         this.editPage(pagedata, pagenum);
         return true;
 	}
 	
 	listPages() {
 		// i don't remember why, but i'm pretty sure this function sucks
-		var pagestore = this.pagestoreExists();
+		const pagestore = this.pagestoreExists();
 		if (!pagestore) this.createPagestore();
-		var userstore_dir = this.wtvclient.getUserStoreDirectory();
+		const userstore_dir = this.wtvclient.getUserStoreDirectory();
 
         // PageStore
-        var store_dir = "PageStore" + this.path.sep;
+        const store_dir = "PageStore" + this.path.sep;
         this.pagestore_dir = userstore_dir + store_dir;
-        var pagestorepath = this.pagestore_dir;
-        var self = this;
+        const pagestorepath = this.pagestore_dir;
+        const self = this;
 		self.pageArr = [];
 		if (self.fs.existsSync(pagestorepath)) {
-			var files = this.fs.readdirSync(pagestorepath)
+			const files = this.fs.readdirSync(pagestorepath)
 			this.debug("listPages","files",files)
             files.map(function (v) {
 				if (v.endsWith(self.pageFileExt)) {
 					// oh yeah it's because any non-JSON file in pagestore will throw an error and break everything
-					var page_data_raw = null;
-					var pagepath = pagestorepath + self.path.sep + v;
+					let page_data_raw = null;
+					const pagepath = pagestorepath + self.path.sep + v;
 					if (self.fs.existsSync(pagepath)) page_data_raw = self.fs.readFileSync(pagepath);
 					if (page_data_raw) {
-						var page_data = JSON.parse(page_data_raw);
+						const page_data = JSON.parse(page_data_raw);
 						self.pageArr.push(page_data);
 					}
 				}
@@ -400,12 +394,12 @@ class WTVAuthor {
     }
 	
 	deleteBlock(pagenum, position) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
-		
-		var block = pagedata.blocks[position]
 
-        var blocks = pagedata.blocks
+		const block = pagedata.blocks[position];
+
+        const blocks = pagedata.blocks;
 		blocks.splice(position, 1);
         this.editPage(pagedata, pagenum);
 		if (block.type == "break")
@@ -418,7 +412,7 @@ class WTVAuthor {
 			return this.minisrv_config.services['wtv-author'].public_domain;
 		} else {
 			if (this.minisrv_config.services['wtv-author'].publish_mode == "service") {
-				var target_service = this.minisrv_config.services[this.minisrv_config.services['wtv-author'].publish_dest];
+				const target_service = this.minisrv_config.services[this.minisrv_config.services['wtv-author'].publish_dest];
 				if (target_service) {
 					return target_service.host + ":" + target_service.port;
 				}
@@ -437,9 +431,9 @@ class WTVAuthor {
 	}
 
 	getPublishDir() {
-		var destDir = false;
+		let destDir = false;
 		if (this.minisrv_config.services['wtv-author'].publish_mode == "service") {
-			var target_service = this.minisrv_config.services[this.minisrv_config.services['wtv-author'].publish_dest];
+			const target_service = this.minisrv_config.services[this.minisrv_config.services['wtv-author'].publish_dest];
 			if (target_service) {
 				if (!target_service.pc_services) {
 					console.error("Invalid service configuration: publish_dest is not a pc service.");
@@ -451,7 +445,7 @@ class WTVAuthor {
 				if (target_service.service_vaults) {
 					destDir = target_service.service_vaults[0] + this.path.sep + target_service.servicevault_dir + this.path.sep;
 				} else {
-					destDir = minisrv_config.config.ServiceVaults[0] + this.path.sep + target_service.servicevault_dir + this.path.sep;
+					destDir = this.minisrv_config.config.ServiceVaults[0] + this.path.sep + target_service.servicevault_dir + this.path.sep;
 				}
 			}
 		} else if (this.minisrv_config.services['wtv-author'].publish_mode == "directory") {
@@ -465,12 +459,12 @@ class WTVAuthor {
 
 
 	unpublishPage(pagenum) {
-		var pagedata = this.loadPage(pagenum)
-		var destDir = this.getPublishDir();
+		const pagedata = this.loadPage(pagenum)
+		const destDir = this.getPublishDir();
 		if (pagedata.published != true) {
 			return "This page is not published."
 		}
-		var publishname = pagedata.publishname;
+		const publishname = pagedata.publishname;
 		if (this.fs.existsSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname)) {
 			try {
 				this.fs.rmSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname, { recursive: true })
@@ -491,9 +485,9 @@ class WTVAuthor {
 	publishPage(pagenum, listpublicly) {
 		// this was done in a rush and probably also sucks
 		// remember to increment the "hours wasted here" comment at the top of the file
-		var pagedata = this.loadPage(pagenum)
-		var destDir = this.getPublishDir();
-		var publishname = null;
+		const pagedata = this.loadPage(pagenum)
+		const destDir = this.getPublishDir();
+		let publishname, fileout;
 
 		if (pagedata.published != true) {
 			publishname = pagedata.title.slice(0, 50).replaceAll(" ", "").replace(/[^A-Za-z0-9]/g, "-");
@@ -510,11 +504,11 @@ class WTVAuthor {
 		this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + "/clipart/styleMedia/", { recursive: true })
 		this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + "/media/", { recursive: true })
 		for (let i = 1; i < pagedata.pagebreaks.length + 2; i++) {
-			var pagehtml = this.generatePage("publishing", pagenum, i)
+			const pagehtml = this.generatePage("publishing", pagenum, i)
 			if (i == 1)
-				var fileout = "index.html"
+				fileout = "index.html"
 			else
-				var fileout = "page" + i + ".html"
+				fileout = "page" + i + ".html"
 			this.fs.writeFile(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + '/' + fileout, pagehtml, err => {
 				if (err) {
 					console.error(err);
@@ -528,7 +522,7 @@ class WTVAuthor {
 				if (err) throw err;
 			});
 		}
-		var strftime = require('strftime');
+		const strftime = require('strftime');
 		pagedata.publishdate = strftime("%a, %b %d, %Y, %I:%M%P", new Date(new Date().toUTCString()))
 		pagedata.published = true;
 		pagedata.inlist = listpublicly;
@@ -540,66 +534,24 @@ class WTVAuthor {
 	
 	generatePageList() {
 		// this one's pretty ok i think, but it should have screenshots of each page
-		const pagelist = this.listPages()
-		let html = `<HTML>
-<HEAD>
-<SCRIPT language="JavaScript">
-var	gIsWebTV = false;
-var AppName = new String;
-AppName = window.navigator.appName;
-if (AppName.indexOf("WebTV") >= 0 )
-gIsWebTV = true;
-</SCRIPT>
-<TITLE>${this.wtvclient.session_store.subscriber_name}</TITLE>
-</HEAD>
-<body
-background="/ROMCache/ExternalBackground.gif"
-bgcolor=#1e4261
-text=AEBFD1 link=B8BDC7
-vlink=B8BDC7
-hspace=0
-vspace=0
->
-<table cellspacing=0 cellpadding=0 width=100%>
-<tr>
-<td width=22 rowspan=100><td><td><td><td><td width=22 rowspan=100>
-<tr>
-<td height=12>
-<tr>
-<td height=25 valign=top colspan=4>
-<font size=+1 color=D1D1D1>Pages of ${this.wtvclient.session_store.subscriber_name}</font>
-<tr>
-<td height=14>
-<tr><td height=10>`;
-	loop:
-	for (let i = 0; i < pagelist.length; i++) {
-		if (pagelist[i].published == true && pagelist[i].inlist == true) {
-			html += `<tr><td>
-<td width=5>
-<td>
-<table>
-<tr><td colspan=2><font color=AEBFD1><B>
-<a href=${pagelist[i].publishname}/index.html>${pagelist[i].title}</a>
-</B></font>
-<tr>
-<td width=12>
-<td><font size=-1>${pagelist[i].description}</font>
-</table>
-<tr><td height=10>
-<tr><td height=10>`
-			} else {
-				continue loop;
-			}
-		}
-		html += `</table>
-</BODY>
-</HTML>`
+		const pagelist = this.listPages();
+		
+		// Filter published pages that should be listed
+		const publishedPages = pagelist.filter(page => page.published === true && page.inlist === true);
+		
+		const templatePath = this.wtvshared.getServiceDep('wtv-author/page_list.njk', true);
+		this.nunjucks.configure({ autoescape: false });
+		
+		const html = this.nunjucks.render(templatePath, {
+			subscriber_name: this.wtvclient.session_store.subscriber_name,
+			published_pages: publishedPages
+		});
 		
 		this.fs.writeFile(this.getPublishDir() + this.wtvclient.session_store.subscriber_username + '/index.html', html, err => {
-		if (err) {
-			console.error(err);
-		}
-		// file written successfully
+			if (err) {
+				console.error(err);
+			}
+			// file written successfully
 		});
 	}
 	
@@ -628,7 +580,7 @@ vspace=0
 		for (let i = 0; i < pagelist.length; i++) {
 			this.deletePage(i);
 		}
-		const userstore_dir = otherUser.getUserStoreDirectory();
+		const userstore_dir = this.wtvclient.getUserStoreDirectory();
 		const store_dir = "PageStore" + this.path.sep;
         this.pagestore_dir = userstore_dir + store_dir;
 		this.wtvclient.switchUserID(0, false, false, false);
@@ -663,7 +615,7 @@ vspace=0
 		pagedata.blocks[oldposition].style = style
 		
 		if (oldposition != position)
-			moveArrayKey(pagedata.blocks,oldposition,position);
+			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -710,7 +662,7 @@ vspace=0
 			blocks[oldposition].caption = caption
 		
 		if (oldposition != position) {
-			moveArrayKey(blocks, oldposition,position);
+			this.wtvshared.moveObjectKey(blocks, oldposition,position);
 		}
 
         this.editPage(pagedata, pagenum);
@@ -746,7 +698,7 @@ vspace=0
 		pagedata.blocks[oldposition].dividerAfter = dividerAfter
 		
 		if (oldposition != position)
-			moveArrayKey(pagedata.blocks, oldposition,position);
+			this.wtvshared.moveObjectKey(pagedata.blocks, oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -777,7 +729,7 @@ vspace=0
 		pagedata.blocks[oldposition].items = items
 		
 		if (oldposition != position)
-			moveArrayKey(pagedata.blocks,oldposition,position);
+			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -842,7 +794,7 @@ vspace=0
 		pagedata.blocks[oldposition].items = items
 		
 		if (oldposition != position)
-			moveArrayKey(pagedata.blocks,oldposition,position);
+			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
         return true;
@@ -868,7 +820,7 @@ vspace=0
         if (!pagedata) return false;
 		
 		if (oldposition != position)
-			moveArrayKey(pagedata.blocks,oldposition,position);
+			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
 		this.generateBreakList(pagenum);

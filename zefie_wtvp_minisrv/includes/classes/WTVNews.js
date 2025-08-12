@@ -238,7 +238,7 @@ class WTVNews {
     }
 
     getHeaderFromMessage(message, header) {
-        const response = null;
+        let response;
         if (message.article.headers) {
             Object.keys(message.article.headers).forEach((k) => {
                 if (k.toLowerCase() == header.toLowerCase()) {
@@ -255,7 +255,7 @@ class WTVNews {
             this.client.quit().then((response) => {
                 if (response.code == 205) resolve(true);
                 else {
-                    console.error(" * WTVNews Error:", "Command: quit", e);
+                    console.error(" * WTVNews Error:", "Command: quit", response.code);
                     reject(`Unexpected response code ${response.code}`);
                 }
             }).catch((e) => {
@@ -291,7 +291,7 @@ class WTVNews {
                         this.client.post()
                             .then((response) => {
                                 if (response.code == 340) {
-                                    var articleData = {};
+                                    const articleData = {};
                                     articleData.headers = {
                                         'Relay-Version': "version zefie_wtvp_minisrv " + this.minisrv_config.version + "; site " + this.minisrv_config.config.domain_name,
                                         'Posting-Version': "version zefie_wtvp_minisrv " + this.minisrv_config.version + "; site " + this.minisrv_config.config.domain_name,
@@ -328,7 +328,7 @@ class WTVNews {
                                     });
                                 } else {
                                     this.client.quit();
-                                    console.error('usenet upstream uncaught error', e);
+                                    console.error('usenet upstream uncaught error');
                                     reject("Could not send post. Server returned unknown error");
                                 };
                             }).catch((e) => {
@@ -393,13 +393,13 @@ class WTVNews {
                 let message_type = 'text/plain';
                 body.forEach((element) => {
                     let section_type = null;
-                    let section = element.split("\n");
+                    const section = element.split("\n");
                     attachments[i] = {};
                     section.forEach((line) => {
                         this.debug('section_type', section_type, 'line', line);
                         const section_header_match = line.match(/^Content\-/i)
                         if (section_header_match) {
-                            const section_match = line.match(/^Content\-Type\: (.+)\;/i)
+                            let section_match = line.match(/^Content\-Type\: (.+)\;/i)
                             if (section_match) {
                                 this.debug('section_match', section_match)
                                 section_type = section_match[1];
@@ -474,10 +474,10 @@ class WTVNews {
                                 Object.keys(message_relations[j]).forEach((h) => {
                                     if (found) return;
                                     if (message_relations[j][h].messageId == ref) {
-                                        var searchref = messages[message_relations[j][h].index].headers.REFERENCES || null;
-                                        var mainref = j; // j is already the main reference messageId
+                                        let searchref = messages[message_relations[j][h].index].headers.REFERENCES || null;
+                                        let mainref = j; // j is already the main reference messageId
                                         while (searchref !== null) {
-                                            var searchart = messages.find(e => e.messageId == searchref);
+                                            const searchart = messages.find(e => e.messageId == searchref);
                                             if (searchart) {
                                                 mainref = searchart.messageId;
                                                 searchref = searchart.headers.REFERENCES || null;

@@ -20,7 +20,7 @@ class WTVClientCapabilities {
         // (this script does not do that, also note that LC2 MiniBrowser does not support client:relog)
         // None of this is 100% for certain yet (except the bitfield stuff), do not trust as verbatim, more testing needed
 
-        var capabilities_table = [
+        const capabilities_table = [
             ["client-can-do-muzac", "Can Do Muzac"],
             ["client-can-do-chat", "Can Chat"],
             ["client-can-do-openISP", "Can do OpenISP"],
@@ -97,7 +97,7 @@ class WTVClientCapabilities {
                 let remainingSize = hex.length;
                 for (let p = 0; p < hex.length / 8; p++) {
                     //In case remaining hex length (or initial) is not multiple of 8
-                    let blockSize = remainingSize < 8 ? remainingSize : 8;
+                    const blockSize = remainingSize < 8 ? remainingSize : 8;
 
                     binary += parseInt(hex.slice(p * 8, p * 8 + blockSize), 16).toString(2);
 

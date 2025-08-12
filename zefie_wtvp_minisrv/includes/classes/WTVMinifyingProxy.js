@@ -401,7 +401,7 @@ class WTVMinifyingProxy {
             return cssDimension;
         }
         // Remove !important and other CSS-specific suffixes
-        let cleanDimension = cssDimension.replace(/\s*!important\s*/, '').trim();
+        const cleanDimension = cssDimension.replace(/\s*!important\s*/, '').trim();
         
         // For other units or plain numbers, return as-is
         return cleanDimension;
@@ -487,7 +487,7 @@ class WTVMinifyingProxy {
                 // Extract button text to determine appropriate width
                 const valueMatch = attributes.match(/value="([^"]*)"/) || ['', ''];
                 const buttonText = valueMatch[1];
-                let buttonWidth = Math.max(buttonText.length * 8, 80); // Minimum 80px
+                const buttonWidth = Math.max(buttonText.length * 8, 80); // Minimum 80px
                 attributes = attributes.trim() + ` width="${buttonWidth}"`;
             }
             return `<input ${attributes}>`;
@@ -751,7 +751,7 @@ ${bodyContent}
         const title = titleMatch ? titleMatch[1].trim() : 'WebTV Page';
         
         // Transform the HTML content
-        let transformed = this.transformHtml(html, url);
+        const transformed = this.transformHtml(html, url);
         
         // Extract body content from either the transformed HTML or use all content
         let bodyContent = '';
@@ -837,7 +837,7 @@ ${bodyContent}
             // Check if width exists and ensure it's reasonable for WebTV
             const widthMatch = attributes.match(/width\s*=\s*["']?(\d+)["']?/);
             if (widthMatch) {
-                let width = parseInt(widthMatch[1]);
+                const width = parseInt(widthMatch[1]);
                 // Ensure minimum width of 200px for text inputs on WebTV
                 if (width < 200) {
                     newAttributes = attributes.replace(/width\s*=\s*["']?\d+["']?/, `width="200"`);
@@ -894,7 +894,7 @@ ${bodyContent}
             // Ensure minimum width for buttons
             const widthMatch = attributes.match(/width\s*=\s*["']?(\d+)["']?/);
             if (widthMatch) {
-                let width = parseInt(widthMatch[1]);
+                const width = parseInt(widthMatch[1]);
                 if (width < 80) {
                     newAttributes = attributes.replace(/width\s*=\s*["']?\d+["']?/, `width="80"`);
                 }

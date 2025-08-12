@@ -158,7 +158,7 @@ class WTVClientSessionData {
 
     findFreeUserSlot() {
         if (this.user_id != 0) return false; // subscriber only command
-        let master_directory = this.getUserStoreDirectory(true);
+        const master_directory = this.getUserStoreDirectory(true);
         if (this.fs.existsSync(master_directory)) {
             for (let i = 0; i < this.minisrv_config.config.user_accounts.max_users_per_account; i++) {
                 const test_dir = master_directory + this.path.sep + "user" + i;
@@ -184,7 +184,7 @@ class WTVClientSessionData {
         if (this.user_id != 0) return false; // subscriber only command
 
         const master_directory = this.getUserStoreDirectory(true);
-        let account_data = [];
+        const account_data = [];
         const self = this;
         this.fs.readdirSync(master_directory).forEach(f => {
             if (self.fs.lstatSync(master_directory + self.path.sep + f).isDirectory()) {
@@ -339,7 +339,7 @@ class WTVClientSessionData {
             if (!file_exists || (file_exists && overwrite)) result = this.fs.writeFileSync(store_full_path, data);
             if (result !== false && last_modified) {
                 const file_timestamp = new Date(last_modified * 1000);
-                fs.utimesSync(store_full_path, Date.now(), file_timestamp)
+                this.fs.utimesSync(store_full_path, Date.now(), file_timestamp)
             }
         } catch (e) {
             console.error(" # User File Store failed", e);
@@ -408,7 +408,7 @@ class WTVClientSessionData {
             this.createScrapbook();
         }
         let total_size = 0;
-        let files = this.fs.readdirSync(this.scrapbook_dir);
+        const files = this.fs.readdirSync(this.scrapbook_dir);
         files.forEach(file => {
             if (!file.endsWith('.meta')) {
                 const file_path = this.scrapbook_dir + file;
@@ -498,7 +498,7 @@ class WTVClientSessionData {
      * @returns {Buffer|false} Buffer data, or false if could not open file
      */
     getUserStoreFileByURL(url) {
-        let path_split = url.split('/');
+        const path_split = url.split('/');
         path_split.shift();
         path_split.shift();
         const store_dir_path = path_split.join('/').replace('/', this.path.sep);
@@ -931,21 +931,7 @@ class WTVClientSessionData {
 
     checkSecurity() {
         const self = this;
-        const rejectReason = null;
-        const ip2long = function (ip) {
-            let components;
-
-            if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
-                let iplong = 0;
-                let power = 1;
-                for (let i = 4; i >= 1; i -= 1) {
-                    iplong += power * parseInt(components[i]);
-                    power *= 256;
-                }
-                return iplong;
-            }
-            else return -1;
-        };
+        let rejectReason = null;
 
         const rejectSSIDConnection = function (blacklist) {
             if (blacklist) {
@@ -981,7 +967,7 @@ class WTVClientSessionData {
             } else {
                 rejectSSIDConnection(blacklist);
             }
-            if (ssid_access_list_ip_override && self.minisrv_config.config.debug_flags.debug) console.log(" * Request from disallowed SSID", wtvshared.filterSSID(ssid), "was allowed due to IP address whitelist");
+            if (ssid_access_list_ip_override && self.minisrv_config.config.debug_flags.debug) console.log(" * Request from disallowed SSID", this.wtvshared.filterSSID(ssid), "was allowed due to IP address whitelist");
         }
 
         // process whitelist first

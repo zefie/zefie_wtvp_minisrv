@@ -169,7 +169,7 @@ class WTVFavorites {
 			if (!result) return false;
 
 		} catch (e) {
-			console.error(" # FavErr: Favorite Store failed\n", e, "\n", favoritefileout, "\n", favorite, "\n");
+			console.error(" # FavErr: Favorite Store failed\n", e, "\n", favoritefileout, "\n", favoritedata, "\n");
 		}
 		return false;
 	}
@@ -180,7 +180,7 @@ class WTVFavorites {
 		self.messageArr = [];
 		this.fs.readdirSync(folderpath)
 			.map(function (v) {
-				const favorite_data_raw = null;
+				let favorite_data_raw;
 				const favoritepath = folderpath + self.path.sep + v;
 				if (self.fs.existsSync(favoritepath)) favorite_data_raw = self.fs.readFileSync(favoritepath);
 				if (favorite_data_raw) {

@@ -17,7 +17,7 @@ class WTVNewsServer {
         this.wtvshared = new WTVShared(this.minisrv_config);
         this.featuredGroups = minisrv_config.services['wtv-news'].featuredGroups;
         const nntp_server = require('nntp-server-zefie');
-        var nntp_statuses = require('nntp-server-zefie/lib/status');
+        const nntp_statuses = require('nntp-server-zefie/lib/status');
 
         this.username = username || null;
         this.password = password || null;
@@ -34,7 +34,7 @@ class WTVNewsServer {
 
         if (run_server) {
             // nntp-server module overrides
-            var self = this;
+            const self = this;
 
             nntp_server.prototype = {
                 ...nntp_server.prototype,
@@ -65,7 +65,7 @@ class WTVNewsServer {
                     if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
                     if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
                     if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                    var res = self.getLastArticle(session.group.name, session.group.current_article);
+                    const res = self.getLastArticle(session.group.name, session.group.current_article);
                     if (!res) return nntp_statuses._422_NO_LAST_ARTICLE;
                     return res;
                 },
@@ -74,14 +74,14 @@ class WTVNewsServer {
                     if (!session.group.name) return nntp_statuses._412_GRP_NOT_SLCTD;
                     if (!session.group.current_article) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
                     if (!self.articleExists(session.group.name, session.group.current_article)) return nntp_statuses._420_ARTICLE_NOT_SLCTD;
-                    var res = self.getNextArticle(session.group.name, session.group.current_article);
+                    const res = self.getNextArticle(session.group.name, session.group.current_article);
                     if (!res) return nntp_statuses._421_NO_NEXT_ARTICLE;
                     return res;
                 },
 
                 _selectGroup: function (session, name) {
                     // selectGroup
-                    var res = self.selectGroup(name);
+                    const res = self.selectGroup(name);
                     if (!res.failed) {
                         session.group = res;
                         return true;
@@ -90,7 +90,7 @@ class WTVNewsServer {
                 },
 
                 _buildHead: function (session, message) {
-                    var out = "";
+                    let out = "";
                     Object.keys(message.headers).forEach((k) => {
                         if (k.length > 0) out += `${k}: ${message.headers[k]}\r\n`;
                     });
@@ -100,13 +100,13 @@ class WTVNewsServer {
 
                 _buildHeaderField: function (session, message, field) {
                     if (field.indexOf(':') > 0) field = field.replace(/\:/g, '');
-                    var search = self.getHeader(message, field);
+                    const search = self.getHeader(message, field);
                     if (search) return search;
                     else return null;
                 },
 
                 _getOverviewFmt: function (session) {
-                    var headers = [
+                    const headers = [
                         "Subject:",
                         "From:",
                         "Date:",
@@ -120,7 +120,7 @@ class WTVNewsServer {
                 _getArticle: function (session, message_id) {
                     // getArticle
                     return new Promise((resolve, reject) => {
-                        var res = self.getArticle(session.group.name, message_id);
+                        const res = self.getArticle(session.group.name, message_id);
                         if (!res.messageId) reject(res);
                         else resolve(res)
                     });
@@ -131,7 +131,7 @@ class WTVNewsServer {
                 },
 
                 _getRange: function (session, first, last) {
-                    var res = self.listGroup(session.group.name, first, last)
+                    const res = self.listGroup(session.group.name, first, last)
                     if (res.failed) return false;
                     session.group = res.group_data;
                     return res.articles;
@@ -139,7 +139,7 @@ class WTVNewsServer {
 
             }
 
-            var tls_options = {
+            const tls_options = {
                 ca: this.wtvshared.getServiceDep('wtv-news' + this.path.sep + 'localserver_ca.pem'),
                 key: this.wtvshared.getServiceDep('wtv-news' + this.path.sep + 'localserver_key.pem'),
                 cert: this.wtvshared.getServiceDep('wtv-news' + this.path.sep + 'localserver_cert.pem'),
@@ -150,14 +150,14 @@ class WTVNewsServer {
     }
 
     getMetaFilename(group) {
-        var g = this.getGroupPath(group);
+        const g = this.getGroupPath(group);
         if (g) return g + this.path.sep + "meta.json";
         else return null;
     }
 
     getHeader(message, header) {
         if (message.headers) {
-            var search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
+            const search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
             if (search) return message.headers[search];
         }
         return null;
@@ -172,7 +172,7 @@ class WTVNewsServer {
     createMetaFile(group, description = null) {
         const g = this.getMetaFilename(group);
         if (this.fs.existsSync(g)) return false;
-        var metadata = this.selectGroup(group, true, true);
+        const metadata = this.selectGroup(group, true, true);
         if (description) metadata.description = description;
         this.saveMetadata(group, metadata, true);
         return (!metadata.failed) ? metadata : false
@@ -196,7 +196,7 @@ class WTVNewsServer {
 
     findHeaderCaseInsensitive(headers, header) {
         // returns the key with the found case
-        var response = null;
+        let response;
         if (headers) {
             Object.keys(headers).forEach((k) => {
                 if (k.toLowerCase() == header.toLowerCase()) {
@@ -209,13 +209,13 @@ class WTVNewsServer {
     }
 
     postArticle(group, post_data) {
-        var articleNumber = this.getMetadata(group).max_index + 1;
+        const articleNumber = this.getMetadata(group).max_index + 1;
         if (!articleNumber) return false;
         try {
             post_data.articleNumber = articleNumber;
             post_data.messageId = this.getHeader(post_data, "message-id");
             if (!post_data.messageId) {
-                var messageId = "<" + this.wtvshared.generateString(16) + "@" + this.minisrv_config.config.domain_name + ">";
+                const messageId = "<" + this.wtvshared.generateString(16) + "@" + this.minisrv_config.config.domain_name + ">";
                 post_data.messageId = post_data.headers['Message-ID'] = messageId;
             }
 
@@ -246,11 +246,11 @@ class WTVNewsServer {
     }
 
     createArticle(group, articleNumber, article) {
-        var g = this.getGroupPath(group);
-        var file = g + this.path.sep + articleNumber + ".newz";
+        const g = this.getGroupPath(group);
+        const file = g + this.path.sep + articleNumber + ".newz";
         try {
             this.fs.writeFileSync(file, JSON.stringify(article));
-            var metadata = this.getMetadata(group);
+            const metadata = this.getMetadata(group);
             metadata.max_index = metadata.max_index + 1;
             metadata.total = metadata.total + 1;
             this.saveMetadata(group, metadata)
@@ -276,7 +276,7 @@ class WTVNewsServer {
     }
 
     createGroup(group, description = null) {
-        var g = this.getGroupPath(group);
+        const g = this.getGroupPath(group);
         if (!this.fs.existsSync(g)) {
             this.fs.mkdirSync(g);
             return this.createMetaFile(group, description)
@@ -288,7 +288,7 @@ class WTVNewsServer {
         const g = this.getArticlePath(group, article);
         if (!this.fs.existsSync(g)) return false;
         try {
-            var data = JSON.parse(this.fs.readFileSync(g));
+            let data = JSON.parse(this.fs.readFileSync(g));
             if (data.article) data = data.article;
             data.index = data.articleNumber;
             if (!data.body) data.body = [''];
@@ -302,18 +302,18 @@ class WTVNewsServer {
 
 
     selectGroup(group, force_update = false, initial_update = false) {
-        var g = this.getGroupPath(group);
-        var meta = this.getMetadata(group);
+        const g = this.getGroupPath(group);
+        let meta = this.getMetadata(group);
         if (!meta) force_update, initial_update = true;
-
+        let out;
         if (initial_update) {
-            var out = {
+            out = {
                 total: 0,
                 min_index: 0,
                 max_index: 0,
                 name: group
             }
-        } else var out = { ...meta }
+        } else out = { ...meta }
 
         if (meta.min_index == 0) force_update = true;
         if (this.featuredGroups) {
@@ -330,7 +330,7 @@ class WTVNewsServer {
                 out.total = 0;
                 this.fs.readdirSync(g).forEach(file => {
                     if (file == "meta.json") return;
-                    var articleNumber = parseInt(file.split('.')[0]);
+                    const articleNumber = parseInt(file.split('.')[0]);
                     if (out.min_index == 0) out.min_index = articleNumber;
                     else if (articleNumber < out.min_index) out.min_index = articleNumber;
                     else if (articleNumber > out.max_index) out.max_index = articleNumber;
@@ -354,7 +354,7 @@ class WTVNewsServer {
     }
 
     getGroups(wildmat = null) {
-        var groups = [];
+        const groups = [];
         this.fs.readdirSync(this.data_path).forEach(file => {
             if (this.fs.lstatSync(this.data_path + this.path.sep + file).isDirectory()) {
                 if (wildmat) {
@@ -366,24 +366,24 @@ class WTVNewsServer {
     }
 
     getLastArticle(group, current) {
-        var g = this.getGroupPath(group);
-        var res = null;
+        const g = this.getGroupPath(group);
+        let res;
         try {
-            var articleNumbers = [];
+            const articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
                 if (file == "meta.json") return;
-                var articleNumber = parseInt(file.split('.')[0]);
+                const articleNumber = parseInt(file.split('.')[0]);
                 articleNumbers.push(articleNumber);
             });
             articleNumbers.sort((a, b) => a - b)
-            var index = articleNumbers.findIndex((e) => e == current) - 1;
+            const index = articleNumbers.findIndex((e) => e == current) - 1;
             if (index >= 0) res = articleNumbers[index];
         } catch (e) {
             return e;
         }
         if (res) {
             if (res == current) return null;
-            var message = this.getArticle(group, res);
+            const message = this.getArticle(group, res);
             if (message.messageId) {
                 res = { "articleNumber": res, "message_id": message.messageId };
             }
@@ -392,23 +392,23 @@ class WTVNewsServer {
     }
 
     getNextArticle(group, current) {
-        var g = this.getGroupPath(group);
-        var res = null;
+        const g = this.getGroupPath(group);
+        let res;
         try {
-            var articleNumbers = [];
+            const articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
                 if (file == "meta.json") return;
-                var articleNumber = parseInt(file.split('.')[0]);
+                const articleNumber = parseInt(file.split('.')[0]);
                 articleNumbers.push(articleNumber);
             });
             articleNumbers.sort((a, b) => a - b)
-            var index = articleNumbers.findIndex((e) => e == current) + 1;
+            const index = articleNumbers.findIndex((e) => e == current) + 1;
             if (index < articleNumbers.length) res = articleNumbers[index];
         } catch (e) {
             return e;
         }
         if (res) {
-            var message = this.getArticle(group, res);
+            const message = this.getArticle(group, res);
             if (message.messageId) {
                 res = { "articleNumber": res, "message_id": message.messageId };
             }
@@ -432,28 +432,29 @@ class WTVNewsServer {
     }
 
     listGroup(group, start, end, force_update = false) {
-        var g = this.getGroupPath(group);
-        var out = {
+        const g = this.getGroupPath(group);
+        const out = {
             total: 0,
             min_index: 0,
             max_index: 0,
             name: group
         }
-        var articles = [];
+        let meta;
+        const articles = [];
         try {
-            var meta = this.getMetadata(group);
-                this.fs.readdirSync(g).forEach(file => {
-                    if (file == "meta.json") return;
-                    var articleNumber = parseInt(file.split('.')[0]);
-                    if (articleNumber < start) return;
-                    if (articleNumber > end) return false;
-                    if (out.min_index == null) out.min_index = articleNumber;
-                    else if (articleNumber < out.min_index) out.min_index = articleNumber;
+            meta = this.getMetadata(group);
+            this.fs.readdirSync(g).forEach(file => {
+                if (file == "meta.json") return;
+                const articleNumber = parseInt(file.split('.')[0]);
+                if (articleNumber < start) return;
+                if (articleNumber > end) return false;
+                if (out.min_index == null) out.min_index = articleNumber;
+                else if (articleNumber < out.min_index) out.min_index = articleNumber;
 
-                    if (articleNumber > out.max_index) out.max_index = articleNumber;
-                    articles.push(this.getArticle(group, articleNumber));
-                    out.total++;
-                });
+                if (articleNumber > out.max_index) out.max_index = articleNumber;
+                articles.push(this.getArticle(group, articleNumber));
+                out.total++;
+            });
             if (force_update || this.doesMetaNeedRefreshing(meta)) {
                 meta = { ...meta, ...out }
                 meta.last_scan = Math.floor(Date.now() / 1000);

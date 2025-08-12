@@ -12,7 +12,7 @@ exports.createServer = (opts, handler) => {
             socket.pause();
 
             // Determine if this is an HTTP(s) request
-            let byte = buffer[0];
+            const byte = buffer[0];
 
             let protocol;
             if (byte === 22) {
@@ -21,7 +21,7 @@ exports.createServer = (opts, handler) => {
                 protocol = 'http';
             }
 
-            let proxy = server[protocol];
+            const proxy = server[protocol];
             if (proxy) {
                 // Push the buffer back onto the front of the data stream
                 socket.unshift(buffer);

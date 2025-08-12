@@ -31,13 +31,13 @@ class WTVShenanigans {
      * @returns {boolean} True if the shenanigan is enabled, false otherwise.
      */
     checkShenanigan(value) {
-        var level = this.getShenanigansLevel();
+        const level = this.getShenanigansLevel();
 
         // shenanigans are disabled, don't iterate
         if (level === false) return false;
 
-        var retval = false;
-        var shenanigans = this.shenanigans;
+        let retval = false;
+        const shenanigans = this.shenanigans;
 
         // shenanigans are enabled, so check if the requested shenanigan is within the level enabled
         Object.keys(shenanigans).forEach((k) => {

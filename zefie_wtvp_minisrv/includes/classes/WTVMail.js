@@ -221,7 +221,7 @@ class WTVMail {
                 switch (header[0].toLowerCase()) {
                     case "from":
                         if (header[1].indexOf("<") >= 0) {
-                            let email = header[1].match(/(.+) \<(.+)\>/);
+                            const email = header[1].match(/(.+) \<(.+)\>/);
                             if (email) {
                                 from_name = email[1];
                                 from_addr = email[2];
@@ -289,8 +289,8 @@ class WTVMail {
 
         // rely on filesystem times for sorting as it is quicker then reading every file
         const file_timestamp = new Date(message_data.date * 1000);
-        fs.utimesSync(message_file, Date.now(), file_timestamp);
-        if (!result) console.error(" WARNING: Setting timestamp on " + message_file + " failed, mail dates will be inaccurate.");
+        this.fs.utimesSync(message_data.message_file, Date.now(), file_timestamp);
+        if (!result) console.error(" WARNING: Setting timestamp on " + message_data.message_file + " failed, mail dates will be inaccurate.");
     }
 
     checkMessageIdSanity(messageid) {
@@ -482,8 +482,8 @@ class WTVMail {
                 this.fs.readdirSync(this.mailstore_dir).every(mailbox => {
                     if (mailbox_name) return false;
                     self.fs.readdirSync(self.mailstore_dir + mailbox).every(file => {
-                        var regexSearch = messageid + self.msgFileExt;
-                        var re = new RegExp(regexSearch, "ig");
+                        const regexSearch = messageid + self.msgFileExt;
+                        const re = new RegExp(regexSearch, "ig");
                         if (!file.match(re)) return true;
                         mailbox_name = mailbox;
                         return false;

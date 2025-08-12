@@ -34,7 +34,7 @@ class LZSS {
     }
 
     insertNode(i) {
-        let keyi = this.ring_buffer[i];
+        const keyi = this.ring_buffer[i];
         let keyii = this.ring_buffer[i + 1] ^ this.ring_buffer[i + 2];
         keyii = ((keyii ^ (keyii >> 4)) & 0x0F) << 8;
 
@@ -129,7 +129,7 @@ class LZSS {
                 this.parent[this.rchild[i]] = ii;
             }
             this.parent[ii] = this.parent[i];
-            let parent_link = this.parent[i];
+            const parent_link = this.parent[i];
             if (this.rchild[parent_link] !== i) {
                 this.lchild[parent_link] = ii;
             } else {
