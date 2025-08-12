@@ -1164,7 +1164,7 @@ class WebTVClientSimulator {
         }
 
         // Handle user-id header - indicates successful authentication
-        if (headers['user-id']) {
+        if (headers['user-id'] || (headers['wtv-visit'] && headers['wtv-visit'].startsWith('wtv-register:/splash'))) {
             this.debugLog(`*** Authentication successful! user-id detected: ${headers['user-id']} ***`);
             this.userIdDetected = true;
             
@@ -1566,7 +1566,7 @@ class WebTVClientSimulator {
                         let fileContent = fileResult.body;
                         const contentType = fileResult.headers ? fileResult.headers['content-type'] : '';
                         const normalizedContentType = contentType.split(';')[0].trim().toLowerCase();
-                        var isgzip = false;
+                        let isgzip = false;
 
                         if (normalizedContentType === 'application/gzip' && !this.keepgz) {
                             this.debugLog(`Decompressing gzip file for ${fileUrl}...`);
@@ -1581,8 +1581,8 @@ class WebTVClientSimulator {
                                 fileContent = fileResult.body;
                             }
                         }
-                        
-                        var filePath = this.getServicePath(fileUrl, fileResult.headers || {});
+
+                        let filePath = this.getServicePath(fileUrl, fileResult.headers || {});
                         if (isgzip) filePath = filePath.slice(0, -3);
                         zip.addFile(filePath, fileContent);
                         downloadedFiles.add(fileUrl);
@@ -1800,9 +1800,9 @@ class WebTVClientSimulator {
                 // Images and media
                 /<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
                 /<image[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
-                /<video[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
-                /<audio[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
-                /<source[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
+                /<body[^>]+bgsound\s*=\s*["']([^"']+)["'][^>]*>/gi,
+                /<bgsound[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
+                /<embed[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
                 
                 // Scripts and stylesheets
                 /<script[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi,
@@ -2366,12 +2366,12 @@ class WebTVClientSimulator {
             this.debugLog('Parsing VLN-stage-two HTML for form and hidden fields...');
 
             // Find the form action URL
-            var formMatch = htmlString.match(/<form[^>]+action=["']([^"']+)["'][^>]*>/i);
+            let formMatch = htmlString.match(/<form[^>]+action=["']([^"']+)["'][^>]*>/i);
             if (!formMatch) {
                 // Match <form ... action=... ...>
                 // Handles quoted and unquoted action values
                 // Improved regex: match action attribute, quoted or unquoted, non-greedy
-                var formMatch = htmlString.match(/<form[^>]*\saction\s*=\s*(?:"([^"]*?)"|'([^']*?)'|([^\s"'<>]+))/i);
+                formMatch = htmlString.match(/<form[^>]*\saction\s*=\s*(?:"([^"]*?)"|'([^']*?)'|([^\s"'<>]+))/i);
                 if (!formMatch) {
                     console.error('No form with action found in VLN-stage-two HTML');
                     this.cleanup();

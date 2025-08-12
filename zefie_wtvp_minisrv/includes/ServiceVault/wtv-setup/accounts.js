@@ -2,7 +2,7 @@ const minisrv_service_file = true;
 session_data.loadSessionData();
 
 if (session_data.user_id != 0) {
-    const errpage = doErrorPage(400, "You are not authorized to edit the primary account.");
+    const errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the primary account.");
     headers = errpage[0];
     data = errpage[1];
 } else {

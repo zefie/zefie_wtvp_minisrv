@@ -241,6 +241,9 @@ class WTVClientSessionData {
         if (parseInt(this.user_id) !== 0) return false; // not primary account
         if (user_id === 0) return false; // cannot delete primary account in this fashion
 
+        const wtvauthor = new WTVAuthor(this.minisrv_config, this)
+        wtvauthor.deleteUser(user_id);
+
         const userstore = this.getUserStoreDirectory(false, user_id);
         if (this.fs.existsSync(userstore)) {
             this.fs.rmSync(userstore, { recursive: true });
@@ -270,7 +273,7 @@ class WTVClientSessionData {
             const dest_pending_file = new_userstore + this.path.sep + "pending_transfer.json";
             if (this.fs.existsSync(dest_pending_file)) this.fs.unlinkSync(dest_pending_file);
             this.fs.unlinkSync(pending_file);
-            if (this.fs.existsSync(new_userstore)) this.fs.rmdirSync(new_userstore);
+            if (this.fs.existsSync(new_userstore)) this.fs.rmSync(new_userstore, { recursive: true });
             return ssidobj.ssid
         }
         return null;
@@ -790,6 +793,11 @@ class WTVClientSessionData {
 
     unregisterBox() {
         const user_store_base = this.wtvshared.makeSafePath(this.wtvshared.getAbsolutePath(this.getAccountStoreDirectory()), this.path.sep + this.ssid);
+        const accountUsers = this.listPrimaryAccountUsers();
+        Object.keys(accountUsers).forEach(userKey => {
+            const user_id = accountUsers[userKey].user_id;
+            this.pagestore.deleteUser(user_id);
+        });
         try {
             if (this.fs.existsSync(user_store_base + ".json")) {
                 this.fs.unlinkSync(user_store_base + ".json");

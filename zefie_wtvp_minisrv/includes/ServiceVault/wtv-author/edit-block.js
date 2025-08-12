@@ -10,7 +10,7 @@ var photo;
 var thumbnail;
 
 if (pagedata.blocks[oldBlockNum].photo) {
-	photo = wtvshared.atob(pagedata.blocks[oldBlockNum].photo)
+	photo = wtvshared.btoa(pagedata.blocks[oldBlockNum].photo)
 	thumbnail = photo.replace('clipart/', 'clipart/icons/');
 }
 

@@ -137,6 +137,7 @@ class WTVDownloadList {
         const destination = path.replace("file://", "");
         this.putUserStoreDest(path, destination);
     }
+    
     /**
      * Adds a GET command to the download list
      * @param {string} file Non-absolute path of client destination file (relative to group base)

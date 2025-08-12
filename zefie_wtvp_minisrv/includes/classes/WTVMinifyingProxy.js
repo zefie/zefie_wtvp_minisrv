@@ -17,12 +17,12 @@ class WTVMinifyingProxy {
         ];
         
         this.allowedAttributes = [
-            'leftcolor', 'rightcolor', 'maxlevel', 'leftoffset', 'rightoffset',
+            'leftcolor', 'rightcolor', 'maxlevel', 'leftoffset', 'rightoffset', 'background',
             'host', 'port', 'channel', 'borderimage', 'font', 'nohighlight', 'autoactivate',
-            'text', 'cursor', 
-            'href', 'src', 'alt', 'title', 'width', 'height', 'border', 'align', 'valign',
-            'bgcolor', 'color', 'size', 'face', 'target', 'name', 'value', 'type', 'action',
-            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap', 
+            'text', 'cursor', 'loop', 'autostart', 'href', 'src', 'alt', 'title', 'width',
+            'height', 'border', 'align', 'valign', 'bgcolor', 'color', 'size',
+            'face', 'target', 'name', 'value', 'type', 'action',
+            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap',
             // JellyScript event handlers
             'onclick', 'onload', 'onunload', 'onsubmit', 'onreset', 'onfocus', 'onblur', 
             'onchange', 'onmouseover', 'onmouseout', 'onmousedown', 'onmouseup'
@@ -495,14 +495,8 @@ class WTVMinifyingProxy {
         
         // Remove other unsupported content
         return html
-            // Remove noscript content (show it since we support basic JS)
-            .replace(/<noscript\b[^>]*>/gi, '')
-            .replace(/<\/noscript>/gi, '')
             // Remove object/embed tags
             .replace(/<object\b[^>]*>.*?<\/object>/gis, '')
-            .replace(/<embed\b[^>]*\/?>/gi, '')
-            // Remove iframes
-            .replace(/<iframe\b[^>]*>.*?<\/iframe>/gis, '')
             // Remove link tags (CSS, etc.)
             .replace(/<link\b[^>]*\/?>/gi, '')
             // Remove meta tags except content-type and charset

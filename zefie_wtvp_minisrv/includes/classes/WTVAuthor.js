@@ -729,19 +729,22 @@ html += `">next page</a>
         var pagestorepath = this.pagestore_dir;
         var self = this;
 		self.pageArr = [];
-        var files = this.fs.readdirSync(pagestorepath)
-		this.debug("listPages","files",files)
+		if (self.fs.existsSync(pagestorepath)) {
+			var files = this.fs.readdirSync(pagestorepath)
+			this.debug("listPages","files",files)
             files.map(function (v) {
-				// oh yeah it's because any non-JSON file in pagestore will throw an error and break everything
-				var page_data_raw = null;
-                var pagepath = pagestorepath + self.path.sep + v;
-				if (self.fs.existsSync(pagepath)) page_data_raw = self.fs.readFileSync(pagepath);
-                if (page_data_raw) {
-                    var page_data = JSON.parse(page_data_raw);
-					self.pageArr.push(page_data);
-                }
-                
+				if (v.endsWith(self.pageFileExt)) {
+					// oh yeah it's because any non-JSON file in pagestore will throw an error and break everything
+					var page_data_raw = null;
+					var pagepath = pagestorepath + self.path.sep + v;
+					if (self.fs.existsSync(pagepath)) page_data_raw = self.fs.readFileSync(pagepath);
+					if (page_data_raw) {
+						var page_data = JSON.parse(page_data_raw);
+						self.pageArr.push(page_data);
+					}
+				}
             })
+		}
 		return self.pageArr;
     }
 	
@@ -819,9 +822,14 @@ html += `">next page</a>
 		var publishname = pagedata.publishname;
 		if (this.fs.existsSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname)) {
 			try {
-				this.fs.rmdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname, { recursive: true })
+				this.fs.rmSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname, { recursive: true })
 				pagedata.published = false;
 				this.editPage(pagedata, pagenum, false);
+				const pages = this.listPages()
+				const publishedPagesCount = pages.filter(page => page.published).length;
+				if (publishedPagesCount === 0) {
+					this.fs.rmSync(destDir + this.wtvclient.session_store.subscriber_username, { recursive: true });
+				}
 				this.generatePageList()
 				return true;
 			} catch { }
@@ -881,8 +889,8 @@ html += `">next page</a>
 	
 	generatePageList() {
 		// this one's pretty ok i think, but it should have screenshots of each page
-		var pagelist = this.listPages()
-		var html = `<HTML>
+		const pagelist = this.listPages()
+		let html = `<HTML>
 <HEAD>
 <SCRIPT language="JavaScript">
 var	gIsWebTV = false;
@@ -946,19 +954,35 @@ vspace=0
 	
 	deletePage(pagenum) {
 		// i hate fs operations
-		var pagestore = this.pagestoreExists()
-		var userstore_dir = this.wtvclient.getUserStoreDirectory();
+		const pagestore = this.pagestoreExists()
+		const userstore_dir = this.wtvclient.getUserStoreDirectory();
 		this.debug("deletePage","userstore_dir",userstore_dir)
 
         // PageStore
-        var store_dir = "PageStore" + this.path.sep;
+    	const store_dir = "PageStore" + this.path.sep;
         this.pagestore_dir = userstore_dir + store_dir;
-        var pagestorepath = this.pagestore_dir;
-		var page_file = this.fs.readdirSync(pagestorepath)
-		var page_file_out = page_file[pagenum]
+        const pagestorepath = this.pagestore_dir;
+		const page_file = this.fs.readdirSync(pagestorepath)
+		const page_file_out = page_file[pagenum]
+
 		this.unpublishPage(pagenum);
-		this.fs.unlinkSync(this.pagestore_dir + page_file_out, { recursive: true });
+		if (typeof page_file_out === 'undefined') {
+			this.fs.unlinkSync(this.pagestore_dir + page_file_out, { recursive: true });
+		}
 	}
+
+	deleteUser(user_id) {;
+		this.wtvclient.switchUserID(user_id, false, false, false);
+		const pagelist = this.listPages();
+		for (let i = 0; i < pagelist.length; i++) {
+			this.deletePage(i);
+		}
+		const userstore_dir = otherUser.getUserStoreDirectory();
+		const store_dir = "PageStore" + this.path.sep;
+        this.pagestore_dir = userstore_dir + store_dir;
+		this.wtvclient.switchUserID(0, false, false, false);
+	}
+
 	// these totally couldn't have been made into one function nah that's impossible
 	createTextBlock(pagenum, title, caption, size, style, position) {
 		var pagedata = this.loadPage(pagenum);

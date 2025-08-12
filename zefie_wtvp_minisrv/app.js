@@ -1238,8 +1238,8 @@ function handleProxy(socket, request_type, request_headers, res, data) {
                 console.warn(` * HTML transformation failed: ${err.message}`);
             }
         }
-        
-        if (request_type != "http" && request_type != "https") {
+
+        if (request_type !== "http" && request_type !== "https") {
             // replace http and https links on non http/https protocol (for proto:// for example)
             const data_t = Buffer.concat(data).toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
             data = [Buffer.from(data_t)]
