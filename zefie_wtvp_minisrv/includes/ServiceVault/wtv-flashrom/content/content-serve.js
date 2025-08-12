@@ -1,11 +1,10 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
+request_is_async = true;
 
-var request_is_async = true;
-
-var bf0app_update = false;
-var request_path = request_headers.request_url.replace(service_name + ":/", "");
-var romtype = session_data.get("wtv-client-rom-type");
-var bootver = session_data.get("wtv-client-bootrom-version")
+let bf0app_update = false;
+const request_path = request_headers.request_url.replace(service_name + ":/", "");
+const romtype = session_data.get("wtv-client-rom-type");
+const bootver = session_data.get("wtv-client-bootrom-version")
 
 if ((romtype == "bf0app" || !romtype) && (bootver == "105" || !bootver)) {
 	// assume old classic in flash mode, override user setting and send tellyscript

@@ -279,7 +279,10 @@
       "debug": false,
       "use_zefie_server": true, // access zefie's repository of flashroms, local roms will still be used if they exist. Best left unchanged.
       "bf0app_default_rom": "content/artemis-webtv-000/build7377/internal-nondebug/bf0app-part000.rom", // Can change the default build for bf0app
-      "catchall_file_name": "content-serve.js" // catchall for ROM part files. Best left untouched
+      "catchall_file_name": "content-serve.js", // catchall for ROM part files. Best left untouched
+      "modules": [
+        "WTVFlashrom"
+      ]
     },
     "wtv-setup": {
       // wtv-setup

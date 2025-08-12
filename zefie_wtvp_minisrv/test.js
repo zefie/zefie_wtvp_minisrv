@@ -152,6 +152,11 @@ function checkScopeErrors(file) {
 							"session_data": "readonly",
 						};
 					}
+
+					if (serviceName === "wtv-guide") {
+						eslintConfig.globals["wtvguide"] = "readonly";
+					}
+					
 					if (service.modules) {
 						for (const moduleName of service.modules) {
 							eslintConfig.globals[moduleName] = "readonly";

@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 request_is_async = true;
 
@@ -7,18 +7,17 @@ request_is_async = true;
 // https://archive.midnightchannel.net/zefie/files/wtv-flashrom/content/artemis-webtv-000/
 // and put everything from 'content/' onwards, including the part000.rom filename
 // example is below
-var default_build_to_send = minisrv_config.services[service_name].bf0app_default_rom || "content/artemis-webtv-000/build7181/daily-nondebug/bf0app-part000.rom";
+const default_build_to_send = minisrv_config.services[service_name].bf0app_default_rom || "content/artemis-webtv-000/build7181/daily-nondebug/bf0app-part000.rom";
 
 
-var request_path = "";
-var bf0app_update = true;
+let request_path = "";
+const bf0app_update = true;
 if (request_headers.query.path) request_path = request_headers.query.path;
 else request_path = default_build_to_send;
 
 if (session_data.get("wtv-client-rom-type") == "bf0app" && session_data.get("wtv-client-bootrom-version") == "105") {
 	// assume old classic in flash mode, override user setting and send tellyscript
 	// because it is required to proceed in flash mode
-	bf0app_update = true;
 	session_data.set("bf0app_update", bf0app_update);
 }
 
