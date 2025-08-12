@@ -31,12 +31,15 @@ class WTVAuthor {
 	headerimgLwidth = null;
 	afterblock1 = null;
 	debug = require('debug')('WTVAuthor')
+	nunjucks = null;
 	
 	constructor(minisrv_config, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
 		if (!wtvclient) throw ("WTVClientSessionData required");
-        var WTVShared = require('./WTVShared.js')['WTVShared'];
-        var WTVMime = require('./WTVMime.js');
+        const WTVShared = require('./WTVShared.js')['WTVShared'];
+		const nunjucks = require('nunjucks');
+		this.nunjucks = nunjucks;
+        const WTVMime = require('./WTVMime.js');
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvmime = new WTVMime(minisrv_config);
@@ -161,341 +164,128 @@ class WTVAuthor {
 	}
 	
 	generateBlock(number, page, state) {
-		var block;
-		var pagedata = this.loadPage(page)
-		var thisblock = pagedata.blocks[number]
-		var type = thisblock.type
-		var numofblocks = pagedata.blocks.length
-		// Generate HTML for each type of block
+		const pagedata = this.loadPage(page);
+		const thisblock = pagedata.blocks[number];
+		const type = thisblock.type;
+		const numofblocks = pagedata.blocks.length;
+
+		// Configure nunjucks with custom filters
+		const env = this.nunjucks.configure({ autoescape: false });
+		env.addFilter('base64_decode', function(str) {
+			return Buffer.from(str, 'base64').toString();
+		});
+
+		const templateData = {
+			state: state,
+			page: page,
+			number: number,
+			thisblock: thisblock,
+			numofblocks: numofblocks,
+			headcol: this.headcol,
+			text_color: this.text,
+			headerimgL: this.headerimgL,
+			headerimgLwidth: this.headerimgLwidth,
+			headerimgLheight: this.headerimgLheight,
+			listcol1: this.listcol1,
+			listcol2: this.listcol2
+		};
+
+		let templatePath;
+		let block = "";
+
 		switch(type) {
 			case "text":
-				if (state == "editing") {
-					block = `<table href=wtv-author:/edit-block?docName=${page}&blockNum=${number}>`
-				} else {
-					block = `<table>`
-				}
-				block += `<tbody><tr><td>`
-				
-				block += "<font color=" + this.headcol + "<h3 align=left>" + thisblock.title + "</h3></font>"
-				
-				if (thisblock.caption)
-					block += "<p align=left><font color=" + this.text
-					if (thisblock.size)
-						block +=  " size=" + thisblock.size + ">"
-					else
-						block += ">"
-					
-					if (thisblock.style)
-						block += "<" + thisblock.style + ">"
-					
-					block += thisblock.caption + "</p>"
-					
-					if (thisblock.style)
-						block += "</" + thisblock.style + ">"
-				
-				block += "</font></td></tr></tbody></table>"
+				templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/text_block.njk', true);
+				block = this.nunjucks.render(templatePath, templateData);
 				break;
 				
 			case "snapshot":
 			case "scrapbook":
 				if (state == "publishing") {
-					block = this.generatePublishImageBlock(number, page)
-					break;
+					block = this.generatePublishImageBlock(number, page);
 				} else {
-					block = `<font size="6" color="#ffffcc"><b>`
-				if (state == "editing") {
-					block += `<TABLE href=wtv-author:/edit-block?docName=${page}&blockNum=${number}&numOfBlocks=${numofblocks} nocolor width=100%>`
-				} else {
-					block += `<TABLE nocolor width=100%>`
+					templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/snapshot_block.njk', true);
+					block = this.nunjucks.render(templatePath, templateData);
 				}
-				block += `<tbody><tr>
-<td>
-<center>`
-				if (thisblock.title)
-					block += `<TR>
-<TD align=center>
-<font color=${this.headcol}>
-<H3>
-${thisblock.title}
-</H3>
-</font>
-</TD>
-</TR>`
-				block += `<TR>
-<TD>`
-				
-				block += `<CENTER>
-<IMG SRC="wtv-author:/get-photo?docName=${page}&blockNum=${number}">
-</CENTER>
-</TD>
-</TR>
-<TR>
-<TD valign=top>`
-				if (state == "editing" && thisblock.caption == null || state == "editing" && thisblock.caption.length == 0)
-					block += "<i>Choose this to change the image or add an optional caption.</i>"
-				else if (thisblock.caption != null)
-					block += `${thisblock.caption}`
-block += `</td>
-</tr>
-</tbody></table>
-</b></font><p></p>
-<p>&nbsp;</p>`
-			break;
-				}
+				break;
 			
 			case "clipart":
 				if (state == "publishing") {
-					block = this.generatePublishImageBlock(number, page)
-					break;
+					block = this.generatePublishImageBlock(number, page);
 				} else {
-				block = `<p>`
-				if (state == "editing")
-					block += `<TABLE href=wtv-author:/edit-block?docName=${page}&blockNum=${number}&numOfBlocks=${pagedata.blocks.length} nocolor width=100%>`
-				else
-					block += `<TABLE nocolor width=100%>`
-				if (thisblock.title)
-					block += `<TR>
-<TD align=center>
-<font color=${this.headcol}>
-<H3>
-${thisblock.title}
-</H3>
-</font>
-</TD>
-</TR>`
-				block += `<TR>`
-				if (state == "editing")
-					block += `<td>`
-				else
-					block += "<td>"
-				
-				block += `<CENTER>
-<IMG SRC="wtv-author:/${atob(thisblock.photo)}">
-</CENTER>
-</TD>
-</TR>
-<TR>
-<TD valign=top>`
-				if (state == "editing" && thisblock.caption == null || state == "editing" && thisblock.caption.length == 0)
-					block += "<i>Choose this to change the image or add an optional caption.</i>"
-				else if (thisblock.caption != null)
-					block += `${thisblock.caption}`
-block += `
-</TD>
-</TR>
-</TABLE>
-</p>`
-			break;
+					templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/clipart_block.njk', true);
+					block = this.nunjucks.render(templatePath, templateData);
 				}
+				break;
 			
 			case "heading":
-			
-			block = `<center>
-<h2>`
-			if (state == "editing")
-				block += `<table href=wtv-author:/edit-block?docName=${page}&blockNum=${number}&numOfBlocks=${pagedata.blocks.length} frame="" width="90%" cellspacing="8" cellpadding="0" border="0">`
-			else
-				block += `<table frame="" width="90%" cellspacing="8" cellpadding="0" border="0">`
-			
-			block += `<tbody><tr>`
-			if (this.headerimgL) {
-				block += `<td><img src="${this.headerimgL}" width="${this.headerimgLwidth}" height="${this.headerimgLheight}"> </td>`
-			}
-			block += `
-<td center=""><font color=${this.headcol}>`
-			if (thisblock.dividerBefore == "on")
-				block += `<h2>
-<hr>
-</h2>`
-
-block += `<${thisblock.size}>${thisblock.text}</${thisblock.size}>`
-if (thisblock.dividerAfter == "on")
-				block += `<h2>
-<hr>
-</h2>`
-
-block += `</td>
-</font>
-</tr>
-</tbody></table></h2>
-</center>`
-		break;
+				templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/heading_block.njk', true);
+				block = this.nunjucks.render(templatePath, templateData);
+				break;
 		
 		case "list":
-			
-			block = `<center>`
-			if (state == "editing")
-				block += `<table nocolor="" cellspacing="0" cellpadding="0" href=wtv-author:/edit-block?docName=${page}&blockNum=${number}&numOfBlocks=${pagedata.blocks.length}>`
-			else
-				block += `<table nocolor="" cellspacing="0" cellpadding="0">`
-			
-			block += `<tbody><tr><td>
-<font color=${this.headcol}>
-<h3>
-${thisblock.title}
-</h3>
-</font>
-</td></tr><tr><td height="0"><spacer type="block" width="80">    </spacer></td></tr>`
-			for (let i = 0; i < thisblock.items.length; i++) {
-				block += `<tr>`
-			if (this.listcol1 != null) {
-				if(i % 2 == 0) {
-					block += `<td bgcolor=${this.listcol1}>`
-				} else {
-					if (this.listcol2 != null) {
-						block += `<td bgcolor=${this.listcol2}>`
-					} else {
-						block += `<td bgcolor=${this.listcol1}>`
-					}
-				}
-			} else {
-				block += `<td>`
-			}
-block += `<ul type="DISC">
-<li>
-${thisblock.items[i]}
-</li>
-</ul>
-</td>
-</tr>`
-}
-			
-block += `</td>
-</tr></tbody></table>
-</center>`
-		break;
+			templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/list_block.njk', true);
+			block = this.nunjucks.render(templatePath, templateData);
+			break;
 		
 		case "link":
+			templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/link_block.njk', true);
+			block = this.nunjucks.render(templatePath, templateData);
+			break;
 			
-			block = `<center>`
-			if (state == "editing")
-				block += `<table nocolor="" cellspacing="0" cellpadding="0" href=wtv-author:/edit-block?docName=${page}&blockNum=${number}&numOfBlocks=${pagedata.blocks.length}>`
-			else
-				block += `<table nocolor="" cellspacing="0" cellpadding="0">`
-			
-			block += `<tbody><tr><td>
-<font color=${this.headcol}>
-<h3>
-${thisblock.title}
-</h3>
-</font>
-</td></tr><tr><td height="0"><spacer type="block" width="80">    </spacer></td></tr>`
-			for (let i = 0; i < thisblock.items.length; i++) {
-				block += `<tr>`
-			if (this.listcol1 != null) {
-				if(i % 2 == 0) {
-					block += `<td bgcolor=${this.listcol1}>`
-				} else {
-					if (this.listcol2 != null) {
-						block += `<td bgcolor=${this.listcol2}>`
-					} else {
-						block += `<td bgcolor=${this.listcol1}>`
-					}
-				}
-			} else {
-				block += `<td>`
-			}
-block += `<ul type="DISC">
-<li>
-<a href="${thisblock.items[i].url}">`
-if (thisblock.items[i].name != "" && thisblock.items[i].name != undefined)
-	block += `${thisblock.items[i].name}`
-else
-	block += `${thisblock.items[i].url}`
-block += `</a>
-</li>
-</ul>
-</td>
-</tr>`
-}
-			
-block += `</tbody></table>
-</center>`
-		break;
 		default:
-		block = ""
-		break;
+			block = "";
+			break;
 		}
+		
 		return block;
 	}
 	// Separate function for generating image blocks when publishing because there is no possibly better way to do this
 	generatePublishImageBlock(number, page) {
-		var block;
-		var destDir = this.getPublishDir();
-		var pagedata = this.loadPage(page)
-		var thisblock = pagedata.blocks[number]
-		var type = thisblock.type
-		var numofblocks = pagedata.blocks.length
-		switch(type) {
-				
-			case "snapshot":
-				block = `<p><TABLE nocolor width=100%>`
-				if (thisblock.title)
-					block += `<TR>
-<TD align=center>
-<font color=${this.headcol}>
-<H3>
-${thisblock.title}
-</H3>
-</font>
-</TD>
-</TR>`
-				block += `<TR>
-<TD>`
-				
-				block += `<CENTER>
-<IMG SRC="media/captureA${number}.jpg">
-</CENTER>
-</TD>
-</TR>
-<TR>
-<TD valign=top>`
-				if (thisblock.caption != null)
-					block += `${thisblock.caption}`
-block += `
-</TD>
-</TR>
-</TABLE>
-</p>`
-this.fs.writeFile(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + '/media/captureA' + number + '.jpg', new Buffer.from(thisblock.photo, 'base64'), err => {
-		if (err) {
-			console.error(err);
-		}
-		// file written successfully
+		const destDir = this.getPublishDir();
+		const pagedata = this.loadPage(page);
+		const thisblock = pagedata.blocks[number];
+		const type = thisblock.type;
+
+		// Configure nunjucks with custom filters
+		const env = this.nunjucks.configure({ autoescape: false });
+		env.addFilter('base64_decode', function(str) {
+			return Buffer.from(str, 'base64').toString();
 		});
-			break;
+
+		const templateData = {
+			number: number,
+			thisblock: thisblock,
+			headcol: this.headcol
+		};
+
+		let block = "";
+		let templatePath;
+
+		switch(type) {
+			case "snapshot":
+				templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/snapshot_publish_block.njk', true);
+				block = this.nunjucks.render(templatePath, templateData);
+
+				// Write the image file
+				this.fs.writeFile(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + '/media/captureA' + number + '.jpg', new Buffer.from(thisblock.photo, 'base64'), err => {
+					if (err) {
+						console.error(err);
+					}
+					// file written successfully
+				});
+				break;
 			
 			case "clipart":
-				this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo).slice(0, atob(thisblock.photo).lastIndexOf("/")), { recursive: true })
-				this.fs.copyFile('includes/ServiceVault/wtv-author/' + atob(thisblock.photo), destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + atob(thisblock.photo), (err) => {
-				if (err) throw err;
+				// Create directory and copy file
+				this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + Buffer.from(thisblock.photo, 'base64').toString().slice(0, Buffer.from(thisblock.photo, 'base64').toString().lastIndexOf("/")), { recursive: true });
+				this.fs.copyFile('includes/ServiceVault/wtv-author/' + Buffer.from(thisblock.photo, 'base64').toString(), destDir + this.wtvclient.session_store.subscriber_username + '/' + pagedata.publishname + "/" + Buffer.from(thisblock.photo, 'base64').toString(), (err) => {
+					if (err) throw err;
 				});
-				block = `<p><TABLE nocolor width=100%>`
-				if (thisblock.title)
-					block += `<TR>
-<TD align=center>
-<font color=${this.headcol}>
-<H3>
-${thisblock.title}
-</H3>
-</font>
-</TD>
-</TR>`
-				block += `<TR><td><CENTER>
-<IMG SRC="${atob(thisblock.photo)}">
-</CENTER>
-</TD>
-</TR>
-<TR>
-<TD valign=top>`
-				if (thisblock.caption != null)
-					block += `${thisblock.caption}`
-block += `
-</TD>
-</TR>
-</TABLE>
-</p>`
-			break;
+				
+				templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/clipart_publish_block.njk', true);
+				block = this.nunjucks.render(templatePath, templateData);
+				break;
 		}
 		return block;
 	}
@@ -542,146 +332,7 @@ block += `
 		}
 		html += this.footerstart
 		// Add the footer if we're not in edit mode
-		if (state != "editing")
-			if (page == 1 && pagedata.pagebreaks.length != 0) {
-				html += `<tr>
-<td colspan="3">
-<hr>
-</td>
-</tr>
-<tr>
-<td width="30%" valign="middle">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-</b></font></td>
-<td width="30%" valign="middle">
-<center>
-<font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
-</i></font></center>
-</td>
-<td width="30%" valign="middle" align="right">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-<a href="`
-// Oh god this sucks, it's for the "next page" thing at the bottom of the page
-if (state == "previewing" || state == "publishing")
-if (state == "publishing")
-	html += `page${parseInt(page) + 1}.html`
-else 
-	html += `wtv-author:/preview?docName=${pagenum}&pageNum=${parseInt(page) + 1}`
-html += `">next page</a>
-</b></font></td>
-
-</tr>
-<tr>
-<td colspan="3">
-<hr>`
-			} else if (page != 1 && pagedata.pagebreaks.length + 1 == parseInt(page)) {
-			html += `<tr>
-<td colspan="3">
-<hr>
-</td>
-</tr>
-<tr>
-<td width="30%" valign="middle">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-<a href="`
-if (state == "previewing" || state == "publishing")
-if (state == "publishing")
-	if (parseInt(page) == 2)
-		html += `index.html`
-	else
-		html += `page${parseInt(page) - 1}.html`
-else 
-	html += `wtv-author:/preview?docName=${pagenum}&pageNum=${parseInt(page) - 1}`
-html += `">previous page</a>
-</b></font></td>
-<td width="30%" valign="middle">
-<center>
-<font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
-</i></font></center>
-</td>
-<td width="30%" valign="middle" align="right">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-</b></font></td>
-
-</tr>
-<tr>
-<td colspan="3">
-<hr>`
-			} else if (page != 1 && pagedata.pagebreaks.length + 1 > parseInt(page)) {
-			html += `<tr>
-<td colspan="3">
-<hr>
-</td>
-</tr>
-<tr>
-<td width="30%" valign="middle">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-<a href="`
-if (state == "previewing")
-	html += `wtv-author:/preview?docName=${pagenum}&pageNum=${parseInt(page) - 1}`
-else if (state == "publishing")
-	if (parseInt(page) == 2)
-		html += `index.html`
-	else
-		html += `page${parseInt(page) - 1}.html`
-
-html += `">previous page</a>
-</b></font></td>
-<td width="30%" valign="middle">
-<center>
-<font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
-</i></font></center>
-</td>
-<td width="30%" valign="middle" align="right">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-<a href="`
-if (state == "previewing")
-	html += `wtv-author:/preview?docName=${pagenum}&pageNum=${parseInt(page) + 1}`
-else if (state == "publishing")
-	html += `page${parseInt(page) + 1}.html`
-html += `">next page</a>
-</b></font></td>
-
-</tr>
-<tr>
-<td colspan="3">
-<hr>`
-			} else {
-				html += `<tr>
-<td colspan="3">
-<hr>
-</td>
-</tr>
-<tr>
-<td width="30%" valign="middle">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-</b></font></td>
-<td width="30%" valign="middle">
-<center>
-<font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPoweredBy()}">Powered by ${this.minisrv_config.config.service_name}</a>
-</i></font></center>
-</td>
-<td width="30%" valign="middle" align="right">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-</b></font></td>
-
-</tr>
-<tr>
-<td colspan="3">
-<hr>`
-			}
+		html += this.getPaginationFooter(state, pagedata, page, pagenum)
 		html += this.footerend
 	return html;
 	}
@@ -966,7 +617,7 @@ vspace=0
 		const page_file_out = page_file[pagenum]
 
 		this.unpublishPage(pagenum);
-		if (typeof page_file_out === 'undefined') {
+		if (typeof page_file_out !== 'undefined') {
 			this.fs.unlinkSync(this.pagestore_dir + page_file_out, { recursive: true });
 		}
 	}
@@ -985,34 +636,26 @@ vspace=0
 
 	// these totally couldn't have been made into one function nah that's impossible
 	createTextBlock(pagenum, title, caption, size, style, position) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
-		var newblock = {
-				"type": "text",
-				"title": title,
-				"caption": caption,
-				"size": size,
-				"style": style
-            }
+		const newblock = {
+			"type": "text",
+			"title": title,
+			"caption": caption,
+			"size": size,
+			"style": style
+		}
 
-        var blocks = pagedata.blocks
+        const blocks = pagedata.blocks
 		blocks.splice(position, 0, newblock);
         this.editPage(pagedata, pagenum);
         return true;
 	}
 	
 	editTextBlock(pagenum, title, caption, size, style, position, oldposition) {		
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
-		
-		var newblock = {
-				"type": "text",
-				"title": title,
-				"caption": caption,
-				"size": size,
-				"style": style
-            }
 			
 		pagedata.blocks[oldposition].title = title
 		pagedata.blocks[oldposition].caption = caption
@@ -1027,18 +670,18 @@ vspace=0
 	}
 	
 	createPhotoBlock(pagenum, photo, type) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
-		var base64photo = new Buffer.from(photo).toString('base64')
+		const base64photo = new Buffer.from(photo).toString('base64')
 		
-		var newblock = {
-				"type": type,
-				"title": null,
-				"caption": null,
-				"photo": base64photo
-            }
+		const newblock = {
+			"type": type,
+			"title": null,
+			"caption": null,
+			"photo": base64photo
+		}
 
-        var blocks = pagedata.blocks
+        const blocks = pagedata.blocks
 		blocks.push(newblock);
         this.editPage(pagedata, pagenum);
         return true;
@@ -1046,13 +689,13 @@ vspace=0
 	
 	editPhotoBlock(pagenum, oldposition, position, photo, type, title, caption) {
 	
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
-		var blocks = pagedata.blocks
+		const blocks = pagedata.blocks
 		
 		if (photo != null) {
-			var base64photo = new Buffer.from(photo).toString('base64')
+			const base64photo = new Buffer.from(photo).toString('base64')
 			blocks[oldposition].photo = base64photo
 		}
 			
@@ -1075,18 +718,18 @@ vspace=0
 	}
 	
 	createHeaderBlock(pagenum, text, size, dividerBefore, dividerAfter, position) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
-		var newblock = {
-				"type": "heading",
-				"text": text,
-				"size": size,
-				"dividerBefore": dividerBefore,
-				"dividerAfter": dividerAfter
-            }
+		const newblock = {
+			"type": "heading",
+			"text": text,
+			"size": size,
+			"dividerBefore": dividerBefore,
+			"dividerAfter": dividerAfter
+		}
 
-        var blocks = pagedata.blocks
+        const blocks = pagedata.blocks
 		blocks.splice(position, 0, newblock);
         this.editPage(pagedata, pagenum);
         return true;
@@ -1094,16 +737,8 @@ vspace=0
 	
 	editHeaderBlock(pagenum, text, size, dividerBefore, dividerAfter, position, oldposition) {
 		
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
-		
-		var newblock = {
-				"type": "heading",
-				"text": text,
-				"size": size,
-				"dividerBefore": dividerBefore,
-				"dividerAfter": dividerAfter
-            }
 			
 		pagedata.blocks[oldposition].text = text
 		pagedata.blocks[oldposition].size = size
@@ -1118,16 +753,16 @@ vspace=0
 	}
 	
 	createListBlock(pagenum, title, items, position) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
-		var newblock = {
-				"type": "list",
-				"title": title,
-				"items": items
-            }
+		const newblock = {
+			"type": "list",
+			"title": title,
+			"items": items
+		}
 
-        var blocks = pagedata.blocks
+        const blocks = pagedata.blocks
 		blocks.splice(position, 0, newblock);
         this.editPage(pagedata, pagenum);
         return true;
@@ -1135,14 +770,8 @@ vspace=0
 	
 	editListBlock(pagenum, title, items, position, oldposition) {
 	
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
-		
-		var newblock = {
-				"type": "list",
-				"title": title,
-				"items": items
-            }
 			
 		pagedata.blocks[oldposition].title = title
 		pagedata.blocks[oldposition].items = items
@@ -1155,33 +784,33 @@ vspace=0
 	}
 	
 	createLinkBlock(pagenum, title, listItems, linkItems, position) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
-		var items = [];
+		const items = [];
 		loop:
 		for (let i = 0; i < linkItems.length; i++) {
-			var url = linkItems[i]
-			var name = listItems[i]
-			
+			const url = linkItems[i]
+			const name = listItems[i]
+
 			if (url == "http://") {
 				continue loop;
 			} else {
-				var subblock = {
-				"name": name,
-				"url": url
+				const subblock = {
+					"name": name,
+					"url": url
 				}
 				items.push(subblock)
 			}
 		}
 		
-		var newblock = {
-				"type": "link",
-				"title": title,
-				"items": items
-            }
+		const newblock = {
+			"type": "link",
+			"title": title,
+			"items": items
+		}
 
-        var blocks = pagedata.blocks
+        const blocks = pagedata.blocks
 		blocks.splice(position, 0, newblock);
         this.editPage(pagedata, pagenum);
         return true;
@@ -1189,21 +818,21 @@ vspace=0
 	
 	editLinkBlock(pagenum, title, listItems, linkItems, position, oldposition) {
 		
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
-		var items = [];
+		const items = [];
 		loop:
 		for (let i = 0; i < linkItems.length; i++) {
-			var url = linkItems[i]
-			var name = listItems[i]
+			const url = linkItems[i]
+			const name = listItems[i]
 			
 			if (url == "http://") {
 				continue loop;
 			} else {
-				var subblock = {
-				"name": name,
-				"url": url
+				const subblock = {
+					"name": name,
+					"url": url
 				}
 				items.push(subblock)
 			}
@@ -1220,14 +849,14 @@ vspace=0
 	}
 	
 	createBreakBlock(pagenum, position) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
-		var newblock = {
-				"type": "break"
-            }
+		const newblock = {
+			"type": "break"
+		}
 
-        var blocks = pagedata.blocks
+        const blocks = pagedata.blocks
 		blocks.splice(position, 0, newblock);
         this.editPage(pagedata, pagenum);
 		this.generateBreakList(pagenum);
@@ -1235,7 +864,7 @@ vspace=0
 	}
 	
 	editBreakBlock(pagenum, position, oldposition) {
-		var pagedata = this.loadPage(pagenum);
+		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
 		
 		if (oldposition != position)
@@ -1247,10 +876,10 @@ vspace=0
 	}
 	
 	generateBreakList(pagenum) {
-		var pagedata = this.loadPage(pagenum)
-		var breaks = [];
+		const pagedata = this.loadPage(pagenum)
+		const breaks = [];
 		for (let i = 0; i < pagedata.blocks.length; i++) {
-			var type = pagedata.blocks[i].type
+			const type = pagedata.blocks[i].type
 			if (type == "break")
 				breaks.push(i)
 		}
@@ -1259,31 +888,25 @@ vspace=0
 	}
 
 	getCommonFooter() {
-		return `<tr>
-<td colspan="3">
-<hr>
-</td>
-</tr>
-<tr>
-<td width="30%" valign="middle">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-</b></font></td>
-<td width="30%" valign="middle">
-<center>
-<font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular"><i>
-<a href="http://${this.getPublishDomain()}">Powered by ${this.minisrv_config.config.service_name}</a>
-</i></font></center>
-</td>
-<td width="30%" valign="middle" align="right">
-<font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
-<b>
-</b></font></td>
-
-</tr>
-<tr>
-<td colspan="3">
-<hr>`;
+		const template = this.wtvshared.getServiceDep('wtv-author/common_footer.njk', true);
+		this.nunjucks.configure({ autoescape: true });
+		return this.nunjucks.render(template, {
+			powered_by: this.getPoweredBy(),
+			service_name: this.minisrv_config.config.service_name		
+		});
     }
+
+	getPaginationFooter(state, pagedata, page, pagenum) {
+		const template = this.wtvshared.getServiceDep('wtv-author/pagination_footer.njk', true);
+		this.nunjucks.configure({ autoescape: false });
+		return this.nunjucks.render(template, {
+			state: state,
+			pagedata: pagedata,
+			page: parseInt(page),
+			pagenum: pagenum,
+			powered_by: this.getPoweredBy(),
+			service_name: this.minisrv_config.config.service_name
+		});
+	}
 }
 module.exports = WTVAuthor;
