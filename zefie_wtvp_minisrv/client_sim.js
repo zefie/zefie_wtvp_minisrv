@@ -63,7 +63,7 @@ class WebTVClientSimulator {
         this.previousUrl = null; // Store previous URL for Referer header
         this.debug = debug;
         this.defaultBox = "plus";
-        this.connectSessionId = Math.random().toString(16).substr(2, 8).padEnd(8, '0');
+        this.connectSessionId = Math.random().toString(16).slice(2, 10).padEnd(8, '0');
         this.username = username;
 
         // Load minisrv config to get the initial shared key
@@ -355,8 +355,8 @@ class WebTVClientSimulator {
                 
                 // Debug: Show received data for POST requests
                 if (data) {
-                    this.debugLog('POST Response chunk:', chunk.toString('utf8').substring(0, 200) + (chunk.length > 200 ? '...' : ''));
-                    this.debugLog('POST Response hex dump:', chunk.toString('hex').substring(0, 100) + (chunk.length > 50 ? '...' : ''));
+                    this.debugLog('POST Response chunk:', chunk.toString('utf8').slice(0, 200) + (chunk.length > 200 ? '...' : ''));
+                    this.debugLog('POST Response hex dump:', chunk.toString('hex').slice(0, 100) + (chunk.length > 50 ? '...' : ''));
                 }
 
                 // Clear any existing timeout for LZPF completion detection
@@ -440,8 +440,8 @@ class WebTVClientSimulator {
                     } else {
                         this.debugLog('Processing response on connection close...');
                         if (data) {
-                            this.debugLog('POST response received on close:', responseData.toString('utf8').substring(0, 500) + (responseData.length > 500 ? '...' : ''));
-                            this.debugLog('POST response hex on close:', responseData.toString('hex').substring(0, 200) + (responseData.length > 100 ? '...' : ''));
+                            this.debugLog('POST response received on close:', responseData.toString('utf8').slice(0, 500) + (responseData.length > 500 ? '...' : ''));
+                            this.debugLog('POST response hex on close:', responseData.toString('hex').slice(0, 200) + (responseData.length > 100 ? '...' : ''));
                         }
 
                         const crlfcrlf = Buffer.from('\r\n\r\n');
@@ -571,7 +571,7 @@ class WebTVClientSimulator {
         if (this.ticket) {
             request += `wtv-ticket: ${this.ticket}\r\n`;
         }
-        request += `wtv-connect-session-id: ${Math.random().toString(16).substr(2, 8)}\r\n`;
+        request += `wtv-connect-session-id: ${Math.random().toString(16).slice(2, 10)}\r\n`;
         request += `wtv-client-serial-number: ${this.ssid}\r\n`;
         request += this.getBoxHeaders(this.boxType);
         request += `wtv-encryption: true\r\n`;
@@ -663,8 +663,8 @@ class WebTVClientSimulator {
                 const line = lines[i].replace('\r', '');
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
-                    const key = line.substring(0, colonIndex).toLowerCase();
-                    const value = line.substring(colonIndex + 1).trim();
+                    const key = line.slice(0, colonIndex).toLowerCase();
+                    const value = line.slice(colonIndex + 1).trim();
                     headers[key] = value;
                 }
             }
@@ -806,8 +806,8 @@ class WebTVClientSimulator {
                 const line = lines[i].replace('\r', '');
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
-                    const key = line.substring(0, colonIndex).toLowerCase();
-                    const value = line.substring(colonIndex + 1).trim();
+                    const key = line.slice(0, colonIndex).toLowerCase();
+                    const value = line.slice(colonIndex + 1).trim();
                     if (headers[key]) {
                         if (Array.isArray(headers[key])) {
                             headers[key].push(value);
@@ -848,7 +848,7 @@ class WebTVClientSimulator {
                             
                             // Debug: Show first 200 chars of decrypted content for verification
                             this.debugLog('Login-stage-two decrypted content preview:');
-                            this.debugLog(bodyBuf.toString('utf8').substring(0, 200));
+                            this.debugLog(bodyBuf.toString('utf8').slice(0, 200));
                         } catch (error) {
                             console.error('Error decrypting login-stage-two content:', error);
                         }
@@ -920,7 +920,7 @@ class WebTVClientSimulator {
                             
                             // Debug: Show first 500 chars of decrypted content
                             this.debugLog('VLN-stage-two decrypted content preview:');
-                            this.debugLog(bodyBuf.toString('utf8').substring(0, 500));
+                            this.debugLog(bodyBuf.toString('utf8').slice(0, 500));
                         } catch (error) {
                             console.error('Error decrypting VLN-stage-two content:', error);
                         }
@@ -1382,8 +1382,8 @@ class WebTVClientSimulator {
                 const line = lines[i].replace('\r', '');
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
-                    const key = line.substring(0, colonIndex).toLowerCase();
-                    const value = line.substring(colonIndex + 1).trim();
+                    const key = line.slice(0, colonIndex).toLowerCase();
+                    const value = line.slice(colonIndex + 1).trim();
                     headers[key] = value;
                 }
             }
@@ -1667,7 +1667,7 @@ class WebTVClientSimulator {
             if (currentMatch) {
                 const serviceName = currentMatch[1];
                 const currentPath = currentMatch[2];
-                const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                const basePath = currentPath.slice(0, currentPath.lastIndexOf('/') + 1);
                 return `${serviceName}:${basePath}${url}`;
             }
         }
@@ -1884,12 +1884,12 @@ class WebTVClientSimulator {
                     
                     // Look for "location:" lines within GET blocks
                     if (trimmed.startsWith('location:')) {
-                        currentUrl = trimmed.substring(9).trim(); // Remove "location:" prefix
+                        currentUrl = trimmed.slice(9).trim(); // Remove "location:" prefix
                     }
                     
                     // Look for "wtv-checksum:" lines within GET blocks
                     if (trimmed.startsWith('wtv-checksum:')) {
-                        currentChecksum = trimmed.substring(13).trim(); // Remove "wtv-checksum:" prefix
+                        currentChecksum = trimmed.slice(13).trim(); // Remove "wtv-checksum:" prefix
                     }
                 }
                 
@@ -2031,7 +2031,7 @@ class WebTVClientSimulator {
                 if (currentMatch) {
                     const serviceName = currentMatch[1];
                     const currentPath = currentMatch[2];
-                    const basePath = currentPath.substring(0, currentPath.lastIndexOf('/') + 1);
+                    const basePath = currentPath.slice(0, currentPath.lastIndexOf('/') + 1);
                     return `${serviceName}:${basePath}${url}`;
                 }
             }
@@ -2326,7 +2326,7 @@ class WebTVClientSimulator {
                     
                     // Generate filename based on service and path
                     const serviceName = url.match(/^([\w-]+):/)?.[1] || 'content';
-                    const pathHash = require('crypto').createHash('md5').update(pathPart).digest('hex').substring(0, 8);
+                    const pathHash = require('crypto').createHash('md5').update(pathPart).digest('hex').slice(0, 8);
                     return `${serviceName}_${pathHash}${ext}`;
                 }
                 
@@ -2351,7 +2351,7 @@ class WebTVClientSimulator {
         }
         
         // Fallback to generic filename with hash
-        const hash = require('crypto').createHash('md5').update(url).digest('hex').substring(0, 8);
+        const hash = require('crypto').createHash('md5').update(url).digest('hex').slice(0, 8);
         const contentType = headers['content-type'] || '';
         const contentTypeExt = this.getExtensionFromContentType(contentType);
         const ext = contentTypeExt || '';
