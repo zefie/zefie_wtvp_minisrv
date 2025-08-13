@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName
-var blockNum = request_headers.query.blockNum
-var blockClass = request_headers.query.blockClass
+const docName = request_headers.query.docName
+let blockNum = request_headers.query.blockNum
+const blockClass = request_headers.query.blockClass
 
 blockNum = parseInt(blockNum) + 1
 

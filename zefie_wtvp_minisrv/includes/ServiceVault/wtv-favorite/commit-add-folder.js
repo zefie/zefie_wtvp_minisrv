@@ -1,15 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var foldername = request_headers.query.new_folder_name;
-var favstore_exists = session_data.favstore.favstoreExists();
-var valid_foldername = session_data.favstore.checkFolderName(foldername);
+const foldername = request_headers.query.new_folder_name;
+const favstore_exists = session_data.favstore.favstoreExists();
+const valid_foldername = session_data.favstore.checkFolderName(foldername);
 
 
 if (!valid_foldername) {
 	headers = `400 That folder name is not valid. Choose a different name and try again.`
 } else {
-	var folder_exists = session_data.favstore.folderExists(foldername);
-	var folder_array = session_data.favstore.getFolders();
+	const folder_exists = session_data.favstore.folderExists(foldername);
+	const folder_array = session_data.favstore.getFolders();
 
 	if (foldername) {
 		if (favstore_exists === false)

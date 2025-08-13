@@ -1,9 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName
-var blockNum = request_headers.query.blockNum
-var blockClass = request_headers.query.blockClass
-var category = request_headers.query.mediaCategoryID
+const docName = request_headers.query.docName
+const blockNum = request_headers.query.blockNum
+const blockClass = request_headers.query.blockClass
+const category = request_headers.query.mediaCategoryID
 
 headers = `200 OK
 Connection: Keep-Alive

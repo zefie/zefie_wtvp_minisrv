@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favstore_exists = session_data.favstore.favstoreExists();
+const favstore_exists = session_data.favstore.favstoreExists();
 
 if (favstore_exists != true)
 {
@@ -9,9 +9,9 @@ if (favstore_exists != true)
 Location: wtv-favorite:/favorite`
 } else {
 
-var folder_array = session_data.favstore.getFolders();
-var totalfavorites = folder_array.length;
-var stopdrawing = false;
+const folder_array = session_data.favstore.getFolders();
+const totalfavorites = folder_array.length;
+const stopdrawing = false;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -148,7 +148,7 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 </font>
 </td><td width="20">
 </td></tr></table>`
-	var kval = 0;
+	let kval = 0;
 	// process evens
 	Object.keys(folder_array).forEach(function (k) {
 		if (k == 0) return; // skip 0 since it was processed above

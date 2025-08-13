@@ -1,10 +1,10 @@
-minisrv_service_file = true;
+const minisrv_service_file = true;
 request_is_async = true;
 
 function addToScrapbook(id, contentType, data) {
-    var result = session_data.addToScrapbook(id, contentType, data);
+    const result = session_data.addToScrapbook(id, contentType, data);
     if (result) {
-        var successScrapbook = new clientShowAlert({
+        const successScrapbook = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
             'message': "The image has been added to your scrapbook. Would you like to view your scrapbook now?",
             'buttonlabel1': "No",
@@ -12,8 +12,8 @@ function addToScrapbook(id, contentType, data) {
             'buttonlabel2': "Yes",
             'buttonaction2': "wtv-author:/scrapbook",
         })
-        var files = session_data.listScrapbook();
-        var pageNum = Math.ceil(files.length / 6);
+        const files = session_data.listScrapbook();
+        const pageNum = Math.ceil(files.length / 6);
         if (pageNum > 1) {
             successScrapbook.buttonaction2 += '?pageNum=' + pageNum;
         }
@@ -24,18 +24,18 @@ function addToScrapbook(id, contentType, data) {
 }
 
 function handleError(reason) {
-    var errpage = wtvshared.doErrorPage(400, reason);
+    const errpage = wtvshared.doErrorPage(400, reason);
     sendToClient(socket, errpage[0], errpage[1]);
 }
 if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
-    var errpage = wtvshared.doErrorPage(400, "Bad Request", "Missing mediaData or mediaPath parameter.");
+    const errpage = wtvshared.doErrorPage(400, "Bad Request", "Missing mediaData or mediaPath parameter.");
     headers = errpage[0];
     data = errpage[1];    
 } else {
     const id = session_data.getFreeScrapbookID();
     if (request_headers.query.mediaPath) {
         if (!request_headers.query.confirm) {
-            var confirmScrapbook = new clientShowAlert({
+            const confirmScrapbook = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "You are about to add an image to your scrapbook.<br><br>Do you wish to continue?",
                 'buttonlabel1': "Continue",
@@ -126,7 +126,7 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
             }
         }
     } else {
-        var result = session_data.addToScrapbook(id, "image/jpg", request_headers.query.mediaData);
+        const result = session_data.addToScrapbook(id, "image/jpg", request_headers.query.mediaData);
         if (result) {
             headers = `300 OK
 Content-Type: text/html

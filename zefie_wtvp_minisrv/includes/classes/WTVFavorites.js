@@ -233,7 +233,7 @@ class WTVFavorites {
 		const dir = this.getFolderDir(folder);
 		if (dir) {
 			try {
-				this.fs.rm(dir, { recursive: true });
+				this.fs.rmSync(dir, { recursive: true });
 				return true;
 			} catch (e) {
 				return false;
@@ -252,9 +252,8 @@ class WTVFavorites {
     }
 	
 	clearFolder(folder) {
-		const { readdirSync, rmSync } = require('fs');
-        const dir = this.getFolderDir(folder);
-		readdirSync(dir).forEach(f => rmSync(`${dir}${f}`));
+		const dir = this.getFolderDir(folder);
+		this.fs.readdirSync(dir).forEach(f => this.fs.rmSync(`${dir}${f}`));
     }
 	
 	updateFavorite(favoritedata, folder) {

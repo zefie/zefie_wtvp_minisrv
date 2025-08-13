@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName;
-var page = session_data.pagestore.loadPage(docName)
-var site = session_data.pagestore.getPublishDomain();
+const docName = request_headers.query.docName;
+const page = session_data.pagestore.loadPage(docName);
+const site = session_data.pagestore.getPublishDomain();
 
 if (request_headers.query.publishStage == "1") {
 	headers = `200 OK
@@ -117,13 +117,13 @@ Include in public list
 </HTML>
 `
 } else if (request_headers.query.publishStage == "2") {
-	var inlist;
+	let inlist;
 	if (request_headers.query.includeInPublicList != undefined) {
 		inlist = true;
 	} else {
 		inlist = false;
 	}
-	var result = session_data.pagestore.publishPage(docName, inlist);
+	const result = session_data.pagestore.publishPage(docName, inlist);
 	if (result == true) {
 	headers = `300 OK
 wtv-expire-all: wtv-author:/documents
@@ -132,7 +132,7 @@ Location: wtv-author:/congrats?docName=${docName}`
 		headers = `400 ${result}`
 	}
 } else if (request_headers.query.unpublish == "1") {
-	var result = session_data.pagestore.unpublishPage(docName);
+	const result = session_data.pagestore.unpublishPage(docName);
 	if (result == true) {
 		headers = `300 OK
 wtv-expire-all: wtv-author:/documents

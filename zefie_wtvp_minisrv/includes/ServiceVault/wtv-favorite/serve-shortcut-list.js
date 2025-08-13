@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 Content-Type: text/html`
@@ -73,14 +73,14 @@ Keyboard shortcut list
 </td></tr><tr>
 <td width="4" height="14"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
 </td></tr></tbody></table>`
-
-for (var i = 1; i <= 8; i++) {
-    var key = "F" + i;
-    var scfav = session_data.favstore.getShortcutKey(key);
+let fav;
+for (let i = 1; i <= 8; i++) {
+    const key = "F" + i;
+    const scfav = session_data.favstore.getShortcutKey(key);
     if (scfav && scfav.id != "none") {
-        var fav = session_data.favstore.getFavorite(scfav.folder, scfav.id);
+        fav = session_data.favstore.getFavorite(scfav.folder, scfav.id);
     } else {
-        var fav = { image: "wtv-home:/ROMCache/Spacer.gif", title: "Not assigned" };
+        fav = { image: "wtv-home:/ROMCache/Spacer.gif", title: "Not assigned" };
     }
 
 data += `

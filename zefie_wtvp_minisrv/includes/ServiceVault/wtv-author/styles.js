@@ -1,12 +1,12 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`;
 
-var styleName = request_headers.query.styleName;
-var page = (request_headers.query.pageNum) ? parseInt(request_headers.query.pageNum) : 0
-var docName = request_headers.query.docName;
+const styleName = request_headers.query.styleName;
+let page = (request_headers.query.pageNum) ? parseInt(request_headers.query.pageNum) : 0
+const docName = request_headers.query.docName;
 
 const pages = [
 	[
@@ -144,7 +144,7 @@ ${(styleName) ? `<font color=AEBFD1> Your current style is: <b>${styleName}</b> 
 <tr>
 `;
 
-for (i=0;i<currentPage.length;i++) {
+for (let i = 0; i < currentPage.length; i++) {
 	if (i % 3 === 0) data += `<tr>`
 	data += `
 <td>

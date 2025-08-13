@@ -1,9 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName;
-var page = session_data.pagestore.loadPage(docName);
-var numOfBlocks = page.blocks.length
-var style = page.style.replace ('_', ' ')
+const docName = request_headers.query.docName;
+const page = session_data.pagestore.loadPage(docName);
+const numOfBlocks = page.blocks.length
+const style = page.style.replace ('_', ' ')
 console.log(numOfBlocks)
 
 headers = `200 OK

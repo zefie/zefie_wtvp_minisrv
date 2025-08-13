@@ -1,14 +1,14 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var totalfavorites = 0;
+let totalfavorites = 0;
 
-var createFun = request_headers.query.Fun;
-var createMoney = request_headers.query.Money;
-var createMovies = request_headers.query.Movies;
-var createNews = request_headers.query.News;
-var createRecommended = request_headers.query.Recommended;
-var createReference = request_headers.query.Reference;
-var folder_array = session_data.favstore.getFolders();
+const createFun = request_headers.query.Fun;
+const createMoney = request_headers.query.Money;
+const createMovies = request_headers.query.Movies;
+const createNews = request_headers.query.News;
+const createRecommended = request_headers.query.Recommended;
+const createReference = request_headers.query.Reference;
+const folder_array = session_data.favstore.getFolders();
 totalfavorites = folder_array.length;
 
 if (totalfavorites < 14)
