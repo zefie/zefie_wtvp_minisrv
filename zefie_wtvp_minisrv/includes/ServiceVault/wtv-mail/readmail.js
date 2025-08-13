@@ -31,7 +31,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             if (request_headers.query.message_delete) {
                 session_data.mailstore.deleteMessage(messageid);
                 headers = `300 OK
-wtv-expire: wtv-mail:/listmail
+wtv-expire-all: wtv-mail:/listmail
 Location: wtv-mail:/listmail`;
             } else {
 
