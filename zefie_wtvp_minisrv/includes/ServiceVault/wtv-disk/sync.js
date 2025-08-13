@@ -26,7 +26,7 @@ if (request_headers['wtv-request-type'] == 'download') {
 
         // delete groups if force, or group is invalid
         if (diskmap_group_data.client_group_data) {
-            if (force_update || diskmap_group_data.client_group_data.state == "invalid") {
+            if (force_update || diskmap_group_data.client_group_data.state === "invalid" || typeof diskmap_group_data.client_group_data.state === 'undefined') {
                 wtvdl.deleteGroupUpdate(diskmap_group_data.client_group_data.group, diskmap_group_data.client_group_data.path);
             }
 
@@ -41,7 +41,7 @@ if (request_headers['wtv-request-type'] == 'download') {
                     }
                 }
             }
-        }
+        } 
 
         if (diskmap_group_name.display) wtvdl.display(diskmap_group_name.display);
 
@@ -130,6 +130,7 @@ if (request_headers['wtv-request-type'] == 'download') {
             post_data = request_headers.post_data.toString(CryptoJS.enc.Latin1).split("\n");
             client_group_data = wtvdl.getGroupDataFromClientPost(request_headers.post_data.toString(CryptoJS.enc.Latin1));
         }
+        if (minisrv_config.config.show_diskmap) console.log("Client POST Data:", client_group_data)
         let post_data_current_directory = '';
         let post_data_current_file = false;
         let post_data_current_group = '';
@@ -258,7 +259,7 @@ if (request_headers['wtv-request-type'] == 'download') {
                 if (post_data_fileinfo[g].file == wtv_download_list[k].file || post_data_fileinfo[g].file == wtv_download_list[k].base) {
                     diskmap_group_data.group_exists = true;
                     if (wtv_download_list[k].checksum && wtv_download_list[k].checksum.toLowerCase() == post_data_fileinfo[g].checksum) wtv_download_list[k].invalid = false;
-                    else if (post_data_fileinfo[g].version == wtv_download_list[k].version && post_data_fileinfo[g].state != "invalid") wtv_download_list[k].invalid = false;
+                    else if (post_data_fileinfo[g].version == wtv_download_list[k].version && post_data_fileinfo[g].state !== "invalid") wtv_download_list[k].invalid = false;
                 }
             });
         });
