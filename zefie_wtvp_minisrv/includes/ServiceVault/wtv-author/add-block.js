@@ -361,7 +361,7 @@ document.theForm.submit();
 </SCRIPT>
 <input type=file device=video name=photoBlockPhoto src="cache:snapshot.jpg" invisible disabled=true>
 `
-if (session_data.hasCap("client-can-do-av-capture")) {
+if (session_data.capabilities.get("client-can-do-av-capture")) {
 	data += `<tr>
 <td height=32>
 <img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0>

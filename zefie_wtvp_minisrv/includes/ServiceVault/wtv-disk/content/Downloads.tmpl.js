@@ -40,7 +40,14 @@ V.90 Modem Firmware (Use common 56k technology)
 <i>All Music</i> (can take a very long time)</a>
 
 </li><li><a href="wtv-disk:/content/DownloadScreen.tmpl?diskmap=Karaoke&amp;group=Karaoke">
-<i>Karaoke</i></a>
-
+<i>Karaoke</i></a></li>
+</ul>
+<p>
+<h2>Tools</h2>
+<i><b>WARNING: Use the following with caution</b></i>
+</p>
+<ul><li>
+<a href="wtv-disk:/get-group-data">Delete Groups</a>
+</li></ul>
 
 </body></html>`;

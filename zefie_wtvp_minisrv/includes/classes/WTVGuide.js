@@ -101,20 +101,20 @@ class WTVGuide {
 								const romtype = this.session_data.get("wtv-client-rom-type");
 								let boxname = "";
 								if (romtype == "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230" || romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230") boxname = "satellite receiver"
-								else if (this.session_data.hasCap("client-has-tv-experience")) boxname = "WebTV Plus receiver";
+								else if (this.session_data.capabilities.get("client-has-tv-experience")) boxname = "WebTV Plus receiver";
 								else boxname = "WebTV Internet terminal";
 								definition = definition.replace(/\<boxname\>/g, boxname);
 							}
 							// replaces <boxname_plus> with either "WebTV" or "WebTV Plus" depending on user box type
 							while (definition.indexOf("<boxname_plus>") >= 0) {
 								let boxname = "WebTV";
-								if (this.session_data.hasCap("client-has-tv-experience")) boxname += " Plus";
+								if (this.session_data.capabilities.get("client-has-tv-experience")) boxname += " Plus";
 								definition = definition.replace(/\<boxname\_plus\>/g, boxname);
 							}
 							// replaces <webhome> with either "Home" or "Web Home" depending on user box type
 							while (definition.indexOf("<webhome>") >= 0) {
 								let homename = "Home";
-								if (this.session_data.hasCap("client-has-tv-experience")) homename = "Web " + homename;
+								if (this.session_data.capabilities.get("client-has-tv-experience")) homename = "Web " + homename;
 								definition = definition.replace(/\<webhome\>/g, homename);
 							}
 							template_args = {
@@ -127,7 +127,7 @@ class WTVGuide {
 						// glossary letter word index
 						template =this.wtvshared.getTemplate("wtv-guide", "templates/glossary_word_index.js", true);
 						let isPlusBox = false;
-						if (this.session_data.hasCap("client-has-tv-experience")) isPlusBox = true;
+						if (this.session_data.capabilities.get("client-has-tv-experience")) isPlusBox = true;
 						const worddb = [];
 						Object.keys(glossary[subtopic.toUpperCase()]).forEach(function (k) {
 							if (glossary[subtopic.toUpperCase()][k].plusonly && !isPlusBox) return;

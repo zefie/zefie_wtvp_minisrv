@@ -98,7 +98,7 @@ class WTVAuthor {
 			}
 			pagenums = pagenums.sort()
 			this.debug("createPage", "pagenums", pagenums)
-			const pagenum = parseInt(pagenums[pagelen - 1]);
+			pagenum = parseInt(pagenums[pagelen - 1]);
 			this.debug("createPage", "pagenum", pagenum)
 			this.debug("createPage", "pagelen", pagelen)
 		}
@@ -139,12 +139,12 @@ class WTVAuthor {
 	
 	loadPage(pagenum) {
 		this.pagestoreExists()
-            const page_file = this.listPages();
-            const page_data_raw = page_file[pagenum];
+		const page_file = this.listPages();
+		const page_data_raw = page_file[pagenum];
 
-            if (page_data_raw) {
-                    return page_data_raw;
-            }
+		if (page_data_raw) {
+			return page_data_raw;
+		}
         return false;
 	}
 	

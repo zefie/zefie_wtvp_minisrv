@@ -42,13 +42,10 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 		}
 
 		if (!flashrom_info.is_last_part) {
-			flashrom_info.next_rompath = request_headers.request_url.replace(
-				encodeURIComponent(request_headers.query.path),
-				encodeURIComponent(flashrom_info.next_rompath.replace(service_name + ":/", ""))
-			);
+			flashrom_info.next_rompath = service_name + ":/get-lc2-page?path=" + encodeURIComponent(flashrom_info.next_rompath.replace(service_name + ":/", ""));
 		}
 
-
+		console.log(flashrom_info.next_rompath);
 		const romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 		let defaultDownloadTime;
 		switch (romtype) {

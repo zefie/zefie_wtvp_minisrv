@@ -1265,7 +1265,7 @@ class WTVBGMusic {
 
         if (setDefaults === true) {
             // set up defaults
-            if (this.session_data.hasCap("client-can-do-rmf")) {
+            if (this.session_data.capabilities.get("client-can-do-rmf")) {
                 // rmf
                 music_obj.enableCategories = ["1", "2", "3", "7", "12", "13", "15", "16"];
                 music_obj.enableSongs = [
@@ -1318,7 +1318,7 @@ class WTVBGMusic {
 
     getSong(songid) {
         let musiclist;
-        if (this.session_data.hasCap("client-can-do-rmf")) {
+        if (this.session_data.capabilities.get("client-can-do-rmf")) {
             // use rmf list
             musiclist = this.musiclist_rmf;
         } else {
@@ -1343,7 +1343,7 @@ class WTVBGMusic {
 
     getCategorySongList(category) {
         let musiclist;
-        if (this.session_data.hasCap("client-can-do-rmf")) {
+        if (this.session_data.capabilities.get("client-can-do-rmf")) {
             // use rmf list
             musiclist = this.musiclist_rmf;
         } else {

@@ -93,7 +93,7 @@ class WTVFlashrom {
 		if (flashrom_info.is_last_part) {
 			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Curr Part is Last:", flashrom_info.is_last_part);
 		} else {
-			flashrom_info.next_part_number = flashrom_info.part_number + 1;
+			flashrom_info.next_part_number = parseInt(flashrom_info.part_number) + 1;
 			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Next Part Number :", flashrom_info.next_part_number);
 		}
 
@@ -107,8 +107,7 @@ class WTVFlashrom {
 		} else if (flashrom_info.is_last_part && !this.bf0app_update) {
 			flashrom_info.next_rompath = "wtv-flashrom:/lc2-download-complete?";
 		} else {
-			flashrom_info.next_part_number = this.formatPartNum(flashrom_info.part_number + 1);
-			flashrom_info.next_rompath = flashrom_info.rompath.replace("part" + this.formatPartNum(flashrom_info.part_number), "part" + flashrom_info.next_part_number);
+			flashrom_info.next_rompath = flashrom_info.rompath.replace("part" + this.formatPartNum(flashrom_info.part_number), "part" + this.formatPartNum(flashrom_info.next_part_number));
 		}
 		return flashrom_info;
 	}

@@ -3,21 +3,25 @@ const minisrv_service_file = true;
 
 headers = `200 OK
 Content-Type: text/html
-wtv-expire: wtv-disk:/content/DownloadScreen.tmpl`
+wtv-expire-all: wtv-disk:`
 const content_dir = "content/"
 const diskmap_dir = content_dir + "diskmaps/";
 const diskmap = request_headers.query[wtvshared.getCaseInsensitiveKey("DiskMap", request_headers.query)];
 let diskmap_json_file = null;
-Object.keys(service_vaults).forEach(function (g) {
-	if (diskmap_json_file != null) return;
-	diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
-	if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
-});
-let diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
-if (!diskmap_data[request_headers.query.group]) {
-	throw ("Invalid diskmap data (group does not match)");
+let diskmap_data = {};
+
+ if (!request_headers.query.url) {
+	Object.keys(service_vaults).forEach(function (g) {
+		if (diskmap_json_file != null) return;
+		diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
+		if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
+	});
+	diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
+	if (!diskmap_data[request_headers.query.group]) {
+		throw ("Invalid diskmap data (group does not match)");
+	}
+	diskmap_data = diskmap_data[request_headers.query.group];
 }
-diskmap_data = diskmap_data[request_headers.query.group];
 const message = request_headers.query.message || diskmap_data.message || "Retrieving files...";
 const main_message = request_headers.query.main_message || diskmap_data.main_message || "Your receiver is downloading files.";
 let success_url = request_headers.query.success_url || diskmap_data.success_url || null;
@@ -38,18 +42,24 @@ if (fail_url === null) fail_url = new clientShowAlert({
 	'buttonaction1': "client:goback",
 	'noback': true,
 }).getURL();
+let url;
+
+if (request_headers.query.url) {
+	url = encodeURIComponent(request_headers.query.url);
+} else {
+	url = `wtv-disk:/sync`;
+	if (request_headers.query.diskmap) url += `%3fdiskmap%3d${request_headers.query.diskmap}`;
+	if (request_headers.query.force) url += `%26force%3dtrue`
+	if (!request_headers.query.group) url += `&root=file://Disk/Browser/`;
+	else url += `%26group%3d${request_headers.query.group}`;
+}
 
 data = `<html>
 <head>
 
 	<meta 
 		http-equiv=refresh 
-		content="0;url=client:Fetch?source=wtv-disk:/sync`;
-if (request_headers.query.diskmap) data += `%3fdiskmap%3d${request_headers.query.diskmap}`;
-if (request_headers.query.force) data += `%26force%3dtrue`
-if (!request_headers.query.group) data += `&root=file://Disk/Browser/`;
-else data += `&group=${request_headers.query.group}`;;
-data += `&message=Retrieving Files..."
+		content="0;url=client:Fetch?source=${url}&message=Retrieving Files..."
 	>
 	<display downloadsuccess="${success_url}" downloadfail="${fail_url}">
 	<title>Retrieving Files</title>
@@ -87,7 +97,7 @@ data += `&message=Retrieving Files..."
 			<br><br>
 			<font color=white>
 			<progressindicator name="downloadprogress" 
-			   message="Retrieving Files..." 
+			   message="${message}" 
 			   height=40 width=250>
 			</font>
 </table>

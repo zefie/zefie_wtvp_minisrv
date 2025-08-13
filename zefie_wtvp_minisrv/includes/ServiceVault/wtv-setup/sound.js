@@ -1,5 +1,5 @@
 const minisrv_service_file = true;
-const canDoMuzac = session_data.hasCap('client-can-do-muzac');
+const canDoMuzac = session_data.capabilities.get('client-can-do-muzac');
 
 headers = `200 OK
 Connection: Keep-Alive
