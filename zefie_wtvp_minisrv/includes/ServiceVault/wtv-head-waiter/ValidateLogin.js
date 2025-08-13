@@ -56,7 +56,7 @@ wtv-visit: client:hangupphone`
 		} else {
 			wtvsec_login = session_data.get("wtvsec_login");
 		}
-
+		let errpage;
 		if (socket.ssid !== null) {
 			if (wtvsec_login.ticket_b64 == null) {
 				challenge_response = wtvsec_login.challenge_response;
@@ -70,58 +70,60 @@ wtv-visit: client:hangupphone`
 						console.log(" * wtv-challenge-response FAILED for " + wtvshared.filterSSID(socket.ssid));
 						if (minisrv_config.config.debug_flags.debug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
 						if (minisrv_config.config.debug_flags.debug) console.log("Response Received:", client_challenge_response)
-						gourl = "wtv-head-waiter:/login?reissue_challenge=true";
+						errpage = wtvshared.doErrorPage(500, "Invalid challenge response received");
+						headers = errpage[0];
+						data = errpage[1];
 					}
 				} else {
-					gourl = "wtv-head-waiter:/login?no_response=true";
+					errpage = wtvshared.doErrorPage(500, "No challenge response received");
+					headers = errpage[0];
+					data = errpage[1];
 				}
 			} else {
 				gourl = "wtv-head-waiter:/login-stage-two?";
 			}
 		}
-
-		if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
-			if (request_headers.query.password == "") {
-				headers = `403 Please enter your password and try again
-minisrv-no-mail-count: true
-`;
-			} else if (session_data.validateUserPassword(request_headers.query.password)) {
-				session_data.setUserLoggedIn(true);
-				headers = `200 OK
+		if (!errpage) {
+			if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
+				if (request_headers.query.password == "") {
+					headers = `403 Please enter your password and try again
+minisrv-no-mail-count: true`;
+				} else if (session_data.validateUserPassword(request_headers.query.password)) {
+					session_data.setUserLoggedIn(true);
+					headers = `200 OK
 minisrv-no-mail-count: true
 Content-Type: text/html
-wtv-visit: ${gourl}
-`;
+wtv-visit: ${gourl}`;
+				} else {
+					headers = `403 The password you entered was incorrect. Please retype it and try again.
+minisrv-no-mail-count: true`;
+				}
 			} else {
-				headers = `403 The password you entered was incorrect. Please retype it and try again.
-minisrv-no-mail-count: true
-`;
-			}
-		} else {
-			if (session_data.baddisk === true && !ssid_sessions[socket.ssid].get("bad_disk_shown")) {
-				gourl = "wtv-head-waiter:/bad-disk?"
-			}
-			else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && (!session_data.isUserLoggedIn() || request_headers.query.initial_login || request_headers.query.relogin)) {
-				gourl = "wtv-head-waiter:/choose-user?"
-			} else {
-				if (!session_data.getUserPasswordEnabled() && request_headers.query.user_login) session_data.setUserLoggedIn(true);
-				const limitedLogin = (!session_data.lockdown && (!session_data.get('password_valid') && session_data.getUserPasswordEnabled()));
-				limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
-			}
-			headers = `200 OK
+				if (session_data.baddisk === true && !ssid_sessions[socket.ssid].get("bad_disk_shown")) {
+					gourl = "wtv-head-waiter:/bad-disk?"
+				}
+				else if (session_data.getNumberOfUserAccounts() > 1 && user_id === 0 && (!session_data.isUserLoggedIn() || request_headers.query.initial_login || request_headers.query.relogin)) {
+					gourl = "wtv-head-waiter:/choose-user?"
+				} else {
+					if (!session_data.getUserPasswordEnabled() && request_headers.query.user_login) session_data.setUserLoggedIn(true);
+					const limitedLogin = (!session_data.lockdown && (!session_data.get('password_valid') && session_data.getUserPasswordEnabled()));
+					limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
+				}
+				headers = `200 OK
 wtv-connection-close: true
 Connection: close
 minisrv-no-mail-count: true
 Content-Type: text/html`;
-			if (client_challenge_response) {
-				headers += `
+				if (client_challenge_response) {
+					headers += `
 wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}`;
-				if (wtvsec_login) session_data.data_store.wtvsec_login.update_ticket = true;
-			}
-			if (limitedLoginRegistered && session_data.getUserPasswordEnabled()) gourl = "wtv-head-waiter:/password?";
-			headers += `
+					if (wtvsec_login) session_data.data_store.wtvsec_login.update_ticket = true;
+				}
+				if (limitedLoginRegistered && session_data.getUserPasswordEnabled()) gourl = "wtv-head-waiter:/password?";
+				headers += `
 wtv-visit: ${gourl}`;
 
+			}
 		}
 	}
 }
