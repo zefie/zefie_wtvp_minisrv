@@ -40,7 +40,12 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 		if (!flashrom_info.message && flashrom_info.is_bootrom) {
 			flashrom_info.message = "BootRom Part " + (flashrom_info.part_number + 1) + " of " + flashrom_info.part_count;
 		}
-		
+
+		if (!flashrom_info.is_last_part) {
+			flashrom_info.next_rompath = service_name + ":/get-lc2-page?path=" + encodeURIComponent(flashrom_info.next_rompath.replace(service_name + ":/", ""));
+		}
+
+		console.log(flashrom_info.next_rompath);
 		const romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
 		let defaultDownloadTime;
 		switch (romtype) {
