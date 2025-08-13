@@ -442,11 +442,10 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     }
 
     const isWindows = process.platform === 'win32';
-    let options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'uid': process.getuid(), 'gid': process.getgid(), 'stdio': 'overlapped' };
-    if (isWindows) {
-        options.windowsHide = true;
-        delete options.uid;
-        delete options.gid;
+    let options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'stdio': 'overlapped' };
+    if (!isWindows) {
+        options.uid = process.getuid();
+        options.gid = process.getgid();
     }
 
     if (!minisrv_config.config.debug_flags.quiet) (executable == cgi_file) ? console.debug(" * Executing CGI:", executable) : console.debug(" * Executing CGI:", executable, cgi_file);
