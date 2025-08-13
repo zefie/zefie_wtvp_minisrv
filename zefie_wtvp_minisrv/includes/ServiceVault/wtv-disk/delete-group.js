@@ -32,26 +32,33 @@ if (request_headers.query.group) {
 <title>Delete a DiskMap Group</title>
 </head>
 <body bgcolor="#191919" text="#44bb55" link="#44bb55" vlink="#44bb55" alink="#44bb55">
-<form action="delete-group">
-<input type="text" usestyle name="group">
-<input type="submit" usestyle value="Delete">
-</form>
 <p>
 <table border=1 cellspacing=3 cellpadding=3>
-<tr><td>Group</td><td>Path</td><td>State</td><td>Last Checkup</td></tr>
+<tr><td><b>Group</b></td><td><b>Path</b></td><td><b>State</b></td><td><b>Last Checkup</b></td></tr>
 `;
         if (!client_group_data) {
             data += "<li>No groups found.</li>";
         } else {
             Object.entries(client_group_data).forEach(([group, _]) => {
+                if (group.includes("-UPDATE")) return;
                 const path = client_group_data[group].path;
-                const state = client_group_data[group].state;
-                const date = client_group_data[group]['last-checkup-time'];
+                let state = client_group_data[group].state;
+                if (state === "invalid") {
+                    state = `<a href="wtv-disk:/content/DownloadScreen.tmpl?group=${group}&diskmap=${group}&force=true">invalid</a>`;
+                }
+                const date = client_group_data[group]['last-checkup-time'] || "never";
                 data += `<tr><td><a href="wtv-disk:/content/DownloadScreen.tmpl?url=${encodeURIComponent('wtv-disk:/delete-group?path='+path+'&group='+group)}">${group}</a></td><td>${path}</td><td>${state}</td><td>${date}</td></tr>\n`;
             })
         }
         data += `
 </table>
+</p>
+<p>
+Manual Delete:
+<form action="delete-group">
+<input type="text" usestyle name="group">
+<input type="submit" usestyle value="Delete">
+</form>
 </p>
 <br>
 <a href="/get-group-data">Refresh Box Group Data</a> - <a href="/content/Downloads.tmpl">Go to Downloads</a>
