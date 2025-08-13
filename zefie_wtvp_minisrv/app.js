@@ -441,8 +441,14 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
         delete env['PATH_TRANSLATED'];
     }
 
-
+    const isWindows = process.platform === 'win32';
     let options = { 'cwd': vault, 'env': env, 'timeout': 120000, windowsHide: true, 'uid': process.getuid(), 'gid': process.getgid(), 'stdio': 'overlapped' };
+    if (isWindows) {
+        options.windowsHide = true;
+        delete options.uid;
+        delete options.gid;
+    }
+
     if (!minisrv_config.config.debug_flags.quiet) (executable == cgi_file) ? console.debug(" * Executing CGI:", executable) : console.debug(" * Executing CGI:", executable, cgi_file);
     const cgi = (executable == cgi_file) ? spawn(cgi_file, options=options) : spawn(executable, [cgi_file], options)
     let data = "";

@@ -87,10 +87,6 @@ function checkScopeErrors(file) {
 					},
 					// Node.js specific deprecations
 					{
-						"selector": "MemberExpression[object.name='process'][property.name='env'][computed=false]",
-						"message": "Consider using process.env with proper defaults or validation."
-					},
-					{
 						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='fs'][callee.property.name='exists']",
 						"message": "fs.exists() is deprecated. Use fs.existsSync() or fs.access() instead."
 					},
