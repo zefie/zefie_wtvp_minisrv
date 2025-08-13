@@ -942,7 +942,6 @@ async function processURL(socket, request_headers, pc_services = false) {
                         const k = qraw_split[0];
                         const value = decodeURIComponent(qraw_split[1].replace(/\+/g, "%20"));
                         if (request_headers.query[k] && enable_multi_query) {
-                            console.log("yes")
                             if (typeof request_headers.query[k] === 'string') {
                                 request_headers.query[k] = [request_headers.query[k]];
                             }
@@ -1415,7 +1414,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     const eol = "\n";
     let timezone = "-0000";
     let wtv_connection_close = false;
-console.log(headers_obj)
+
     if (typeof (data) === 'undefined' || data === null) data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -1526,7 +1525,6 @@ console.log(headers_obj)
             }
         }
     }
-    console.log(compression_type)
 
     // webtvism
     if (headers_obj["minisrv-force-compression"]) {
