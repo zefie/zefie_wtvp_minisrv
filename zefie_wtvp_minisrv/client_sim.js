@@ -63,7 +63,7 @@ class WebTVClientSimulator {
         this.previousUrl = null; // Store previous URL for Referer header
         this.debug = debug;
         this.defaultBox = "plus";
-        this.connectSessionId = crypto.randomBytes(4).toString('hex');;
+        this.connectSessionId = crypto.randomBytes(4).toString('hex');
         this.username = username;
 
         // Load minisrv config to get the initial shared key
