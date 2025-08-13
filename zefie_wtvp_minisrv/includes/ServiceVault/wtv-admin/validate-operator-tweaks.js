@@ -20,7 +20,7 @@ if (auth === true) {
             let v = request_headers.query[k];
 
             // enable_multi_query may send ["false", "on"] for checkboxes due to webtvism
-            if (util.isArray(v)) v = v[(v.length - 1)]; 
+            if (Array.isArray(v)) v = v[(v.length - 1)]; 
 
             // convert numbers back to int before writing to config
             if (!isNaN(parseInt(v))) v = parseInt(v); 
