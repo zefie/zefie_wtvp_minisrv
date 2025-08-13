@@ -1,4 +1,4 @@
-header = `200 OK
+headers = `200 OK
 Content-type: wtv/ssl-certs`
 
 const wtvssl = new WTVSSL();

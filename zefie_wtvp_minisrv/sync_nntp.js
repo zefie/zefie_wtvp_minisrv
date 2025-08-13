@@ -8,14 +8,14 @@ const groups_to_sync = [
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-var classPath = __dirname + "/includes/";
+let classPath = __dirname + "/includes/";
 const { WTVShared } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
 classPath = wtvshared.getAbsolutePath(classPath, __dirname);
 const minisrv_config = wtvshared.getMiniSrvConfig();
 const WTVNews = require(classPath + "/WTVNews.js");
 const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
-var data_path = wtvshared.getAbsolutePath(minisrv_config.config.SessionStore + '/minisrv_internal_nntp');
+const data_path = wtvshared.getAbsolutePath(minisrv_config.config.SessionStore + '/minisrv_internal_nntp');
 const service_name = "wtv-news";
 
 if (!minisrv_config.services[service_name].upstream_address) {
@@ -39,28 +39,28 @@ const wtvnews = new WTVNews(minisrv_config, service_name);
 if (service_config.upstream_auth) {
 	wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null, service_config.upstream_auth.username || null, service_config.upstream_auth.password || null);
 } else {
-	wtvnews.initializeUsenet(service_config.upstream_address, service_configupstream_port, service_config.upstream_tls || null);
+	wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null);
 }
 
 
 
 function verifyMessage(group, articleNumber, article) {
-	var g = wtvnewsserver.getGroupPath(group);
-	var file = g + path.sep + articleNumber + ".newz";
+	const g = wtvnewsserver.getGroupPath(group);
+	const file = g + path.sep + articleNumber + ".newz";
 	if (!fs.existsSync(file)) return false;
-	var old_data = fs.readFileSync(file);
-	var new_data = JSON.stringify(article.article);
+	const old_data = fs.readFileSync(file);
+	const new_data = JSON.stringify(article.article);
 
-	var old_data_hash = crypto.createHash('md5').update(old_data).digest("hex");
-	var new_data_hash = crypto.createHash('md5').update(new_data).digest("hex");
+	const old_data_hash = crypto.createHash('md5').update(old_data).digest("hex");
+	const new_data_hash = crypto.createHash('md5').update(new_data).digest("hex");
 	return (old_data_hash === new_data_hash);
 }
 
 function deleteMissing(group, articles) {
-	var g = wtvnewsserver.getGroupPath(group);
+	const g = wtvnewsserver.getGroupPath(group);
 	try {
 		fs.readdirSync(g).forEach(file => {
-			var articleNumber = parseInt(file.split('.')[0]);
+			const articleNumber = parseInt(file.split('.')[0]);
 			file = g + path.sep + file;
 			if (!articles.find(e => (e == articleNumber))) {
 				console.log(" * ", group, "article", articleNumber, "deleted from upstream, removing locally")
@@ -79,15 +79,15 @@ wtvnews.connectUsenet().then((res) => {
 		groups_to_sync.forEach((group) => {
 			console.log(group);
 			wtvnews.selectGroup(group).then((res) => {
-				var range = {
+				const range = {
 					start: res.group.low,
 					end: res.group.high
 				}
 				wtvnews.listGroup(group, null, null, range).then((res) => {
 					if (res.group.articleNumbers) {
-						var promises = [];
+						const promises = [];
 						wtvnewsserver.createGroup(group);
-						var meta = wtvnewsserver.getMetadata(group);
+						const meta = wtvnewsserver.getMetadata(group);
 						meta.last_article_id = res.group.high;
 						wtvnewsserver.saveMetadata(group, meta);
 						//deleteMissing(group, res.group.articleNumbers)

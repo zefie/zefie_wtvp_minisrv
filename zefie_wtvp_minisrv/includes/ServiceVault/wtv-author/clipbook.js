@@ -1,10 +1,10 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 const docName = request_headers.query.docName
 const blockNum = request_headers.query.blockNum
 const blockClass = request_headers.query.blockClass
 const category = request_headers.query.mediaCategoryID ? parseInt(request_headers.query.mediaCategoryID) : null;
-var page = request_headers.query.pageNum ? parseInt(request_headers.query.pageNum) : 0;
+const page = request_headers.query.pageNum ? parseInt(request_headers.query.pageNum) : 0;
 const itemsPerPage = 12;
 
 const clipart = {
@@ -1684,10 +1684,11 @@ ${(category !== null) ? `<b>${clipart[category].name}</b>` : 'art'} </font>
 <tr><td valign=top>
 <table cellspacing=0 cellpadding=1>
 `;
+let cat;
 	if (category !== null) {
-		var cat = clipart[category];
+		cat = clipart[category];
 		if (cat.categories) {
-			var i = 0;
+			let i = 0;
 			Object.keys(cat.categories).forEach(function (k) {
 				i++;
 				if (i % 14 === 0) data += `</table></td><td valign=top><table cellspacing=0 cellpadding=1>`;
@@ -1702,7 +1703,7 @@ ${(category !== null) ? `<b>${clipart[category].name}</b>` : 'art'} </font>
 			});
 		}
 	} else {
-		var i = 0;
+		let i = 0;
 		Object.keys(clipart).forEach(function (k) {
 			cat = clipart[k];
 			if (cat.parent) return;
@@ -1723,9 +1724,9 @@ ${(category !== null) ? `<b>${clipart[category].name}</b>` : 'art'} </font>
 </HTML>`
 } else {
 	// category has images
-	var cat = clipart[category];
-	var imgcount = cat.images.length;
-	var pages = Math.ceil(imgcount / itemsPerPage);
+	const cat = clipart[category];
+	const imgcount = cat.images.length;
+	const pages = Math.ceil(imgcount / itemsPerPage);
 
 	data = `<HTML><HEAD>
 <DISPLAY fontsize=medium>
@@ -1870,11 +1871,11 @@ ${cat.name}
 <TD colspan=3 rowspan=3 align=center>
 <table cellspacing=14 cellpadding=0 background="/ROMCache/light_blue_tile.gif">
 `;
-	for (i = page * itemsPerPage; i < Math.min(imgcount, (page + 1) * itemsPerPage); i++) {
+	for (let i = page * itemsPerPage; i < Math.min(imgcount, (page + 1) * itemsPerPage); i++) {
 		if (i % 4 === 0) data += `<tr>`;
 		data += `
 <td border=1 width=64 align=center valign=middle
-href="wtv-author:/add-media-to-block?docName=${docName}&blockNum=${blockNum}&blockClass=23&mediaPath=clipart%2F${escape(cat.path + "/" + cat.images[i])}&thumbnailPath=clipart%2Ficons%2F${escape(cat.path + "/" + cat.images[i])}">
+href="wtv-author:/add-media-to-block?docName=${docName}&blockNum=${blockNum}&blockClass=23&mediaPath=clipart%2F${encodeURIComponent(cat.path + "/" + cat.images[i])}&thumbnailPath=clipart%2Ficons%2F${encodeURIComponent(cat.path + "/" + cat.images[i])}">
 <img src="clipart/icons/${cat.path}/${cat.images[i]}" width=64 height=64>
 </td>`;
 	}

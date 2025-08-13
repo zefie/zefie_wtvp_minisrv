@@ -18,8 +18,8 @@ class WTVFavorites {
 	constructor(minisrv_config, wtvclient) {
         if (!minisrv_config) throw ("minisrv_config required");
 		if (!wtvclient) throw ("WTVClientSessionData required");
-        var WTVShared = require("./WTVShared.js")['WTVShared'];
-        var WTVMime = require("./WTVMime.js");
+        const WTVShared = require("./WTVShared.js")['WTVShared'];
+        const WTVMime = require("./WTVMime.js");
         this.WTVClientSessionData = require("./WTVClientSessionData.js");
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
@@ -39,27 +39,24 @@ class WTVFavorites {
     }
 	
 	favstoreExists() {
-        if (!this.isguest) {
-            if (this.favstore_dir === null) {
-                // set favstore directory local var so we don't call the function every time
-                var userstore_dir = this.wtvclient.getUserStoreDirectory();
+		if (this.favstore_dir === null) {
+			// set favstore directory local var so we don't call the function every time
+			const userstore_dir = this.wtvclient.getUserStoreDirectory();
 
-                // FavStore
-                var store_dir = "FavStore" + this.path.sep;
-                this.favstore_dir = userstore_dir + store_dir;
-            }
-            return this.fs.existsSync(this.favstore_dir);
-        }
-        return null;
+			// FavStore
+			const store_dir = "FavStore" + this.path.sep;
+			this.favstore_dir = userstore_dir + store_dir;
+		}
+		return this.fs.existsSync(this.favstore_dir);
     }
 
 	folderExists(foldername) {
-        var folder_dir = null;
-        if (this.favstoreExists()) {
+        let folder_dir, store_dir = null;
+		if (this.favstoreExists()) {
             if (!foldername) return null;
 
-            var folder_dir = foldername + this.path.sep;
-            var store_dir = this.favstore_dir + folder_dir;
+            folder_dir = foldername + this.path.sep;
+            store_dir = this.favstore_dir + folder_dir;
         }
 		if (store_dir) {
 			if (this.fs.existsSync(store_dir)) {
@@ -72,12 +69,12 @@ class WTVFavorites {
     }
 	
 	getFolderDir(foldername) {
-        var folder_dir = null;
+        let folder_dir, store_dir = null;
         if (this.favstoreExists()) {
             if (!foldername) return null;
 
-            var folder_dir = foldername + this.path.sep;
-            var store_dir = this.favstore_dir + folder_dir;
+            folder_dir = foldername + this.path.sep;
+            store_dir = this.favstore_dir + folder_dir;
         }
         return store_dir;
 	}
@@ -85,9 +82,9 @@ class WTVFavorites {
 	createTemplateFolder(folder) {
 		// create emply folder
 		this.createFolder(folder)
-		var folder_templates = this.minisrv_config.favorites.folder_templates;
+		const folder_templates = this.minisrv_config.favorites.folder_templates;
 		// populate it if a template exists
-		var self = this;
+		const self = this;
 		if (folder_templates[folder]) {
 			Object.keys(folder_templates[folder]).forEach(function (k) {
 				self.createFavorite(folder_templates[folder][k].title, folder_templates[folder][k].url, folder, (folder_templates[folder][k].image_type == "image/wtv-bitmap") ? atob(folder_templates[folder][k].image) : folder_templates[folder][k].image, folder_templates[folder][k].image_type);
@@ -96,7 +93,7 @@ class WTVFavorites {
 	}
 		
 	createDefaultFolders() {
-		var brandId = this.ssid.charAt(8);
+		const brandId = this.ssid.charAt(8);
 		this.createTemplateFolder("Recommended");
 		if (brandId == 7)
 			this.createTemplateFolder("Personal (Samsung)");
@@ -118,10 +115,10 @@ class WTVFavorites {
     }
 	
 	createFolder(foldername) {
-        var folder_exists = this.folderExists(foldername);
+        const folder_exists = this.folderExists(foldername);
         if (folder_exists === false) {
-            var folderdir = foldername + this.path.sep;
-            var store_dir = this.favstore_dir + folderdir;
+            const folderdir = foldername + this.path.sep;
+            const store_dir = this.favstore_dir + folderdir;
             if (!this.fs.existsSync(store_dir)) this.fs.mkdirSync(store_dir, { recursive: true });
             return true;
         }
@@ -129,8 +126,8 @@ class WTVFavorites {
     }
 	
 	getFolders() {
-        var path = this.favstore_dir;
-		var self = this;
+        const path = this.favstore_dir;
+		const self = this;
 		return this.fs.readdirSync(path).filter(function (file) {
 			if (self.folderExists(file)) {
 				self.folderArr.push(file);
@@ -144,16 +141,16 @@ class WTVFavorites {
     }
 	
 	createFavorite(title, url, folder, image, imagetype) {
-		var folderpath = this.getFolderDir(folder);
-		var favoriteid = this.createFavoriteID();
-		var favoritefile = favoriteid + this.favFileExt;
-		var favoritefileout = folderpath + favoritefile;
+		const folderpath = this.getFolderDir(folder);
+		const favoriteid = this.createFavoriteID();
+		const favoritefile = favoriteid + this.favFileExt;
+		const favoritefileout = folderpath + favoritefile;
 		if (imagetype != "url")
 			image = btoa(image);
 
 		title = decodeURIComponent(title).replaceAll("+", " ");
 		url = decodeURIComponent(url)
-		var favoritedata = {
+		const favoritedata = {
 			"title": title,
 			"url": url,
 			"folder": folder,
@@ -168,27 +165,26 @@ class WTVFavorites {
 			}
 
 			// encode favorite into json
-			var result = this.fs.writeFileSync(favoritefileout, JSON.stringify(favoritedata));
+			const result = this.fs.writeFileSync(favoritefileout, JSON.stringify(favoritedata));
 			if (!result) return false;
 
 		} catch (e) {
-			console.error(" # FavErr: Favorite Store failed\n", e, "\n", favoritefileout, "\n", favorite, "\n");
+			console.error(" # FavErr: Favorite Store failed\n", e, "\n", favoritefileout, "\n", favoritedata, "\n");
 		}
 		return false;
 	}
 	
 	listFavorites(folder) {
-		var folderpath = this.getFolderDir(folder);
-		var self = this;
+		const folderpath = this.getFolderDir(folder);
+		const self = this;
 		self.messageArr = [];
 		this.fs.readdirSync(folderpath)
 			.map(function (v) {
-				var favorite_data_raw = null;
-				var favoritepath = folderpath + self.path.sep + v;
+				let favorite_data_raw;
+				const favoritepath = folderpath + self.path.sep + v;
 				if (self.fs.existsSync(favoritepath)) favorite_data_raw = self.fs.readFileSync(favoritepath);
 				if (favorite_data_raw) {
-					var favorite_data = JSON.parse(favorite_data_raw);
-					self.messageArr.push(favorite_data);
+					self.messageArr.push(JSON.parse(favorite_data_raw));
 				}
 
 			})
@@ -211,16 +207,16 @@ class WTVFavorites {
 	}
 		
 	getFavorite(folder, favoriteid) {
-		var folder_path = this.getFolderDir(folder);
-		var folder_file = favoriteid + this.favFileExt;
-		var folder_file_in = folder_path + this.path.sep + folder_file;
-		var folder_data_raw = null;
+		const folder_path = this.getFolderDir(folder);
+		const folder_file = favoriteid + this.favFileExt;
+		const folder_file_in = folder_path + this.path.sep + folder_file;
+		let folder_data_raw = null;
 
 		if (this.fs.existsSync(folder_file_in)) folder_data_raw = this.fs.readFileSync(folder_file_in);
 		else console.error(" # FavErr: could not find ", folder_file_in);
 
 		if (folder_data_raw) {
-			var folder_data = JSON.parse(folder_data_raw);
+			const folder_data = JSON.parse(folder_data_raw);
 			folder_data.folder_path = folder_path;
 			folder_data.folder_file = folder_file;
 			if (folder_data) {
@@ -234,10 +230,10 @@ class WTVFavorites {
 	}
 	
 	deleteFolder(folder){
-		var dir = this.getFolderDir(folder);
+		const dir = this.getFolderDir(folder);
 		if (dir) {
 			try {
-				this.fs.rm(dir, { recursive: true });
+				this.fs.rmSync(dir, { recursive: true });
 				return true;
 			} catch (e) {
 				return false;
@@ -251,29 +247,28 @@ class WTVFavorites {
     }
 	
 	deleteFavorite(favoriteid, folder) {
-        var folderdir = this.getFolderDir(folder);
+        const folderdir = this.getFolderDir(folder);
 		this.fs.unlinkSync(folderdir + favoriteid + ".zfav", { recursive: true });
     }
 	
 	clearFolder(folder) {
-		const { readdirSync, rmSync } = require('fs');
-        var dir = this.getFolderDir(folder);
-		readdirSync(dir).forEach(f => rmSync(`${dir}${f}`));
+		const dir = this.getFolderDir(folder);
+		this.fs.readdirSync(dir).forEach(f => this.fs.rmSync(`${dir}${f}`));
     }
 	
 	updateFavorite(favoritedata, folder) {
         // encode message into json
-        var favoriteout = new Object();
-		var folderpath = this.getFolderDir(folder);
+        const favoriteout = new Object();
+		const folderpath = this.getFolderDir(folder);
         Object.assign(favoriteout, favoritedata);
         delete favoriteout.folderpath;
         delete favoriteout.favoritefile;
-        var result = this.fs.writeFileSync(folderpath + favoritedata.id + ".zfav", JSON.stringify(favoriteout));
+        const result = this.fs.writeFileSync(folderpath + favoritedata.id + ".zfav", JSON.stringify(favoriteout));
         if (!result) return false;
     }
 	
 	changeFavoriteName(favoriteid, folder, name) {
-        var favorite = this.getFavorite(folder, favoriteid);
+        const favorite = this.getFavorite(folder, favoriteid);
         if (!favorite) return false;
 
         favorite.title = name;
@@ -282,19 +277,19 @@ class WTVFavorites {
     }
 	
 	moveFavorite(oldfolder, newfolder, favoriteid) {
-        var favorite = this.getFavorite(oldfolder, favoriteid);
+        const favorite = this.getFavorite(oldfolder, favoriteid);
         if (!favorite) return false;
 		
-		var newfolderdata = this.listFavorites(newfolder);
-		var newfoldernum = newfolderdata.length
+		const newfolderdata = this.listFavorites(newfolder);
+		const newfoldernum = newfolderdata.length
 		
 		if (newfoldernum > 17)
 			return;
 
         favorite.folder = newfolder;
         this.updateFavorite(favorite, oldfolder);
-		var favoriteout = new Object();
-		var folderpath = this.getFolderDir(newfolder);
+		const favoriteout = new Object();
+		const folderpath = this.getFolderDir(newfolder);
         Object.assign(favoriteout, favorite);
         delete favoriteout.folderpath;
         delete favoriteout.favoritefile;
@@ -305,14 +300,13 @@ class WTVFavorites {
 
 
 	isFavoriteAShortcut(favoriteid) {
-		var favoritefileout = this.favstore_dir + "KeyStore.zfav";
+		const favoritefileout = this.favstore_dir + "KeyStore.zfav";
 		if (!this.fs.existsSync(favoritefileout)) {
 			this.createShortcutKey();
 		}
-		var keydata = {};
-		keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
-		var keys = Object.keys(keydata);
-		for (var i = 0; i < keys.length; i++) {
+		const keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
+		const keys = Object.keys(keydata);
+		for (let i = 0; i < keys.length; i++) {
 			if (keydata[keys[i]].id == favoriteid) {
 				return { key: keys[i], folder: keydata[keys[i]].folder };
 			}
@@ -321,20 +315,19 @@ class WTVFavorites {
 	}
 
 	getShortcutKey(key) {
-		var favoritefileout = this.favstore_dir + "KeyStore.zfav";
+		const favoritefileout = this.favstore_dir + "KeyStore.zfav";
 		if (!this.fs.existsSync(favoritefileout)) {
 			this.createShortcutKey();
 		}
-		var keydata = {};
-		keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
+		const keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
 		if (key && keydata[key]) {
 			return { folder: keydata[key].folder, id: keydata[key].id };
 		}
 	}
 	
 	createShortcutKey() {
-            var favoritefileout = this.favstore_dir + "KeyStore.zfav";
-			var keydata = {};
+            const favoritefileout = this.favstore_dir + "KeyStore.zfav";
+			const keydata = {};
 			
 			keydata.F1 = {
 				folder: "none",
@@ -367,7 +360,7 @@ class WTVFavorites {
 
             try {
                 // encode favorite into json
-                var result = this.fs.writeFileSync(favoritefileout, JSON.stringify(keydata));
+                const result = this.fs.writeFileSync(favoritefileout, JSON.stringify(keydata));
                 if (!result) return false;
 
             } catch (e) {
@@ -377,13 +370,11 @@ class WTVFavorites {
     }
 	
 	updateShortcutKey(oldkey, newkey, folder, id) {
-            var favoritefileout = this.favstore_dir + "KeyStore.zfav";
+            const favoritefileout = this.favstore_dir + "KeyStore.zfav";
 			if (!this.fs.existsSync(favoritefileout)) {
 				this.createShortcutKey();
 			}
-			var keydata = {};
-
-			keydata = JSON.parse(this.fs.readFileSync(favoritefileout))
+			const keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
 			switch(newkey) {
 				case "F1":
 					keydata.F1 = {
@@ -435,7 +426,7 @@ class WTVFavorites {
 			
             try {
                 // encode favorite into json
-                var result = this.fs.writeFileSync(favoritefileout, JSON.stringify(keydata));
+                const result = this.fs.writeFileSync(favoritefileout, JSON.stringify(keydata));
                 if (!result) return false;
 
             } catch (e) {

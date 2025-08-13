@@ -1,16 +1,16 @@
-var minisrv_service_file = true;
-var gourl = null;
+const minisrv_service_file = true;
+let gourl, userid, nickname, human_name, messenger_enabled, messenger_authorized, messenger_email, timezone;
 
-var bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
+const bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
 
-if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) gourl = "wtv-register:/splash?";
-var home_url = "wtv-home:/home?";
+if (!session_data.isRegistered()) gourl = "wtv-register:/splash?";
+let home_url = "wtv-home:/home?";
 
 if (gourl) {
 	headers = "200 OK\n";
 	if (bootrom !== 0) headers += "wtv-open-isp-disabled: false\n";
 
-	if (!session_data.isRegistered() && (!request_headers.query.guest_login || !minisrv_config.config.allow_guests)) {
+	if (!session_data.isRegistered()) {
 		// fake logged in for reg
 		session_data.setUserLoggedIn(true);
 		headers += `wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}
@@ -27,51 +27,39 @@ Content-type: text/html`;
 else {
 	if (session_data.lockdown) {
 		home_url = minisrv_config.config.unauthorized_url;
-	}
-	else if (request_headers.query.guest_login && minisrv_config.config.allow_guests) {
-		var namerand = Math.floor(Math.random() * 100000);
-		var nickname = (minisrv_config.config.service_name + '_' + namerand)
-		var human_name = nickname;
-		var userid = '1' + Math.floor(Math.random() * 1000000000000000000);
-		var messenger_enabled = 0;
-		var messenger_authorized = 0;		
-		var timezone = "-0000";
-		if (request_headers.query.skip_splash) gourl = "wtv-home:/home?";
-		else gourl = "wtv-home:/splash?";
 	} else if (!session_data.getSessionData("registered")) {
-		var errpage = wtvshared.doErrorPage(400);
+		const errpage = wtvshared.doErrorPage(400);
 		headers = errpage[0];
 		data = errpage[1];
 	} else {
-		var userid = session_data.getSessionData("subscriber_userid")
+		userid = session_data.getSessionData("subscriber_userid")
 		if (userid === null) {
 			userid = '1' + Math.floor(Math.random() * 1000000000000000000);
 			session_data.setSessionData("subscriber_userid", userid);
 		}
-		var nickname = session_data.getSessionData("subscriber_username");
-		var human_name = session_data.getSessionData("subscriber_name") || nickname;
-		var messenger_enabled = session_data.getSessionData("messenger_enabled") || 0;
-		var messenger_authorized = session_data.getSessionData("messenger_authorized") || 0;
-		var messenger_email = session_data.getSessionData("messenger_email");
-		var timezone = session_data.getSessionData("timezone") || "-0000";
-		var gourl = "wtv-home:/splash?";
+		nickname = session_data.getSessionData("subscriber_username");
+		human_name = session_data.getSessionData("subscriber_name") || nickname;
+		messenger_enabled = session_data.getSessionData("messenger_enabled") || 0;
+		messenger_authorized = session_data.getSessionData("messenger_authorized") || 0;
+		messenger_email = session_data.getSessionData("messenger_email");
+		timezone = session_data.getSessionData("timezone") || "-0000";
+		gourl = "wtv-home:/splash?";
 	}
-	var limitedLogin = session_data.lockdown;
-	var limitedLoginRegistered = (limitedLogin || (session_data.isRegistered() && !session_data.isUserLoggedIn()) && session_data.getUserPasswordEnabled());
+	const limitedLogin = session_data.lockdown;
+	const limitedLoginRegistered = (limitedLogin || (session_data.isRegistered() && !session_data.isUserLoggedIn()) && session_data.getUserPasswordEnabled());
 	if (!session_data.getUserPasswordEnabled()) session_data.setUserLoggedIn(true);
-	var offline_user_list = null;
+	let offline_user_list = null;
 	if (session_data.isRegistered()) {
 		// check for SMTP Password
 		if (session_data.getSessionData("subscriber_smtp_password") === null) {
 			session_data.setUserSMTPPassword(wtvshared.generatePassword(16));
         }
 		if (session_data.user_id == 0) {
-			var accounts = session_data.listPrimaryAccountUsers();
-			var num_accounts = session_data.getNumberOfUserAccounts();
-			var offline_user_list_str = "<user-list>\n";
-			var i = 0;
+			const accounts = session_data.listPrimaryAccountUsers();
+			let offline_user_list_str = "<user-list>\n";
+			let i = 0;
 			Object.keys(accounts).forEach((k) => {
-				var account_display_name = (accounts[k].subscriber_name) ? accounts[k].subscriber_name : accounts[k].subscriber_username
+				const account_display_name = (accounts[k].subscriber_name) ? accounts[k].subscriber_name : accounts[k].subscriber_username
 				offline_user_list_str += "\t" + '<user userid="' + i + '" user-name="' + accounts[k].subscriber_username + '" first-name="' + account_display_name + '"  last-name="" passsword="" mail-enabled=true />' + "\n";
 				i++;
 			});
@@ -93,7 +81,7 @@ wtv-expire-all: wtv-head-waiter:
 `;
 
 	if (!limitedLogin && !limitedLoginRegistered) {
-		strf = strftime.timezone(timezone);
+		const strf = strftime.timezone(timezone);
 		headers += `wtv-country: US
 wtv-client-time-zone: GMT -0000
 wtv-client-time-dst-rule: GMT
@@ -174,13 +162,8 @@ wtv-inactive-timeout: 1440
 
 		if (!limitedLogin && !limitedLoginRegistered) {
 			headers += "wtv-relogin-url: wtv-head-waiter:/relogin?relogin=true\n";
-			if (request_headers.query.guest_login) headers += "&guest_login=true\n";
-
 			headers += "wtv-reconnect-url: wtv-head-waiter:/login-stage-two?reconnect=true\n";
-			if (request_headers.query.guest_login) headers += "&guest_login=true\n";
-
-			headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true\n";
-			if (request_headers.query.guest_login) headers += "&guest_login=true\n ";			
+			headers += "wtv-boot-url: wtv-head-waiter:/relogin?relogin=true\n";	
 			headers += "wtv-home-url: " + home_url + "\n";
 		}
 

@@ -1246,18 +1246,18 @@ class WTVBGMusic {
     constructor(minisrv_config, session_data) {
         if (!minisrv_config) throw ("minisrv_config required");
         if (!session_data) throw ("WTVClientSessionData required");
-        var WTVShared = require("./WTVShared.js")['WTVShared'];
+        const WTVShared = require("./WTVShared.js")['WTVShared'];
         this.minisrv_config = minisrv_config;
         this.session_data = session_data;
         this.wtvshared = new WTVShared(minisrv_config);
     }
 
     getMusicObj(force_default = false) {
-        var music_obj = this.session_data.getSessionData("wtv-bgmusic");
+        let music_obj = this.session_data.getSessionData("wtv-bgmusic");
         if (music_obj === null) music_obj = {};
 
         // check if we need to set defaults
-        var setDefaults = force_default;
+        let setDefaults = force_default;
         if (!music_obj.enableCategories) setDefaults = true;
         else if (music_obj.enableCategories.length == 0) setDefaults = true;
         if (!music_obj.enableSongs) setDefaults = true;
@@ -1317,12 +1317,13 @@ class WTVBGMusic {
     }
 
     getSong(songid) {
+        let musiclist;
         if (this.session_data.hasCap("client-can-do-rmf")) {
             // use rmf list
-            var musiclist = this.musiclist_rmf;
+            musiclist = this.musiclist_rmf;
         } else {
             // use classic list
-            var musiclist = this.musiclist_classic;
+            musiclist = this.musiclist_classic;
         }
         if (musiclist[songid]) return musiclist[songid];
         return null;
@@ -1331,42 +1332,43 @@ class WTVBGMusic {
     getSongCategory(songid) {
         if (String(songid).length === 3) {
             // 3 digit song id
-            return parseInt(String(songid).substr(0, 1));
+            return parseInt(String(songid).slice(0, 1));
         } else if (String(songid).length === 4) {
             // 4 digit song id
-            return parseInt(String(songid).substr(0, 2));
+            return parseInt(String(songid).slice(0, 2));
         }
         return null;
     }
 
 
     getCategorySongList(category) {
+        let musiclist;
         if (this.session_data.hasCap("client-can-do-rmf")) {
             // use rmf list
-            var musiclist = this.musiclist_rmf;
+            musiclist = this.musiclist_rmf;
         } else {
             // use classic list
-            var musiclist = this.musiclist_classic;
+            musiclist = this.musiclist_classic;
         }
-        var songList = [];
+        const songList = [];
         Object.keys(musiclist).forEach(function (k) {
             musiclist[k].id = k;
             if (String(category).length === 1) {
                 // 3 digit song id
-                if (parseInt(k.substr(0, 1)) == parseInt(category) && String(k).length === 3) songList.push(musiclist[k]);
+                if (parseInt(k.slice(0, 1)) == parseInt(category) && String(k).length === 3) songList.push(musiclist[k]);
             } else if (String(category).length === 2) {
                 // 4 digit song id
-                if (parseInt(k.substr(0, 2)) == parseInt(category) && String(k).length === 4) songList.push(musiclist[k]);
+                if (parseInt(k.slice(0, 2)) == parseInt(category) && String(k).length === 4) songList.push(musiclist[k]);
             }
         });
         return songList.filter(value => Object.keys(value).length !== 0);
     }
 
     getCategoryList() {
-        var enabledCategories = [];
-        var self = this;
+        const enabledCategories = [];
+        const self = this;
         Object.keys(self.categories).forEach(function (k) {
-            var songList = self.getCategorySongList(parseInt(k) + 1);
+            const songList = self.getCategorySongList(parseInt(k) + 1);
             if (songList.length > 0) enabledCategories.push({
                 "id": parseInt(k) + 1, "name": self.categories[k]
             });
@@ -1380,8 +1382,8 @@ class WTVBGMusic {
     }
 
     isCategoryEnabled(category) {
-        var music_obj = this.getMusicObj();
-        var enabled = false;
+        const music_obj = this.getMusicObj();
+        let enabled = false;
         music_obj.enableCategories.forEach(function (v) {
             if (parseInt(v) == parseInt(category)) {
                 enabled = true;
@@ -1391,13 +1393,13 @@ class WTVBGMusic {
     }
 
     isSongEnabled(song, checkCat = false) {
-        var music_obj = this.getMusicObj();
-        var enabled = false;
+        const music_obj = this.getMusicObj();
+        let enabled = false;
         music_obj.enableSongs.forEach(function (v) {
             if (parseInt(v) == parseInt(song)) {
                 if (checkCat) {
-                    songCategory = getSongCategory(song);
-                    if (isCategoryEnabled(songCategory)) {
+                    const songCategory = this.getSongCategory(song);
+                    if (this.isCategoryEnabled(songCategory)) {
                         enabled = true;
                     }
                 } else {

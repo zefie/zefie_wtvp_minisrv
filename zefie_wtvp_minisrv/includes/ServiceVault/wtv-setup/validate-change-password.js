@@ -1,20 +1,20 @@
-var minisrv_service_file = true;
-var userSession = null;
+const minisrv_service_file = true;
+let userSession, errpage;
 
 session_data.loadSessionData();
 
-var user_id = null;
+let user_id = null;
 if (request_headers.query.user_id) {
     user_id = request_headers.query.user_id;
 } else {
-    var errpage = doErrorPage(400, "User was not specified.");
+    errpage = wtvshared.doErrorPage(400, "User was not specified.");
     headers = errpage[0];
     data = errpage[1];
 }
 
 if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
-    var errpage = doErrorPage(400, "You are not authorized to edit the selected user.");
+    errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
     data = errpage[1];
 }
@@ -23,15 +23,15 @@ if (user_id && !errpage) {
     headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`
-    var userSession = null;
+    userSession = null;
     if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
-        userSession.user_id = user_id;
+        userSession.user_id = user_id;``
     }
 
     if (!userSession.loadSessionData()) {
-        var errpage = doErrorPage(400, "Invalid user ID.");
+        errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
         headers = errpage[0];
         data = errpage[1];
     }

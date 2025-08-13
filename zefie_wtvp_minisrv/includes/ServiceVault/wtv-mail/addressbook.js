@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
-var camefrom = request_headers.query.camefrom;
-var action = request_headers.query.action;
+const minisrv_service_file = true;
+const camefrom = request_headers.query.camefrom;
+const action = request_headers.query.action;
 
-var address_book = null
+let address_book = null
 address_book = session_data.getSessionData("address_book")
 if (address_book == null) {
 	session_data.setSessionData("address_book", [])
@@ -698,10 +698,10 @@ ${(!newaddress) ? `<input type=hidden name="id" value="${request_headers.query.i
 			break;
 
 		case "add":
-			var nameExists = false;
-			var addrExists = false;
+			let nameExists = false;
+			let addrExists = false;
 			// dumbass protection for making addresses look proper in the list
-			var address = request_headers.query.address.split("@")[0];
+			let address = request_headers.query.address.split("@")[0];
 			address += `@${minisrv_config.config.service_name}`;
 			// sanity checks to make sure the user doesn't have duplicate names/addresses
 			address_book.forEach(user => {
@@ -735,8 +735,8 @@ Location: wtv-mail:/addressbook`;
 			break;
 
 		case "change":
-			var address = request_headers.query.address
-			var nickname = request_headers.query.nickname
+			address = request_headers.query.address
+			let nickname = request_headers.query.nickname
 			if (!address) {
 				address = address_book[request_headers.query.id].address
 			}
@@ -746,10 +746,10 @@ Location: wtv-mail:/addressbook`;
 			// dumbass protection for making addresses look proper in the list
 			address = address.split("@")[0];
 			address += `@${minisrv_config.config.service_name}`;
-			var nameExists = false;
-			var addrExists = false;
+			nameExists = false;
+			addrExists = false;
 			if (address_book.length > 1) {
-				var otheraddrs = address_book.slice(0)
+				const otheraddrs = address_book.slice(0)
 				otheraddrs.splice(request_headers.query.id, 1)
 				// sanity checks to make sure the user doesn't have duplicate names/addresses
 				otheraddrs.forEach(user => {

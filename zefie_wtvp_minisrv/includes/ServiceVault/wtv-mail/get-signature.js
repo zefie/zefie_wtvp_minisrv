@@ -1,21 +1,21 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var errpage = null;
+let errpage = null;
 
-var messageid = request_headers.query.message_id || null;
+const messageid = request_headers.query.message_id || null;
 if (!messageid) {
     // get user signature
     data = session_data.getSessionData("subscriber_signature");   
 } else {
     // get message signature
-    var message = session_data.mailstore.getMessageByID(messageid);
+    const message = session_data.mailstore.getMessageByID(messageid);
     if (!message) errpage = wtvshared.doErrorPage(400, "Invalid Message ID");
     data = message.signature;
 }
 
 if (request_headers.query.sanitize) {
     if (!data) data = '';
-    var message_colors = session_data.mailstore.getSignatureColors(data)
+    const message_colors = session_data.mailstore.getSignatureColors(data)
 
     if (data.indexOf("<html>") >= 0) {
         data = wtvshared.sanitizeSignature(data).replace("<html>", `<html><body bgcolor=${message_colors.bgcolor} text=${message_colors.text} link=${message_colors.link} vlink=${message_colors.vlink} vspace=0 hspace=0>`);

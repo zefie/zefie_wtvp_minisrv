@@ -1,22 +1,13 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favoritenum = 0;
-
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var favid = request_headers.query.favoriteid;
-
-var numoffolders = folder_array.length;
-
-favoritenum = Object.keys(favarray).length;
-
-var favoritedata = session_data.favstore.getFavorite(foldername, favid);
+const foldername = request_headers.query.favorite_folder_name;
+const favarray = session_data.favstore.listFavorites(foldername);
+const folder_array = session_data.favstore.getFolders();
+const folderid = folder_array.indexOf(foldername);
+const favid = request_headers.query.favoriteid;
+const numoffolders = folder_array.length;
+const favoritenum = Object.keys(favarray).length;
+const favoritedata = session_data.favstore.getFavorite(foldername, favid);
 
 
 headers = `200 OK
@@ -117,14 +108,14 @@ Choose a shortcut label for <b>${favoritedata.title}</b>, then choose <b>Done</b
 <tbody><tr><td width="13">
 </td><td>
 <form action="wtv-favorite:/commit-shortcuts-favorites">`
-
-for (var i = 1; i <= 8; i++) {
-    var key = "F" + i;
-    var scfav = session_data.favstore.getShortcutKey(key);
+let fav;
+for (let i = 1; i <= 8; i++) {
+    const key = "F" + i;
+    const scfav = session_data.favstore.getShortcutKey(key);
     if (scfav && scfav.id != "none") {
-        var fav = session_data.favstore.getFavorite(scfav.folder, scfav.id);
+        fav = session_data.favstore.getFavorite(scfav.folder, scfav.id);
     } else {
-        var fav = { image: "wtv-home:/ROMCache/Spacer.gif", title: "Not assigned" };
+        fav = { image: "wtv-home:/ROMCache/Spacer.gif", title: "Not assigned" };
     }
 
 data += `

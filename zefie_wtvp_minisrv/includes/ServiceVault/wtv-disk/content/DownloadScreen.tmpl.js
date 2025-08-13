@@ -1,27 +1,27 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 //GET wtv-disk:/content/DownloadScreen.tmpl?diskmap=Demo&group=Demo
 
 headers = `200 OK
 Content-Type: text/html
 wtv-expire: wtv-disk:/content/DownloadScreen.tmpl`
-var content_dir = "content/"
-var diskmap_dir = content_dir + "diskmaps/";
-var diskmap = request_headers.query[wtvshared.getCaseInsensitiveKey("DiskMap", request_headers.query)];
-var diskmap_json_file = null;
+const content_dir = "content/"
+const diskmap_dir = content_dir + "diskmaps/";
+const diskmap = request_headers.query[wtvshared.getCaseInsensitiveKey("DiskMap", request_headers.query)];
+let diskmap_json_file = null;
 Object.keys(service_vaults).forEach(function (g) {
 	if (diskmap_json_file != null) return;
 	diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
 	if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
 });
-var diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
+let diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
 if (!diskmap_data[request_headers.query.group]) {
 	throw ("Invalid diskmap data (group does not match)");
 }
 diskmap_data = diskmap_data[request_headers.query.group];
-var message = request_headers.query.message || diskmap_data.message || "Retrieving files...";
-var main_message = request_headers.query.main_message || diskmap_data.main_message || "Your receiver is downloading files.";
-var success_url = request_headers.query.success_url || diskmap_data.success_url || null;
-var fail_url = request_headers.query.fail_url || diskmap_data.fail_url || null;
+const message = request_headers.query.message || diskmap_data.message || "Retrieving files...";
+const main_message = request_headers.query.main_message || diskmap_data.main_message || "Your receiver is downloading files.";
+let success_url = request_headers.query.success_url || diskmap_data.success_url || null;
+let fail_url = request_headers.query.fail_url || diskmap_data.fail_url || null;
 
 if (success_url === null) success_url = new clientShowAlert({
 	'image': this.minisrv_config.config.service_logo,

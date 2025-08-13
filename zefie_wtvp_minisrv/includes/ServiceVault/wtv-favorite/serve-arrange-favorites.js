@@ -1,16 +1,12 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favoritenum = 0;
+let favoritenum = 0;
 
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var numoffolders = folder_array.length;
+const foldername = request_headers.query.favorite_folder_name;
+const favarray = session_data.favstore.listFavorites(foldername);
+const folder_array = session_data.favstore.getFolders();
+const folderid = folder_array.indexOf(foldername);
+const numoffolders = folder_array.length;
 
 favoritenum = Object.keys(favarray).length;
 

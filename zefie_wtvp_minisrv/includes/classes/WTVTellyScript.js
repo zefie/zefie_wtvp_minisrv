@@ -130,7 +130,7 @@ class WTVTellyScriptTokenizer {
         if (regex.test(firstChar)) {
             sequence += firstChar;
             while (this.index <= this.endIndex) {
-                let nextChar = this.getNextCharacter();
+                const nextChar = this.getNextCharacter();
                 if (regex.test(nextChar)) {
                     sequence += nextChar;
                 } else {
@@ -229,7 +229,7 @@ class WTVTellyScriptTokenizer {
             // Process as a constant.
             let hexString = "";
             if (checkSequence.startsWith("0x") || checkSequence.startsWith("0X")) {
-                hexString = checkSequence.substring(2);
+                hexString = checkSequence.slice(2);
             } else {
                 hexString = parseInt(checkSequence, 10).toString(16).toUpperCase();
             }
@@ -246,13 +246,13 @@ class WTVTellyScriptTokenizer {
     // The main tokenize method processes the raw script and produces an array of token bytes.
     tokenize() {
         while (this.index <= this.endIndex) {
-            let ch = this.getNextCharacter();
+            const ch = this.getNextCharacter();
 
             // Handle comments starting with "/*" and ending with "*/".
             if (ch === "/" && this.peekCharacter() === "*") {
                 this.getNextCharacter(); // consume '*'
                 while (this.index <= this.endIndex) {
-                    let commentChar = this.getNextCharacter();
+                    const commentChar = this.getNextCharacter();
                     if (commentChar === "*" && this.peekCharacter() === "/") {
                         this.getNextCharacter(); // consume '/'
                         break;
@@ -270,7 +270,7 @@ class WTVTellyScriptTokenizer {
                 this.tokenizeConstant();
             } else {
                 // Try to build an identifier/number sequence.
-                let currentIdx = this.index;
+                const currentIdx = this.index;
                 let checkSequence = this.buildCheckSequence(ch, "^[a-zA-Z0-9_]$");
                 if (checkSequence !== "") {
                     if (this.replacements.has(checkSequence)) {
@@ -285,7 +285,7 @@ class WTVTellyScriptTokenizer {
                     if (this.replacements.has(checkSequence)) {
                         this.tokenizedData.push(this.replacements.get(checkSequence));
                     } else if (this.replacements.has(ch)) {
-                        let replacement = this.replacements.get(ch);
+                        const replacement = this.replacements.get(ch);
                         if (replacement === 0x7F) {
                             this.lineNumber++;
                         }
@@ -777,14 +777,14 @@ class WTVTellyScriptDetokenizer {
         let ii = 0;
         this.index++; // skip the token identifier (0x43)
         while (this.index < this.tokenizedData.length) {
-            let byteVal = this.tokenizedData[this.index];
+            const byteVal = this.tokenizedData[this.index];
             if (byteVal === 0x00) break;
-            let digit = byteVal - 0x30;
+            const digit = byteVal - 0x30;
             if (digit >= 0 && digit <= 0x0F) {
                 constantValue = (constantValue << 4) + digit;
             }
             if (ii >= 1 && (ii % 2) === 1 && alphanumericValue !== null) {
-                let charValue = constantValue & 0xFF;
+                const charValue = constantValue & 0xFF;
                 if (charValue >= 0x30 && charValue <= 0x5A) {
                     alphanumericValue += String.fromCharCode(charValue);
                 } else {
@@ -810,13 +810,13 @@ class WTVTellyScriptDetokenizer {
     // Reads a string token until the null terminator and outputs it with proper escape replacements.
     detokenizeString() {
         let count = 0;
-        let startIndex = ++this.index;
+        const startIndex = ++this.index;
         while (this.index <= this.endIndex) {
             if (this.tokenizedData[this.index] === 0x00) break;
             count++;
             this.index++;
         }
-        let chars = [];
+        const chars = [];
         for (let i = startIndex; i < startIndex + count; i++) {
             chars.push(String.fromCharCode(this.tokenizedData[i]));
         }
@@ -835,7 +835,7 @@ class WTVTellyScriptDetokenizer {
     detokenizeIdentifier() {
         this.index++; // skip the identifier token indicator (0x49)
         while (this.index < this.tokenizedData.length) {
-            let byteVal = this.tokenizedData[this.index];
+            const byteVal = this.tokenizedData[this.index];
             if (byteVal === 0x00) break;
             this.rawData += String.fromCharCode(byteVal);
             this.index++;
@@ -861,9 +861,9 @@ class WTVTellyScriptDetokenizer {
         this.rawData = "";
         this.index = 0;
         while (this.index <= this.endIndex) {
-            let token = this.tokenizedData[this.index];
+            const token = this.tokenizedData[this.index];
             if (this.instructions.hasOwnProperty(token)) {
-                let instr = this.instructions[token];
+                const instr = this.instructions[token];
                 if (instr.terminate) break;
                 if (instr.instruction) {
                     instr.instruction();
@@ -1074,7 +1074,7 @@ class WTVTellyScript {
      * It handles directives like #ifdef, #ifndef, #if, #else, #endif.
      */
     preprocess() {
-        var definitions = this.preprocessor_definitions || {};
+        const definitions = this.preprocessor_definitions || {};
         // Split input into lines (handling CRLF and LF)
         const lines = this.raw_data.split(/\r?\n/);
         const output = [];
@@ -1150,7 +1150,7 @@ class WTVTellyScript {
      * @returns {string} The minified TellyScript data.
      */
     minify() {
-        let minifier = new WTVTellyScriptMinifier();
+        const minifier = new WTVTellyScriptMinifier();
         this.raw_data = minifier.minify(this);
         this.raw_data = this.raw_data.replaceAll("\n\n\n", "\n");
         this.tokenize();
@@ -1238,7 +1238,7 @@ class WTVTellyScript {
                     return TellyScriptState.PACKED;
                 } else {
                     let hasNull = false, hasEOF = false;
-                    for (let byte of data) {
+                    for (const byte of data) {
                         if (byte === 0x00) hasNull = true;
                         if (byte === 0xff) hasEOF = true;
                     }

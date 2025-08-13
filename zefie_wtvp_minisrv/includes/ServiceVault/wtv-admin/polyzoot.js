@@ -1,12 +1,13 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var WTVAdmin = require(classPath + "/WTVAdmin.js");
-var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
-var auth = wtva.isAuthorized();
+const WTVAdmin = require(classPath + "/WTVAdmin.js");
+const wtva = new WTVAdmin(minisrv_config, session_data, service_name);
+const auth = wtva.isAuthorized();
 if (auth === true) {
-    var password = null;
+    let user_info;
+    let password = null;
     if (request_headers.Authorization) {
-        var authheader = request_headers.Authorization.split(' ');
+        const authheader = request_headers.Authorization.split(' ');
         if (authheader[0] == "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
@@ -14,33 +15,31 @@ if (auth === true) {
     }
     if (wtva.checkPassword(password)) {
         if (request_headers.query.username) {
-            var user_info = wtva.getAccountInfo(request_headers.query.username.toLowerCase()); // username search
+            user_info = wtva.getAccountInfo(request_headers.query.username.toLowerCase()); // username search
             if (user_info) {
-                var userAccount = wtva.getAccountBySSID(user_info.ssid);
+                const userAccount = wtva.getAccountBySSID(user_info.ssid);
                 userAccount.switchUserID(user_info.user_id, false, false);
                 if (request_headers.query.confirm) {
-                    var polyzooot = 1407;
-                    var WTVBGMusic = require(classPath + "/WTVBGMusic.js");
-                    var wtvbgm = new WTVBGMusic(minisrv_config, userAccount);
-                    var bgmcat = wtvbgm.getSongCategory(polyzooot);
-                    var music_obj = wtvbgm.getMusicObj();
+                    const polyzooot = 1407;
+                    const WTVBGMusic = require(classPath + "/WTVBGMusic.js");
+                    const wtvbgm = new WTVBGMusic(minisrv_config, userAccount);
+                    const bgmcat = wtvbgm.getSongCategory(polyzooot);
+                    let music_obj = wtvbgm.getMusicObj();
                     music_obj.enableCategories = [bgmcat];
                     music_obj.enableSongs = [polyzooot];
                     music_obj = Object.assign({}, music_obj)
                     userAccount.setSessionData("wtv-bgmusic", music_obj);
-                    var settings_obj = userAccount.getSessionData("wtv-setup");
-                    if (settings_obj === null) settings_obj = {};
+                    const settings_obj = userAccount.getSessionData("wtv-setup") || {};
                     settings_obj['setup-play-bgm'] = 1;
                     userAccount.setSessionData("wtv-setup", Object.assign({}, settings_obj));
                     userAccount.saveSessionData();
                 }
                 if (request_headers.query.reset) {
-                    var WTVBGMusic = require(classPath + "/WTVBGMusic.js");
+                    const WTVBGMusic = require(classPath + "/WTVBGMusic.js");
                     userAccount.deleteSessionData("wtv-bgmusic")
-                    var wtvbgm = new WTVBGMusic(minisrv_config, userAccount);
-                    var music_obj = wtvbgm.getMusicObj(true);
-                    var settings_obj = userAccount.getSessionData("wtv-setup");
-                    if (settings_obj === null) settings_obj = {};
+                    const wtvbgm = new WTVBGMusic(minisrv_config, userAccount);
+                    const music_obj = wtvbgm.getMusicObj(true);
+                    const settings_obj = userAccount.getSessionData("wtv-setup") || {};
                     settings_obj['setup-play-bgm'] = 0;
                     userAccount.setSessionData("wtv-setup", Object.assign({}, settings_obj));
                     userAccount.saveSessionData();
@@ -122,12 +121,12 @@ data += `
 </html>
 `;
     } else {
-        var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
+        const errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(403, auth);
+    const errpage = wtvshared.doErrorPage(403, auth);
     headers = errpage[0];
     data = errpage[1];
 }

@@ -1,0 +1,31 @@
+{# Heading block template #}
+<center>
+    <h2>
+        {% if state == "editing" %}
+        <table href="wtv-author:/edit-block?docName={{ page }}&blockNum={{ number }}&numOfBlocks={{ numofblocks }}" frame="" width="90%" cellspacing="8" cellpadding="0" border="0">
+        {% else %}
+        <table frame="" width="90%" cellspacing="8" cellpadding="0" border="0">
+        {% endif %}
+        <tbody>
+            <tr>
+                {% if headerimgL %}
+                <td>
+                    <img src="{{ headerimgL }}" width="{{ headerimgLwidth }}" height="{{ headerimgLheight }}">
+                </td>
+                {% endif %}
+                <td center="">
+                    <font color="{{ headcol }}">
+                        {% if thisblock.dividerBefore == "on" %}
+                        <h2><hr></h2>
+                        {% endif %}
+                        <{{ thisblock.size }}>{{ thisblock.text }}</{{ thisblock.size }}>
+                        {% if thisblock.dividerAfter == "on" %}
+                        <h2><hr></h2>
+                        {% endif %}
+                    </font>
+                </td>
+            </tr>
+        </tbody>
+        </table>
+    </h2>
+</center>

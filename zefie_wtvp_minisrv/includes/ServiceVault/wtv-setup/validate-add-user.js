@@ -1,5 +1,5 @@
-var minisrv_service_file = true;
-var errpage = null;
+const minisrv_service_file = true;
+let errpage = null;
 
 if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
 

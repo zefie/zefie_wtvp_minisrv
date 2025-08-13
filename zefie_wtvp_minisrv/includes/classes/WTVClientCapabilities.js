@@ -20,7 +20,7 @@ class WTVClientCapabilities {
         // (this script does not do that, also note that LC2 MiniBrowser does not support client:relog)
         // None of this is 100% for certain yet (except the bitfield stuff), do not trust as verbatim, more testing needed
 
-        var capabilities_table = [
+        const capabilities_table = [
             ["client-can-do-muzac", "Can Do Muzac"],
             ["client-can-do-chat", "Can Chat"],
             ["client-can-do-openISP", "Can do OpenISP"],
@@ -86,20 +86,20 @@ class WTVClientCapabilities {
 
         this.capabilities_table = capabilities_table;
 
-        var capabilities = new Array();
+        const capabilities = [];
 
         // might want to pass without a flag to get the table
         if (wtv_capability_flags != null) {
 
             // define function to convert hex string to binary string (0s & 1s)
-            var hex2bin = function (hex) {
-                var binary = "";
-                var remainingSize = hex.length;
-                for (var p = 0; p < hex.length / 8; p++) {
+            const hex2bin = function (hex) {
+                let binary = "";
+                let remainingSize = hex.length;
+                for (let p = 0; p < hex.length / 8; p++) {
                     //In case remaining hex length (or initial) is not multiple of 8
-                    var blockSize = remainingSize < 8 ? remainingSize : 8;
+                    const blockSize = remainingSize < 8 ? remainingSize : 8;
 
-                    binary += parseInt(hex.substr(p * 8, blockSize), 16).toString(2);
+                    binary += parseInt(hex.slice(p * 8, p * 8 + blockSize), 16).toString(2);
 
                     remainingSize -= blockSize;
                 }
@@ -107,18 +107,18 @@ class WTVClientCapabilities {
             }
 
             // convert wtv_capability_flags to binary string, reverse the string, and split into array containing each character;
-            var bitfield = hex2bin(wtv_capability_flags).split("").reverse();
+            const bitfield = hex2bin(wtv_capability_flags).split("").reverse();
             this.debug("bitfield:", bitfield)
 
-            var add = function (flag_name, flag) {
+            const add = function (flag_name, flag) {
                 capabilities[flag_name] = flag;
             }
 
-            var i = 0;
+            let i = 0;
             // process bitfield and set capabilities
             Object.keys(bitfield).forEach(function (k) {
                 // Convert binary to boolean, 0 to false, 1 to true
-                var bitfield_result = (bitfield[k] == "1")
+                const bitfield_result = (bitfield[k] == "1")
 
                 // set flags based on position of bit
                 try {
@@ -131,7 +131,6 @@ class WTVClientCapabilities {
             });
 
             this.capabilities = capabilities;
-            return capabilities;
         }
     }
 

@@ -1,15 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 if (!request_headers.query.registering) {
-    var errpage = wtvshared.doErrorPage(400);
+    const errpage = wtvshared.doErrorPage(400);
     headers = errpage[0];
     data = errpage[1];
 } else {
     const WTVRegister = require(classPath + "/WTVRegister.js")
-    var wtvr = new WTVRegister(minisrv_config);
+    const wtvr = new WTVRegister(minisrv_config);
     headers = `200 OK
 Content-Type: text/html`;
-    var main_data = `<form action="ValidateAccountInfo"
+    const main_data = `<form action="ValidateAccountInfo"
 ENCTYPE="x-www-form-encoded" METHOD="POST">
 <input type=hidden name=registering value="true">
 Please set up your account:<br><br>
@@ -47,7 +47,7 @@ AutoCaps selected value="${request_headers.query.subscriber_contact || ""}">
 <option${(request_headers.query.subscriber_contact_method == "Instagram") ? " selected" : ""}>Instagram</option>
 </select>
 `;
-    var form_data = `<shadow>
+    const form_data = `<shadow>
 <input type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/ButtonBorder2.bif" text="#dddddd" width=110>
 </shadow>
 </font>

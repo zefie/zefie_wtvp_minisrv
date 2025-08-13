@@ -1,11 +1,11 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var num_per_line = 4
-var legend_every = 6;
+const num_per_line = 4
+const legend_every = 6;
 
 function getLegend() {
-    d = "<tr>\n";
-    for (var i = 0; i < num_per_line; i++) {
+    let d = "<tr>\n";
+    for (let i = 0; i < num_per_line; i++) {
         d += "<td><b>Code</b>\n<td><b>Char</b>\n";
     }
     d += "<tr>\n";
@@ -30,7 +30,7 @@ data = `<html>
 <table border=1>`;
 
 
-for (var i = 0; i <= 255; i++) {
+for (let i = 0; i <= 255; i++) {
     if (i % num_per_line === 0) {
         if (i % (num_per_line * legend_every) === 0) {
             data += getLegend();

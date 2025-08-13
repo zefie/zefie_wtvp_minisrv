@@ -30,8 +30,8 @@ class WTVRegister {
      * @returns {boolean} True if the username is valid, false otherwise
      */
     checkUsernameSanity(username) {
-        var regex_str = "^([A-Za-z0-9-\_]{" + this.minisrv_config.config.user_accounts.min_username_length + "," + this.minisrv_config.config.user_accounts.max_username_length + "})$";
-        var regex = new RegExp(regex_str);
+        const regex_str = "^([A-Za-z0-9-\_]{" + this.minisrv_config.config.user_accounts.min_username_length + "," + this.minisrv_config.config.user_accounts.max_username_length + "})$";
+        const regex = new RegExp(regex_str);
         return regex.test(username);
     }
 
@@ -41,8 +41,8 @@ class WTVRegister {
      * @returns {boolean} True if the SSID is available for registration, false if it already has an account registered.
      */
     checkSSIDAvailable(ssid) {
-        var directory = (directory) ? directory : this.session_store_dir + this.path.sep + "accounts";
-        var available = true;
+        const directory = this.session_store_dir + this.path.sep + "accounts";
+        let available = true;
         if (this.fs.existsSync(directory)) {
             this.fs.readdirSync(directory).forEach(file => {
                 if (file.toLowerCase() == ssid.toLowerCase()) {
@@ -61,23 +61,23 @@ class WTVRegister {
      * @returns {boolean} True if the username is available, false if it is already taken
      */
     checkUsernameAvailable(username, directory = null) {
-        var self = this;
-        var return_val = false;
+        const self = this;
+        let return_val = false;
         // returns the user's ssid, and user_id and userid in an array if true, false if not
 
         // check against reserved name list
         if (this.minisrv_config.config.user_accounts.reserved_names_files) {
-            var reserved_names = []
+            const reserved_names = []
             this.minisrv_config.config.user_accounts.reserved_names_files.forEach(function (v) {
-                var data = self.fs.readFileSync(v);
-                var json = JSON.parse(data);
+                const data = self.fs.readFileSync(v);
+                const json = JSON.parse(data);
                 json.forEach(function (v) {
                     reserved_names.push(v);
                 });
             });
 
             Object.keys(reserved_names).forEach((k) => {
-                var regex = new RegExp("^"+reserved_names[k]+"$", 'i');
+                const regex = new RegExp("^"+reserved_names[k]+"$", 'i');
                 if (username.match(regex)) return_val = true;
             })
         }
@@ -94,8 +94,8 @@ class WTVRegister {
                 }
                 if (!file.match(/user.*\.json/ig)) return;
                 try {
-                    var temp_session_data_file = self.fs.readFileSync(directory + self.path.sep + file, 'Utf8');
-                    var temp_session_data = JSON.parse(temp_session_data_file);
+                    const temp_session_data_file = self.fs.readFileSync(directory + self.path.sep + file, 'Utf8');
+                    const temp_session_data = JSON.parse(temp_session_data_file);
                     if (temp_session_data.subscriber_username) {
                         if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
                             return_val = true;
@@ -120,7 +120,7 @@ class WTVRegister {
      */
     getHTMLTemplate(title, main_content, form_buttons, is_old_build) {
         try {
-            var template = this.wtvshared.getTemplate("wtv-register", "templates/NunjucksTemplate.js", true);
+            const template = this.wtvshared.getTemplate("wtv-register", "templates/NunjucksTemplate.js", true);
             if (this.fs.existsSync(template)) {
                 const WTVRegisterTemplate = require(template);
                 

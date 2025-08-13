@@ -1,9 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 if (request_headers.query.category) {
 	const wtvbgm = new WTVBGMusic(minisrv_config, session_data);
-	var musicList = wtvbgm.getCategorySongList(request_headers.query.category);
-	var categoryName = wtvbgm.getCategoryName(request_headers.query.category);
+	const musicList = wtvbgm.getCategorySongList(request_headers.query.category);
+	const categoryName = wtvbgm.getCategoryName(request_headers.query.category);
 
 	headers = `200 OK
 Connection: Keep-Alive
@@ -93,8 +93,8 @@ Choose the songs that you'd like to include.
 <input type="hidden" name="category" value="${request_headers.query.category}">
 <input type="hidden" autosubmit="onLeave">
 `;
-	var songsListed = 0;
-	var divide = Math.round(musicList.length / 2, 0);
+	let songsListed = 0;
+	const divide = Math.round(musicList.length / 2, 0);
 	Object.keys(musicList).forEach(function (k) {
 		if (songsListed == divide) {
 			data += `</td ><td width="20">
@@ -105,12 +105,12 @@ Choose the songs that you'd like to include.
 <td valign="top">
 <input type="checkbox" name="enableSong" value=${musicList[k]['id']}${(wtvbgm.isSongEnabled(musicList[k]['id'])) ? ' checked="checked"' : ''}>
 </td><td valign="bottom">`;
-		var strLenLimit = 16;
+		let strLenLimit = 16;
 		if (musicList.length > 14) strLenLimit = 20;
-		var songTitle = musicList[k]['title'];
-		if (songTitle.length > strLenLimit) songTitle = musicList[k]['title'].substr(0, strLenLimit - 3) + "...";
+		let songTitle = musicList[k]['title'];
+		if (songTitle.length > strLenLimit) songTitle = musicList[k]['title'].slice(0, strLenLimit - 3) + "...";
 		if (musicList.length > 14) data += '<font size="-2">';
-		data += `<a href="${musicList[k]['url']}?wtv-title=${escape(musicList[k]['title'])}" onmouseout="clearTitle()" onmouseover="showTitle('${musicList[k]['title'].replace(/\'/g, "\\'")}')">${songTitle}</a>
+		data += `<a href="${musicList[k]['url']}?wtv-title=${encodeURIComponent(musicList[k]['title'])}" onmouseout="clearTitle()" onmouseover="showTitle('${musicList[k]['title'].replace(/\'/g, "\\'")}')">${songTitle}</a>
 </td></tr></tbody></table>`;
 		if (musicList.length > 14) data += '</font>';
 		songsListed++;
@@ -150,7 +150,7 @@ Choose the songs that you'd like to include.
 </display></display></body></html>`;
 
 } else {
-	var errPage = doErrorPage("400", "Category ID is required.");
+	const errPage = wtvshared.doErrorPage("400", "Category ID is required.");
 	headers = errPage[0];
 	data = errPage[1];
 }

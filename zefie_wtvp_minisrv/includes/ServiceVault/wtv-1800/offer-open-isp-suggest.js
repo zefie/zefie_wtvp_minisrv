@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var gourl = "wtv-1800:/finish-prereg?";
+let gourl = "wtv-1800:/finish-prereg?";
 if (request_headers.query.relogin) gourl += "relogin=true";
 
 

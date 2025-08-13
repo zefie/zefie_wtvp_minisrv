@@ -1,7 +1,7 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var folder_array = session_data.favstore.getFolders();
-var totalfavorites = folder_array.length;
+const folder_array = session_data.favstore.getFolders();
+const totalfavorites = folder_array.length;
 
 headers = `200 OK
 Connection: Keep-Alive

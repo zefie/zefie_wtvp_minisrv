@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 if (socket.ssid !== null) {
     session_data.switchUserID(0);
@@ -77,27 +77,28 @@ Choose your name
 <tr><td absheight=2>
 <tr>`;
 
-var accounts = session_data.listPrimaryAccountUsers();
-var accounts_listed = 0;
+const accounts = session_data.listPrimaryAccountUsers();
+let accounts_listed = 0;
 for (const [key, value] of Object.entries(accounts)) {
+    let user_id;
     data += "<td absheight=37><td valign=middle abswidth=50% maxlines=1>";
-    if (key == "subscriber") var user_id = 0
-    else var user_id = key.replace("user", '');
+    if (key == "subscriber") user_id = 0;
+    else user_id = key.replace("user", '');
     data += `<a href=/ValidateLogin?user_id=${user_id}&user_login=true nocancel>`;
     if (key == "subscriber") data += `<font size=+1><b>${value['subscriber_username']}</b></font></a>`;
     else data += `<font size=+1>${value['subscriber_username']}</font>`
     data += "<td width=15><td nowrap>	<font color=42BD52>";
-    var userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
+    const userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
     userSession.user_id = user_id;
 
-    var mailcount = 0;
+    let mailcount = 0;
     if (userSession.mailstore.mailstoreExists()) {
         if (userSession.mailstore.mailboxExists(0)) {
             mailcount = userSession.mailstore.countUnreadMessages(0);
         }
     }
   
-    var mcnumber = (mailcount >= 100) ? "<b>99+</b>" : mailcount;
+    const mcnumber = (mailcount >= 100) ? "<b>99+</b>" : mailcount;
     data += `<b>${mcnumber} ${(mcnumber > 0) ? '<img src="/images/signin_new_mail.gif" width="25" height="20">' : '<img src="/images/signin_no_mail.gif" width="25" height="19">'}`;
     data += `</font>
 <tr>

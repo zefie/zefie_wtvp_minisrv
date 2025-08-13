@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 if (request_headers.query.machine && request_headers.query.port) {
 	headers = `200 OK
@@ -42,7 +42,7 @@ Content-Type: text/html`
 <title>Connect Setup v3.0-minisrv</title>
 <DISPLAY noscroll notvaudio >
 </head>
-<body hspace=0 vspace=0 fontsize=medium onload=uS() background=/ROMCache/bgpattern.gif bgcolor=#3C2F47 text=c6c6c6 link=0080ff vlink=0080ff>
+<body hspace=0 vspace=0 fontsize=medium onload=updateService() background=/ROMCache/bgpattern.gif bgcolor=#3C2F47 text=c6c6c6 link=0080ff vlink=0080ff>
 
 <table cellspacing="0" cellpadding="0" cellborder="0" transparency=100>
   <tr>

@@ -4,8 +4,8 @@ const prototypes = {
             return this.split("").reverse().join("");
         },
         toHexString: function () {
-            var result = '';
-            for (var i = 0; i < this.length; i++) {
+            let result = '';
+            for (let i = 0; i < this.length; i++) {
                 result += this.charCodeAt(i).toString(16);
             }
             return result;
@@ -13,7 +13,7 @@ const prototypes = {
     },
     Array: {
         replace: function(sub, newSub) {
-            splits = this.split(sub, 2);
+            const splits = this.split(sub, 2);
             return Array.concat(splits[0], newSub, splits[1])
         },
         moveKey: function (from, to) {

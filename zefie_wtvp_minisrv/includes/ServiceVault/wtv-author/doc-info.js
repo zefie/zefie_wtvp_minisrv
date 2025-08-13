@@ -1,7 +1,7 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var pagestore_exists = session_data.pagestore.pagestoreExists();
-var docName = request_headers.query.docName;
+const pagestore_exists = session_data.pagestore.pagestoreExists();
+const docName = request_headers.query.docName;
 
 if (pagestore_exists != true)
 {
@@ -10,8 +10,8 @@ if (pagestore_exists != true)
 Location: wtv-author:/documents`
 } else {
 	
-	var page = session_data.pagestore.loadPage(docName)
-	var discardAlert = function (docName) {
+	const page = session_data.pagestore.loadPage(docName)
+	const discardAlert = function (docName) {
 		return new clientShowAlert({
 			'image': this.minisrv_config.config.service_logo,
 			'message': "Would you like to permanently discard this document and all of its contents?",
@@ -23,7 +23,7 @@ Location: wtv-author:/documents`
 			'noback': true,
 		}).getURL();
 	}
-	var unpublishAlert = function (docName) {
+	const unpublishAlert = function (docName) {
 		return new clientShowAlert({
 			'image': this.minisrv_config.config.service_logo,
 			'message': "Would you like to unpublish this document? You can republish it later.",

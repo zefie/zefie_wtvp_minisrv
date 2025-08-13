@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 // remove restrictions once this page is shown, since the user will be 'trapped' anyway
 session_data.disableLockdown();

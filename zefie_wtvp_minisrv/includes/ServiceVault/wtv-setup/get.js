@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 if (session_data.lockdown) {
     headers = `200 OK
@@ -10,7 +10,7 @@ Content-Type: text/html`;
     data = "";
 } else {
 
-    var settings_obj = session_data.getSessionData("wtv-setup");
+    let settings_obj = session_data.getSessionData("wtv-setup");
     if (settings_obj === null) settings_obj = {};
 
     settings_obj["from-server"] = 1;
@@ -46,8 +46,8 @@ Content-Type: text/html`;
     data = "";
 
     Object.keys(settings_obj).forEach(function (k, v) {
-        data += k + "=" + escape(settings_obj[k]) + "&";
+        data += k + "=" + encodeURIComponent(settings_obj[k]) + "&";
     });
 
-    data = data.substring(0, (data.length - 1));
+    data = data.slice(0, (data.length - 1));
 }

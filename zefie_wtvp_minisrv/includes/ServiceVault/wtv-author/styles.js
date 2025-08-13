@@ -1,12 +1,12 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`;
 
-var styleName = request_headers.query.styleName;
-var page = (request_headers.query.pageNum) ? parseInt(request_headers.query.pageNum) : 0
-var docName = request_headers.query.docName;
+const styleName = request_headers.query.styleName;
+let page = (request_headers.query.pageNum) ? parseInt(request_headers.query.pageNum) : 0
+const docName = request_headers.query.docName;
 
 const pages = [
 	[
@@ -118,13 +118,13 @@ vspace=0
 <tr>
 <td>
 <table cellspacing=0 cellpadding=0
-href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${escape(styleName)}&pageNum=${(page > 0) ? (page - 1) : (pages.length - 1)}#minus" id=minus><tr><td><img src="wtv-author:/ROMCache/minus_button.gif">
+href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${encodeURIComponent(styleName)}&pageNum=${(page > 0) ? (page - 1) : (pages.length - 1)}#minus" id=minus><tr><td><img src="wtv-author:/ROMCache/minus_button.gif">
 </table>
 </td>
 <td align=center><font color=D1D1D1><B>${page + 1} of ${pages.length}</B></font></td>
 <td>
 <table cellspacing=0 cellpadding=0
-href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${escape(styleName)}&pageNum=${(page+1 < pages.length) ? (page + 1) : 0}#plus" id=plus><tr><td><img src="wtv-author:/ROMCache/plus_button.gif">
+href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${encodeURIComponent(styleName)}&pageNum=${(page+1 < pages.length) ? (page + 1) : 0}#plus" id=plus><tr><td><img src="wtv-author:/ROMCache/plus_button.gif">
 </table>
 </td>
 </tr>
@@ -144,7 +144,7 @@ ${(styleName) ? `<font color=AEBFD1> Your current style is: <b>${styleName}</b> 
 <tr>
 `;
 
-for (i=0;i<currentPage.length;i++) {
+for (let i = 0; i < currentPage.length; i++) {
 	if (i % 3 === 0) data += `<tr>`
 	data += `
 <td>

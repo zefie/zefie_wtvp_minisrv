@@ -1,8 +1,8 @@
 'use strict';
 const path = require('path');
-var classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;                                       require(classPath + "Prototypes.js");
+const classPath = path.resolve(__dirname + path.sep + "includes" + path.sep + "classes" + path.sep) + path.sep;                                       require(classPath + "Prototypes.js");
 const { WTVShared } = require(classPath + "/WTVShared.js");
-var wtvshared = new WTVShared(null, true);
+const wtvshared = new WTVShared(null, true);
 const fs = require('fs');
 
 function showUsage() {
@@ -12,8 +12,8 @@ function showUsage() {
 
 if (process.argv) {
     if (process.argv[2]) {
-        var reverse = false;
-        var file = process.argv[2];
+        let reverse = false;
+        let file = process.argv[2];
         if (file == "-d") {
             file = process.argv[3];
             reverse = true;
@@ -21,9 +21,9 @@ if (process.argv) {
         if (fs.existsSync(file)) {
             console.log(` * Processing ${file} ...`)
             if (reverse) {
-                var outfile = file.replace(/\.cb64\.txt/,'') + ".dec.txt";
-                var encodedData = fs.readFileSync(file);
-                var rawdata = wtvshared.unpackCompressedB64(encodedData);
+                const outfile = file.replace(/\.cb64\.txt/,'') + ".dec.txt";
+                const encodedData = fs.readFileSync(file);
+                const rawdata = wtvshared.unpackCompressedB64(encodedData);
                 try {
                     fs.writeFileSync(outfile, rawdata);
                     console.log(` * Successfully decoded into ${outfile}`)
@@ -32,9 +32,9 @@ if (process.argv) {
                     process.exit(1);
                 }
             } else {
-                var outfile = file + ".cb64.txt";
-                var rawdata = fs.readFileSync(file);
-                var encodedData = wtvshared.packCompressedB64(rawdata);
+                const outfile = file + ".cb64.txt";
+                const rawdata = fs.readFileSync(file);
+                const encodedData = wtvshared.packCompressedB64(rawdata);
                 try {
                     fs.writeFileSync(outfile, encodedData);
                     console.log(` * Successfully encoded into ${outfile}`)

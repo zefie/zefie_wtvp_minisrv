@@ -17,12 +17,12 @@ class WTVMinifyingProxy {
         ];
         
         this.allowedAttributes = [
-            'leftcolor', 'rightcolor', 'maxlevel', 'leftoffset', 'rightoffset',
+            'leftcolor', 'rightcolor', 'maxlevel', 'leftoffset', 'rightoffset', 'background',
             'host', 'port', 'channel', 'borderimage', 'font', 'nohighlight', 'autoactivate',
-            'text', 'cursor', 
-            'href', 'src', 'alt', 'title', 'width', 'height', 'border', 'align', 'valign',
-            'bgcolor', 'color', 'size', 'face', 'target', 'name', 'value', 'type', 'action',
-            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap', 
+            'text', 'cursor', 'loop', 'autostart', 'href', 'src', 'alt', 'title', 'width',
+            'height', 'border', 'align', 'valign', 'bgcolor', 'color', 'size',
+            'face', 'target', 'name', 'value', 'type', 'action',
+            'method', 'cols', 'rows', 'cellpadding', 'cellspacing', 'nowrap',
             // JellyScript event handlers
             'onclick', 'onload', 'onunload', 'onsubmit', 'onreset', 'onfocus', 'onblur', 
             'onchange', 'onmouseover', 'onmouseout', 'onmousedown', 'onmouseup'
@@ -292,7 +292,7 @@ class WTVMinifyingProxy {
         for (const [selector, styles] of cssRules) {
             if (selector.startsWith('.')) {
                 // Handle class selectors (e.g., .lst)
-                const className = selector.substring(1);
+                const className = selector.slice(1);
                 const regex = new RegExp(`<(input[^>]*class\\s*=\\s*["'][^"']*\\b${className}\\b[^"']*["'][^>]*)>`, 'gi');
                 html = html.replace(regex, (match, tagContent) => {
                     // Convert CSS styles to attributes for this element (input tag)
@@ -401,7 +401,7 @@ class WTVMinifyingProxy {
             return cssDimension;
         }
         // Remove !important and other CSS-specific suffixes
-        let cleanDimension = cssDimension.replace(/\s*!important\s*/, '').trim();
+        const cleanDimension = cssDimension.replace(/\s*!important\s*/, '').trim();
         
         // For other units or plain numbers, return as-is
         return cleanDimension;
@@ -487,7 +487,7 @@ class WTVMinifyingProxy {
                 // Extract button text to determine appropriate width
                 const valueMatch = attributes.match(/value="([^"]*)"/) || ['', ''];
                 const buttonText = valueMatch[1];
-                let buttonWidth = Math.max(buttonText.length * 8, 80); // Minimum 80px
+                const buttonWidth = Math.max(buttonText.length * 8, 80); // Minimum 80px
                 attributes = attributes.trim() + ` width="${buttonWidth}"`;
             }
             return `<input ${attributes}>`;
@@ -495,14 +495,8 @@ class WTVMinifyingProxy {
         
         // Remove other unsupported content
         return html
-            // Remove noscript content (show it since we support basic JS)
-            .replace(/<noscript\b[^>]*>/gi, '')
-            .replace(/<\/noscript>/gi, '')
             // Remove object/embed tags
             .replace(/<object\b[^>]*>.*?<\/object>/gis, '')
-            .replace(/<embed\b[^>]*\/?>/gi, '')
-            // Remove iframes
-            .replace(/<iframe\b[^>]*>.*?<\/iframe>/gis, '')
             // Remove link tags (CSS, etc.)
             .replace(/<link\b[^>]*\/?>/gi, '')
             // Remove meta tags except content-type and charset
@@ -545,7 +539,7 @@ class WTVMinifyingProxy {
             // No body tag found, extract everything after head or use all content
             const headEndMatch = html.match(/<\/head>/i);
             if (headEndMatch) {
-                bodyContent = html.substring(html.indexOf(headEndMatch[0]) + headEndMatch[0].length);
+                bodyContent = html.slice(html.indexOf(headEndMatch[0]) + headEndMatch[0].length);
             } else {
                 bodyContent = html;
             }
@@ -711,19 +705,19 @@ ${bodyContent}
     intelligentTruncate(content, maxLength) {
         if (content.length <= maxLength) return content;
         
-        let truncated = content.substring(0, maxLength);
+        let truncated = content.slice(0, maxLength);
         
         // Try to cut at a tag boundary
         const lastCloseTag = truncated.lastIndexOf('>');
         const lastOpenTag = truncated.lastIndexOf('<');
         
         if (lastCloseTag > lastOpenTag) {
-            truncated = truncated.substring(0, lastCloseTag + 1);
+            truncated = truncated.slice(0, lastCloseTag + 1);
         } else {
             // Cut at word boundary
             const lastSpace = truncated.lastIndexOf(' ');
             if (lastSpace > maxLength * 0.8) { // Only if we don't lose too much
-                truncated = truncated.substring(0, lastSpace);
+                truncated = truncated.slice(0, lastSpace);
             }
         }
         
@@ -757,7 +751,7 @@ ${bodyContent}
         const title = titleMatch ? titleMatch[1].trim() : 'WebTV Page';
         
         // Transform the HTML content
-        let transformed = this.transformHtml(html, url);
+        const transformed = this.transformHtml(html, url);
         
         // Extract body content from either the transformed HTML or use all content
         let bodyContent = '';
@@ -769,7 +763,7 @@ ${bodyContent}
             // No body tag found, extract content after head or use transformed content
             const headEndMatch = transformed.match(/<\/head>/i);
             if (headEndMatch) {
-                bodyContent = transformed.substring(transformed.indexOf(headEndMatch[0]) + headEndMatch[0].length);
+                bodyContent = transformed.slice(transformed.indexOf(headEndMatch[0]) + headEndMatch[0].length);
             } else {
                 bodyContent = transformed;
             }
@@ -843,7 +837,7 @@ ${bodyContent}
             // Check if width exists and ensure it's reasonable for WebTV
             const widthMatch = attributes.match(/width\s*=\s*["']?(\d+)["']?/);
             if (widthMatch) {
-                let width = parseInt(widthMatch[1]);
+                const width = parseInt(widthMatch[1]);
                 // Ensure minimum width of 200px for text inputs on WebTV
                 if (width < 200) {
                     newAttributes = attributes.replace(/width\s*=\s*["']?\d+["']?/, `width="200"`);
@@ -900,7 +894,7 @@ ${bodyContent}
             // Ensure minimum width for buttons
             const widthMatch = attributes.match(/width\s*=\s*["']?(\d+)["']?/);
             if (widthMatch) {
-                let width = parseInt(widthMatch[1]);
+                const width = parseInt(widthMatch[1]);
                 if (width < 80) {
                     newAttributes = attributes.replace(/width\s*=\s*["']?\d+["']?/, `width="80"`);
                 }

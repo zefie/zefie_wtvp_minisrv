@@ -1,7 +1,7 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var timezone = "-0000";
-var zip = "";
+let timezone = "-0000";
+let zip = "";
 if (session_data.isRegistered()) {
     timezone = session_data.getSessionData("timezone") || timezone;
     zip = session_data.getSessionData("zipcode") || zip;
@@ -9,13 +9,13 @@ if (session_data.isRegistered()) {
         timezone = request_headers.query.timezone;
         session_data.setSessionData("timezone", timezone);
     }
-    if (request_headers.query.zip) {
+    if (typeof request_headers.query.zip !== 'undefined') {
         zip = request_headers.query.zip;
         session_data.setSessionData("zipcode", zip);
     }
 }
 
-strf = strftime.timezone(timezone)
+const strf = strftime.timezone(timezone)
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -28,7 +28,7 @@ Content-Type: text/html`
 
 
 
-html = `<HTML>
+data = `<HTML>
 <HEAD>
 <TITLE>
 Region Settings
@@ -88,13 +88,13 @@ const timezones = [
     ["UTC+08:00", "+0800"], ["UTC+09:00", "+0900"], ["UTC+10:00", "+1000"], ["UTC+11:00", "+1100"], ["UTC+12:00", "+1200"]
 ];
 
-html += `<select name="timezone" onchange="this.form.submit()">\n`;
+data += `<select name="timezone" onchange="this.form.submit()">\n`;
 for (const tz of timezones) {
-    html += `  <option value="${tz[1]}" ${tz[1] === timezone ? 'selected' : ''}>${tz[0]}</option>\n`;
+    data += `  <option value="${tz[1]}" ${tz[1] === timezone ? 'selected' : ''}>${tz[0]}</option>\n`;
 }
-html += `</select>`;
+data += `</select>`;
 
-html += `</form>
+data += `</form>
 
 
 <p>
@@ -138,5 +138,3 @@ html += `</form>
 </BODY>
 </HTML>
 `;
-
-data = html;

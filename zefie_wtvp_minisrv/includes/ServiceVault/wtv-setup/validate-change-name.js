@@ -1,19 +1,19 @@
-var minisrv_service_file = true;
-
+const minisrv_service_file = true;
+let userSession;
 session_data.loadSessionData();
 
-var user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
+let user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
 
 // security
 if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
     user_id = null; // force unset
-    var errpage = wtvshared.doErrorPage(400, "You are not authorized to change the selected user's password.");
+    const errpage = wtvshared.doErrorPage(400, "You are not authorized to change the selected user's password.");
     headers = errpage[0];
     data = errpage[1];
 }
 
 if (user_id != null) {
-    var userSession;
+    
     if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
@@ -21,12 +21,12 @@ if (user_id != null) {
     }
 
     if (!userSession.loadSessionData()) {
-        var errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
+        const errpage = wtvshared.doErrorPage(400, "Invalid user ID.");
         headers = errpage[0];
         data = errpage[1];
     }
     else {
-        var user_name = userSession.getSessionData('subscriber_username');
+        const user_name = userSession.getSessionData('subscriber_username');
         userSession.setSessionData('subscriber_name', (request_headers.query.display_name) ? request_headers.query.display_name : user_name);
         userSession.saveSessionData();
         headers = `300 OK

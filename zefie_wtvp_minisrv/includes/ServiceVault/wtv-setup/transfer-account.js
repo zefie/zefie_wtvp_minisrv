@@ -1,14 +1,14 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 // security
 if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
-    var errpage = wtvshared.doErrorPage(400, "You are not authorized to transfer this account. Please log in as the primary user.");
+    const errpage = wtvshared.doErrorPage(400, "You are not authorized to transfer this account. Please log in as the primary user.");
     headers = errpage[0];
     data = errpage[1];
 }
 
 if (!session_data.getUserPasswordEnabled()) {
-    var passwordRequired = new clientShowAlert({
+    const passwordRequired = new clientShowAlert({
         'image': minisrv_config.config.service_logo,
         'message': "For security, you must first set a password on your account before you can transfer it.",
         'buttonlabel1': "Set Password",
@@ -18,7 +18,7 @@ if (!session_data.getUserPasswordEnabled()) {
         'noback': true,
     }).getURL();
 
-    var errpage = wtvshared.doRedirect(passwordRequired);
+    const errpage = wtvshared.doRedirect(passwordRequired);
     headers = errpage[0];
     data = errpage[1];
 } else if (session_data.getUserPasswordEnabled() && session_data.user_id === 0) {

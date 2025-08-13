@@ -28,8 +28,8 @@ class WTVAdmin {
      */
     constructor(minisrv_config, wtvclient, service_name) {
         this.minisrv_config = minisrv_config;
-        var { WTVShared } = require("./WTVShared.js");
-        var WTVRegister = require("./WTVRegister.js");
+        const { WTVShared } = require("./WTVShared.js");
+        const WTVRegister = require("./WTVRegister.js");
         this.wtvclient = wtvclient;
         this.wtvshared = new WTVShared(minisrv_config);
         this.wtvr = new WTVRegister(minisrv_config);
@@ -54,13 +54,14 @@ class WTVAdmin {
         if (ssid == admin_ssid) {
             return this.REASON_NOSELF;
         } else {
-            var fake_config = this.wtvshared.getUserConfig();
+            const fake_config = this.wtvshared.getUserConfig();
             if (!fake_config.config) fake_config.config = {};
             if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
-            var entry_exists = false;
-            var self = this;
+            let entry_exists = false;
+            const self = this;
             Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
                 if (fake_config.config.ssid_block_list[k] == ssid) {
+                    entry_exists = true;
                     return self.REASON_EXISTS;
                 }
             });
@@ -78,8 +79,8 @@ class WTVAdmin {
      * @returns {number} The result of the unban operation
      */
     unbanSSID(ssid) {
-        var config_changed = false;
-        var fake_config = this.wtvshared.getUserConfig();
+        let config_changed = false;
+        const fake_config = this.wtvshared.getUserConfig();
         if (!fake_config.config) fake_config.config = {};
         if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
         if (typeof ssid === 'string') {
@@ -100,8 +101,8 @@ class WTVAdmin {
             });
         }
         if (config_changed) {
-            wtvshared.writeToUserConfig(fake_config);
-            minisrv_config = reloadConfig();
+            this.wtvshared.writeToUserConfig(fake_config);
+            //this.minisrv_config = reloadConfig();
             return this.SUCCESS
         } else {
             return this.REASON_NONEXIST;
@@ -114,7 +115,7 @@ class WTVAdmin {
      * @returns {string} The reason for rejecting the connection
      */
     rejectConnection(reason_is_ssid) {
-        var rejectReason;
+        let rejectReason;
         if (this.pcservices) {
             rejectReason = this.clientAddress + " is not in the whitelist for PC Services Admin.";
             console.log(" * Request from IP (" + this.clientAddress + ") for PC Services Admin, but that IP is not authorized.");
@@ -158,12 +159,12 @@ class WTVAdmin {
      * @returns {Array} An array of arrays, each containing the SSID and its associated account information
      */
     listRegisteredSSIDs() {
-        var search_dir = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
-        var self = this;
-        var out = [];
+        const search_dir = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
+        const self = this;
+        const out = [];
         this.fs.readdirSync(search_dir).forEach(file => {
             if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory()) {
-                var user = self.getAccountInfoBySSID(file);
+                const user = self.getAccountInfoBySSID(file);
                 out.push([file, user]);
             }
         });
@@ -176,19 +177,19 @@ class WTVAdmin {
      * @return {boolean} True if authorized, false otherwise
      */
     isAuthorized(justchecking = false) {
-        var allowed_ssid = false;
-        var allowed_ip = false;
-        var use_ssid = (this.wtvclient.ssid && !this.pcservices) ? true : false
+        let allowed_ssid = false;
+        let allowed_ip = false;
+        const use_ssid = (this.wtvclient.ssid && !this.pcservices) ? true : false
         if (use_ssid) {
             if (this.minisrv_config.services[this.service_name].authorized_ssids) {
-                var self = this;
+                const self = this;
                 Object.keys(self.minisrv_config.services[this.service_name].authorized_ssids).forEach(function (k) {
                     if (typeof self.minisrv_config.services[self.service_name].authorized_ssids[k] == "string") {
-                        var ssid = self.minisrv_config.services[self.service_name].authorized_ssids[k]
+                        const ssid = self.minisrv_config.services[self.service_name].authorized_ssids[k]
                         if (ssid == self.wtvclient.ssid) allowed_ssid = true;
                         allowed_ip = true; // no ip block defined
                     } else {
-                        var ssid = k;
+                        const ssid = k;
                         if (ssid == self.wtvclient.ssid) {
                             allowed_ssid = true;
                             Object.keys(self.minisrv_config.services[self.service_name].authorized_ssids[k]).forEach(function (j) {
@@ -209,7 +210,7 @@ class WTVAdmin {
                 }
 
                 if (this.minisrv_config.config.pc_admin.ip_whitelist) {
-                    var self = this;
+                    const self = this;
                     Object.keys(this.minisrv_config.config.pc_admin.ip_whitelist).forEach(function (k) {
                         if (allowed_ip) return;
                         allowed_ip = self.wtvshared.isInSubnet(self.clientAddress, self.minisrv_config.config.pc_admin.ip_whitelist[k]);
@@ -232,9 +233,9 @@ class WTVAdmin {
      * @returns {Object|null} An object containing account information if the username is found, null otherwise
      */
     getAccountInfo(username, directory = null) {
-        var search_dir = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
-        var account_data = null;
-        var self = this;
+        let search_dir = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
+        let account_data = null;
+        const self = this;
         if (directory) search_dir = directory;
         this.fs.readdirSync(search_dir).forEach(file => {
             if (self.fs.lstatSync(search_dir + self.path.sep + file).isDirectory() && account_data === null) {
@@ -243,8 +244,8 @@ class WTVAdmin {
             if (account_data !== null) return;
             if (!file.match(/.*\.json/ig)) return;
             try {
-                var temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
-                var temp_session_data = JSON.parse(temp_session_data_file);
+                const temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
+                const temp_session_data = JSON.parse(temp_session_data_file);
 
                 if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
                     account_data = [temp_session_data, (search_dir + self.path.sep + file).replace(this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts"), "").split(this.path.sep)[1]];
@@ -255,11 +256,11 @@ class WTVAdmin {
         });
         if (account_data !== null) {
             if (account_data.ssid) return account_data;
-            var account_info = {};
+            const account_info = {};
             account_info.ssid = account_data[1];
             account_info.username = account_data[0].subscriber_username;
             account_info.user_id = account_data[0].subscriber_userid;
-            var userSession = new this.WTVClientSessionData(this.minisrv_config, account_info.ssid);
+            const userSession = new this.WTVClientSessionData(this.minisrv_config, account_info.ssid);
             userSession.user_id = 0;
             account_info.account_users = userSession.listPrimaryAccountUsers();
             return account_info;
@@ -273,8 +274,8 @@ class WTVAdmin {
      * @returns {Object|boolean} An object containing account information if the SSID is registered, false otherwise
      */
     getAccountInfoBySSID(ssid) {
-        var account_info = {};
-        var userSession = new this.WTVClientSessionData(this.minisrv_config, ssid);
+        const account_info = {};
+        const userSession = new this.WTVClientSessionData(this.minisrv_config, ssid);
         userSession.user_id = 0;
         if (userSession.isRegistered(false)) {
             account_info.ssid = ssid;
@@ -301,7 +302,7 @@ class WTVAdmin {
      * @returns {WTVClientSessionData} The session data object for the account
      */
     getAccountBySSID(ssid) {
-        var userSession = new this.WTVClientSessionData(this.minisrv_config, ssid);
+        const userSession = new this.WTVClientSessionData(this.minisrv_config, ssid);
         userSession.user_id = 0;
         return userSession;
     }
@@ -312,8 +313,8 @@ class WTVAdmin {
      * @returns {boolean} True if the SSID is banned, false otherwise
      */
     isBanned(ssid) {
-        var self = this;
-        var isBanned = false;
+        const self = this;
+        let isBanned = false;
         if (this.minisrv_config.config.ssid_block_list) {
             Object.keys(this.minisrv_config.config.ssid_block_list).forEach(function (k) {
                 if (self.minisrv_config.config.ssid_block_list[k] == ssid) {

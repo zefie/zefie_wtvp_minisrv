@@ -5,6 +5,7 @@
 
 # ServiceLogPost Posted Logs
 ServiceLogPost/*_*
+client_sim_tests
 
 # Large files not pertaining to the service code
 UserServiceVault/*-*

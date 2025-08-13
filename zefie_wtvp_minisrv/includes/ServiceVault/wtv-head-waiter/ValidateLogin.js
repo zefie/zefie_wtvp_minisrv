@@ -1,17 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var challenge_response, challenge_header = '';
-var gourl;
-var wtvsec_login = null;
+let challenge_response, gourl, wtvsec_login;
 
 
-hasPendingTransfer = session_data.hasPendingTransfer()
+const hasPendingTransfer = session_data.hasPendingTransfer()
 if (hasPendingTransfer) {
 	if (hasPendingTransfer.type == "target") {
-		var xferSession = new WTVClientSessionData(minisrv_config, hasPendingTransfer.ssid);
+		const xferSession = new WTVClientSessionData(minisrv_config, hasPendingTransfer.ssid);
 		xferSession.user_id = 0
-		var primary_username = xferSession.listPrimaryAccountUsers()['subscriber']['subscriber_username'];
-		var transferPendingDest = new clientShowAlert({
+		const primary_username = xferSession.listPrimaryAccountUsers()['subscriber']['subscriber_username'];
+		const transferPendingDest = new clientShowAlert({
 			'image': minisrv_config.config.service_logo,
 			'message': "There is a pending transfer of the account <b>" + primary_username + "</b>, would you like to complete the transfer, or cancel it?",
 			'buttonlabel1': "Complete Transfer",
@@ -20,11 +18,11 @@ if (hasPendingTransfer) {
 			'buttonaction2': "wtv-head-waiter:/cancel-account-transfer",
 			'noback': true,
 		}).getURL();
-		var errpage = wtvshared.doRedirect(transferPendingDest);
-		var headers = errpage[0];
-		var data = errpage[1];
+		const errpage = wtvshared.doRedirect(transferPendingDest);
+		headers = errpage[0];
+		data = errpage[1];
 	} else if (hasPendingTransfer.type == "source") {
-		var transferPendingSrc = new clientShowAlert({
+		const transferPendingSrc = new clientShowAlert({
 			'image': minisrv_config.config.service_logo,
 			'message': "There is a pending transfer of this account to <b>" + hasPendingTransfer.ssid + "</b>. In order to use this box, you need to complete or cancel the transfer.",
 			'buttonlabel1': "Power Off",
@@ -33,9 +31,9 @@ if (hasPendingTransfer) {
 			'buttonaction2': "wtv-head-waiter:/cancel-account-transfer",
 			'noback': true,
 		}).getURL();
-		var errpage = wtvshared.doRedirect(transferPendingSrc);
-		var headers = errpage[0];
-		var data = errpage[1];
+		const errpage = wtvshared.doRedirect(transferPendingSrc);
+		headers = errpage[0];
+		data = errpage[1];
 	} else {
 		console.log(hasPendingTransfer);
 	}
@@ -46,8 +44,8 @@ if (hasPendingTransfer) {
 Location: client:gototvhome
 wtv-visit: client:hangupphone`
 	} else {
-		var user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
-
+		const user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
+		let limitedLoginRegistered, client_challenge_response;
 		if (socket.ssid !== null && user_id !== null) session_data.switchUserID(user_id);
 
 		if (socket.ssid !== null && !session_data.get("wtvsec_login")) {
@@ -62,7 +60,7 @@ wtv-visit: client:hangupphone`
 		if (socket.ssid !== null) {
 			if (wtvsec_login.ticket_b64 == null) {
 				challenge_response = wtvsec_login.challenge_response;
-				var client_challenge_response = request_headers["wtv-challenge-response"] || null;
+				client_challenge_response = request_headers["wtv-challenge-response"] || null;
 				if (challenge_response && client_challenge_response) {
 					if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
 						console.log(" * wtv-challenge-response success for " + wtvshared.filterSSID(socket.ssid));
@@ -80,12 +78,6 @@ wtv-visit: client:hangupphone`
 			} else {
 				gourl = "wtv-head-waiter:/login-stage-two?";
 			}
-		}
-
-		if (request_headers.query.guest_login) {
-			if (request_headers.query.relogin || request_headers.query.reconnect) gourl += "&";
-			gourl += "guest_login=true";
-			if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
 		}
 
 		if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
@@ -113,8 +105,8 @@ minisrv-no-mail-count: true
 				gourl = "wtv-head-waiter:/choose-user?"
 			} else {
 				if (!session_data.getUserPasswordEnabled() && request_headers.query.user_login) session_data.setUserLoggedIn(true);
-				var limitedLogin = (!session_data.lockdown && (!session_data.get('password_valid') && session_data.getUserPasswordEnabled()));
-				var limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
+				const limitedLogin = (!session_data.lockdown && (!session_data.get('password_valid') && session_data.getUserPasswordEnabled()));
+				limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
 			}
 			headers = `200 OK
 wtv-connection-close: true

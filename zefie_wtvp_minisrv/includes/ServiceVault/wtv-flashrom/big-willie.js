@@ -1,16 +1,17 @@
-var minisrv_service_file = true;
-var request_is_async = true;
+const minisrv_service_file = true;
 
-var options = {
+request_is_async = true;
+
+const options = {
     host: "flashrom.webtv.onl",
     port: 443,
     path: "/big-willie.html"
 };
 
-var data = "";   
+let data = "";   
 console.log(" * Getting Big Willie Page");
 
-var req = https.request(options, function(res) {
+const req = https.request(options, function(res) {
     res.setEncoding("utf8");
     res.on("data", function (chunk) {
         data += chunk;
@@ -24,12 +25,10 @@ var req = https.request(options, function(res) {
 
 	res.on('error', function (e) {
 		if (!minisrv_config.config.debug_flags.quiet) console.log(" * Upstream Big Willies HTTP Error:", e);
-		var errpage = wtvshared.doErrorPage(400, "A required service is not responding. Please try again in a few moments.");
+		const errpage = wtvshared.doErrorPage(400, "A required service is not responding. Please try again in a few moments.");
 		headers = errpage[0];
 		data = errpage[1];
 		sendToClient(socket, headers, data);
 	});
-
-
-
+});
 req.end();

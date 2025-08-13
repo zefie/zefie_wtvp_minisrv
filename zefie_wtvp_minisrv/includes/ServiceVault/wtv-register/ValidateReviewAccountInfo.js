@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 
 if (!request_headers.query.registering ||
@@ -10,20 +10,20 @@ if (!request_headers.query.registering ||
     !session_data ||
     !socket.ssid
 ) {
-    var errpage = wtvshared.doErrorPage(400);
+    const errpage = wtvshared.doErrorPage(400);
     headers = errpage[0];
     data = errpage[1];
 } else {
     if (request_headers.query['Change']) {
-        var changeUrl = "wtv-register:/ValidateAgreement?registering=" + escape(request_headers.query.registering) + "&subscriber_name=" + escape(request_headers.query.subscriber_name);
-        changeUrl += "&subscriber_username=" + escape(request_headers.query.subscriber_username) + "&subscriber_contact=" + escape(request_headers.query.subscriber_contact) + "&subscriber_contact_method=" + escape(request_headers.query.subscriber_contact_method) 
-        var errpage = wtvshared.doRedirect(changeUrl);
+        let changeUrl = "wtv-register:/ValidateAgreement?registering=" + encodeURIComponent(request_headers.query.registering) + "&subscriber_name=" + encodeURIComponent(request_headers.query.subscriber_name);
+        changeUrl += "&subscriber_username=" + encodeURIComponent(request_headers.query.subscriber_username) + "&subscriber_contact=" + encodeURIComponent(request_headers.query.subscriber_contact) + "&subscriber_contact_method=" + encodeURIComponent(request_headers.query.subscriber_contact_method);
+        const errpage = wtvshared.doRedirect(changeUrl);
         headers = errpage[0];
         data = errpage[1];
     } else {
-        var errpage = null;
+        let errpage = null;
         const WTVRegister = require(classPath + "/WTVRegister.js")
-        var wtvr = new WTVRegister(minisrv_config, SessionStore);
+        const wtvr = new WTVRegister(minisrv_config, SessionStore);
         if (!request_headers.query.subscriber_username) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
         else if (request_headers.query.subscriber_username.length < minisrv_config.config.user_accounts.min_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.min_username_length + "</b> or more characters.");
         else if (request_headers.query.subscriber_username.length > minisrv_config.config.user_accounts.max_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.max_username_length + "</b> or less characters.");
@@ -39,8 +39,8 @@ if (!request_headers.query.registering ||
             session_data.setSessionData("subscriber_contact_method", request_headers.query.subscriber_contact_method);
             session_data.setSessionData("subscriber_userid", 0);
             session_data.setSessionData("registered", true);
-            var mailstore_exists = session_data.mailstore.mailstoreExists();
-            var mailbox_exists = false;
+            let mailstore_exists = session_data.mailstore.mailstoreExists();
+            let mailbox_exists = false;
             if (!mailstore_exists) mailstore_exists = session_data.mailstore.createMailstore();
             if (mailstore_exists) {
                 if (!session_data.mailstore.mailboxExists(0)) {
@@ -53,7 +53,7 @@ if (!request_headers.query.registering ||
                 }
             }
             if (!session_data.saveSessionData(true, true)) {
-                var errpage = wtvshared.doErrorPage(400);
+                const errpage = wtvshared.doErrorPage(400);
                 headers = errpage[0];
                 data = errpage[1];
             } else {

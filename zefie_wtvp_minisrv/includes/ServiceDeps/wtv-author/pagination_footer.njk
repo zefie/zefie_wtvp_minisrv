@@ -1,0 +1,140 @@
+{# Pagination footer template for WTV Author pages #}
+{% if state != "editing" %}
+    {% if page == 1 and pagedata.pagebreaks.length != 0 %}
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+        <tr>
+            <td width="30%" valign="middle">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b></b>
+                </font>
+            </td>
+            <td width="30%" valign="middle">
+                <center>
+                    <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                        <i>
+                            <a href="http://{{ powered_by }}">Powered by {{ service_name }}</a>
+                        </i>
+                    </font>
+                </center>
+            </td>
+            <td width="30%" valign="middle" align="right">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b>
+                        <a href="{% if state == 'publishing' %}page{{ page + 1 }}.html{% else %}wtv-author:/preview?docName={{ pagenum }}&pageNum={{ page + 1 }}{% endif %}">next page</a>
+                    </b>
+                </font>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+    {% elif page != 1 and pagedata.pagebreaks.length + 1 == page %}
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+        <tr>
+            <td width="30%" valign="middle">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b>
+                        <a href="{% if state == 'publishing' %}{% if page == 2 %}index.html{% else %}page{{ page - 1 }}.html{% endif %}{% else %}wtv-author:/preview?docName={{ pagenum }}&pageNum={{ page - 1 }}{% endif %}">previous page</a>
+                    </b>
+                </font>
+            </td>
+            <td width="30%" valign="middle">
+                <center>
+                    <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                        <i>
+                            <a href="http://{{ powered_by }}">Powered by {{ service_name }}</a>
+                        </i>
+                    </font>
+                </center>
+            </td>
+            <td width="30%" valign="middle" align="right">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b></b>
+                </font>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+    {% elif page != 1 and pagedata.pagebreaks.length + 1 > page %}
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+        <tr>
+            <td width="30%" valign="middle">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b>
+                        <a href="{% if state == 'previewing' %}wtv-author:/preview?docName={{ pagenum }}&pageNum={{ page - 1 }}{% elif state == 'publishing' %}{% if page == 2 %}index.html{% else %}page{{ page - 1 }}.html{% endif %}{% endif %}">previous page</a>
+                    </b>
+                </font>
+            </td>
+            <td width="30%" valign="middle">
+                <center>
+                    <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                        <i>
+                            <a href="http://{{ powered_by }}">Powered by {{ service_name }}</a>
+                        </i>
+                    </font>
+                </center>
+            </td>
+            <td width="30%" valign="middle" align="right">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b>
+                        <a href="{% if state == 'previewing' %}wtv-author:/preview?docName={{ pagenum }}&pageNum={{ page + 1 }}{% elif state == 'publishing' %}page{{ page + 1 }}.html{% endif %}">next page</a>
+                    </b>
+                </font>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+    {% else %}
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+        <tr>
+            <td width="30%" valign="middle">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b></b>
+                </font>
+            </td>
+            <td width="30%" valign="middle">
+                <center>
+                    <font size="-2" face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                        <i>
+                            <a href="http://{{ powered_by }}">Powered by {{ service_name }}</a>
+                        </i>
+                    </font>
+                </center>
+            </td>
+            <td width="30%" valign="middle" align="right">
+                <font face="Arial,Helvetica,Geneva,Swiss,SunSans-Regular">
+                    <b></b>
+                </font>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="3">
+                <hr>
+            </td>
+        </tr>
+    {% endif %}
+{% endif %}

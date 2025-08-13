@@ -189,7 +189,7 @@ class WTVShared {
             if (isNaN(inbyte)) return '00';
 
             for (let ii = 0; ii < 8; ii++) {
-                let mix = (crc ^ inbyte) & 1;
+                const mix = (crc ^ inbyte) & 1;
                 crc >>= 1;
                 if (mix) crc ^= 0x8C;
                 inbyte >>= 1;
@@ -274,7 +274,7 @@ class WTVShared {
      * @param {string} service_name (optional) Service to check
      */
     isAdmin(wtvclient, service_name = "wtv-admin") {
-        const  WTVAdmin = require("./WTVAdmin.js");
+        const WTVAdmin = require("./WTVAdmin.js");
         const wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
         const result = wtva.isAuthorized(true);
         return result;
@@ -448,7 +448,6 @@ class WTVShared {
      * @return {object} Headers object
      */
     headerStringToObj(headers, response = false) {
-        let inc_headers = 0;
         const headers_obj = {};
         headers_obj.raw_headers = headers;
         const headers_obj_pre = headers.split("\n");
@@ -474,16 +473,19 @@ class WTVShared {
                 headers_obj.request_url = decodeURI(request_url).trim("\r");
             } else if (d.indexOf(":") > 0) {
                 const d_split = d.split(':');
-                let header_name = d_split[0];
-                if (headers_obj[header_name] != null) {
-                    header_name = header_name + "_" + inc_headers;
-                    inc_headers++;
-                }
-                d_split.shift();
-                d = d_split.join(':');
-                headers_obj[header_name] = (d).trim("\r");
-                if (headers_obj[header_name].startsWith(" ")) {
-                    headers_obj[header_name] = headers_obj[header_name].slice(1);
+                const header_name = d_split[0];
+                if (typeof headers_obj[header_name] === 'string') {
+                    headers_obj[header_name] = [headers_obj[header_name]];
+                    headers_obj[header_name].push((d_split.slice(1).join(':')).trim("\r"));
+                } else if (typeof headers_obj[header_name] === 'object') {
+                    headers_obj[header_name].push((d_split.slice(1).join(':')).trim("\r"));
+                } else {
+                    d_split.shift();
+                    d = d_split.join(':');
+                    headers_obj[header_name] = (d).trim("\r");
+                    if (headers_obj[header_name].startsWith(" ")) {
+                        headers_obj[header_name] = headers_obj[header_name].slice(1);
+                    }
                 }
             }
         });
@@ -587,9 +589,7 @@ class WTVShared {
      * @returns {string} The decoded string
      */
     decodeBufferText(buf) {
-        var out = "";
-        out = this.utf8Decode(this.iconv.decode(Buffer.from(buf),'ISO-8859-1'));
-        return out;
+        return this.utf8Decode(this.iconv.decode(Buffer.from(buf),'ISO-8859-1'));;
     }
 
     /**
@@ -633,17 +633,16 @@ class WTVShared {
      * @notice If the file exists but cannot be parsed, it will terminate the process with an error message
      */
     getUserConfig() {
+        let minisrv_user_config = {};
+        const user_config_filename = this.getAbsolutePath("user_config.json", this.appdir);
         try {
-            var user_config_filename = this.getAbsolutePath("user_config.json", this.appdir);
             if (this.fs.lstatSync(user_config_filename)) {
                 try {
-                    var minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
+                    minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
                 } catch (f) {
                     console.error("ERROR: Could not read user_config.json", "\n\nReason:\n\n", f);
                     this.process.exit(1);
                 }
-            } else {
-                var minisrv_user_config = {}
             }
             return minisrv_user_config;
         } catch (e) {
@@ -721,6 +720,7 @@ class WTVShared {
      * @returns {object} The MiniSrv configuration object
      */
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
+        let minisrv_config = {};
         const log = (msg) => {
             if (notices || reload_notice) console.log(msg);
         };
@@ -735,7 +735,7 @@ class WTVShared {
 
         log(" *** Reading global configuration...");
         try {            
-            var minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath("includes" + this.path.sep + "config.json", this.appdir)));
+            minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath("includes" + this.path.sep + "config.json", this.appdir)));
         } catch (e) {
             throw new Error("ERROR: Could not read config.json", e);
         }
@@ -743,7 +743,7 @@ class WTVShared {
         if (user_config) {
             log(" *** Reading user configuration...");
             try {
-                let minisrv_user_config = this.getUserConfig();
+                const minisrv_user_config = this.getUserConfig();
                 minisrv_config = this.integrateConfig(minisrv_config, minisrv_user_config);
             } catch (e) {
                 logError("ERROR: Could not integrate user_config.json", e);
@@ -801,11 +801,11 @@ class WTVShared {
     writeToUserConfig(config) {
         if (config) {
             try {
-                var minisrv_user_config = this.getUserConfig();
+                const minisrv_user_config = this.getUserConfig();
 
                 // write back
                 try {
-                    var new_user_config = {};
+                    const new_user_config = {};
                     Object.assign(new_user_config, minisrv_user_config, config);
                     if (this.minisrv_config.config.debug_flags.debug) console.log(" * Writing new user configuration...");
                     this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.appdir), JSON.stringify(new_user_config, null, "\t"));
@@ -996,7 +996,7 @@ class WTVShared {
         }
 
         // Allocate a buffer of the correct size
-        let decoded = Buffer.alloc(bufferLength);
+        const decoded = Buffer.alloc(bufferLength);
         let bufferIndex = 0;
 
         for (let i = 0; i < encoded.length; i++) {
@@ -1079,11 +1079,11 @@ class WTVShared {
             const filterPasswords = this.minisrv_config.config.filter_passwords_in_logs === true;
             try {
                 // Assuming CryptoJS.enc.Utf8 exists and has a stringify method
-                let post_text = CryptoJS.enc.Utf8.stringify(obj.post_data);
-                let params = new URLSearchParams(post_text);
+                const post_text = CryptoJS.enc.Utf8.stringify(obj.post_data);
+                const params = new URLSearchParams(post_text);
 
                 if (filterPasswords) {
-                    for (let [key, value] of params) {
+                    for (const [key, value] of params) {
                         const lowerKey = key.toLowerCase();
                         if (/passw(or)?d|^pass$/.test(lowerKey)) {
                             params.set(key, '*'.repeat(value.length));
@@ -1112,7 +1112,7 @@ class WTVShared {
         // Prevent usage
         return;
         // Search for the module in the require cache
-        let resolvedPath = require.resolve(moduleName);
+        const resolvedPath = require.resolve(moduleName);
 
         // Remove the module from the cache
         if (require.cache[resolvedPath]) {
@@ -1443,8 +1443,7 @@ class WTVShared {
     findObjectKeyIndex(key, obj, case_insensitive = false) {
         const keys = Object.keys(obj);
         if (case_insensitive) {
-            key = key.toLowerCase();
-            return keys.findIndex(k => k.toLowerCase() === key);
+            return keys.findIndex(k => k.toLowerCase() === key.toLowerCase());
         }
         return keys.indexOf(key);
     }
@@ -1458,8 +1457,8 @@ class WTVShared {
      * @returns {object} The modified object
      */
     moveObjectKey(currentKey, destKey, obj, case_insensitive = false) {
-        let keys = Object.keys(obj);
-        let values = Object.values(obj);
+        const keys = Object.keys(obj);
+        const values = Object.values(obj);
 
         const currentIndex = typeof currentKey === 'string' ? this.findObjectKeyIndex(currentKey, obj, case_insensitive) : +currentKey;
         if (currentIndex === -1) return obj;
@@ -1548,13 +1547,13 @@ class clientShowAlert {
      */
     getURL() {
         let url = "client:ShowAlert?";
-        if (this.message) url += `message=${escape(this.message)}&`;
-        if (this.buttonlabel1) url += `buttonlabel1=${escape(this.buttonlabel1)}&`;
-        if (this.buttonaction1) url += `buttonaction1=${escape(this.buttonaction1)}&`;
-        if (this.buttonlabel2) url += `buttonlabel2=${escape(this.buttonlabel2)}&`;
-        if (this.buttonaction2) url += `buttonaction2=${escape(this.buttonaction2)}&`;
-        if (this.image) url += `image=${escape(this.image)}&`;
-        if (this.sound) url += `sound=${escape(this.sound)}&`;
+        if (this.message) url += `message=${encodeURIComponent(this.message)}&`;
+        if (this.buttonlabel1) url += `buttonlabel1=${encodeURIComponent(this.buttonlabel1)}&`;
+        if (this.buttonaction1) url += `buttonaction1=${encodeURIComponent(this.buttonaction1)}&`;
+        if (this.buttonlabel2) url += `buttonlabel2=${encodeURIComponent(this.buttonlabel2)}&`;
+        if (this.buttonaction2) url += `buttonaction2=${encodeURIComponent(this.buttonaction2)}&`;
+        if (this.image) url += `image=${encodeURIComponent(this.image)}&`;
+        if (this.sound) url += `sound=${encodeURIComponent(this.sound)}&`;
         if (this.noback) url += "noback=true&";
         return url.slice(0, -1);
     }

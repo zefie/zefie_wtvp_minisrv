@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var folder = request_headers.query.favorite_folder_name;
-var key = request_headers.query.Choose;
-var id = request_headers.query.favoriteid;
+const folder = request_headers.query.favorite_folder_name;
+const key = request_headers.query.Choose;
+const id = request_headers.query.favoriteid;
 
 session_data.favstore.updateShortcutKey("none", key, folder, id);
 

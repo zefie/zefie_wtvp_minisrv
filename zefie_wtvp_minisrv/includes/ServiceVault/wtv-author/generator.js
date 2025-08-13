@@ -1,7 +1,9 @@
+const minisrv_service_file = true;
+
 const fs = require('fs');
-var dir = "ServiceVault\\wtv-author\\clipart\\Sports\\Baseball"
-var files = fs.readdirSync(dir)
-var start = 12;
+const dir = "ServiceVault\\wtv-author\\clipart\\Sports\\Baseball"
+const files = fs.readdirSync(dir)
+const start = 12;
 
 headers = `200 OK
 Connection: Keep-Alive

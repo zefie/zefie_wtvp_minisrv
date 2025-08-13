@@ -1,18 +1,18 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var diskmap = request_headers.query[wtvshared.getCaseInsensitiveKey("DiskMap", request_headers.query)];
-var wtvdl = new WTVDisk(minisrv_config, service_name);
+const diskmap = request_headers.query[wtvshared.getCaseInsensitiveKey("DiskMap", request_headers.query)];
+const wtvdl = new WTVDisk(minisrv_config, service_name);
 
-var force_update = (request_headers.query.force == "true") ? true : false;
-var no_delete = (request_headers.query.dont_delete_files == "true") ? true : false;
-var content_dir = "content/"
-var diskmap_dir = content_dir + "diskmaps/";
+const force_update = (request_headers.query.force == "true") ? true : false;
+const no_delete = (request_headers.query.dont_delete_files == "true") ? true : false;
+const content_dir = "content/"
+const diskmap_dir = content_dir + "diskmaps/";
 
 if (request_headers['wtv-request-type'] == 'download') {
 
     function generateDownloadList(diskmap_group_name, update_list, diskmap_group_data) {
         wtvdl.reset();
-        var files_to_send = 0;
+        let files_to_send = 0;
         Object.keys(update_list).forEach(function (k) {
             if (update_list[k].checksum_match && !force_update) return;
             if (!update_list[k].invalid && !force_update) return;
@@ -65,7 +65,7 @@ if (request_headers['wtv-request-type'] == 'download') {
                     if (update_list[k].checksum_match && !force_update) return;
                     if (!update_list[k].invalid && !force_update) return;
                 }
-                delete_file = update_list[k].file.replace(diskmap_group_data.base, "")
+                let delete_file = update_list[k].file.replace(diskmap_group_data.base, "")
                 if (!diskmap_group_data.files[k].dont_extract_filename) { 
                     delete_file = delete_file.replace(".gz","");
                 }
@@ -83,9 +83,9 @@ if (request_headers['wtv-request-type'] == 'download') {
                         break;
 
                     case "GET":
-                        var get_url = service_name + ":/" + update_list[k].location + "?";
+                        let get_url = service_name + ":/" + update_list[k].location + "?";
                         if (update_list[k].compress === false) get_url += "dont_compress=true&";
-                        if (update_list[k].type) get_url += "content_type=" + escape(update_list[k].type) + "&";
+                        if (update_list[k].type) get_url += "content_type=" + encodeURIComponent(update_list[k].type) + "&";
                         wtvdl.get(update_list[k].file.replace(diskmap_group_data.base, ""), update_list[k].file, get_url, diskmap_group_name, update_list[k].checksum, update_list[k].uncompressed_size || null, update_list[k].original_filename)
                         break;
                 }
@@ -116,33 +116,33 @@ if (request_headers['wtv-request-type'] == 'download') {
                 wtvdl.deleteGroupUpdate(diskmap_group_name, diskmap_group_data.base);
             }
         }
-        var download_list = wtvdl.getDownloadList();
+        const download_list = wtvdl.getDownloadList();
         if (minisrv_config.config.show_diskmap) console.log(download_list);
         return download_list;
     }
 
     function processGroup(diskmap_primary_group, diskmap_group_data, diskmap_subgroup = null, version = 0) {
         // parse webtv post
-        var output_data = '';
-        var post_data = [];
-        var client_group_data = [];
+        let output_data = '';
+        let post_data = [];
+        let client_group_data = [];
         if (request_headers.post_data) {
             post_data = request_headers.post_data.toString(CryptoJS.enc.Latin1).split("\n");
             client_group_data = wtvdl.getGroupDataFromClientPost(request_headers.post_data.toString(CryptoJS.enc.Latin1));
         }
-        var post_data_current_directory = '';
-        var post_data_current_file = false;
-        var post_data_current_group = '';
-        var post_data_last_modified = false;
-        var post_data_content_length = false;
-        var post_data_current_group_state = false;
-        var post_data_fileinfo = [];
-        var entry_type = false;
-        var post_data_current_version = false;
-        var post_data_current_checksum = false;
-        var post_data_last_checkup_time = 0;
+        let post_data_current_directory = '';
+        let post_data_current_file = false;
+        let post_data_current_group = '';
+        let post_data_last_modified = false;
+        let post_data_content_length = false;
+        let post_data_current_group_state = false;
+        const post_data_fileinfo = [];
+        let entry_type = false;
+        let post_data_current_version = false;
+        let post_data_current_checksum = false;
+        let post_data_last_checkup_time = 0;
         Object.keys(post_data).forEach(function (k) {
-            if (post_data[k].substring(0, 7) == "file://") {
+            if (post_data[k].slice(0, 7) == "file://") {
                 entry_type = "folder";
                 post_data_current_file = false;
                 post_data_current_version = false;
@@ -155,10 +155,10 @@ if (request_headers['wtv-request-type'] == 'download') {
                 post_data_current_directory = post_data[k];
             } else {
                 if (post_data[k].indexOf(":") > 0) {
-                    var post_data_line = post_data[k].split(": ")
-                    var post_data_line_name = post_data_line[0];
+                    const post_data_line = post_data[k].split(": ")
+                    const post_data_line_name = post_data_line[0];
                     post_data_line.shift();
-                    var post_data_line_data = post_data_line.join(": ");
+                    const post_data_line_data = post_data_line.join(": ");
 
                     switch (post_data_line_name.toLowerCase()) {
                         case "last-modified":
@@ -190,8 +190,8 @@ if (request_headers['wtv-request-type'] == 'download') {
                     }
 
                     if (post_data[k] == "" && entry_type) {
-                        var post_data_current_path = ((entry_type == "file") ? (post_data_current_directory + post_data_current_file) : post_data_current_directory);
-                        var index = post_data_current_path.replace(/[\:\/]/g, "_").toLowerCase() + "_" + post_data_current_group;
+                        const post_data_current_path = ((entry_type == "file") ? (post_data_current_directory + post_data_current_file) : post_data_current_directory);
+                        const index = post_data_current_path.replace(/[\:\/]/g, "_").toLowerCase() + "_" + post_data_current_group;
                         if (index.match(/\/$/)) entry_type = "folder";
                         if (!post_data_fileinfo[index]) post_data_fileinfo[index] = {};
                         post_data_fileinfo[index].entry_type = entry_type;
@@ -208,11 +208,11 @@ if (request_headers['wtv-request-type'] == 'download') {
                 }
             }
         });
-        var wtv_download_list = [];
-        var newest_file_epoch = version;
+        const wtv_download_list = [];
+        let newest_file_epoch = version;
         Object.keys(diskmap_group_data.files).forEach(function (k) {
             if (!diskmap_group_data.files[k].location) diskmap_group_data.files[k].location = wtvshared.makeSafePath(diskmap_group_data.location,diskmap_group_data.files[k].file.replace(diskmap_group_data.base, ""), true);
-            var diskmap_data_file = null;
+            let diskmap_data_file = null;
             Object.keys(service_vaults).forEach(function (g) {
                 if (diskmap_data_file != null) return;
                 diskmap_data_file = service_vaults[g] + "/" + service_name + "/" + diskmap_group_data.files[k].location;
@@ -220,8 +220,8 @@ if (request_headers['wtv-request-type'] == 'download') {
             });
 
             if (diskmap_data_file) {
-                var diskmap_file_stat = fs.lstatSync(diskmap_data_file);
-                var diskmap_file_data = Buffer.from(fs.readFileSync(diskmap_data_file, {
+                const diskmap_file_stat = fs.lstatSync(diskmap_data_file);
+                const diskmap_file_data = Buffer.from(fs.readFileSync(diskmap_data_file, {
                     encoding: null,
                     flags: 'r'
                 }));
@@ -232,15 +232,14 @@ if (request_headers['wtv-request-type'] == 'download') {
 
                 // we need the checksum of the uncompressed data
                 if (wtvshared.getFileExt(diskmap_data_file).toLowerCase() == "gz") {
-                    var diskmap_data_filename = path.basename(diskmap_data_file);
-                    var gunzipped = zlib.gunzipSync(diskmap_file_data);
-                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
-                    var gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
+                    const diskmap_data_filename = path.basename(diskmap_data_file);
+                    const gunzipped = zlib.gunzipSync(diskmap_file_data);
+                    diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(gunzipped)).toString(CryptoJS.enc.Hex).toLowerCase();
+                    const gzip_fn_end = diskmap_file_data.indexOf("\0", 10);
                     if (!diskmap_group_data.files[k].dont_extract_filename) {
                         diskmap_group_data.files[k].original_filename = diskmap_group_data.files[k].file.replace(diskmap_group_data.base,"").replace(diskmap_data_filename, diskmap_file_data.toString('utf8', 10, gzip_fn_end));
                     }
                     diskmap_group_data.files[k].uncompressed_size = gunzipped.byteLength;
-                    gunzipped = null;
                 } else {
                     diskmap_group_data.files[k].checksum = CryptoJS.MD5(CryptoJS.lib.WordArray.create(diskmap_file_data)).toString(CryptoJS.enc.Hex).toLowerCase();
                 }
@@ -249,8 +248,6 @@ if (request_headers['wtv-request-type'] == 'download') {
 
                 diskmap_group_data.files[k].invalid = true;
                 wtv_download_list.push(diskmap_group_data.files[k]);
-                // Clean up file data from memory
-                diskmap_file_data = null;
             }
         });
         // check to see if client says they have this version
@@ -265,14 +262,14 @@ if (request_headers['wtv-request-type'] == 'download') {
                 }
             });
         });
-        var diskmap_group_name = (diskmap_subgroup == null) ? diskmap_primary_group : diskmap_primary_group + "-" + diskmap_subgroup;
+        const diskmap_group_name = (diskmap_subgroup == null) ? diskmap_primary_group : diskmap_primary_group + "-" + diskmap_subgroup;
         diskmap_group_data.client_group_data = client_group_data[diskmap_group_name] || null;
         output_data = generateDownloadList(diskmap_group_name, wtv_download_list, diskmap_group_data);
         return output_data;
     }
 
     if (diskmap && request_headers.query.group) {
-        var diskmap_json_file = null;
+        let diskmap_json_file = null;
         Object.keys(service_vaults).forEach(function (g) {
             if (diskmap_json_file != null) return;
             diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
@@ -282,8 +279,8 @@ if (request_headers['wtv-request-type'] == 'download') {
         if (diskmap_json_file != null) {
             try {
                 // read diskmap
-                var json_stats = fs.lstatSync(diskmap_json_file);
-                var diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
+                const json_stats = fs.lstatSync(diskmap_json_file);
+                let diskmap_data = JSON.parse(fs.readFileSync(diskmap_json_file).toString());
                     if (!diskmap_data[request_headers.query.group]) {
                         throw ("Invalid diskmap data (group does not match)");
                     }
@@ -303,25 +300,25 @@ if (request_headers['wtv-request-type'] == 'download') {
 
                     headers = "200 OK\nContent-Type: wtv/download-list";
                 } catch (e) {
-                    var errpage = wtvshared.doErrorPage(400);
+                    const errpage = wtvshared.doErrorPage(400);
                     headers = errpage[0];
                     data = errpage[1];
                     console.error(" # " + service_name+":/sync error", e);
                 }
         } else {
-            var errpage = wtvshared.doErrorPage(404, "The requested DiskMap does not exist.");
+            const errpage = wtvshared.doErrorPage(404, "The requested DiskMap does not exist.");
             headers = errpage[0];
             data = errpage[1];
             if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
         }
     } else {
-        var errpage = wtvshared.doErrorPage(400);
+        const errpage = wtvshared.doErrorPage(400);
         headers = errpage[0];
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
     }
 } else {
-    var queryString = Object.keys(request_headers.query)
+    const queryString = Object.keys(request_headers.query)
         .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(request_headers.query[key]))
         .join('&');
     headers = "302 Found\nLocation: wtv-disk:/content/DownloadScreen.tmpl" + (queryString ? ("?" + queryString) : "");

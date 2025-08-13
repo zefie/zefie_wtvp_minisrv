@@ -21,7 +21,7 @@ class WTVNews {
 
     initializeUsenet(host, port = 119, tls_options = null, username = null, password = null) {
         // use local self-signed cert for local server
-        var newsie_options = {
+        const newsie_options = {
             host: host,
             port: port,
             tlsPort: (tls_options !== null) ? true : false,            
@@ -69,10 +69,11 @@ class WTVNews {
 
     listGroup(group, page = 0, limit = 100, raw_range = null) {
         // list of articles from group
+        let range = {};
         return new Promise((resolve, reject) => {
             this.selectGroup(group).then((res) => {
                 if (!raw_range) {
-                    var range = {
+                    range = {
                         start: (limit * page) + res.group.low,
                     }
                     range.end = range.start + limit;
@@ -133,9 +134,9 @@ class WTVNews {
     }
 
     getArticle(articleID, get_next_last = true) {
-        var articleID = parseInt(articleID);
+        articleID = parseInt(articleID);
         return new Promise((resolve, reject) => {
-            var promises = [];
+            const promises = [];
             this.client.article(articleID).then((data) => {
                 if (get_next_last) {
                     // ask server for next article
@@ -177,14 +178,14 @@ class WTVNews {
                     }));
 
                     Promise.all(promises).then(() => {
-                        var self = this;
+                        const self = this;
                         if (data.article.headers) Object.keys(data.article.headers).forEach((k) => {
                             data.article.headers[k] = self.decodeCharset(data.article.headers[k])
                         });
                         resolve(data);
                     });
                 } else {
-                    var self = this;
+                    const self = this;
                     if (data.article.headers) Object.keys(data.article.headers).forEach((k) => {
                         data.article.headers[k] = self.decodeCharset(data.article.headers[k])
                     });
@@ -198,17 +199,17 @@ class WTVNews {
     }
 
     decodeCharset(string) {
-        var regex = /=\?{1}(.+)\?{1}([B|Q])\?{1}(.+)\?{1}=/;
-        var decoded = null;
-        var check = string.match(regex);
+        const regex = /=\?{1}(.+)\?{1}([B|Q])\?{1}(.+)\?{1}=/;
+        let decoded = null;
+        const check = string.match(regex);
         if (check) {
-            var match = check[0];
-            var charset = check[1];
-            var encoding = check[2];
-            var encoded_text = check[3];
+            const match = check[0];
+            const charset = check[1];
+            const encoding = check[2];
+            const encoded_text = check[3];
             switch (encoding) {
                 case "B":
-                    var buffer = new Buffer.from(encoded_text, 'base64')
+                    const buffer = new Buffer.from(encoded_text, 'base64')
                     decoded = buffer.toString(charset).replace(/[^\x00-\x7F]/g, "");;
                     break;
 
@@ -224,7 +225,7 @@ class WTVNews {
     getHeader(articleID) {
         return new Promise((resolve, reject) => {
             this.client.head(articleID).then((data) => {
-                var self = this;
+                const self = this;
                 if (data.article.headers) Object.keys(data.article.headers).forEach((k) => {
                     data.article.headers[k] = self.decodeCharset(data.article.headers[k])
                 });
@@ -237,7 +238,7 @@ class WTVNews {
     }
 
     getHeaderFromMessage(message, header) {
-        var response = null;
+        let response;
         if (message.article.headers) {
             Object.keys(message.article.headers).forEach((k) => {
                 if (k.toLowerCase() == header.toLowerCase()) {
@@ -254,7 +255,7 @@ class WTVNews {
             this.client.quit().then((response) => {
                 if (response.code == 205) resolve(true);
                 else {
-                    console.error(" * WTVNews Error:", "Command: quit", e);
+                    console.error(" * WTVNews Error:", "Command: quit", response.code);
                     reject(`Unexpected response code ${response.code}`);
                 }
             }).catch((e) => {
@@ -266,8 +267,8 @@ class WTVNews {
 
     postToGroup(group, from_addr, msg_subject, msg_body, article = null, headers = null) {
         return new Promise((resolve, reject) => {
-            var promises = [];
-            var messageid = null;
+            const promises = [];
+            let messageid = null;
             this.connectUsenet()
                 .then(() => {
                     if (article) {
@@ -290,7 +291,7 @@ class WTVNews {
                         this.client.post()
                             .then((response) => {
                                 if (response.code == 340) {
-                                    var articleData = {};
+                                    const articleData = {};
                                     articleData.headers = {
                                         'Relay-Version': "version zefie_wtvp_minisrv " + this.minisrv_config.version + "; site " + this.minisrv_config.config.domain_name,
                                         'Posting-Version': "version zefie_wtvp_minisrv " + this.minisrv_config.version + "; site " + this.minisrv_config.config.domain_name,
@@ -327,7 +328,7 @@ class WTVNews {
                                     });
                                 } else {
                                     this.client.quit();
-                                    console.error('usenet upstream uncaught error', e);
+                                    console.error('usenet upstream uncaught error');
                                     reject("Could not send post. Server returned unknown error");
                                 };
                             }).catch((e) => {
@@ -352,9 +353,9 @@ class WTVNews {
 
     getHeaderObj(NGArticles) {
         return new Promise((resolve, reject) => {
-            var messages = [];
-            var promises = [];
-            for (var article in NGArticles) {
+            const messages = [];
+            const promises = [];
+            for (const article in NGArticles) {
                 if (article == "getCaseInsensitiveKey" || isNaN(article)) continue;
                 promises.push(new Promise((resolve, reject) => {
                     this.getHeader(NGArticles[article]).then((data) => {
@@ -379,26 +380,26 @@ class WTVNews {
 
 
     parseAttachments(message) {
-        var contype = this.getHeaderFromMessage(message, 'Content-Type');
+        const contype = this.getHeaderFromMessage(message, 'Content-Type');
         if (contype) {
-            var regex = /multipart\/mixed\; boundary=\"(.+)\"/i;
-            var match = contype.match(regex);
+            const regex = /multipart\/mixed\; boundary=\"(.+)\"/i;
+            const match = contype.match(regex);
             if (match) {
-                var boundary = "--" + match[1];
-                var body = message.article.body.join("\n").split(boundary);
-                var attachments = [];
-                var i = 0;
-                var message_body = '';
-                var message_type = 'text/plain';
+                const boundary = "--" + match[1];
+                const body = message.article.body.join("\n").split(boundary);
+                const attachments = [];
+                let i = 0;
+                let message_body = '';
+                let message_type = 'text/plain';
                 body.forEach((element) => {
-                    var section_type = null;
-                    var section = element.split("\n");
+                    let section_type = null;
+                    const section = element.split("\n");
                     attachments[i] = {};
                     section.forEach((line) => {
                         this.debug('section_type', section_type, 'line', line);
-                        var section_header_match = line.match(/^Content\-/i)
+                        const section_header_match = line.match(/^Content\-/i)
                         if (section_header_match) {
-                            var section_match = line.match(/^Content\-Type\: (.+)\;/i)
+                            let section_match = line.match(/^Content\-Type\: (.+)\;/i)
                             if (section_match) {
                                 this.debug('section_match', section_match)
                                 section_type = section_match[1];
@@ -436,13 +437,13 @@ class WTVNews {
                     attachments: attachments
                 }
             } else {
-                var message_body = '';
+                let message_body = '';
                 if (message.article.body) message_body = message.article.body.join("\n")
 
                 return { text: message_body }
             }
         } else {
-            var message_body = '';
+            let message_body = '';
             if (message.article.body) message_body = message.article.body.join("\n")
             
             return { text: message_body }
@@ -451,21 +452,21 @@ class WTVNews {
     }
 
     sortByResponse(messages) {
-        var sorted = [];
-        var message_id_roots = [];
-        var message_relations = [];
+        const sorted = [];
+        const message_id_roots = [];
+        const message_relations = [];
         Object.keys(messages).forEach((k) => {
-            var messageId = messages[k].messageId;
-            var ref = messages[k].headers.REFERENCES;
+            const messageId = messages[k].messageId;
+            const ref = messages[k].headers.REFERENCES;
             if (ref) {
-                var res = message_id_roots.find(e => e.messageId == ref);
+                const res = message_id_roots.find(e => e.messageId == ref);
                 if (res) {
                     // see if its attached to a root post
                     if (message_relations[res.messageId]) message_relations[res.messageId].push({ "messageId": messageId, "index": k });
                     else message_relations[res.messageId] = [{ "messageId": messageId, "index": k }];
                 } else {
                     // see if its related to a relation
-                    var found = false;
+                    let found = false;
                     if (Object.keys(message_relations).length > 0) {
                         Object.keys(message_relations).forEach((j) => {
                             if (found) return;
@@ -473,10 +474,10 @@ class WTVNews {
                                 Object.keys(message_relations[j]).forEach((h) => {
                                     if (found) return;
                                     if (message_relations[j][h].messageId == ref) {
-                                        var searchref = messages[message_relations[j][h].index].headers.REFERENCES || null;
-                                        var mainref = j; // j is already the main reference messageId
+                                        let searchref = messages[message_relations[j][h].index].headers.REFERENCES || null;
+                                        let mainref = j; // j is already the main reference messageId
                                         while (searchref !== null) {
-                                            var searchart = messages.find(e => e.messageId == searchref);
+                                            const searchart = messages.find(e => e.messageId == searchref);
                                             if (searchart) {
                                                 mainref = searchart.messageId;
                                                 searchref = searchart.headers.REFERENCES || null;
@@ -494,7 +495,7 @@ class WTVNews {
                     
                     // If not found in relations, add as root (but check for duplicates first)
                     if (!found) {
-                        var existingRoot = message_id_roots.find(e => e.messageId == messageId);
+                        const existingRoot = message_id_roots.find(e => e.messageId == messageId);
                         if (!existingRoot) {
                             message_id_roots.push({ "messageId": messageId, "index": k });
                         }
@@ -503,7 +504,7 @@ class WTVNews {
             }
             else {
                 // Check for duplicates before adding as root
-                var existingRoot = message_id_roots.find(e => e.messageId == messageId);
+                const existingRoot = message_id_roots.find(e => e.messageId == messageId);
                 if (!existingRoot) {
                     message_id_roots.push({ "messageId": messageId, "index": k });
                 }
@@ -511,11 +512,11 @@ class WTVNews {
         });
 
         // sort the relations, putting root articles first, followed by their relations
-        var message_roots_sorted = [];
+        const message_roots_sorted = [];
         Object.keys(message_id_roots).forEach((k) => {
             // sort relations by date
-            var article = messages[message_id_roots[k].index];
-            var article_date = Date.parse(article.headers.DATE);
+            const article = messages[message_id_roots[k].index];
+            const article_date = Date.parse(article.headers.DATE);
             message_roots_sorted.push({ "article": article, "relation": null, "date": article_date });
         });
         // Sort root articles newest to oldest
@@ -524,13 +525,13 @@ class WTVNews {
             sorted.push(message_roots_sorted[k]);
 
             // Use the correct messageId from the sorted root article
-            var rootMessageId = message_roots_sorted[k].article.messageId;
+            const rootMessageId = message_roots_sorted[k].article.messageId;
             if (message_relations[rootMessageId]) {
-                var relations = [];
+                const relations = [];
                 Object.keys(message_relations[rootMessageId]).forEach((j) => {
                     // sort relations by date
-                    var article = messages[message_relations[rootMessageId][j].index];
-                    var article_date = Date.parse(article.headers.DATE);
+                    const article = messages[message_relations[rootMessageId][j].index];
+                    const article_date = Date.parse(article.headers.DATE);
                     relations.push({ "article": article, "relation": rootMessageId || null, "date": article_date })
                 });
                 relations.sort((a, b) => { return (a.date - b.date) });

@@ -1,23 +1,23 @@
-minisrv_service_file = true;
+const minisrv_service_file = true;
 request_is_async = true;
 
-const proxyUrl = minisrv_config.services[service_name].wrp_url;
+let proxyUrl = minisrv_config.services[service_name].wrp_url;
 if (!proxyUrl.endsWith('/')) {
     proxyUrl += '/';
 }
 
 // Remove 'service_name:/' from the start of request_url
-let forwardPath = request_headers.request_url
+const forwardPath = request_headers.request_url
     .replace(new RegExp(`^${service_name}:\\/`), '');
 
 // Build the full URL to forward to
-var targetUrl = proxyUrl + forwardPath;
+let targetUrl = proxyUrl + forwardPath;
 
 // Forward the request using http(s) module
 const urlObj = new URL(targetUrl);
 const lib = urlObj.protocol === 'https:' ? https : http;
 
-coords = request_headers.request_url.split("?")[1];
+let coords = request_headers.request_url.split("?")[1];
 if (!coords) {
     coords = '0,0'
 }
@@ -46,20 +46,20 @@ lib.get(targetUrl, (res) => {
                     img: imgSrcMatch[1]
                 });
             }
-            var proxy_id = links[0].href.replace(/\/map\//, '');
+            let proxy_id = links[0].href.replace(/\/map\//, '');
             proxy_id = proxy_id.replace(/\.map/, '');
-            var imgExt = links[0].img.split('.').pop().split('?')[0].toLowerCase();
+            const imgExt = links[0].img.split('.').pop().split('?')[0].toLowerCase();
             const urlInputMatch = data.match(/<input[^>]+type=["']text["'][^>]+name=["']url["'][^>]+value=["']([^"']+)["']/i);
             let pageUrl = '';
             if (urlInputMatch) {
                 pageUrl = urlInputMatch[1];
             }
-            var redirectUrl = `${service_name}:/proxy?id=${proxy_id}&t=${imgExt}&url=${encodeURIComponent(pageUrl)}`;
+            const redirectUrl = `${service_name}:/proxy?id=${proxy_id}&t=${imgExt}&url=${encodeURIComponent(pageUrl)}`;
             sendToClient(socket, {'Status': 302, 'Location': redirectUrl}, '');
         } else {
-            var idx = data.indexOf('<BR>');
-            data = data.substring(0, idx);
-            var redirectUrl = `${service_name}:/proxy?err=${escape(data)}`;
+            const idx = data.indexOf('<BR>');
+            data = data.slice(0, idx);
+            const redirectUrl = `${service_name}:/proxy?err=${encodeURIComponent(data)}`;
             sendToClient(socket, {'Status': 302, 'Location': redirectUrl}, '');
         }
     });

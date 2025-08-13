@@ -1,9 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 request_is_async = true;
 
 if (!request_headers.query.path) {
-	var errpage = wtvshared.doErrorPage(400);
+	const errpage = wtvshared.doErrorPage(400);
 	headers = errpage[0];
 	data = errpage[1];
 } else {
@@ -16,8 +16,8 @@ Location: ${service_name}:/lc2-download-complete?`
 		data = '';
 		sendToClient(socket, headers, data);
 	} else {
-		var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, (minisrv_config.services[service_name].debug ? false : true));
-		var request_path = request_headers.query.path;
+		const wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, (minisrv_config.services[service_name].debug ? false : true));
+		const request_path = request_headers.query.path;
 
 		// read flashrom header info into array using WTVFlashrom class	
 		wtvflashrom.getFlashromMeta(request_path, function (data, headers) {
@@ -35,7 +35,7 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 		return false;
 	}
 	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
-	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
+	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.slice(flashrom_info.message.length - 4).replace(/\D/g, ''));
 	if (parseInt(flashrom_info.part_number) >= 0 && flashrom_info.rompath && flashrom_info.next_rompath) {
 		if (!flashrom_info.message && flashrom_info.is_bootrom) {
 			flashrom_info.message = "BootRom Part " + (flashrom_info.part_number + 1) + " of " + flashrom_info.part_count;
@@ -43,8 +43,8 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 
 		if (!flashrom_info.is_last_part) {
 			flashrom_info.next_rompath = request_headers.request_url.replace(
-				escape(request_headers.query.path),
-				escape(flashrom_info.next_rompath.replace(service_name + ":/", ""))
+				encodeURIComponent(request_headers.query.path),
+				encodeURIComponent(flashrom_info.next_rompath.replace(service_name + ":/", ""))
 			);
 		}
 
@@ -190,7 +190,7 @@ ${flashrom_info.message}
 </body>
 </html>`;
 	} else {
-		var errpage = wtvshared.doErrorPage(400)
+		const errpage = wtvshared.doErrorPage(400);
 		headers = errpage[0];
 		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
 		data = errpage[1];

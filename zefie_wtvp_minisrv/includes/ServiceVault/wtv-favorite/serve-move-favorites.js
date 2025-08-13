@@ -1,22 +1,14 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favoritenum = 0;
-var foldernum = 0;
+const foldername = request_headers.query.favorite_folder_name;
+const favarray = session_data.favstore.listFavorites(foldername);
+const folder_array = session_data.favstore.getFolders();
+const folderid = folder_array.indexOf(foldername);
+const numoffolders = folder_array.length;
+const favoritenum = Object.keys(favarray).length;
+const foldernum = folder_array.length;
 
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var numoffolders = folder_array.length;
-
-favoritenum = Object.keys(favarray).length;
-foldernum = folder_array.length;
-
-var folderlist = `<select name="newfolder" width=140>
+let folderlist = `<select name="newfolder" width=140>
 <option value="${foldername}" selected="">${foldername}</option>
 `
 for (let i = 0; i < foldernum; i++) {

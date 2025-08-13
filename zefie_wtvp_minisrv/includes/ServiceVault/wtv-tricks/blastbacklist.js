@@ -1,11 +1,11 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 wtv-expire-all: wtv-
 wtv-expire-all: http
 Content-type: text/html`
 
-var visit_url = null;
+let visit_url = null;
 
 if (request_headers.Referer) visit_url = request_headers.Referer;
 else if (request_headers.query.return_to) visit_url = request_headers.query.return_to;

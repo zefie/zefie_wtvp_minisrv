@@ -47,7 +47,6 @@
     "show_diskmap": false, // Useful for debugging custom Diskmaps
     "unauthorized_url": "wtv-1800:/unauthorized?", // Where to send unauthorized users
     "enable_port_isolation": true, // Only respond to services on their correct ports
-    "allow_guests": true, // Allow users to experience the server without registering
     "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet,
     "max_post_length": 20, // in megabytes
     "require_valid_ssid": false, // require a valid SSID (with valid CRC)
@@ -242,7 +241,9 @@
       // wtv-log
       "port": 1609,
       "connections": 1,
-      "write_logs_to_disk": false // set this to true to save logs to the error_log_file set above
+      "write_logs_to_disk": true, // set this to false to not save logs the ServiceLogPost folder
+      "dont_save_chat_logs": true, // They just take up space unless you want to monitor your user's joins and disconnects, doesn't log messages either way
+      "max_logs_per_ssid": 50
     },
     "wtv-favorite": {
       // wtv-favorite
@@ -278,7 +279,10 @@
       "debug": false,
       "use_zefie_server": true, // access zefie's repository of flashroms, local roms will still be used if they exist. Best left unchanged.
       "bf0app_default_rom": "content/artemis-webtv-000/build7377/internal-nondebug/bf0app-part000.rom", // Can change the default build for bf0app
-      "catchall_file_name": "content-serve.js" // catchall for ROM part files. Best left untouched
+      "catchall_file_name": "content-serve.js", // catchall for ROM part files. Best left untouched
+      "modules": [
+        "WTVFlashrom"
+      ]
     },
     "wtv-setup": {
       // wtv-setup

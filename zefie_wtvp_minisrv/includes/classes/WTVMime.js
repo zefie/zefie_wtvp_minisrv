@@ -1,35 +1,32 @@
 /**
- * Simple class for WebTV Mime Types and overrides
+ * Class for WebTV Mime Types and overrides
  */
-
 
 class WTVMime {
 
     mime = require('mime-types');
     wtvshared = null;
     minisrv_config = [];
-
-
     constructor(minisrv_config) {
         const { WTVShared }  = require("./WTVShared.js");
         this.minisrv_config = minisrv_config;
         this.wtvshared = new WTVShared(minisrv_config);
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
-                var splitString = this.split("");
-                var reverseArray = splitString.reverse();
-                var joinArray = reverseArray.join("");
+                const splitString = this.split("");
+                const reverseArray = splitString.reverse();
+                const joinArray = reverseArray.join("");
                 return joinArray;
             }
         }
     }
 
     shouldWeCompress(ssid_session, headers_obj) {
-        var compress_data = false;
-        var compression_type = 0; // no compression
+        let compress_data = false;
+        let compression_type = 0; // no compression
         if (ssid_session) {
             if (ssid_session.capabilities) {
-                if (ssid_session.capabilities['client-can-receive-compressed-data']) {
+                if (ssid_session.capabilities.get('client-can-receive-compressed-data')) {
 
                     if (this.minisrv_config.config.enable_lzpf_compression || this.minisrv_config.config.force_compression_type) {
                         compression_type = 1; // lzpf
@@ -38,9 +35,9 @@ class WTVMime {
                     if (ssid_session) {
                         // if gzip is enabled...
                         if (this.minisrv_config.config.enable_gzip_compression || this.minisrv_config.config.force_compression_type) {
-                            var is_bf0app = ssid_session.get("wtv-client-rom-type") == "bf0app";
-                            var isOldBuild = this.wtvshared.isOldBuild(ssid_session);
-                            var is_softmodem = false;
+                            const is_bf0app = ssid_session.get("wtv-client-rom-type") == "bf0app";
+                            const isOldBuild = this.wtvshared.isOldBuild(ssid_session);
+                            let is_softmodem = false;
                             if (ssid_session.get("wtv-client-rom-type")) is_softmodem = ssid_session.get("wtv-client-rom-type").match(/softmodem/);
                             if (!is_bf0app && ((!is_softmodem && !isOldBuild) || (is_softmodem && !isOldBuild))) {
                                 // softmodem boxes do not appear to support gzip in the minibrowser
@@ -62,9 +59,9 @@ class WTVMime {
                     if (headers_obj["Content-Encoding"]) return 0;
 
                     // should we bother to compress?
-                    var content_type = "";
+                    let content_type = "";
                     if (typeof (headers_obj) == 'string') content_type = headers_obj;
-                    else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-type"];
+                    else content_type = (typeof (headers_obj["wtv-modern-content-type"]) !== 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-type"];
 
                     if (content_type) {
                         // both lzpf and gzip
@@ -102,9 +99,8 @@ class WTVMime {
      * @returns {Array} (WebTV Content-Type, Modern Content-Type)
      */
     getContentType(path) {
-        var file_ext = this.wtvshared.getFileExt(path).toLowerCase();
-        var wtv_mime_type = "";
-        var modern_mime_type = "";
+        const file_ext = this.wtvshared.getFileExt(path).toLowerCase();
+        let wtv_mime_type, modern_mime_type;
         // process WebTV overrides, fall back to generic mime lookup
         switch (file_ext) {
             case "aif":
@@ -196,7 +192,7 @@ class WTVMime {
 
         modern_mime_type = this.mime.lookup(path);
         if (modern_mime_type === false) modern_mime_type = "application/octet-stream";
-        if (wtv_mime_type == "") wtv_mime_type = modern_mime_type;
+        if (typeof wtv_mime_type === 'undefined') wtv_mime_type = modern_mime_type;
         return new Array(wtv_mime_type, modern_mime_type);
     }
 
@@ -296,50 +292,48 @@ class WTVMime {
 
     generateMultipartMIME(tuples, options) {
         // modified for creating usenet compliant headers/content from an attachment
-        var CRLF = '\n';
+        const CRLF = '\n';
         if (tuples.length === 0) {
             // according to rfc1341 there should be at least one encapsulation
             throw new Error('Missing argument. At least one part to generate is required');
         }
 
         options = options || {};
-        var preamble = options.preamble || "This is a multi-part message in MIME format.";
-        var epilogue = options.epilogue;
-        var boundary = options.boundary || "------------" + this.wtvshared.generateString(24);
+        const preamble = options.preamble || "This is a multi-part message in MIME format.";
+        const epilogue = options.epilogue;
+        const boundary = options.boundary || "------------" + this.wtvshared.generateString(24);
 
         if (boundary.length < 1 || boundary.length > 70) {
             throw new Error('Boundary should be between 1 and 70 characters long');
         }
 
-        var boundary_header = 'multipart/mixed; boundary="' + boundary + '"';
+        const boundary_header = 'multipart/mixed; boundary="' + boundary + '"';
 
-        var delimiter = CRLF + '--' + boundary;
-        var closeDelimiter = delimiter + '--';
+        const delimiter = CRLF + '--' + boundary;
+        const closeDelimiter = delimiter + '--';
 
-        var wtvshared = this.wtvshared;
+        const encapsulations = tuples.map(function (tuple, i) {
+            const mimetype = tuple.mime || 'text/plain';
+            const encoding = tuple.encoding || 'utf-8';
+            const use_base64 = tuple.use_base64 || !this.wtvshared.isASCII(tuple.content);
+            const is_base64 = tuple.is_base64 || this.wtvshared.isBase64(tuple.content);
+            const filename = (tuple.filename) ? tuple.filename : (use_base64) ? ('file' + i) : null;
 
-        var encapsulations = tuples.map(function (tuple, i) {
-            var mimetype = tuple.mime || 'text/plain';
-            var encoding = tuple.encoding || 'utf-8';
-            var use_base64 = tuple.use_base64 || !wtvshared.isASCII(tuple.content);
-            var is_base64 = tuple.is_base64 || wtvshared.isBase64(tuple.content);
-            var filename = (tuple.filename) ? tuple.filename : (use_base64) ? ('file' + i) : null;
-            
-            var headers = [
+            const headers = [
                 `Content-Type: ${mimetype}; ${(use_base64) ? `name="${filename}"` : `charset=${encoding.toUpperCase()}; format=flowed`}`,
             ];
 
             if (filename) headers.push(`Content-Disposition: attachment; filename="${filename}"`);
             headers.push(`Content-Transfer-Encoding: ${(use_base64) ? 'base64' : '7bit'}`);
 
-            var bodyPart = headers.join(CRLF) + CRLF + CRLF;
-            if (use_base64 && !is_base64) bodyPart += wtvshared.lineWrap(Buffer.from(tuple.content).toString('base64'),72) + CRLF;
-            else bodyPart += wtvshared.lineWrap(tuple.content,72);
+            let bodyPart = headers.join(CRLF) + CRLF + CRLF;
+            if (use_base64 && !is_base64) bodyPart += this.wtvshared.lineWrap(Buffer.from(tuple.content).toString('base64'),72) + CRLF;
+            else bodyPart += this.wtvshared.lineWrap(tuple.content,72);
 
             return delimiter + CRLF + bodyPart;
         });
 
-        var multipartBody = [
+        const multipartBody = [
             preamble ? preamble : undefined,
             encapsulations.join(''),
             closeDelimiter,

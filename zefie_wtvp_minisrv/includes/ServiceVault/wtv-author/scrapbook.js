@@ -1,9 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var files = session_data.listScrapbook();
-var dir = session_data.scrapbookDir()
-var pageNum = parseInt(request_headers.query.pageNum || 1);
-var start = (pageNum - 1) * 6;
+const files = session_data.listScrapbook();
+const dir = session_data.scrapbookDir()
+const pageNum = parseInt(request_headers.query.pageNum || 1);
+const start = (pageNum - 1) * 6;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -212,9 +212,9 @@ if (files.length > 0) {
 <tr>
 `
     for (let i = start; i < Math.min(files.length, start + 6); i++) {
-        url = "wtv-tricks:/view-scrapbook-image?id=" + files[i];
+        let url = "wtv-tricks:/view-scrapbook-image?id=" + files[i];
         if (request_headers.query.addMediaURL) {
-            url = unescape(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i];
+            url = decodeURIComponent(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i];
         }
 data += `
 <td align=center valign=middle>

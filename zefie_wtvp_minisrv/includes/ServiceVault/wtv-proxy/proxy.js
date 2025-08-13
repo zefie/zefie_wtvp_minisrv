@@ -1,7 +1,7 @@
-minisrv_service_file = true;
+const minisrv_service_file = true;
 request_is_async = true;
 
-proxyUrl = minisrv_config.services[service_name].wrp_url;
+let proxyUrl = minisrv_config.services[service_name].wrp_url;
 if (!proxyUrl) {
     headers = `200 OK
 Content-Type: text/html
@@ -104,7 +104,7 @@ Location: ${service_name}:/proxy`
                 } else {
                     function fetch(options, post_data) {
                         return new Promise((resolve, reject) => {
-                            req = lib.request(options, (res) => {
+                            const req = lib.request(options, (res) => {
                                 let data = '';
                                 res.on('data', chunk => data += chunk);
                                 res.on('end', () => resolve({ text: () => Promise.resolve(data) }));
@@ -146,8 +146,8 @@ function process(content) {
         // You can now use the `links` array as needed
 
     } else {
-        var idx = content.indexOf('<BR>');
-        content = content.substring(0, idx);
+        const idx = content.indexOf('<BR>');
+        content = content.slice(0, idx);
         finishPage(content);
     }
 }

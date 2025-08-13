@@ -1,10 +1,10 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 const wtvbgm = new WTVBGMusic(minisrv_config, session_data);
 
-var catsListed = 0;
-var categories = wtvbgm.getCategoryList();
-var divide = Math.round(categories.length / 2, 0);
+let catsListed = 0;
+const categories = wtvbgm.getCategoryList();
+const divide = Math.round(categories.length / 2, 0);
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -85,8 +85,8 @@ ${(categories.length > 14) ? '</font>' : ''}
 `;
 
 Object.keys(categories).forEach(function (k) {
-	var catID = categories[k].id;
-	var songsInCat = wtvbgm.getCategorySongList(catID);
+	const catID = categories[k].id;
+	const songsInCat = wtvbgm.getCategorySongList(catID);
 	if (songsInCat.length > 0) {
 		if (catsListed == divide) {
 			data += `</td ><td width="20">

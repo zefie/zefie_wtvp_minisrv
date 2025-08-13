@@ -1,16 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName
-var pagedata = session_data.pagestore.loadPage(docName);
-var blockNum = pagedata.blocks.length
-var oldBlockNum = request_headers.query.blockNum
+const docName = request_headers.query.docName
+const pagedata = session_data.pagestore.loadPage(docName);
+const blockNum = pagedata.blocks.length
+const oldBlockNum = request_headers.query.blockNum
 
-var blockType = pagedata.blocks[oldBlockNum].type
-var photo;
-var thumbnail;
+const blockType = pagedata.blocks[oldBlockNum].type
+let photo, thumbnail;
 
 if (pagedata.blocks[oldBlockNum].photo) {
-	photo = wtvshared.atob(pagedata.blocks[oldBlockNum].photo)
+	photo = wtvshared.btoa(pagedata.blocks[oldBlockNum].photo)
 	thumbnail = photo.replace('clipart/', 'clipart/icons/');
 }
 
@@ -202,7 +201,7 @@ Add text to your document
 <TABLE valign=top>
 <TR>
 <TD>Text size:`
-var textsize = pagedata.blocks[oldBlockNum].size
+const textsize = pagedata.blocks[oldBlockNum].size
 
 if (textsize == "-1")
 {
@@ -232,7 +231,7 @@ Medium</TD>
 data += `
 <TR>
 <TD>Text style:`
-var textstyle = pagedata.blocks[oldBlockNum].style
+const textstyle = pagedata.blocks[oldBlockNum].style
 
 if (textstyle == "B")
 {

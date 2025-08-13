@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 ssid_sessions[socket.ssid].delete("wtv-need-upgrade")
 ssid_sessions[socket.ssid].delete("wtv-used-8675309")

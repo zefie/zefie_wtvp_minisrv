@@ -1,24 +1,26 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-WTVAdmin = require(classPath + "/WTVAdmin.js")
-var wtva = new WTVAdmin(minisrv_config, socket, service_name);
-var auth = wtva.isAuthorized();
+const WTVAdmin = require(classPath + "/WTVAdmin.js")
+const wtva = new WTVAdmin(minisrv_config, socket, service_name);
+const auth = wtva.isAuthorized();
 if (auth === true) {
-    var password = null;
+    const password = null;
     if (request_headers.authorization) {
-        var authheader = request_headers.authorization.split(' ');
+        const authheader = request_headers.authorization.split(' ');
         console.log(request_headers)
 
         if (authheader[0] == "Basic") {
-            password = Buffer.from(authheader[1], 'base64').toString();
+            let password = Buffer.from(authheader[1], 'base64').toString();
             password = password.split(':')[1];
         }
     }
     if (wtva.checkPassword(password)) {
+        let redirectmsg = "";
+        let result = false;
         headers = `200 OK
 Content-Type: text/html`
 
-        htmlhead = `<html>
+        data = `<html>
 <head>
 <title>zefie minisrv v${minisrv_config.version} account administration</title>
 </head>
@@ -27,21 +29,20 @@ Content-Type: text/html`
 Welcome to the zefie minisrv v${minisrv_config.version} Account Administration
 </p>
 `;
-        data = htmlhead;
         if (request_headers.query.cmd == "list") {
             data += `<hr>`;
             if (request_headers.query.msg) {
                 data += decodeURI(request_headers.query.msg) + "<hr>";
             }
             data += `<table border=1>`;
-            accounts = wtva.listRegisteredSSIDs();
+            const accounts = wtva.listRegisteredSSIDs();
             Object.keys(accounts).forEach(function (k) {
                 data += `<tr><td><a href="?cmd=ssid&ssid=${accounts[k][0]}">${accounts[k][0]}</a></td><td>${(accounts[k][1]['username'] === undefined) ? "Unregistered SSID" : accounts[k][1]['username'] }</td></tr>`;
             });
             data += `</table>`;
 
         } else if (request_headers.query.cmd == "ssid") {
-            var ssid = request_headers.query.ssid;
+            const ssid = request_headers.query.ssid;
             if (!ssid) {
                 redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
             } else {
@@ -70,7 +71,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 }
                 data += "<p><a href='?cmd=list'>Back to SSID List</a>";
                 data += "<p><table border=1>";
-                user_info = wtva.getAccountInfoBySSID(ssid);
+                const user_info = wtva.getAccountInfoBySSID(ssid);
                 if (user_info.account_users) {
                     if (user_info.account_users['subscriber']) {
                         data += `<tr><td>Primary User:</td><td>${user_info.account_users['subscriber'].subscriber_username}</td></tr>`;
@@ -92,9 +93,9 @@ function validateSelection(cmd, ssid, friendlymsg) {
             }
         } else if (request_headers.query.cmd == "delete") {
             redirectmsg = "";
-            var ssid = request_headers.query.ssid;
+            const ssid = request_headers.query.ssid;
             if (ssid) {
-                var userAccount = wtva.getAccountBySSID(ssid);
+                const userAccount = wtva.getAccountBySSID(ssid);
                 userAccount.unregisterBox();
                 redirectmsg = `All data for SSID ${ssid} has been deleted. Please note that this does not include Usenet posts made by this account.`;
             } else {
@@ -103,9 +104,9 @@ function validateSelection(cmd, ssid, friendlymsg) {
             headers = "302 OK\nLocation: /admin/?cmd=list&msg=" + encodeURI(redirectmsg);
         } else if (request_headers.query.cmd == "ban") {
             redirectmsg = "";
-            var ssid = request_headers.query.ssid;
+            const ssid = request_headers.query.ssid;
             if (ssid) {
-                var result = wtva.banSSID(ssid);
+                result = wtva.banSSID(ssid);
                 if (result === wtva.SUCCESS) {
                     reloadConfig();
                     redirectmsg = "The SSID is now banned.";
@@ -120,9 +121,9 @@ function validateSelection(cmd, ssid, friendlymsg) {
             headers = "302 OK\nLocation: /admin/?cmd=ssid&ssid=" + encodeURI(ssid) + "&msg=" + encodeURI(redirectmsg);
         } else if (request_headers.query.cmd == "unban") {
             redirectmsg = "The SSID was not banned, so it could not be unbanned.";
-            var ssid = request_headers.query.ssid;
+            const ssid = request_headers.query.ssid;
             if (ssid) {
-                var result = wtv.unbanSSID(ssid);
+                result = wtva.unbanSSID(ssid);
                 if (result === wtva.SUCCESS) {
                     reloadConfig();
                     redirectmsg = "The SSID is now unbanned.";
@@ -136,19 +137,19 @@ function validateSelection(cmd, ssid, friendlymsg) {
             }
             headers = "302 OK\nLocation: /admin/?cmd=ssid&ssid=" + encodeURI(ssid) + "&msg=" + encodeURI(redirectmsg);
         } else {
-            var errpage = wtvshared.doErrorPage(401, "Missing command.");
+            const errpage = wtvshared.doErrorPage(401, "Missing command.");
             headers = errpage[0];
             headers += "\nWWW-Authenticate: Basic";
             data = errpage[1];                
         }
     } else {
-        var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
+        const errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
         headers += "\nWWW-Authenticate: Basic";
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(403, auth);
+    const errpage = wtvshared.doErrorPage(403, auth);
     headers = errpage[0];
     data = errpage[1];
 }

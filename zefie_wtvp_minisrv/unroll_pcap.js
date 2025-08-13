@@ -599,7 +599,7 @@ class WebTVPcapAnalyzer {
                     const headers = headerEndIndex >= 0 ? lines.slice(0, headerEndIndex) : lines;
                     
                     // Process headers for handshake info
-                    let wtvInfo = this.extractWebTVInfo(messageStr, connection);
+                    const wtvInfo = this.extractWebTVInfo(messageStr, connection);
                     if (wtvInfo) {
                         this.processWebTVHandshakeInfo(wtvInfo, connection, messageStr);
                     }
@@ -763,7 +763,7 @@ class WebTVPcapAnalyzer {
         this.output.push('FLOW ANALYSIS SUMMARY');
         this.output.push('='.repeat(80));
 
-        let totalFlows = flows.size;
+        const totalFlows = flows.size;
         let encryptedFlows = 0;
         let challengesSeen = 0;
         let secureOnSeen = 0;
@@ -789,7 +789,7 @@ class WebTVPcapAnalyzer {
         this.output.push('ANALYSIS SUMMARY');
         this.output.push('='.repeat(80));
 
-        let totalConnections = connectionGroups.size;
+        const totalConnections = connectionGroups.size;
         let encryptedConnections = 0;
         let challengesSeen = 0;
         let secureOnSeen = 0;
@@ -1344,7 +1344,7 @@ class WebTVPcapAnalyzer {
             const incarnationIndex = headerText.indexOf('wtv-incarnation');
             const contextStart = Math.max(0, incarnationIndex - 20);
             const contextEnd = Math.min(headerText.length, incarnationIndex + 50);
-            const context = headerText.substring(contextStart, contextEnd);
+            const context = headerText.slice(contextStart, contextEnd);
             this.debugLog(`Context around incarnation: "${context}"`);
             this.debugLog(`Context bytes: ${Buffer.from(context, 'utf8').toString('hex')}`);
         }
@@ -1360,8 +1360,8 @@ class WebTVPcapAnalyzer {
             } else {
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
-                    const key = line.substring(0, colonIndex).toLowerCase();
-                    const value = line.substring(colonIndex + 1).trim();
+                    const key = line.slice(0, colonIndex).toLowerCase();
+                    const value = line.slice(colonIndex + 1).trim();
                     
                     // Debug incarnation header parsing
                     if (key === 'wtv-incarnation') {
@@ -1393,13 +1393,13 @@ class WebTVPcapAnalyzer {
             const bodyBuffer = Buffer.from(bodyText, 'binary');
             const isProprietary = headers['wtv-initial-key'] && 
                 (bodyText.startsWith('ANDY') || 
-                 bodyBuffer.slice(0, 4).toString() === 'ANDY' ||
-                 bodyBuffer.slice(0, 4).equals(Buffer.from([0x41, 0x4e, 0x44, 0x59])));
+                 bodyBuffer.subarray(0, 4).toString() === 'ANDY' ||
+                 bodyBuffer.subarray(0, 4).equals(Buffer.from([0x41, 0x4e, 0x44, 0x59])));
             
             if (isProprietary) {
                 this.output.push(`  Body (${bodyText.length} bytes): [PROPRIETARY FORMAT - NOT ENCRYPTED]`);
                 // Show a preview of the proprietary data
-                const previewText = bodyText.substring(0, 100).replace(/[\x00-\x1f\x7f-\xff]/g, '∩┐╜');
+                const previewText = bodyText.slice(0, 100).replace(/[\x00-\x1f\x7f-\xff]/g, '∩┐╜');
                 this.output.push(`    ${previewText}${bodyText.length > 100 ? '...' : ''}`);
             } else if (headers['wtv-encrypted'] === 'true' && connection.wtvsec) {
                 // Handle encrypted body - decrypt first, then decompress
@@ -1428,11 +1428,11 @@ class WebTVPcapAnalyzer {
                     }
                     statusLabel += ']:';
                     this.output.push(`    ${statusLabel}`);
-                    this.output.push(`    ${finalText.length <= 500 ? finalText : finalText.substring(0, 500) + '...'}`);
+                    this.output.push(`    ${finalText.length <= 500 ? finalText : finalText.slice(0, 500) + '...'}`);
                 } catch (error) {
                     this.debugLog(`Body decryption failed: ${error.message}`);
                     this.output.push(`    [ENCRYPTED - decryption failed: ${error.message}]`);
-                    this.output.push(`    ${bodyText.substring(0, 500)}${bodyText.length > 500 ? '...' : ''}`);
+                    this.output.push(`    ${bodyText.slice(0, 500)}${bodyText.length > 500 ? '...' : ''}`);
                 }
             } else {
                 // Regular unencrypted body - try decompression
@@ -1456,7 +1456,7 @@ class WebTVPcapAnalyzer {
                 if (finalText.length <= 500) {
                     this.output.push(`    ${finalText}`);
                 } else {
-                    this.output.push(`    ${finalText.substring(0, 500)}...`);
+                    this.output.push(`    ${finalText.slice(0, 500)}...`);
                 }
             }
         }
@@ -1509,8 +1509,8 @@ class WebTVPcapAnalyzer {
             } else {
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
-                    const key = line.substring(0, colonIndex).toLowerCase();
-                    const value = line.substring(colonIndex + 1).trim();
+                    const key = line.slice(0, colonIndex).toLowerCase();
+                    const value = line.slice(colonIndex + 1).trim();
                     headers[key] = value;
                     this.output.push(`    ${key}: ${value}`);
                 }
@@ -1553,7 +1553,7 @@ class WebTVPcapAnalyzer {
                     }
                     statusLabel += ']:';
                     this.output.push(`    ${statusLabel}`);
-                    this.output.push(`    ${finalText.length <= 500 ? finalText : finalText.substring(0, 500) + '...'}`);
+                    this.output.push(`    ${finalText.length <= 500 ? finalText : finalText.slice(0, 500) + '...'}`);
                 } catch (error) {
                     this.debugLog(`Body decryption failed: ${error.message}`);
                     this.output.push(`    [ENCRYPTED - decryption failed: ${error.message}]`);
@@ -1572,7 +1572,7 @@ class WebTVPcapAnalyzer {
                     }
                 }
                 this.output.push(`  ${statusLabel}:`);
-                this.output.push(`    ${finalText.length <= 500 ? finalText : finalText.substring(0, 500) + '...'}`);
+                this.output.push(`    ${finalText.length <= 500 ? finalText : finalText.slice(0, 500) + '...'}`);
             }
         }
     }
@@ -1639,8 +1639,8 @@ class WebTVPcapAnalyzer {
             } else {
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
-                    const key = line.substring(0, colonIndex).toLowerCase();
-                    const value = line.substring(colonIndex + 1).trim();
+                    const key = line.slice(0, colonIndex).toLowerCase();
+                    const value = line.slice(colonIndex + 1).trim();
                     headers[key] = value;
                     this.output.push(`    ${key}: ${value}`);
                 }
@@ -1653,7 +1653,7 @@ class WebTVPcapAnalyzer {
         // Look for body content
         const bodyStart = text.indexOf('\r\n\r\n');
         if (bodyStart >= 0) {
-            const bodyText = text.substring(bodyStart + 4);
+            const bodyText = text.slice(bodyStart + 4);
             if (bodyText.length > 0) {
                 // Check if this is a proprietary format that should not be decrypted
                 const bodyBuffer = Buffer.from(bodyText, 'binary');
@@ -1665,7 +1665,7 @@ class WebTVPcapAnalyzer {
                 if (isProprietary) {
                     this.output.push(`  Body (${bodyText.length} bytes): [PROPRIETARY FORMAT - NOT ENCRYPTED]`);
                     // Show a preview of the proprietary data
-                    const previewText = bodyText.substring(0, 100).replace(/[\x00-\x1f\x7f-\xff]/g, '∩┐╜');
+                    const previewText = bodyText.slice(0, 100).replace(/[\x00-\x1f\x7f-\xff]/g, '∩┐╜');
                     this.output.push(`    ${previewText}${bodyText.length > 1000 ? '...' : ''}`);
                 } else if (headers['wtv-encrypted'] === 'true' && connection.wtvsec) {
                     // Avoid this text-path for decryption to prevent byte corruption; handled in processWebTVMessageBuffer.
@@ -1692,7 +1692,7 @@ class WebTVPcapAnalyzer {
                     if (finalText.length <= 500) {
                         this.output.push(`    ${finalText}`);
                     } else {
-                        this.output.push(`    ${finalText.substring(0, 1000)}...`);
+                        this.output.push(`    ${finalText.slice(0, 1000)}...`);
                     }
                 }
             }
@@ -2215,7 +2215,7 @@ class WebTVPcapAnalyzer {
             this.output.push(`    Decrypted with ${keyName} (${decryptedBuffer.length} bytes):`);
             if (this.isPrintableText(decryptedText) || this.looksLikeWebTVHeaders(decryptedText)) {
                 this.output.push(`    [*] Decrypted text content:`);
-                this.output.push(`    ${decryptedText.length <= 1000 ? decryptedText : decryptedText.substring(0, 1000) + '...'}`);
+                this.output.push(`    ${decryptedText.length <= 1000 ? decryptedText : decryptedText.slice(0, 1000) + '...'}`);
             } else {
                 this.output.push(`    [*] Decrypted binary data:`);
                 this.output.push(`    ${decryptedBuffer.slice(0, 100).toString('hex')}${decryptedBuffer.length > 1000 ? '...' : ''}`);
@@ -2287,7 +2287,7 @@ class WebTVPcapAnalyzer {
                     
                     if (this.isPrintableText(decryptedText) || this.looksLikeWebTVHeaders(decryptedText)) {
                         this.output.push(`      [*] Decrypted body (text):`);
-                        this.output.push(`      ${decryptedText.length <= 500 ? decryptedText : decryptedText.substring(0, 1000) + '...'}`);
+                        this.output.push(`      ${decryptedText.length <= 500 ? decryptedText : decryptedText.slice(0, 1000) + '...'}`);
                     } else {
                         this.output.push(`      [*] Decrypted binary body:`);
                         this.output.push(`      ${decryptedBuffer.slice(0, 100).toString('hex')}${decryptedBuffer.length > 100 ? '...' : ''}`);

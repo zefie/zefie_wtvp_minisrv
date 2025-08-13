@@ -1,21 +1,16 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 session_data.setUserLoggedIn(false);
 
-var challenge_response, challenge_header = "";
+let challenge_response, challenge_header = "";
 if (socket.ssid !== null) session_data.switchUserID(0);
-var gourl = "wtv-head-waiter:/ValidateLogin?";
+let gourl = "wtv-head-waiter:/ValidateLogin?";
 if (request_headers.query.relogin) gourl += "relogin=true";
 else if (request_headers.query.reconnect) gourl += "reconnect=true";
 else gourl += "initial_login=true"
 
-var bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
-if (request_headers.query.guest_login || bootrom === 0) {
-	if (gourl.substr(-1) != "?") gourl += "&";
-	gourl += "guest_login=true";
-	if (request_headers.query.skip_splash) gourl += "&skip_splash=true";
-}
+const bootrom = parseInt(session_data.get("wtv-client-bootrom-version"));
 
-var send_to_relogin = true;
+let send_to_relogin = true;
 
 if (session_data) {
 	if (request_headers["wtv-ticket"]) {
@@ -28,9 +23,9 @@ if (session_data) {
 		}
 	} else {
 		if (session_data.data_store.wtvsec_login) {
-			var client_challenge_response = request_headers["wtv-challenge-response"] || null;
+			const client_challenge_response = request_headers["wtv-challenge-response"] || null;
 			if (challenge_response && client_challenge_response) {
-				if (challenge_response.toString(CryptoJS.enc.Base64).substring(0, 85) == client_challenge_response.substring(0, 85)) {
+				if (challenge_response.toString(CryptoJS.enc.Base64).slice(0, 85) == client_challenge_response.slice(0, 85)) {
 					console.log(" * wtv-challenge-response success for " + socket.ssid);
 					session_data.data_store.wtvsec_login.PrepareTicket();
 					send_to_relogin = false;

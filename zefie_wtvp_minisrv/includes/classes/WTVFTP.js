@@ -27,7 +27,7 @@ class WTVFTP {
 
         let user = null;
         let pass = null;
-        let host = parsed.hostname;
+        const host = parsed.hostname;
 
         if (parsed.auth) {
             const [username, password] = parsed.auth.split(':');
@@ -56,7 +56,7 @@ class WTVFTP {
 
         ftpClient.on('ready', () => {
             if (filename) {
-                var totalsize = 0;
+                let totalsize = 0;
                 ftpClient.cwd(dir, (err) => {
                     if (err) {
                         this.sendToClient(socket, { 'Status': '500 Failed to change directory', 'Content-Type': 'text/plain' }, 'Failed to change directory');
@@ -134,7 +134,7 @@ class WTVFTP {
     }
 
     formatDirectoryListing(list) {
-        let html = `<html>
+        const html = `<html>
         <head>
             <title>FTP Directory Listing</title>
             <style>
