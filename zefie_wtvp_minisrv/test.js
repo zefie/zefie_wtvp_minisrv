@@ -4,7 +4,7 @@ const fs = require('fs');
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 const { exec } = require("child_process");
-var path = require('path');
+const path = require('path');
 
 // Usage: node test.js [filename|directory]
 // If no argument is provided, checks all JavaScript files in the project
@@ -130,7 +130,7 @@ function checkScopeErrors(file) {
 				// Look for patterns like includes/ServiceVault/wtv-servicename or includes/ServiceDeps/.../wtv-servicename
 				const serviceMatch = normalizedFile.match(/includes\/Service(?:Vault|Deps)(?:\/[^\/]*)*?\/(wtv-[a-z0-9-]+|[a-z0-9-]+)(?:\/|$)/);
 				if (serviceMatch) {
-					let serviceName = serviceMatch[1];
+					const serviceName = serviceMatch[1];
 					
 					// Try both with and without wtv- prefix
 					const serviceNameWithPrefix = serviceName.startsWith('wtv-') ? serviceName : `wtv-${serviceName}`;

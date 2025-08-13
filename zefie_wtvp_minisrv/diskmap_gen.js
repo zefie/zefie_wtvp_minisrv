@@ -73,7 +73,7 @@ const fileList = recursiveDirList(service_vault_dir);
 if (fileList.length > 0) {
     const diskmap = {};
     diskmap[group_name] = {};
-    if (client_dest.substring(client_dest.length - 1, 1) != '/') client_dest += '/';
+    if (client_dest.slice(client_dest.length - 1, 1) != '/') client_dest += '/';
     diskmap[group_name].base = client_dest;
     diskmap[group_name].location = service_vault_subdir;
     diskmap[group_name].files = [];
