@@ -2657,9 +2657,9 @@ Content-type: text/html`;
 
             if (getServiceEnabled(service_name)) {
                 if (req.body) {
-                    if (typeof (req.body) == "string") {
+                    if (typeof (req.body) === "string") {
                         request_headers.post_data = req.body;
-                    } else if (req.body.length) {
+                    } else if (Buffer.isBuffer(req.body)) {
                         if (req.body.length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
                             errpage = wtvshared.doErrorPage("400", "POST size too large", null, true);
                         } else {
@@ -2669,8 +2669,11 @@ Content-type: text/html`;
                             }
                         }
                     } else {
-                        request_headers.post_data = "";
+                        request_headers.post_data = req.body.toString();
                     }
+                } else {
+                    request_headers.post_data = "";	 // Invalid type (array/object), possible type confusion attack
+                    errpage = wtvshared.doErrorPage("400", "Invalid POST data type", null, true);
                 }
 
                 if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming " + ((ssl) ? "HTTPS" : "HTTP") + " PC POST Headers on", service_name, "socket ID", req.socket.id, wtvshared.filterRequestLog(request_headers));
