@@ -97,7 +97,7 @@ data = `<html>
 			<br><br>
 			<font color=white>
 			<progressindicator name="downloadprogress" 
-			   message="Retrieving Files..." 
+			   message="${message}" 
 			   height=40 width=250>
 			</font>
 </table>
