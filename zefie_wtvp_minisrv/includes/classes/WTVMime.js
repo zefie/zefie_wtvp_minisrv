@@ -26,7 +26,7 @@ class WTVMime {
         let compression_type = 0; // no compression
         if (ssid_session) {
             if (ssid_session.capabilities) {
-                if (ssid_session.capabilities['client-can-receive-compressed-data']) {
+                if (ssid_session.capabilities.get('client-can-receive-compressed-data')) {
 
                     if (this.minisrv_config.config.enable_lzpf_compression || this.minisrv_config.config.force_compression_type) {
                         compression_type = 1; // lzpf
@@ -61,7 +61,7 @@ class WTVMime {
                     // should we bother to compress?
                     let content_type = "";
                     if (typeof (headers_obj) == 'string') content_type = headers_obj;
-                    else content_type = (typeof (headers_obj["wtv-modern-content-type"]) != 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-type"];
+                    else content_type = (typeof (headers_obj["wtv-modern-content-type"]) !== 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-type"];
 
                     if (content_type) {
                         // both lzpf and gzip
@@ -100,7 +100,7 @@ class WTVMime {
      */
     getContentType(path) {
         const file_ext = this.wtvshared.getFileExt(path).toLowerCase();
-        let wtv_mime_type, modern_mime_type = "";
+        let wtv_mime_type, modern_mime_type;
         // process WebTV overrides, fall back to generic mime lookup
         switch (file_ext) {
             case "aif":
@@ -192,7 +192,7 @@ class WTVMime {
 
         modern_mime_type = this.mime.lookup(path);
         if (modern_mime_type === false) modern_mime_type = "application/octet-stream";
-        if (wtv_mime_type == "") wtv_mime_type = modern_mime_type;
+        if (typeof wtv_mime_type === 'undefined') wtv_mime_type = modern_mime_type;
         return new Array(wtv_mime_type, modern_mime_type);
     }
 

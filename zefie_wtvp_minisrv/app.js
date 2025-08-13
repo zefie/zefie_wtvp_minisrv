@@ -206,7 +206,7 @@ async function sendRawFile(socket, path) {
     const contypes = wtvmime.getContentType(path);
     let headers = "200 OK\n"
     headers += "Content-Type: " + contypes[0] + "\n";
-    headers += "wtv-modern-content-type" + contypes[1];
+    headers += "wtv-modern-content-type: " + contypes[1];
     fs.readFile(path, null, function (err, data) {
         sendToClient(socket, headers, data);
     });
@@ -1415,7 +1415,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     const eol = "\n";
     let timezone = "-0000";
     let wtv_connection_close = false;
-
+console.log(headers_obj)
     if (typeof (data) === 'undefined' || data === null) data = '';
     if (typeof (headers_obj) === 'string') {
         // string to header object
@@ -1475,6 +1475,7 @@ async function sendToClient(socket, headers_obj, data = null) {
             delete headers_obj[contype_key];
         }
     }
+   
 
     // Add last modified if not a dynamic script
     if (socket_sessions[socket.id]) {
@@ -1525,11 +1526,16 @@ async function sendToClient(socket, headers_obj, data = null) {
             }
         }
     }
+    console.log(compression_type)
 
     // webtvism
     if (headers_obj["minisrv-force-compression"]) {
         compression_type = parseInt(headers_obj["minisrv-force-compression"]);
         delete headers_obj["minisrv-force-compression"];
+    }
+
+    if (headers_obj["wtv-modern-content-type"]) {
+        delete headers_obj["wtv-modern-content-type"];
     }
 
     if (socket.res) { // pc mode with response object available
