@@ -397,7 +397,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     env.SERVER_PORT = request_data.port;
     env.SERVER_ADDR = request_data.host;
     env.SERVER_NAME = request_data.host;
-    if (minisrv_config.services[socket.service_name].hide_minisrv_version) {
+    if (minisrv_config.services[socket.service_name] && minisrv_config.services[socket.service_name].hide_minisrv_version) {
         env.SERVER_SOFTWARE = "NodeJS; minisrv";
     } else {
         // Full version
