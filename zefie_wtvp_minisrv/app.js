@@ -197,6 +197,61 @@ function moveArrayKey(array, from, to) {
     return array;
 };
 
+// Deprecation warnings configuration
+const deprecationWarnings = {
+    // Array of deprecated patterns with their details
+    patterns: [
+        {
+            // Example deprecations - you can modify these as needed
+            pattern: /session\_data\.hasCap\s*\(/g,
+            message: "session_data.hasCap() is deprecated and will be removed",
+            removeVersion: "0.9.70",
+            replacement: "Use session_data.capabilities.get() instead"
+        }
+    ],
+    
+    // Enable/disable deprecation warnings globally
+    enabled: true,
+    
+    // Log level for deprecation warnings (console.warn, console.log, etc.)
+    logLevel: 'warn'
+};
+
+function checkDeprecationWarnings(script_data, filename = null, debug_name = null) {
+    if (!deprecationWarnings.enabled || !script_data) return;
+    
+    const scriptSource = filename || debug_name || 'unknown script';
+    const foundDeprecations = [];
+    
+    deprecationWarnings.patterns.forEach(deprecation => {
+        const matches = script_data.match(deprecation.pattern);
+        if (matches) {
+            const uniqueMatches = [...new Set(matches)]; // Remove duplicates
+            uniqueMatches.forEach(match => {
+                foundDeprecations.push({
+                    pattern: match.trim(),
+                    message: deprecation.message,
+                    removeVersion: deprecation.removeVersion,
+                    replacement: deprecation.replacement
+                });
+            });
+        }
+    });
+    
+    if (foundDeprecations.length > 0) {
+        const logFunction = console[deprecationWarnings.logLevel] || console.warn;
+        
+        logFunction(`\n⚠️  DEPRECATION WARNING(S) in ${scriptSource}:`);
+        foundDeprecations.forEach((dep, index) => {
+            logFunction(`   ${index + 1}. ${dep.pattern}: ${dep.message} in version ${dep.removeVersion}`);
+            if (dep.replacement) {
+                logFunction(`      → ${dep.replacement}`);
+            }
+        });
+        logFunction(''); // Empty line for readability
+    }
+}
+
 function getServiceString(service, overrides = {}) {
     return wtvshared.getServiceString(service, overrides);
 }
@@ -213,6 +268,9 @@ async function sendRawFile(socket, path) {
 }
 
 const runScriptInVM = function (script_data, user_contextObj = {}, privileged = false, filename = null, debug_name = null) {
+    // Check for deprecation warnings before execution
+    checkDeprecationWarnings(script_data, filename, debug_name);
+    
     // Here we define the ServiceVault Script Context Object
     // The ServiceVault scripts will only be allowed to access the following functions/variables.
     // Furthermore, only modifications to variables in `updateFromVM` will be saved.

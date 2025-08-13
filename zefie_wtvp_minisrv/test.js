@@ -183,6 +183,15 @@ function checkScopeErrors(file) {
 					{
 						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='crypto'][callee.property.name='Credentials']",
 						"message": "crypto.Credentials is deprecated. Use tls.SecureContext instead."
+					},
+					// Custom project-specific deprecations
+					{
+						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='session_data'][callee.property.name='hasCap']",
+						"message": "session_data.hasCap() is deprecated. Use session_data.capabilities.get() instead."
+					},
+					{
+						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.type='MemberExpression'][callee.object.property.name='session_data'][callee.property.name='hasCap']",
+						"message": "session_data.hasCap() is deprecated. Use session_data.capabilities.get() instead."
 					}
 				]
 			}
