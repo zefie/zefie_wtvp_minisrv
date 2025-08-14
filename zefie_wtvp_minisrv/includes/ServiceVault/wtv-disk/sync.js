@@ -100,13 +100,10 @@ if (request_headers['wtv-request-type'] === 'download') {
                     if (!update_list[k].invalid && !force_update) return;
                     if (update_list[k].action === "DELETEONLY") return;
                     wtvdl.rename(update_list[k].file.replace(diskmap_group_data.base, ""), update_list[k].file.replace(diskmap_group_data.base, ""), diskmap_group_name, diskmap_group_name, update_list[k].rename || update_list[k].original_filename || null);
-                });
-
-                wtvdl.setGroup(diskmap_group_name, 'ok', diskmap_group_data.version);
-            }
-
+                });                
+            }            
         }
-
+        wtvdl.setGroup(diskmap_group_name, 'ok', diskmap_group_data.version);
         if (diskmap_group_data.execute_end) {
             wtvdl.execute(diskmap_group_data.execute_end);
         }
@@ -117,7 +114,7 @@ if (request_headers['wtv-request-type'] === 'download') {
             }
         }
         const download_list = wtvdl.getDownloadList();
-        if (minisrv_config.config.show_diskmap) console.log(download_list);
+        if (minisrv_config.config.show_diskmap) console.log("DiskMap Data:\n" + download_list);
         return download_list;
     }
 

@@ -88,7 +88,7 @@ data = `<html>
 		<td colspan=2>
 		<td>
 			<font size=+1>
-				Your ${session_data.getBoxName()} is retrieving some files.
+				Your ${session_data.getBoxName(true)} is retrieving some files.
 				<p>This usually takes a while.
 			</font>
 	<tr>

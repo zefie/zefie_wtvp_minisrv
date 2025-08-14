@@ -98,8 +98,7 @@ class WTVGuide {
 							}
 							// replaces <boxname> with the friendly name of the type of unit the user has
 							while (definition.indexOf("<boxname>") >= 0) {
-								const romtype = this.session_data.get("wtv-client-rom-type");
-								const boxname = this.wtvshared.getBoxName(romtype);
+								const boxname = this.session_data.getBoxName(false);
 								definition = definition.replace(/\<boxname\>/g, boxname);
 							}
 							// replaces <boxname_plus> with either "WebTV" or "WebTV Plus" depending on user box type

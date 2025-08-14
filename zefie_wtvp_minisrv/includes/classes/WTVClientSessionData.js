@@ -900,13 +900,13 @@ class WTVClientSessionData {
         this.SaveIfRegistered(true);
     }
 
-    getBoxName() {
+    getBoxName(full = true) {
         switch (this.get("wtv-client-rom-type")) {
             case "US-DTV-disk-0MB-16MB-softmodem-CPU5230":
             case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
             case "US-WEBSTAR-disk-0MB-8MB-softmodem-CPU5230":
             case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
-                return "satellite receiver";
+                return (full ? "WebTV satellite receiver" : "satellite receiver");
 
             case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
             case "US-LC2-disk-0MB-8MB":
@@ -920,10 +920,10 @@ class WTVClientSessionData {
             case "JP-LC2-disk-0MB-8MB-CPU5230":
             case "JP-LC2-disk-0MB-16MB-CPU5230":
             case "JP-LC2-flash-2MB-8MB-CPU5230":
-                return "Plus receiver";
+                return (full ? "WebTV Plus receiver" : "Plus receiver");
 
             default:
-                return "Internet terminal";
+                return (full ? "WebTV Internet terminal" : "Internet terminal");
         }
     }
 
