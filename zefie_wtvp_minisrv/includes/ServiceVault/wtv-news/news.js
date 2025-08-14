@@ -509,7 +509,7 @@ cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=6>
 <td abswidth=93 absheight=26>
-<table href="wtv-mail:/sendmail?discuss=true&message_subject=${escape("Re: " + response.article.headers.SUBJECT)}&group=${response.article.headers.NEWSGROUPS}&discuss-prefix=${service_name}&article=${request_headers.query.article}"
+<table href="wtv-mail:/sendmail?discuss=true&message_subject=${wtvshared.escape("Re: " + response.article.headers.SUBJECT)}&group=${response.article.headers.NEWSGROUPS}&discuss-prefix=${service_name}&article=${request_headers.query.article}"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>
