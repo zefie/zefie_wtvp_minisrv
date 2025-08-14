@@ -214,7 +214,7 @@
       "flags": "0x00000001",
       "privileged": true,
       "send_tellyscripts": true, // Best left untouched
-      "send_tellyscript_to_mame": true,
+      "send_tellyscript_to_mame": false,
       "dialin_number": 18006138199,
       "dns1ip": "10.0.0.50",
       "dns2ip": "8.8.8.8",
