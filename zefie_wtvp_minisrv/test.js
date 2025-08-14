@@ -399,8 +399,8 @@ getFiles(__dirname)
 		} else {
 			// If no specific path, check all JS files as before
 			jsFiles = files.filter(file => 
-				path.extname(file) == ".js" && 
-				file.indexOf("node_modules") == -1
+				path.extname(file) === ".js" && 
+				file.indexOf("node_modules") === -1
 			);
 			console.log("Running syntax and scope checks on all JavaScript files...\n");
 		}

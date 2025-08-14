@@ -697,7 +697,7 @@ wtv-expire-all: wtv-news:/news?search=`;
             data = `<HTML>
 <HEAD>
 <DISPLAY fontsize=medium>
-<TITLE>${(response.length == 0) ? "No " : ""}Discussion groups found</TITLE>
+<TITLE>${(response.length === 0) ? "No " : ""}Discussion groups found</TITLE>
 </HEAD>
 <sidebar width=114 height=420 align=left>
 <table cellspacing=0 cellpadding=0 bgcolor=3d2f3a>
