@@ -14,7 +14,7 @@ if (messenger_email && messenger_password) {
 	const password = session_data.decryptPassword(messenger_password);
 	const challenge = request_headers.request.split('?')[1];
 
-	if (request_headers.request.split('?')[1].slice(0, 3) != "ct=") {
+	if (request_headers.request.split('?')[1].slice(0, 3) !== "ct=") {
 		console.log(" *** Logging into Messenger via MSNP3")
 		data = crypto.createHash('md5').update(request_headers.request.split('?')[1] + password).digest("hex");
 	} else {

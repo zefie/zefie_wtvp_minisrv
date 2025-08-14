@@ -32,13 +32,15 @@ function checkScopeErrors(file) {
 		const eslintConfig = {
 			"parserOptions": {
 				"ecmaVersion": 2022,
-				"sourceType": "module"
+				"sourceType": isServiceFile ? "script" : "module"
 			},
 			"env": {
 				"node": true,
 				"es2022": true
 			},
 			"rules": {
+				"eqeqeq": ["warn", "always"],
+    			"no-eq-null": "warn",
 				"no-redeclare": 2,
 				"no-undef": 2,
 				"no-use-before-define": ["error", {"variables": false, "functions": false, "classes": false}],
@@ -192,6 +194,31 @@ function checkScopeErrors(file) {
 					{
 						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.type='MemberExpression'][callee.object.property.name='session_data'][callee.property.name='hasCap']",
 						"message": "session_data.hasCap() is deprecated. Use session_data.capabilities.get() instead."
+					},
+					// Type coercion warnings
+					{
+						"selector": "BinaryExpression[operator='==='][left.type='Literal'][left.value=/^\\d+$/][left.typeof='number'][right.type='Identifier']",
+						"message": "Comparing string literal that looks like a number with a variable using strict equality. Consider parseInt() or ensure both operands are the same type."
+					},
+					{
+						"selector": "BinaryExpression[operator='==='][left.type='Identifier'][right.type='Literal'][right.value=/^\\d+$/][right.typeof='number']",
+						"message": "Comparing variable with string literal that looks like a number using strict equality. Consider parseInt() or ensure both operands are the same type."
+					},
+					{
+						"selector": "BinaryExpression[operator='==='][left.type='Literal'][left.typeof='string'][right.type='Literal'][right.typeof='number']",
+						"message": "Comparing string literal with number literal using strict equality. This will always be false."
+					},
+					{
+						"selector": "BinaryExpression[operator='==='][left.type='Literal'][left.typeof='number'][right.type='Literal'][right.typeof='string']",
+						"message": "Comparing number literal with string literal using strict equality. This will always be false."
+					},
+					{
+						"selector": "BinaryExpression[operator='!=='][left.type='Literal'][left.typeof='string'][right.type='Literal'][right.typeof='number']",
+						"message": "Comparing string literal with number literal using strict inequality. This will always be true."
+					},
+					{
+						"selector": "BinaryExpression[operator='!=='][left.type='Literal'][left.typeof='number'][right.type='Literal'][right.typeof='string']",
+						"message": "Comparing number literal with string literal using strict inequality. This will always be true."
 					}
 				]
 			}
@@ -294,8 +321,10 @@ function checkScopeErrors(file) {
 		fs.writeFileSync(tempConfigPath, JSON.stringify(eslintConfig, null, 2));
 		
 		// Use ESLint to check for scope-related errors with let/const
-		const eslintCmd = `npx eslint --no-eslintrc --config "${tempConfigPath}" --format compact "${file}"`;
-		
+		// Create a temporary .eslintignore file to exclude files or directories
+		const eslintIgnorePath = path.join(__dirname, '.eslintignore');
+		const eslintCmd = `npx eslint --no-eslintrc --config "${tempConfigPath}" --ignore-path "${eslintIgnorePath}" --format compact "${file}"`;
+
 		exec(eslintCmd, (error, stdout, stderr) => {
 			// Clean up temporary config file
 			try {

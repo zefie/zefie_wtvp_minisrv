@@ -205,7 +205,7 @@ class WTVShared {
      * @return {boolean} true if the SSID is valid, false if not
      */
     checkSSID(ssid) {
-        if (ssid.slice(-2) == this.getSSIDCRC(ssid))
+        if (ssid.slice(-2) === this.getSSIDCRC(ssid))
             return true;
         return false;
     }
@@ -412,8 +412,8 @@ class WTVShared {
             exclusiveFilter: (frame) => {
                 let allowed = true;
                 Object.keys(frame.attribs).forEach((k) => {
-                    if (k == "href" || k == "background" || k == "src") {
-                        allowed = false;    
+                    if (k === "href" || k === "background" || k === "src") {
+                        allowed = false;
                         const value = frame.attribs[k];
 
                         if (frame.tag !== "a") {
@@ -1043,7 +1043,7 @@ class WTVShared {
                     new_obj = this.cloneObj(obj)
                     new_obj["wtv-client-serial-number"] = this.censorSSID(new_obj["wtv-client-serial-number"]);
                 }
-                return (new_obj != false) ? new_obj : obj;
+                return (new_obj !== false) ? new_obj : obj;
             }
         }
         return obj;
@@ -1127,14 +1127,14 @@ class WTVShared {
     */
     getAbsolutePath(path = '', directory = '.') {
         // Check if directory is already an absolute path
-        if (directory.length > 0 && (directory[0] == "/" || (directory.length >= 3 && directory[1] === ':' && directory[2] === this.path.sep))) {
+        if (directory.length > 0 && (directory[0] === "/" || (directory.length >= 3 && directory[1] === ':' && directory[2] === this.path.sep))) {
             return this.path.resolve(directory + this.path.sep + path);
         }
         try {
             // start with our absolute path (of app.js)
             const appdir = this.path.resolve(__dirname + this.path.sep + '..' + this.path.sep + '..')
 
-            if (path == '' && directory == '.') {
+            if (path === '' && directory === '.') {
                 return appdir;
             }
             // If the directory is a valid directory, prepend it to the path
@@ -1252,7 +1252,7 @@ class WTVShared {
 
                 if (overrides.exceptions) {
                     Object.keys(overrides.exceptions).forEach((j) => {
-                        if (k != overrides.exceptions[j]) out += self.minisrv_config.services[k].toString(overrides) + "\n";
+                        if (k !== overrides.exceptions[j]) out += self.minisrv_config.services[k].toString(overrides) + "\n";
                     });
                 } else {
                     out += self.minisrv_config.services[k].toString(overrides) + "\n";

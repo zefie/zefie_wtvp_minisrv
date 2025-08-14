@@ -7,7 +7,7 @@ const request_path = request_headers.query.path;
 const romtype = session_data.get("wtv-client-rom-type");
 const bootver = session_data.get("wtv-client-bootrom-version");
 
-if ((romtype == "bf0app" || !romtype) && (bootver == "105" || !bootver)) {
+if ((romtype === "bf0app" || !romtype) && (bootver === "105" || !bootver)) {
 	// assume old classic in flash mode, override user setting and send tellyscript
 	// because it is required to proceed in flash mode
 	bf0app_update = true;

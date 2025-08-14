@@ -28,9 +28,9 @@ async function throwError(e) {
 
 function isToday (chkdate) {
     const today = new Date()
-    return chkdate.getDate() == today.getDate() &&
-        chkdate.getMonth() == today.getMonth() &&
-        chkdate.getFullYear() == today.getFullYear()
+    return chkdate.getDate() === today.getDate() &&
+        chkdate.getMonth() === today.getMonth() &&
+        chkdate.getFullYear() === today.getFullYear()
 }
 
 async function WebTVListGroup(group) {
@@ -47,7 +47,7 @@ async function WebTVListGroup(group) {
                 limit_per_page = (page_end - (limit_per_page / (page + 1))) + limit_per_page;
             }
             wtvnews.listGroup(group, page, limit_per_page).then((response) => {
-                if (response.code == 211) {
+                if (response.code === 211) {
                     const NGCount = response.group.number;
                     const NGArticles = response.group.articleNumbers;
                     page_start = (limit_per_page * page) + 1;
@@ -193,11 +193,11 @@ Group: ${request_headers.query.group}
 <td height=33 width=256 valign=bottom>
 <font size=4>
 `
-                        if (NGCount == 0) {
+                        if (NGCount === 0) {
                             data += `This group has no postings`;
                         } else {
                             data += NGCount + " posting";
-                            if (NGCount != 1)
+                            if (NGCount !== 1)
                                 data += "s"
                         }
                         data += `
@@ -210,7 +210,7 @@ Group: ${request_headers.query.group}
 <td width=180 valign=bottom align=right>
 <table cellspacing=0 cellpadding=0>
 <td rowspan=4 height=26 width=30>
-${(page > 0) ? `<a href="wtv-news:/news?group=${group}&chunk=${page - 1}${(limit_per_page != page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListPrevious.gif"></a>` : `<img src="wtv-news:/images/ListPrevious_D.gif">`}
+${(page > 0) ? `<a href="wtv-news:/news?group=${group}&chunk=${page - 1}${(limit_per_page !== page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListPrevious.gif"></a>` : `<img src="wtv-news:/images/ListPrevious_D.gif">`}
 <td rowspan=4 height=26 width=11>
 <img src="wtv-news:/images/ListLeftEdge.gif">
 <td height=2 valign=top align=left bgcolor="2b2b2b">
@@ -218,7 +218,7 @@ ${(page > 0) ? `<a href="wtv-news:/news?group=${group}&chunk=${page - 1}${(limit
 <td rowspan=4 height=26 width=11>
 <img src="wtv-news:/images/ListRightEdge.gif">
 <td rowspan=4 height=26 width=30>
-${(page_end < NGCount) ? `<a href="wtv-news:/news?group=${group}&chunk=${page + 1}${(limit_per_page != page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListNext.gif"></a>` : `<img src="wtv-news:/images/ListNext_D.gif">`}
+${(page_end < NGCount) ? `<a href="wtv-news:/news?group=${group}&chunk=${page + 1}${(limit_per_page !== page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListNext.gif"></a>` : `<img src="wtv-news:/images/ListNext_D.gif">`}
 <td rowspan=4 width=5>
 <tr>
 <td height=2 valign=top align=left>
@@ -337,7 +337,7 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                 if (attachments) {
                     if (Object.keys(attachments).length > 0) {
                         Object.keys(attachments).forEach((k) => {
-                            if (attachments[k].filename == "wtv_signature.html" && attachments[k].content_type.match(/text\/html/)) {
+                            if (attachments[k].filename === "wtv_signature.html" && attachments[k].content_type.match(/text\/html/)) {
                                 signature = attachments[k].data;
                                 signature_index = k;
                                 return false;
@@ -350,7 +350,7 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                 if (message_body.indexOf("<body")) {
                     const default_colors = session_data.mailstore.defaultColors;
                     message_colors = session_data.mailstore.getSignatureColors(message_body);
-                    if ((message_colors == default_colors) && signature) message_colors = null;
+                    if ((message_colors === default_colors) && signature) message_colors = null;
                 }
                 if (!message_colors && signature) message_colors = session_data.mailstore.getSignatureColors(signature);
 
@@ -591,7 +591,7 @@ ${strftime("%a, %b %e, %Y, %I:%M%P", new Date(Date.parse(response.article.header
 <td valign=top>
 From:
 <td>`;
-                              if (message.from_name != message.from_addr) {
+                              if (message.from_name !== message.from_addr) {
                                     data += `<a href="client:showalert?sound=none&message=Would%20you%20like%20to%20add%20%3Cblackface%3E${wtvshared.htmlEntitize(message.from_name)}%3C%2Fblackface%3E%20to%20your%20address%20list%3F&buttonlabel2=No&buttonaction2=client:donothing&buttonlabel1=Yes&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${encodeURIComponent(encodeURIComponent(message.from_name))}%26address%3D${encodeURIComponent(encodeURIComponent(message.from_addr))}%26new_address%3Dtrue">${wtvshared.htmlEntitize(message.from_addr)} </a>`;
                                 } else {
                 data += `${wtvshared.htmlEntitize(response.article.headers.FROM)}`;
@@ -630,7 +630,7 @@ From:
 
                 if (attachments) {
                     if (attachments[0]) {
-                        if (attachments[0].filename == "message.html") {
+                        if (attachments[0].filename === "message.html") {
                             body_data += wtvshared.sanitizeSignature(attachments[0].data);
                             delete attachments[0];
                         }
@@ -789,14 +789,14 @@ vspace=0>
 <tr>
 <td valign=center absheight=80>
 <font size="+2" color="E7CE4A"><blackface><shadow>
-${(response.length == 0) ? "No " : ""}Discussion groups found
+${(response.length === 0) ? "No " : ""}Discussion groups found
 </table>
 <td abswidth=20>
 <tr>
 <td>
 <td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>`;
 
-            if (response.length == 0) {
+            if (response.length === 0) {
                 data += `There are no discussion groups that match your request. Do you want to look for something else?`;
             } else {
                 response.forEach((group) => {

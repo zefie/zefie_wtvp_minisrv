@@ -148,7 +148,7 @@ class WTVClientSessionData {
         if (addresses) {
             for (let i = 0; i < addresses.length; i++) {
                 console.log(addr.toLowerCase(), addresses[i].address.toLowerCase())
-                if (addr.toLowerCase() == addresses[i].address.toLowerCase()) {
+                if (addr.toLowerCase() === addresses[i].address.toLowerCase()) {
                     return true;
                 }
             }
@@ -157,7 +157,7 @@ class WTVClientSessionData {
     }
 
     findFreeUserSlot() {
-        if (this.user_id != 0) return false; // subscriber only command
+        if (this.user_id !== 0) return false; // subscriber only command
         const master_directory = this.getUserStoreDirectory(true);
         if (this.fs.existsSync(master_directory)) {
             for (let i = 0; i < this.minisrv_config.config.user_accounts.max_users_per_account; i++) {
@@ -171,17 +171,17 @@ class WTVClientSessionData {
     }
 
     getDisplayName() {
-        return (this.user_id == 0) ? this.getSessionData("subscriber_name") : this.getSessionData("display_name");
+        return (this.user_id === 0) ? this.getSessionData("subscriber_name") : this.getSessionData("display_name");
     }
 
     getNumberOfUserAccounts() {
         if (!this.isRegistered()) return false;
-        if (this.user_id != 0) return false; // subscriber only command
+        if (this.user_id !== 0) return false; // subscriber only command
         return Object.keys(this.listPrimaryAccountUsers()).length;
     }
 
     listPrimaryAccountUsers() {
-        if (this.user_id != 0) return false; // subscriber only command
+        if (this.user_id !== 0) return false; // subscriber only command
 
         const master_directory = this.getUserStoreDirectory(true);
         const account_data = [];
@@ -191,7 +191,7 @@ class WTVClientSessionData {
                 if (f.startsWith("user")) {
                     const user_file = this.path.resolve(master_directory + this.path.sep + f + this.path.sep + f + ".json");
                     if (self.fs.existsSync(user_file)) {
-                        if (f == "user0") {
+                        if (f === "user0") {
                             account_data['subscriber'] = JSON.parse(this.fs.readFileSync(user_file));
                             account_data['subscriber'].user_id = 0;
                         }
@@ -283,14 +283,14 @@ class WTVClientSessionData {
         const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
         const file = this.fs.readFileSync(pending_file)
         const ssidobj = JSON.parse(file);
-        if (ssidobj.type != "target") return false; // Only allow completion from target
+        if (ssidobj.type !== "target") return false; // Only allow completion from target
         const source_ssid = ssidobj.ssid
         const old_account = this.getAccountStoreDirectory() + this.path.sep + source_ssid
         const new_account = this.getUserStoreDirectory(true);
         this.fs.cpSync(old_account, new_account, {
             filter: (source, _destination) => {
-                return source != "pending_transfer.json";
-            }, 
+                return source !== "pending_transfer.json";
+            },
             recursive: true
         });
         this.fs.rmSync(old_account, { recursive: true })
@@ -304,7 +304,7 @@ class WTVClientSessionData {
             const ssidobj = JSON.parse(this.fs.readFileSync(pending_file));
             console.log(ssidobj)
             if (dtype) {
-                (ssidobj.type == dtype) ? ssidobj.ssid : false;
+                (ssidobj.type === dtype) ? ssidobj.ssid : false;
             }
             else {
                 return ssidobj;
@@ -543,7 +543,7 @@ class WTVClientSessionData {
         let cookie_data;
         if (!this.checkCookies()) this.resetCookies();
         if (!domain) return false;
-        else if (typeof (domain) == 'object') {
+        else if (typeof (domain) === 'object') {
             // accept array as first argument
             if (domain.domain && domain.path && domain.expires && domain.data) cookie_data = domain;
             else return false;
@@ -564,7 +564,7 @@ class WTVClientSessionData {
         // see if we have a cookie for this domain/path
         Object.keys(this.session_store.cookies).forEach(function (k) {
             if (cookie_index >= 0) return;
-            if (domain == self.session_store.cookies[k].domain && path == self.session_store.cookies[k].path) cookie_index = k;
+            if (domain === self.session_store.cookies[k].domain && path === self.session_store.cookies[k].path) cookie_index = k;
         });
         // otherwise add a new one
         if (cookie_index === -1) cookie_index = this.countCookies();
@@ -586,8 +586,8 @@ class WTVClientSessionData {
         let result = false;
         Object.keys(this.session_store['cookies']).forEach(function (k) {
             if (result !== false) return;
-            if (self.session_store['cookies'][k].domain == domain &&
-                self.session_store['cookies'][k].path == path) {
+            if (self.session_store['cookies'][k].domain === domain &&
+                self.session_store['cookies'][k].path === path) {
 
                 const current_epoch_utc = Date.parse((new Date()).toUTCString());
                 const cookie_expires_epoch_utc = Date.parse(new Date(Date.parse(self.session_store['cookies'][k].expires)).toUTCString());
@@ -621,7 +621,7 @@ class WTVClientSessionData {
             return true;
         }
         if (!domain) return false;
-        else if (typeof (domain) == 'object') {
+        else if (typeof (domain) === 'object') {
             // accept array as first argument
             if (domain.domain && domain.path) {
                 path = domain.path;
@@ -633,7 +633,7 @@ class WTVClientSessionData {
 
         const self = this;
         Object.keys(this.session_store['cookies']).forEach(function (k) {
-            if (self.session_store['cookies'][k].domain == domain && self.session_store['cookies'][k].path == path) {
+            if (self.session_store['cookies'][k].domain === domain && self.session_store['cookies'][k].path === path) {
                 delete self.session_store['cookies'][k];
                 self.storeSessionData();
                 result = true;
@@ -649,7 +649,7 @@ class WTVClientSessionData {
      */
     checkCookies() {
         if (!this.session_store.cookies) return false;
-        else if (this.session_store.cookies == []) return false;
+        else if (this.session_store.cookies.length === 0) return false;
         return true;
     }
 
@@ -677,7 +677,7 @@ class WTVClientSessionData {
             }
         } catch (e) {
             // Don't log error 'file not found', it just means the client isn't registered yet
-            if (e.code != "ENOENT") console.error(" # Error loading session data for", this.wtvshared.filterSSID(this.ssid), e);
+            if (e.code !== "ENOENT") console.error(" # Error loading session data for", this.wtvshared.filterSSID(this.ssid), e);
             // also wipe any existing session_store
             this.session_store = {};
             return false;
@@ -723,7 +723,7 @@ class WTVClientSessionData {
 
     validateUserPassword(passwd) {
         if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
-        return (this.encodePassword(passwd) == this.getSessionData("subscriber_password"));
+        return (this.encodePassword(passwd) === this.getSessionData("subscriber_password"));
     }
 
     isUserLoggedIn() {
@@ -761,7 +761,7 @@ class WTVClientSessionData {
             if (!this.fs.existsSync(storeDir)) this.mkdirRecursive(storeDir);
 
             if (sessionToStore.password_valid) delete sessionToStore.password_valid; // do not save validity state of password login, resets when session expires
-            if (json_save_data != json_load_data) this.fs.writeFileSync(storeDir + "user" + this.user_id + ".json", JSON.stringify(sessionToStore), "Utf8");
+            if (json_save_data !== json_load_data) this.fs.writeFileSync(storeDir + "user" + this.user_id + ".json", JSON.stringify(sessionToStore), "Utf8");
             return true;
         } catch (e) {            
             console.error(" # Error saving session data for", this.wtvshared.filterSSID(this.ssid), e);
@@ -904,11 +904,9 @@ class WTVClientSessionData {
         switch (this.get("wtv-client-rom-type")) {
             case "US-DTV-disk-0MB-16MB-softmodem-CPU5230":
             case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
-                return "UltimateTV Satellite receiver";
-
             case "US-WEBSTAR-disk-0MB-8MB-softmodem-CPU5230":
             case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
-                return "WebTV Satellite receiver";
+                return "satellite receiver";
 
             case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
             case "US-LC2-disk-0MB-8MB":
@@ -922,10 +920,10 @@ class WTVClientSessionData {
             case "JP-LC2-disk-0MB-8MB-CPU5230":
             case "JP-LC2-disk-0MB-16MB-CPU5230":
             case "JP-LC2-flash-2MB-8MB-CPU5230":
-                return "WebTV Plus receiver";
+                return "Plus receiver";
 
             default:
-                return "WebTV Internet receiver";
+                return "Internet terminal";
         }
     }
 
@@ -954,7 +952,7 @@ class WTVClientSessionData {
                                 ssid_access_list_ip_override = true;
                             }
                         } else {
-                            if (self.clientAddress == self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k]) {
+                            if (self.clientAddress === self.minisrv_config.config.ssid_ip_allow_list[self.ssid][k]) {
                                 // remoteAddr directly matches IP
                                 ssid_access_list_ip_override = true;
                             }
@@ -972,7 +970,7 @@ class WTVClientSessionData {
 
         // process whitelist first
         if (self.ssid && self.minisrv_config.config.ssid_allow_list) {
-            const ssid_is_in_whitelist = self.minisrv_config.config.ssid_allow_list.findIndex(element => element == self.ssid);
+            const ssid_is_in_whitelist = self.minisrv_config.config.ssid_allow_list.findIndex(element => element === self.ssid);
             if (ssid_is_in_whitelist === -1) {
                 // no whitelist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, false);
@@ -981,7 +979,7 @@ class WTVClientSessionData {
 
         // now check blacklist
         if (self.ssid && self.minisrv_config.config.ssid_block_list) {
-            const ssid_is_in_blacklist = self.minisrv_config.config.ssid_block_list.findIndex(element => element == self.ssid);
+            const ssid_is_in_blacklist = self.minisrv_config.config.ssid_block_list.findIndex(element => element === self.ssid);
             if (ssid_is_in_blacklist !== -1) {
                 // blacklist match, but lets see if the remoteAddress is allowed
                 checkSSIDIPWhitelist(self.ssid, true);
@@ -1000,7 +998,7 @@ class WTVClientSessionData {
 
     isAuthorized(url, whitelist = 'lockdown', ignore_lockdown = false) {
         // not in lockdown so just return true
-        if (whitelist == 'lockdown' && !this.lockdown && !ignore_lockdown) return true;
+        if (whitelist === 'lockdown' && !this.lockdown && !ignore_lockdown) return true;
 
         // in lockdown, check whitelisted urls
         const self = this;
@@ -1057,25 +1055,25 @@ class WTVClientSessionData {
         const romtype = this.get("wtv-client-rom-type");
         const brandId = this.ssid.charAt(8)
 
-        if (brandId == 0)
-            if (url && romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
+        if (brandId === 0)
+            if (url && romtype === "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
                 return "Sony/DirecTV";
             else
                 return "Sony";
-        else if (brandId == 1)
+        else if (brandId === 1)
             if (url && isPlus === true)
                 return "Philips-Plus";
             else
                 return "Philips";
-        else if (brandId == 4)
+        else if (brandId === 4)
             return "Mitsubishi";
-        else if (brandId == 5)
+        else if (brandId === 5)
             return "Philips-Mont";
-        else if (brandId == 7)
+        else if (brandId === 7)
             return "Samsung";
-        else if (brandId == 9)
+        else if (brandId === 9)
             if (url)
-                if (romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
+                if (romtype === "US-DTV-disk-0MB-32MB-softmodem-CPU5230")
                     return "Thomson/DirecTV";
                 else
                     return "Thomson";

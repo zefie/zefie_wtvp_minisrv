@@ -4,7 +4,7 @@ const docName = request_headers.query.docName;
 const page = session_data.pagestore.loadPage(docName);
 const site = session_data.pagestore.getPublishDomain();
 
-if (request_headers.query.publishStage == "1") {
+if (request_headers.query.publishStage === "1") {
 	headers = `200 OK
 Content-Type: text/html`
 
@@ -77,7 +77,7 @@ Your public list of pages will be at:<BR>
 <tr>
 <td colspan=3 valign=top>
 <input type=checkbox name="includeInPublicList" value=${page.inlist} `
-if (page.inlist == true)
+if (page.inlist === true)
 	data += "checked"
 data += `>
 Include in public list
@@ -116,24 +116,24 @@ Include in public list
 </BODY>
 </HTML>
 `
-} else if (request_headers.query.publishStage == "2") {
+} else if (request_headers.query.publishStage === "2") {
 	let inlist;
-	if (request_headers.query.includeInPublicList != undefined) {
+	if (typeof request_headers.query.includeInPublicList !== 'undefined') {
 		inlist = true;
 	} else {
 		inlist = false;
 	}
 	const result = session_data.pagestore.publishPage(docName, inlist);
-	if (result == true) {
+	if (result === true) {
 	headers = `300 OK
 wtv-expire-all: wtv-author:/documents
 Location: wtv-author:/congrats?docName=${docName}`
 	} else {
 		headers = `400 ${result}`
 	}
-} else if (request_headers.query.unpublish == "1") {
+} else if (request_headers.query.unpublish === "1") {
 	const result = session_data.pagestore.unpublishPage(docName);
-	if (result == true) {
+	if (result === true) {
 		headers = `300 OK
 wtv-expire-all: wtv-author:/documents
 wtv-expire-all: wtv-author:/doc-info

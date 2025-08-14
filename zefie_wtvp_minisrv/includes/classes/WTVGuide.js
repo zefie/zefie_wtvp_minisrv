@@ -70,7 +70,7 @@ class WTVGuide {
 								start = start + search.length;
 								const original_start = start;
 								// handle <word="whatever">
-								if (definition.charAt(start) != ">") {
+								if (definition.charAt(start) !== ">") {
 									start++; // +1 to skip =
 									end = definition.indexOf(">", start);
 									if (end === -1) break; // malformed tag, exit loop
@@ -99,10 +99,7 @@ class WTVGuide {
 							// replaces <boxname> with the friendly name of the type of unit the user has
 							while (definition.indexOf("<boxname>") >= 0) {
 								const romtype = this.session_data.get("wtv-client-rom-type");
-								let boxname = "";
-								if (romtype == "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230" || romtype == "US-DTV-disk-0MB-32MB-softmodem-CPU5230") boxname = "satellite receiver"
-								else if (this.session_data.capabilities.get("client-has-tv-experience")) boxname = "WebTV Plus receiver";
-								else boxname = "WebTV Internet terminal";
+								const boxname = this.wtvshared.getBoxName(romtype);
 								definition = definition.replace(/\<boxname\>/g, boxname);
 							}
 							// replaces <boxname_plus> with either "WebTV" or "WebTV Plus" depending on user box type

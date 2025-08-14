@@ -203,7 +203,7 @@ Add text to your document
 <TD>Text size:`
 const textsize = pagedata.blocks[oldBlockNum].size
 
-if (textsize == "-1")
+if (textsize === "-1")
 {
 	data += `<TD><INPUT type=radio value=-1 name=textBlockSize checked onClick=ReWrite()>
 <font size=-1>Small</font></TD>
@@ -211,7 +211,7 @@ if (textsize == "-1")
 Medium</TD>
 <TD><INPUT type=radio value=+1 name=textBlockSize onClick=ReWrite()>
 <font size=+1>Large</font></TD>`
-} else if (textsize == "+1")
+} else if (textsize === "+1")
 {
 	data += `<TD><INPUT type=radio value=-1 name=textBlockSize onClick=ReWrite()>
 <font size=-1>Small</font></TD>
@@ -233,7 +233,7 @@ data += `
 <TD>Text style:`
 const textstyle = pagedata.blocks[oldBlockNum].style
 
-if (textstyle == "B")
+if (textstyle === "B")
 {
 	data += `
 <TD><INPUT type=radio name=textBlockStyle onClick=ReWrite()>
@@ -243,7 +243,7 @@ Plain</TD>
 <TD><INPUT type=radio value=I name=textBlockStyle onClick=ReWrite()>
 <I>Italic</I></TD>
 </TABLE>`
-} else if (textstyle == "I") {
+} else if (textstyle === "I") {
 	data += `
 <TD><INPUT type=radio name=textBlockStyle onClick=ReWrite()>
 Plain</TD>
@@ -461,11 +461,11 @@ if (showIt)
 {	document.viewOptionEmbed.document.write('
 <BODY text=AEBFD1 link=B8BDC7 vlink=B8BDC7>
 <img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0> `
-if (blockType == "snapshot" || blockType == "scrapbook") {
+if (blockType === "snapshot" || blockType === "scrapbook") {
 	data += `<a href=wtv-author:/get-photo?docName=${docName}&blockNum=${oldBlockNum}
 ><font effect=shadow><B>View this picture</B></font></a>
 </BODY>`
-} else if (blockType == "clipart")
+} else if (blockType === "clipart")
 	data += `<a href=wtv-author:/${photo}
 ><font effect=shadow><B>View this picture</B></font></a>
 </BODY>`
@@ -551,9 +551,9 @@ vspace=0
 <table cellspacing=0 cellpadding=0>
 <tr>
 <td height=100 valign=middle rowspan=5>`
-if (blockType == "snapshot") {
+if (blockType === "snapshot") {
 	data += `<img src=wtv-author:/get-photo?docName=${docName}&blockNum=${oldBlockNum} width=131 height=100 border=1 onError="DisplayViewOption(false)">`
-} else if (blockType == "clipart") {
+} else if (blockType === "clipart") {
 	data += `<img src=wtv-author:/${thumbnail} width=64 height=64 border=1 onError="DisplayViewOption(false)">`
 }
 data += `
@@ -579,7 +579,7 @@ DisplayViewOption(true);
 <tr>
 <td colspan=2 absheight=28>
 <input type=text name="blockTitle" id="blockTitle" value="`
-if (pagedata.blocks[oldBlockNum].title != null)
+if (pagedata.blocks[oldBlockNum].title !== null)
 	data += `${pagedata.blocks[oldBlockNum].title}`
 data += `" selected width=100% text=CACA4A bgcolor=192133 font=proportional autoactivate>
 <tr>
@@ -597,7 +597,7 @@ autohiragana
 growable
 width=100%
 value="`
-if (pagedata.blocks[oldBlockNum].caption != null)
+if (pagedata.blocks[oldBlockNum].caption !== null)
 	data += `${pagedata.blocks[oldBlockNum].caption}`
 data += `"
 cols=45 rows=3></TEXTAREA>
@@ -837,14 +837,14 @@ Add a heading to your document
 <TABLE>
 <TR>
 <TD>Text size:`
-	if (pagedata.blocks[oldBlockNum].size == "H3")
+	if (pagedata.blocks[oldBlockNum].size === "H3")
 	data += `<TD><INPUT type=radio value=H3 name=headingBlockSize checked onClick=ReWrite()>
 <FONT size=-1>Small</FONT></TD>
 <TD><INPUT type=radio value=H2 name=headingBlockSize onClick=ReWrite()>
 Medium</TD>
 <TD><INPUT type=radio value=H1 name=headingBlockSize onClick=ReWrite()>
 <FONT size=+1>Large</FONT></TD>`
-	else if (pagedata.blocks[oldBlockNum].size == "H1")
+	else if (pagedata.blocks[oldBlockNum].size === "H1")
 		data += `<TD><INPUT type=radio value=H3 name=headingBlockSize onClick=ReWrite()>
 <FONT size=-1>Small</FONT></TD>
 <TD><INPUT type=radio value=H2 name=headingBlockSize onClick=ReWrite()>
@@ -862,7 +862,7 @@ data += `
 <TR>
 <TD>Add a divider line:</TD>
 <TD colspan=3><INPUT type=checkbox name=headingBlockDividerBefore `
-	if (pagedata.blocks[oldBlockNum].dividerBefore == "on")
+	if (pagedata.blocks[oldBlockNum].dividerBefore === "on")
 		data += "checked"
 	data += `>
 Before the heading</TD>
@@ -870,7 +870,7 @@ Before the heading</TD>
 <TR>
 <TD></TD>
 <TD colspan=3><INPUT type=checkbox name=headingBlockDividerAfter `
-	if (pagedata.blocks[oldBlockNum].dividerAfter == "on")
+	if (pagedata.blocks[oldBlockNum].dividerAfter === "on")
 		data += "checked"
 	data += `>
 After the heading</TD>
@@ -1204,7 +1204,7 @@ function SetListItems()
 
 	for (let i = 0; i < pagedata.blocks[oldBlockNum].items.length; i++) {
 		data += `ListElements[${i}] = new Object;`
-		if (pagedata.blocks[oldBlockNum].items[i].name == undefined)
+		if (typeof pagedata.blocks[oldBlockNum].items[i].name === 'undefined')
 			data += `ListElements[${i}].desc = "";`
 		else
 			data += `ListElements[${i}].desc = "${pagedata.blocks[oldBlockNum].items[i].name}";`

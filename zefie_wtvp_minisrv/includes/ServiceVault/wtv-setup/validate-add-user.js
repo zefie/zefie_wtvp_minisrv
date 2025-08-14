@@ -1,7 +1,7 @@
 const minisrv_service_file = true;
 let errpage = null;
 
-if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
+if (session_data.user_id !== 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
 
 // seperate if statements as to not overwrite the first error if multiple occur
 
@@ -129,7 +129,7 @@ display_name=${request_headers.query.display_name}&
 user_name=${request_headers.query.user_name}&
 user_password=${request_headers.query.user_password}&
 user_password2=${request_headers.query.user_password2}">`;
-    if ((request_headers.query.user_password) == "") {
+    if ((request_headers.query.user_password) === "") {
         data += `No password`;
     } else {
         data += `Has password`;

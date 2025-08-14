@@ -9,7 +9,7 @@ if (auth === true) {
         const authheader = request_headers.authorization.split(' ');
         console.log(request_headers)
 
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             let password = Buffer.from(authheader[1], 'base64').toString();
             password = password.split(':')[1];
         }
@@ -29,7 +29,7 @@ Content-Type: text/html`
 Welcome to the zefie minisrv v${minisrv_config.version} Account Administration
 </p>
 `;
-        if (request_headers.query.cmd == "list") {
+        if (request_headers.query.cmd === "list") {
             data += `<hr>`;
             if (request_headers.query.msg) {
                 data += decodeURI(request_headers.query.msg) + "<hr>";
@@ -41,7 +41,7 @@ Welcome to the zefie minisrv v${minisrv_config.version} Account Administration
             });
             data += `</table>`;
 
-        } else if (request_headers.query.cmd == "ssid") {
+        } else if (request_headers.query.cmd === "ssid") {
             const ssid = request_headers.query.ssid;
             if (!ssid) {
                 redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
@@ -78,7 +78,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                         if (Object.keys(user_info.account_users).length > 1) {
                             data += `<tr><td style="vertical-align: top">Additional Users:</td><td>`;
                             Object.keys(user_info.account_users).forEach(function (k) {
-                                if (k == "subscriber") return;
+                                if (k === "subscriber") return;
                                 data += user_info.account_users[k].subscriber_username + "<br>";
                             })
                             data += `</td></tr>`
@@ -91,7 +91,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                     data += "The SSID does not exist in the SessionStore."
                 }
             }
-        } else if (request_headers.query.cmd == "delete") {
+        } else if (request_headers.query.cmd === "delete") {
             redirectmsg = "";
             const ssid = request_headers.query.ssid;
             if (ssid) {
@@ -102,7 +102,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
             }
             headers = "302 OK\nLocation: /admin/?cmd=list&msg=" + encodeURI(redirectmsg);
-        } else if (request_headers.query.cmd == "ban") {
+        } else if (request_headers.query.cmd === "ban") {
             redirectmsg = "";
             const ssid = request_headers.query.ssid;
             if (ssid) {
@@ -110,7 +110,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 if (result === wtva.SUCCESS) {
                     reloadConfig();
                     redirectmsg = "The SSID is now banned.";
-                } else if (result == wtva.REASON_EXISTS) {
+                } else if (result === wtva.REASON_EXISTS) {
                     redirectmsg = "The SSID was already banned.";
                 } else {
                     redirectmsg = "Unknown response " + result.toString();
@@ -119,7 +119,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 redirectmsg = `An SSID is required for the ${request_headers.query.cmd} command.`;
             }
             headers = "302 OK\nLocation: /admin/?cmd=ssid&ssid=" + encodeURI(ssid) + "&msg=" + encodeURI(redirectmsg);
-        } else if (request_headers.query.cmd == "unban") {
+        } else if (request_headers.query.cmd === "unban") {
             redirectmsg = "The SSID was not banned, so it could not be unbanned.";
             const ssid = request_headers.query.ssid;
             if (ssid) {
@@ -127,7 +127,7 @@ function validateSelection(cmd, ssid, friendlymsg) {
                 if (result === wtva.SUCCESS) {
                     reloadConfig();
                     redirectmsg = "The SSID is now unbanned.";
-                } else if (result == wtva.REASON_EXISTS) {
+                } else if (result === wtva.REASON_EXISTS) {
                     redirectmsg = "The SSID was not banned.";
                 } else {
                     redirectmsg = "Unknown response " + result.toString();

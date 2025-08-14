@@ -26,7 +26,7 @@ class PBTemplate {
 </head>
 <body background="clipart/styleMedia/footballfield.gif" text="#ffffcc" bgcolor="white" link="yellow" alink="#ccffcc" vlink="#ffcc99">
 <center>`;
-        if (state == "previewing") {
+        if (state === "previewing") {
             this.styledata.header += `<TABLE cellspacing=0 cellpadding=0 bgcolor=#1e4261 border=1 width=100%>
 <TR><TD valign=middle align=center><FONT color=#D1D1D1>
 You are previewing your page. Press <B>Back</B>
@@ -35,7 +35,7 @@ to return to editing it.
 </TABLE>`;
         }
         this.styledata.titheader = `<img src="clipart/styleMedia/football.gif" width="283" height="55" align="bottom"><p>`;
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `<a href="wtv-author:/edit-title?docName=${docName}&titleOnly=true">
 `;
         }
@@ -44,7 +44,7 @@ to return to editing it.
             this.styledata.text +
             `>${title}</font></H1>`;
 
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `</a>`;
         }
 

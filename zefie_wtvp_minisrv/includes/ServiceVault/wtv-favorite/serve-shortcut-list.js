@@ -77,7 +77,7 @@ let fav;
 for (let i = 1; i <= 8; i++) {
     const key = "F" + i;
     const scfav = session_data.favstore.getShortcutKey(key);
-    if (scfav && scfav.id != "none") {
+    if (scfav && scfav.id !== "none") {
         fav = session_data.favstore.getFavorite(scfav.folder, scfav.id);
     } else {
         fav = { image: "wtv-home:/ROMCache/Spacer.gif", title: "Not assigned" };

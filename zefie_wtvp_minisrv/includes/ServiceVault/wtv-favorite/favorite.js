@@ -2,16 +2,15 @@ const minisrv_service_file = true;
 
 const favstore_exists = session_data.favstore.favstoreExists();
 
-if (favstore_exists != true)
+if (favstore_exists !== true)
 {
 	session_data.favstore.createFavstore();
 	headers = `300 OK
+wtv-expire-all: wtv-favorite:/favorite
 Location: wtv-favorite:/favorite`
 } else {
 
 const folder_array = session_data.favstore.getFolders();
-const totalfavorites = folder_array.length;
-const stopdrawing = false;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -151,8 +150,8 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 	let kval = 0;
 	// process evens
 	Object.keys(folder_array).forEach(function (k) {
-		if (k == 0) return; // skip 0 since it was processed above
-		if (parseInt(k) % 2 == 0) {
+		if (parseInt(k)=== 0) return; // skip 0 since it was processed above
+		if (parseInt(k) % 2 === 0) {
 			// even
 			// Left Middle
 			data += `</td></tr><tr><td width="225" valign="middle" height="42" background="ROMCache/LeftMiddle.gif" align="center">
@@ -171,7 +170,7 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 
 	// process end if total is even
 	if (folder_array.length > 1) {
-		if (folder_array.length % 2 == 0) {
+		if (folder_array.length % 2 === 0) {
 			data += `</td></tr><tr><td width="225" valign="middle" height="42" background="ROMCache/LeftBottom.gif" align="center">
 <table width="50%" cellspacing="0" cellpadding="0">
 <tr><td width="40" height="20">
@@ -182,7 +181,7 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 	}
 
 	// process middle (folder 2 (id 1))
-	if (folder_array.length == 1) {
+	if (folder_array.length === 1) {
 		// no folder 2
 		data += `<tr><td><table cellspacing="0" cellpadding="0">
 <tr><td width="6" height="12"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
@@ -223,8 +222,8 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 
 	// process odds
 	Object.keys(folder_array).forEach(function (k) {
-		if (k == 1) return; // skip 1 since it was processed above
-		if (parseInt(k) % 2 != 0) {
+		if (parseInt(k) === 1) return; // skip 1 since it was processed above
+		if (parseInt(k) % 2 !== 0) {
 			// odd
 			// Right Middle
 			data += `</td></tr><tr><td width="225" valign="middle" height="42" background="ROMCache/RightMiddle.gif" align="center">
@@ -242,7 +241,7 @@ for ${session_data.getSessionData("subscriber_username") || "You"}
 
 	// process end if total is odd
 	if (folder_array.length > 1) {
-		if (folder_array.length % 2 != 0) {
+		if (folder_array.length % 2 !== 0) {
 			data += `</td></tr><tr><td width="225" valign="middle" height="42" background="ROMCache/RightBottom.gif" align="center">
 <table width="50%" cellspacing="0" cellpadding="0">
 <tr><td width="5" height="20">

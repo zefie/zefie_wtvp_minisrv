@@ -62,7 +62,7 @@ function deleteMissing(group, articles) {
 		fs.readdirSync(g).forEach(file => {
 			const articleNumber = parseInt(file.split('.')[0]);
 			file = g + path.sep + file;
-			if (!articles.find(e => (e == articleNumber))) {
+			if (!articles.find(e => (e === articleNumber))) {
 				console.log(" * ", group, "article", articleNumber, "deleted from upstream, removing locally")
 				fs.rmSync(file);
 			}
@@ -96,7 +96,7 @@ wtvnews.connectUsenet().then((res) => {
 								wtvnews.getArticle(article, false).then((message) => {
 									res = wtvnewsserver.createArticle(group, article, message);
 									if (res) {
-										if (res == "exists") {
+										if (res === "exists") {
 											console.log(" * ", group, "article", article, "already exists")
 										} else {
 											console.log(" * Created", group, "article", article, res)

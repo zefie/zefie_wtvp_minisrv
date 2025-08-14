@@ -9,7 +9,7 @@ if (auth === true) {
         const authheader = request_headers.authorization.split(' ');
         console.log(request_headers)
 
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             password = password.split(':')[1];
         }

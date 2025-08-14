@@ -113,7 +113,7 @@ Assign shortcut to favorite
 </td></tr><tr><td width="15">
 </td><td valign="middle" align="left">
 <font size="-1" color="#42BC52">`
-if (favoritenum == 0)
+if (favoritenum === 0)
 {
 	data += "<font size=2>&nbsp;&nbsp;&nbsp;<i>There are no favorites to move in this folder.</i></font>";
 } else {
@@ -141,7 +141,7 @@ for (let i = 0; i < favoritenum; i++) {
 <table bgcolor="191919">
 <tbody><tr><td abswidth="70" valign="center" align="center">
 `
-if (favarray[i].imagetype == "url")
+if (favarray[i].imagetype === "url")
 	data += `<img src="${favarray[i].image}" width="70" vspace="5" height="52"><br>`
 else
 	data += `<img src="get-thumbnail?folder=${favarray[i].folder}&id=${favarray[i].id}" width="70" vspace="5" height="52"><br>`

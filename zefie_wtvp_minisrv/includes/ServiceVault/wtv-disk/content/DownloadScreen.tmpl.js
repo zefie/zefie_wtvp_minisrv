@@ -12,7 +12,7 @@ let diskmap_data = {};
 
  if (!request_headers.query.url) {
 	Object.keys(service_vaults).forEach(function (g) {
-		if (diskmap_json_file != null) return;
+		if (diskmap_json_file !== null) return;
 		diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
 		if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
 	});

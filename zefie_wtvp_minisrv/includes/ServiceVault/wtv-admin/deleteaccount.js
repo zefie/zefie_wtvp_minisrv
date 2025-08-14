@@ -8,7 +8,7 @@ if (auth === true) {
     let ssid_match = false;
     if (request_headers.Authorization) {
         const authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
@@ -19,7 +19,7 @@ if (auth === true) {
             user_info = wtva.getAccountInfoBySSID(ssid);
             if (request_headers.query.confirm_delete) {
                 user_info = null;
-                if (ssid == socket.ssid) {
+                if (ssid === socket.ssid) {
                     ssid_match = true;
                 } else {
                     // delete
@@ -63,7 +63,7 @@ wtv-noback-all: wtv-admin:/deleteaccount`;
                     if (Object.keys(user_info.account_users).length > 1) {
                         data += `<tr><td>Additional Users:</td><td>`;
                         Object.keys(user_info.account_users).forEach(function (k) {
-                            if (k == "subscriber") return;
+                            if (k === "subscriber") return;
                             data += user_info.account_users[k].subscriber_username + "<br>";
                         })
                         data += `</td></tr>`

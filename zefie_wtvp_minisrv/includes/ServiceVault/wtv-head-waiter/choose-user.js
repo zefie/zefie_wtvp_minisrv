@@ -82,10 +82,10 @@ let accounts_listed = 0;
 for (const [key, value] of Object.entries(accounts)) {
     let user_id;
     data += "<td absheight=37><td valign=middle abswidth=50% maxlines=1>";
-    if (key == "subscriber") user_id = 0;
+    if (key === "subscriber") user_id = 0;
     else user_id = key.replace("user", '');
     data += `<a href=/ValidateLogin?user_id=${user_id}&user_login=true nocancel>`;
-    if (key == "subscriber") data += `<font size=+1><b>${value['subscriber_username']}</b></font></a>`;
+    if (key === "subscriber") data += `<font size=+1><b>${value['subscriber_username']}</b></font></a>`;
     else data += `<font size=+1>${value['subscriber_username']}</font>`
     data += "<td width=15><td nowrap>	<font color=42BD52>";
     const userSession = new WTVClientSessionData(minisrv_config, socket.ssid);

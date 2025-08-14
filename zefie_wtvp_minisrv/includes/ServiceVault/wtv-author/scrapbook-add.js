@@ -48,7 +48,7 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
             function isValidImageType(contentType, url) {
                 // Check content-type header or file extension
                 if (contentType) {
-                    return contentType === 'image/jpeg' || contentType == 'image/jpg' || contentType === 'image/gif';
+                    return contentType === 'image/jpeg' || contentType === 'image/jpg' || contentType === 'image/gif';
                 }
                 return url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.gif');
             }

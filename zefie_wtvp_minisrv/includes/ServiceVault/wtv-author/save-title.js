@@ -3,7 +3,7 @@ const minisrv_service_file = true;
 const docName = request_headers.query.docName;
 const docTitle = request_headers.query.docTitle;
 
-if (docTitle.length == 0) {
+if (docTitle.length === 0) {
 	headers = "400 You must enter a title for your page. Please enter a title and try again."
 } else {
 	const pagedata = session_data.pagestore.loadPage(docName);

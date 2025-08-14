@@ -51,7 +51,7 @@ class WTVAdmin {
      * @returns {number} The result of the ban operation
      */
     banSSID(ssid, admin_ssid = null) {
-        if (ssid == admin_ssid) {
+        if (ssid === admin_ssid) {
             return this.REASON_NOSELF;
         } else {
             const fake_config = this.wtvshared.getUserConfig();
@@ -60,7 +60,7 @@ class WTVAdmin {
             let entry_exists = false;
             const self = this;
             Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                if (fake_config.config.ssid_block_list[k] == ssid) {
+                if (fake_config.config.ssid_block_list[k] === ssid) {
                     entry_exists = true;
                     return self.REASON_EXISTS;
                 }
@@ -85,7 +85,7 @@ class WTVAdmin {
         if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
         if (typeof ssid === 'string') {
             Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                if (fake_config.config.ssid_block_list[k].toLowerCase() == ssid.toLowerCase()) {
+                if (fake_config.config.ssid_block_list[k].toLowerCase() === ssid.toLowerCase()) {
                     fake_config.config.ssid_block_list.splice(k, 1);
                     config_changed = true
                 }
@@ -93,7 +93,7 @@ class WTVAdmin {
         } else {
             Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
                 Object.keys(ssid).forEach(function (j) {
-                    if (fake_config.config.ssid_block_list[k].toLowerCase() == ssid[j].toLowerCase()) {
+                    if (fake_config.config.ssid_block_list[k].toLowerCase() === ssid[j].toLowerCase()) {
                         fake_config.config.ssid_block_list.splice(k, 1);
                         config_changed = true
                     }
@@ -139,14 +139,14 @@ class WTVAdmin {
     checkPassword(password) {
         if (this.pcservices) {
             if (this.minisrv_config.config.pc_admin.password) {
-                return (password == this.minisrv_config.config.pc_admin.password);
+                return (password === this.minisrv_config.config.pc_admin.password);
             } else {
                 // no password set
                 return true;
             }
         } else {
             if (this.minisrv_config.services[this.service_name].password) {
-                return (password == this.minisrv_config.services[this.service_name].password);
+                return (password === this.minisrv_config.services[this.service_name].password);
             } else {
                 // no password set
                 return true;
@@ -184,13 +184,13 @@ class WTVAdmin {
             if (this.minisrv_config.services[this.service_name].authorized_ssids) {
                 const self = this;
                 Object.keys(self.minisrv_config.services[this.service_name].authorized_ssids).forEach(function (k) {
-                    if (typeof self.minisrv_config.services[self.service_name].authorized_ssids[k] == "string") {
+                    if (typeof self.minisrv_config.services[self.service_name].authorized_ssids[k] === "string") {
                         const ssid = self.minisrv_config.services[self.service_name].authorized_ssids[k]
-                        if (ssid == self.wtvclient.ssid) allowed_ssid = true;
+                        if (ssid === self.wtvclient.ssid) allowed_ssid = true;
                         allowed_ip = true; // no ip block defined
                     } else {
                         const ssid = k;
-                        if (ssid == self.wtvclient.ssid) {
+                        if (ssid === self.wtvclient.ssid) {
                             allowed_ssid = true;
                             Object.keys(self.minisrv_config.services[self.service_name].authorized_ssids[k]).forEach(function (j) {
                                 if (self.wtvshared.isInSubnet(self.clientAddress, self.minisrv_config.services[self.service_name].authorized_ssids[k][j])) {
@@ -247,7 +247,7 @@ class WTVAdmin {
                 const temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 const temp_session_data = JSON.parse(temp_session_data_file);
 
-                if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                if (temp_session_data.subscriber_username.toLowerCase() === username.toLowerCase()) {
                     account_data = [temp_session_data, (search_dir + self.path.sep + file).replace(this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts"), "").split(this.path.sep)[1]];
                 }
             } catch (e) {
@@ -317,7 +317,7 @@ class WTVAdmin {
         let isBanned = false;
         if (this.minisrv_config.config.ssid_block_list) {
             Object.keys(this.minisrv_config.config.ssid_block_list).forEach(function (k) {
-                if (self.minisrv_config.config.ssid_block_list[k] == ssid) {
+                if (self.minisrv_config.config.ssid_block_list[k] === ssid) {
                     isBanned = true;
                 }
             });

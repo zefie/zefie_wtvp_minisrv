@@ -24,7 +24,7 @@ if (request_headers.post_data) {
 function getTitle(url) {
 	return new Promise(function (resolve, reject) {
 		let page_title = "Web Page";
-		const request_type = (url.slice(0, 5) == "https") ? "https" : "http";
+		const request_type = (url.slice(0, 5) === "https") ? "https" : "http";
 		let proxy_agent = null;
 		switch (request_type) {
 			case "https":
@@ -40,7 +40,7 @@ function getTitle(url) {
 			}
 			const request = proxy_agent.get(url, options, (response) => {
 				let req_data = '';
-				if (response.statusCode == 301 || response.statusCode == 302) {
+				if (response.statusCode === 301 || response.statusCode === 302) {
 					redirects++;
 					if (redirects < max_redirects) resolve(getTitle(response.headers.location));
 					else reject(`Too many redirects. Max: ${max_redirects}, Current: ${redirects}`);
@@ -107,7 +107,7 @@ async function saveFavorite(favstore, title, folder, imagetype, favurl) {
 			image = "canned/favorite_default.gif"
 		}
 
-		if (favoritenum == minisrv_config.services[service_name].max_favorites_per_folder) {
+		if (favoritenum === minisrv_config.services[service_name].max_favorites_per_folder) {
 			headers = `400 You can only have ${minisrv_config.services[service_name].max_favorites_per_folder} favorites in a folder. Discard some favorites or choose a different folder, then try again.`
 		} else {
 

@@ -5,7 +5,7 @@ let challenge_response, gourl, wtvsec_login;
 
 const hasPendingTransfer = session_data.hasPendingTransfer()
 if (hasPendingTransfer) {
-	if (hasPendingTransfer.type == "target") {
+	if (hasPendingTransfer.type === "target") {
 		const xferSession = new WTVClientSessionData(minisrv_config, hasPendingTransfer.ssid);
 		xferSession.user_id = 0
 		const primary_username = xferSession.listPrimaryAccountUsers()['subscriber']['subscriber_username'];
@@ -21,7 +21,7 @@ if (hasPendingTransfer) {
 		const errpage = wtvshared.doRedirect(transferPendingDest);
 		headers = errpage[0];
 		data = errpage[1];
-	} else if (hasPendingTransfer.type == "source") {
+	} else if (hasPendingTransfer.type === "source") {
 		const transferPendingSrc = new clientShowAlert({
 			'image': minisrv_config.config.service_logo,
 			'message': "There is a pending transfer of this account to <b>" + hasPendingTransfer.ssid + "</b>. In order to use this box, you need to complete or cancel the transfer.",
@@ -58,11 +58,11 @@ wtv-visit: client:hangupphone`
 		}
 		let errpage;
 		if (socket.ssid !== null) {
-			if (wtvsec_login.ticket_b64 == null) {
+			if (wtvsec_login.ticket_b64 === null) {
 				challenge_response = wtvsec_login.challenge_response;
 				client_challenge_response = request_headers["wtv-challenge-response"] || null;
 				if (challenge_response && client_challenge_response) {
-					if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
+					if (challenge_response.toString(CryptoJS.enc.Base64) === client_challenge_response) {
 						console.log(" * wtv-challenge-response success for " + wtvshared.filterSSID(socket.ssid));
 						wtvsec_login.PrepareTicket();
 						gourl = "wtv-head-waiter:/login-stage-two?";
@@ -84,8 +84,8 @@ wtv-visit: client:hangupphone`
 			}
 		}
 		if (!errpage) {
-			if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
-				if (request_headers.query.password == "") {
+			if (user_id !== null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
+				if (request_headers.query.password === "") {
 					headers = `403 Please enter your password and try again
 minisrv-no-mail-count: true`;
 				} else if (session_data.validateUserPassword(request_headers.query.password)) {

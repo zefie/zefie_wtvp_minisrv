@@ -5,7 +5,7 @@ delete urldata[0];
 
 urldata = urldata.join(":").slice(1);
 console.log(urldata);
-while (urldata.slice(0, 1) == "/") urldata = urldata.slice(1);
+while (urldata.slice(0, 1) === "/") urldata = urldata.slice(1);
 
 let server = urldata.split('/')[0];
 let port = 6667;

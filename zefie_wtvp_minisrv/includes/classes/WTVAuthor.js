@@ -102,7 +102,7 @@ class WTVAuthor {
 			this.debug("createPage", "pagenum", pagenum)
 			this.debug("createPage", "pagelen", pagelen)
 		}
-		if (pages.length == 0) {
+		if (pages.length === 0) {
 			pagenum = 0
 			pagefile = pagenum + this.pageFileExt;
 		} else {
@@ -130,7 +130,7 @@ class WTVAuthor {
 		// Encode page data into JSON
 		let returnval = pages.length
 		this.fs.writeFileSync(pagefileout, JSON.stringify(pagedata));
-		if (returnval != 0) {
+		if (returnval !== 0) {
 			const npages = this.fs.readdirSync(pagestorepath)
 			returnval = npages.length - 1;
 		}
@@ -203,7 +203,7 @@ class WTVAuthor {
 				
 			case "snapshot":
 			case "scrapbook":
-				if (state == "publishing") {
+				if (state === "publishing") {
 					block = this.generatePublishImageBlock(number, page);
 				} else {
 					templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/snapshot_block.njk', true);
@@ -212,7 +212,7 @@ class WTVAuthor {
 				break;
 			
 			case "clipart":
-				if (state == "publishing") {
+				if (state === "publishing") {
 					block = this.generatePublishImageBlock(number, page);
 				} else {
 					templatePath = this.wtvshared.getServiceDep('wtv-author/blocks/clipart_block.njk', true);
@@ -296,35 +296,35 @@ class WTVAuthor {
 		const pagedata = this.loadPage(pagenum);
 		let title;
 		// Should probably have a better way to know if the page has no title
-		if (pagedata.title == "(Untitled)" && state == "editing")
+		if (pagedata.title === "(Untitled)" && state === "editing")
 			title = "<i>Choose this to add a title to your document</i>"
 		else
 			title = pagedata.title
 		// Set the page style with too many paramaters
 		this.setStyle(pagedata.style, title, pagedata.description, state, pagenum);
 		let html = this.header
-		if (page == 1) {
-			if (pagedata.showtitle == true){
+		if (page === 1) {
+			if (pagedata.showtitle === true){
 					html += this.titheader
 			}
 		}
 		html += this.tabstart
 		// This generates blocks on separate pages in the most neat and optimized way possible (i think, i hate past jar)
-		if (page != 1) {
+		if (page !== 1) {
 			for (let i = pagedata.pagebreaks[page - 2]; i < (pagedata.pagebreaks[page - 1] || pagedata.blocks.length); i++) {
 				html += this.generateBlock(i, pagenum, state)
 			} 
-		} else if (pagedata.pagebreaks.length != 0){
+		} else if (pagedata.pagebreaks.length !== 0){
 			for (let i = 0; i < pagedata.pagebreaks[0]; i++) {
 				html += this.generateBlock(i, pagenum, state)
-				if (this.afterblock1 && i == 0) {
+				if (this.afterblock1 && i === 0) {
 					html += this.afterblock1
 				}
 			}
 		} else {
 			for (let i = 0; i < pagedata.blocks.length; i++) {
 				html += this.generateBlock(i, pagenum, state)
-				if (this.afterblock1 && i == 0) {
+				if (this.afterblock1 && i === 0) {
 					html += this.afterblock1
 				}
 			}
@@ -345,7 +345,7 @@ class WTVAuthor {
 		const pages = this.fs.readdirSync(pagestorepath)
 		const page = pages[pagenum]
 		const result = this.fs.writeFileSync(pagepath + page, JSON.stringify(pageout));
-		if (pagedata.published == true && callPublish) {
+		if (pagedata.published === true && callPublish) {
 			this.publishPage(pagenum, pagedata.inlist, false)
         }
         if (!result) return false;
@@ -402,7 +402,7 @@ class WTVAuthor {
         const blocks = pagedata.blocks;
 		blocks.splice(position, 1);
         this.editPage(pagedata, pagenum);
-		if (block.type == "break")
+		if (block.type === "break")
 			this.generateBreakList(pagenum)
         return true;
 	}
@@ -411,7 +411,7 @@ class WTVAuthor {
 		if (this.minisrv_config.services['wtv-author'].public_domain) {
 			return this.minisrv_config.services['wtv-author'].public_domain;
 		} else {
-			if (this.minisrv_config.services['wtv-author'].publish_mode == "service") {
+			if (this.minisrv_config.services['wtv-author'].publish_mode === "service") {
 				const target_service = this.minisrv_config.services[this.minisrv_config.services['wtv-author'].publish_dest];
 				if (target_service) {
 					return target_service.host + ":" + target_service.port;
@@ -432,7 +432,7 @@ class WTVAuthor {
 
 	getPublishDir() {
 		let destDir = false;
-		if (this.minisrv_config.services['wtv-author'].publish_mode == "service") {
+		if (this.minisrv_config.services['wtv-author'].publish_mode === "service") {
 			const target_service = this.minisrv_config.services[this.minisrv_config.services['wtv-author'].publish_dest];
 			if (target_service) {
 				if (!target_service.pc_services) {
@@ -448,7 +448,7 @@ class WTVAuthor {
 					destDir = this.minisrv_config.config.ServiceVaults[0] + this.path.sep + target_service.servicevault_dir + this.path.sep;
 				}
 			}
-		} else if (this.minisrv_config.services['wtv-author'].publish_mode == "directory") {
+		} else if (this.minisrv_config.services['wtv-author'].publish_mode === "directory") {
 			destDir = this.minisrv_config.services['wtv-author'].publish_dest;
 		} else {
 			console.error("Invalid service configuration: invalid publish_mode.");
@@ -461,7 +461,7 @@ class WTVAuthor {
 	unpublishPage(pagenum) {
 		const pagedata = this.loadPage(pagenum)
 		const destDir = this.getPublishDir();
-		if (pagedata.published != true) {
+		if (pagedata.published !== true) {
 			return "This page is not published."
 		}
 		const publishname = pagedata.publishname;
@@ -489,7 +489,7 @@ class WTVAuthor {
 		const destDir = this.getPublishDir();
 		let publishname, fileout;
 
-		if (pagedata.published != true) {
+		if (pagedata.published !== true) {
 			publishname = pagedata.title.slice(0, 50).replaceAll(" ", "").replace(/[^A-Za-z0-9]/g, "-");
 			pagedata.publishname = publishname;
 			this.editPage(pagedata, pagenum);
@@ -505,7 +505,7 @@ class WTVAuthor {
 		this.fs.mkdirSync(destDir + this.wtvclient.session_store.subscriber_username + '/' + publishname + "/media/", { recursive: true })
 		for (let i = 1; i < pagedata.pagebreaks.length + 2; i++) {
 			const pagehtml = this.generatePage("publishing", pagenum, i)
-			if (i == 1)
+			if (i === 1)
 				fileout = "index.html"
 			else
 				fileout = "page" + i + ".html"
@@ -613,8 +613,8 @@ class WTVAuthor {
 		pagedata.blocks[oldposition].caption = caption
 		pagedata.blocks[oldposition].size = size
 		pagedata.blocks[oldposition].style = style
-		
-		if (oldposition != position)
+
+		if (oldposition !== position)
 			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
 		
         this.editPage(pagedata, pagenum);
@@ -646,22 +646,22 @@ class WTVAuthor {
 		
 		const blocks = pagedata.blocks
 		
-		if (photo != null) {
+		if (photo !== null) {
 			const base64photo = new Buffer.from(photo).toString('base64')
 			blocks[oldposition].photo = base64photo
 		}
 			
-		if (type != null) {
+		if (type !== null) {
 			blocks[oldposition].type = type
 		}
 		
-		if (title != null)
+		if (title !== null)
 			blocks[oldposition].title = title
 		
-		if (caption != null)
+		if (caption !== null)
 			blocks[oldposition].caption = caption
 		
-		if (oldposition != position) {
+		if (oldposition !== position) {
 			this.wtvshared.moveObjectKey(blocks, oldposition,position);
 		}
 
@@ -696,10 +696,10 @@ class WTVAuthor {
 		pagedata.blocks[oldposition].size = size
 		pagedata.blocks[oldposition].dividerBefore = dividerBefore
 		pagedata.blocks[oldposition].dividerAfter = dividerAfter
-		
-		if (oldposition != position)
-			this.wtvshared.moveObjectKey(pagedata.blocks, oldposition,position);
-		
+
+		if (oldposition !== position)
+			this.wtvshared.moveObjectKey(pagedata.blocks, oldposition, position);
+
         this.editPage(pagedata, pagenum);
         return true;
 	}
@@ -727,10 +727,10 @@ class WTVAuthor {
 			
 		pagedata.blocks[oldposition].title = title
 		pagedata.blocks[oldposition].items = items
-		
-		if (oldposition != position)
-			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
-		
+
+		if (oldposition !== position)
+			this.wtvshared.moveObjectKey(pagedata.blocks, oldposition, position);
+
         this.editPage(pagedata, pagenum);
         return true;
 	}
@@ -745,7 +745,7 @@ class WTVAuthor {
 			const url = linkItems[i]
 			const name = listItems[i]
 
-			if (url == "http://") {
+			if (url === "http://") {
 				continue loop;
 			} else {
 				const subblock = {
@@ -778,8 +778,8 @@ class WTVAuthor {
 		for (let i = 0; i < linkItems.length; i++) {
 			const url = linkItems[i]
 			const name = listItems[i]
-			
-			if (url == "http://") {
+
+			if (url === "http://") {
 				continue loop;
 			} else {
 				const subblock = {
@@ -792,10 +792,10 @@ class WTVAuthor {
 			
 		pagedata.blocks[oldposition].title = title
 		pagedata.blocks[oldposition].items = items
-		
-		if (oldposition != position)
-			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
-		
+
+		if (oldposition !== position)
+			this.wtvshared.moveObjectKey(pagedata.blocks, oldposition, position);
+
         this.editPage(pagedata, pagenum);
         return true;
 	}
@@ -818,10 +818,10 @@ class WTVAuthor {
 	editBreakBlock(pagenum, position, oldposition) {
 		const pagedata = this.loadPage(pagenum);
         if (!pagedata) return false;
-		
-		if (oldposition != position)
-			this.wtvshared.moveObjectKey(pagedata.blocks,oldposition,position);
-		
+
+		if (oldposition !== position)
+			this.wtvshared.moveObjectKey(pagedata.blocks, oldposition, position);
+
         this.editPage(pagedata, pagenum);
 		this.generateBreakList(pagenum);
         return true;
@@ -832,7 +832,7 @@ class WTVAuthor {
 		const breaks = [];
 		for (let i = 0; i < pagedata.blocks.length; i++) {
 			const type = pagedata.blocks[i].type
-			if (type == "break")
+			if (type === "break")
 				breaks.push(i)
 		}
 		pagedata.pagebreaks = breaks;

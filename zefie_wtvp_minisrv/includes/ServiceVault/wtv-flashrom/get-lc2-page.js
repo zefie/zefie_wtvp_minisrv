@@ -7,7 +7,7 @@ if (!request_headers.query.path) {
 	headers = errpage[0];
 	data = errpage[1];
 } else {
-	if (request_headers.Referer == service_name + ":/lc2-download-complete?") {
+	if (request_headers.Referer === service_name + ":/lc2-download-complete?") {
 		headers = `200 OK
 Content-type: text/html
 minisrv-no-mail-count: true
@@ -34,7 +34,7 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 		sendToClient(socket, headers, data);
 		return false;
 	}
-	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
+	if (numparts !== null) flashrom_info.part_count = parseInt(numparts);
 	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.slice(flashrom_info.message.length - 4).replace(/\D/g, ''));
 	if (parseInt(flashrom_info.part_number) >= 0 && flashrom_info.rompath && flashrom_info.next_rompath) {
 		if (!flashrom_info.message && flashrom_info.is_bootrom) {
@@ -129,7 +129,7 @@ Your ${session_data.getBoxName()} is being<br>updated automatically.
 <p> <font size=+1>
 This will take about ${downloadTime} minutes and<br>then you can use your ${session_data.getBoxName()} again.
 `;
-		if (flashrom_info.is_bootrom && flashrom_info.part_number == (flashrom_info.part_count - 1)) {
+		if (flashrom_info.is_bootrom && flashrom_info.part_number === (flashrom_info.part_count - 1)) {
 			data += `<p>
 	The system will pause for about 30 seconds at the end of this
 	update.  Please <strong>do not</strong> interrupt the system

@@ -10,7 +10,7 @@ if (auth === true) {
     let password = null;
     if (request_headers.Authorization) {
         const authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
@@ -22,7 +22,7 @@ if (auth === true) {
             if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
             if (typeof request_headers.query.unban_ssid === 'string') {
                 Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                    if (fake_config.config.ssid_block_list[k] == request_headers.query.unban_ssid) {
+                    if (fake_config.config.ssid_block_list[k] === request_headers.query.unban_ssid) {
                         fake_config.config.ssid_block_list.splice(k, 1);
                         ssids_removed.push(request_headers.query.unban_ssid)
                         config_changed = true;
@@ -30,9 +30,9 @@ if (auth === true) {
                 });
             } else {
                 Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                    Object.keys(request_headers.query.unban_ssid).forEach(function (j) {                        
-                        if (fake_config.config.ssid_block_list[k] == request_headers.query.unban_ssid[j]) {
-                            fake_config.config.ssid_block_list.splice(k,1);
+                    Object.keys(request_headers.query.unban_ssid).forEach(function (j) {
+                        if (fake_config.config.ssid_block_list[k] === request_headers.query.unban_ssid[j]) {
+                            fake_config.config.ssid_block_list.splice(k, 1);
                             ssids_removed.push(request_headers.query.unban_ssid[j])
                             config_changed = true;
                         }

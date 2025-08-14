@@ -11,9 +11,9 @@ const editing = request_headers.query.editing;
 const blockClass = request_headers.query.blockClass;
 switch(blockClass) {
 	case "23":
-		if (editing == "true") {
+		if (editing === "true") {
 			const photo = request_headers.query.photoBlockPhoto;
-			if (request_headers.query.toSnapshot == "true")
+			if (request_headers.query.toSnapshot === "true")
 				session_data.pagestore.editPhotoBlock(docName, request_headers.query.blockNum, request_headers.query.newBlockNum, photo, "snapshot", request_headers.query.blockTitle, request_headers.query.photoBlockCaption);
 			else
 				session_data.pagestore.editPhotoBlock(docName, request_headers.query.blockNum, request_headers.query.newBlockNum, null, null, request_headers.query.blockTitle, request_headers.query.photoBlockCaption);
@@ -36,14 +36,14 @@ Location: ${request_headers.query.returnPageURL + "&numOfBlocks=" + page.blocks.
 		}
 		break;
 	case "21":
-		if (caption.length == 0) {
+		if (caption.length === 0) {
 			headers = "400 You must enter a caption. Please enter a caption and try again."
 		} else {
-			if (editing == "true") {
-				if (size.length == 0)
+			if (editing === "true") {
+				if (size.length === 0)
 					size = null;
-			
-				if (style.length == 0)
+
+				if (style.length === 0)
 					style = null;
 				session_data.pagestore.editTextBlock(docName, title, caption, size, style, position, oldPosition);
 				headers = `300 OK
@@ -53,10 +53,10 @@ Location: ${request_headers.query.returnPageURL + "&numOfBlocks=" + page.blocks.
 	wtv-expire-all: wtv-author:/edit-block
 	Location: wtv-author:/show-blocks?docName=${docName}`
 			} else {
-				if (size.length == 0)
+				if (size.length === 0)
 					size = null;
-			
-				if (style.length == 0)
+
+				if (style.length === 0)
 					style = null;
 				session_data.pagestore.createTextBlock(docName, title, caption, size, style, position);
 				headers = `300 OK
@@ -72,10 +72,10 @@ Location: ${request_headers.query.returnPageURL + "&numOfBlocks=" + page.blocks.
 		size = request_headers.query.headingBlockSize
 		const dividerBefore = request_headers.query.headingBlockDividerBefore
 		const dividerAfter = request_headers.query.headingBlockDividerAfter
-		if (header.length == 0) {
+		if (header.length === 0) {
 			headers = "400 You must enter a header. Please enter a header and try again."
 		} else {
-			if (editing == "true") {
+			if (editing === "true") {
 				session_data.pagestore.editHeaderBlock(docName, header, size, dividerBefore, dividerAfter, position, request_headers.query.blockNum);
 				headers = `300 OK
 wtv-expire-all: wtv-author:/block-preview
@@ -94,7 +94,7 @@ Location: wtv-author:/show-blocks?docName=${docName}`
 		}
 	break;
 	case "24":
-		if (editing == "true") {
+		if (editing === "true") {
 			const listItems = request_headers.query.listItemText.filter(function(e){ return e.replace(/(\r\n|\n|\r)/gm,"")});
 			session_data.pagestore.editListBlock(docName, title, listItems, position, request_headers.query.blockNum);
 			headers = `300 OK
@@ -114,7 +114,7 @@ Location: wtv-author:/show-blocks?docName=${docName}`
 		}
 		break;
 	case "25":
-		if (editing == "true") {
+		if (editing === "true") {
 			const listItems = request_headers.query.listItemText;
 			const linkItems = request_headers.query.linkItemURL;
 			session_data.pagestore.editLinkBlock(docName, title, listItems, linkItems, position, request_headers.query.blockNum);
@@ -137,7 +137,7 @@ Location: wtv-author:/show-blocks?docName=${docName}`
 		break;
 	
 	case "27":
-		if (editing == "true") {
+		if (editing === "true") {
 			session_data.pagestore.editBreakBlock(docName, position, request_headers.query.blockNum);
 			headers = `300 OK
 wtv-expire-all: wtv-author:/block-preview

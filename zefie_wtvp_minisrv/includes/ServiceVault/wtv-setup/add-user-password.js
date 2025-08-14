@@ -3,7 +3,7 @@ let errpage = null;
 
 const wtvr = new WTVRegister(minisrv_config, SessionStore);
 
-if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
+if (session_data.user_id !== 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
 else if (!request_headers.query.user_name) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
 else if (request_headers.query.user_name.length < minisrv_config.config.user_accounts.min_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.min_username_length + "</b> or more characters.");
 else if (request_headers.query.user_name.length > minisrv_config.config.user_accounts.max_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.max_username_length + "</b> or less characters.");

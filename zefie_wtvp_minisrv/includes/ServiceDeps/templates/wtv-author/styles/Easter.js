@@ -61,13 +61,13 @@ to return to editing it.
 <td colspan=3 >
 <center>
 `;
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `<a href="wtv-author:/edit-title?docName=${docName}&titleOnly=true">
 `;
         }
         this.styledata.titheader += `<font size="6" color="#000000"><b>${title}</b></font></center>`;
 
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `</a>`;
         }
 

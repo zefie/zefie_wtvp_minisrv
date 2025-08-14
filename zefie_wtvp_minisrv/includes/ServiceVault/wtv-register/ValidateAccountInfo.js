@@ -16,7 +16,7 @@ if (!request_headers.query.registering) {
     else if (!wtvr.checkUsernameSanity(request_headers.query.subscriber_username)) errpage = wtvshared.doErrorPage(400, "The username you have chosen contains invalid characters. Please choose a username with only <b>letters</b>, <b>numbers</b>, <b>_</b> or <b>-</b>. Also, please be sure your username begins with a letter.");
     else if (!wtvr.checkUsernameAvailable(request_headers.query.subscriber_username)) errpage = wtvshared.doErrorPage(400, "The username you have selected is not available. Please select another username.");
     else if (!request_headers.query.subscriber_contact) errpage = wtvshared.doErrorPage(400, "Please enter your contact information.");
-    else if (request_headers.query.subscriber_contact_method == "") errpage = wtvshared.doErrorPage(400, "Please select the type of contact information you provided.");
+    else if (request_headers.query.subscriber_contact_method === "") errpage = wtvshared.doErrorPage(400, "Please select the type of contact information you provided.");
 
 
     if (errpage) {

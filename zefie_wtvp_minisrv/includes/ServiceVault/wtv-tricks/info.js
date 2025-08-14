@@ -2,7 +2,7 @@ const minisrv_service_file = true;
 
 let client_caps = null;
 
-if (socket.ssid != null) {
+if (socket.ssid !== null) {
     if (session_data.capabilities) {
         client_caps = session_data.capabilities.get();
     }
@@ -90,37 +90,37 @@ switch (chipVersionStr >> 0x18) {
 
 // determine box video type
 let video;
-if ((sysConfigHex & 8) == 0) video = "NTSC";
+if ((sysConfigHex & 8) === 0) video = "NTSC";
 else video = "PAL";
 
 // determine box storage type
 let storage;
-if ((sysConfigHex & 4) == 0) storage = "disk";
+if ((sysConfigHex & 4) === 0) storage = "disk";
 else storage = "flash";
 
 // determine box CPU endianness
 let endianness;
-if ((sysConfigHex & 0x80000) == 0) endianness = "little";
+if ((sysConfigHex & 0x80000) === 0) endianness = "little";
 else endianness = "big";
 
 // determine box CPU type
 let cpu;
-if ((sysConfigHex & 0x100000) == 0) cpu = 5230;
+if ((sysConfigHex & 0x100000) === 0) cpu = 5230;
 else cpu = 4640;
 
 // determine box CPU clock multiplier
 let cpuMult;
-if ((sysConfigHex & 0x20000) == 0) cpuMult = 3;
+if ((sysConfigHex & 0x20000) === 0) cpuMult = 3;
 else cpuMult = 2;
 
 // determine smartcard 0 support
 let sc0;
-if ((sysConfigHex & 0x400000) == 0) sc0 = "supported";
+if ((sysConfigHex & 0x400000) === 0) sc0 = "supported";
 else sc0 = "not supported";
 
 //determine smartcard 1 support
 let sc1;
-if ((sysConfigHex & 0x200000) == 0) sc1 = "supported";
+if ((sysConfigHex & 0x200000) === 0) sc1 = "supported";
 else sc1 = "not supported";
 
 // ========================= FCS SYSCONFIG DECODE START =========================
@@ -130,47 +130,47 @@ else sc1 = "not supported";
 
 // determine box CPU output bufs
 let outputBufs;
-if ((sysConfigHex & 0x2000) == 0) outputBufs = 100;
+if ((sysConfigHex & 0x2000) === 0) outputBufs = 100;
 else outputBufs = 50;
 
 // determine box SGRAM speed
 function getSGSpeed() {
     const SGRAMand = sysConfigHex & 0xc00000;
-    if (SGRAMand == 0x400000) return 66;
+    if (SGRAMand === 0x400000) return 66;
     else if (0x400000 < SGRAMand)
-        if (SGRAMand == 0x800000) return 77;
-        else if (SGRAMand == 0xc00000) return 83; // potentially incorrect but looks like it should return 83MHz on known existing hardware
-        else if (SGRAMand == 0) return 100;
+        if (SGRAMand === 0x800000) return 77;
+        else if (SGRAMand === 0xc00000) return 83; // potentially incorrect but looks like it should return 83MHz on known existing hardware
+        else if (SGRAMand === 0) return 100;
 }
 
 // determine box audio chip type
 let audio;
-if ((sysConfigHex & 0xc0000) == 0xc0000) audio = "AKM4310/4309";
+if ((sysConfigHex & 0xc0000) === 0xc0000) audio = "AKM4310/4309";
 else audio = "Unknown";
 
 // determine box audio clock source
 let audioClk;
-if ((sysConfigHex & 0x20000) == 0) audioClk = "SPOT";
+if ((sysConfigHex & 0x20000) === 0) audioClk = "SPOT";
 else audioClk = "External";
 
 // determine box video chip
 function getVideoChip() {
     const videoChipAnd = sysConfigHex & 0x600;
 
-    if (videoChipAnd == 0x200) return "Bt851";
+    if (videoChipAnd === 0x200) return "Bt851";
     else if (videoChipAnd < 0x201 && videoChipAnd !== 0) return "Unknown";
-    else if (videoChipAnd == 0x400) return "Bt852";
+    else if (videoChipAnd === 0x400) return "Bt852";
     else return "Philips7187/Bt866";
 }
 
 // determine box video type
 let videoB;
-if ((sysConfigHex & 0x800) == 0) videoB = "PAL";
+if ((sysConfigHex & 0x800) === 0) videoB = "PAL";
 else videoB = "NTSC";
 
 // determine box video clock source
 let videoClk;
-if ((sysConfigHex & 0x10000) == 0) videoClk = "External";
+if ((sysConfigHex & 0x10000) === 0) videoClk = "External";
 else videoClk = "SPOT";
 
 // determine box board type
@@ -193,17 +193,17 @@ else bank0Type = "Flash";
 
 // determine bank 0 mode
 let bank0Mode;
-if ((sysConfigHex & 0x40000000) == 0) bank0Mode = "Normal";
+if ((sysConfigHex & 0x40000000) === 0) bank0Mode = "Normal";
 else bank0Mode = "PageMode";
 
 // determine bank 1 type
 let bank1Type;
-if ((sysConfigHex & 0x8000000) == 0) bank1Type = "Flash";
+if ((sysConfigHex & 0x8000000) === 0) bank1Type = "Flash";
 else bank1Type = "Mask";
 
 // determine bank 1 mode
 let bank1Mode;
-if ((sysConfigHex & 0x40000000) == 0) bank1Mode = "Normal";
+if ((sysConfigHex & 0x40000000) === 0) bank1Mode = "Normal";
 else bank1Mode = "PageMode";
 
 data = `<html>
@@ -326,7 +326,7 @@ data = `<html>
 </table>
 <pre>`
     // TODO: finish FCS decode
-    if (romType == "bf0app" && sysConfigHex !== "0xNaN") {
+    if (romType === "bf0app" && sysConfigHex !== "0xNaN") {
         data += `CPU Clk Mult = 2x Bus Clk, CPU output bufs @ ${outputBufs}%
 ROM Bank 0:  ${bank0Type}, ${bank0Mode}, 120ns/60ns
 ROM Bank 1:  ${bank1Type}, ${bank1Mode}, 150ns/75ns

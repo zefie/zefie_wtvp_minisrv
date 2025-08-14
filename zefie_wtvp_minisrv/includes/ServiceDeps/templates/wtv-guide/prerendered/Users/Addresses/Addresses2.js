@@ -76,7 +76,7 @@ To add a new user now, choose this link:
 <form>
 <font color=ffcf69><shadow>
 <input type=button usestyle borderimage="file://ROM/Borders/ButtonBorder2.bif"`; 
-if (request_headers.query.directLink == "true")
+if (request_headers.query.directLink === "true")
 	data += "action=javascript:location=history.go(-1);"
 else
 	data += "action=javascript:location=history.go(-2);"

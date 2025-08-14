@@ -3,7 +3,7 @@ const minisrv_service_file = true;
 const pagestore_exists = session_data.pagestore.pagestoreExists();
 const docName = request_headers.query.docName;
 
-if (pagestore_exists != true)
+if (pagestore_exists !== true)
 {
 	session_data.pagestore.createPagestore();
 	headers = `300 OK
@@ -129,7 +129,7 @@ ${page.title}
 </B></font>
 <P>
 <font size=2 color=AEBFD1>`
-if (page.published == true)
+if (page.published === true)
 	data += `published ${page.publishdate}`
 else
 	data += "not published"
@@ -163,7 +163,7 @@ Change how your page is listed
 <tr>
 <td>
 <img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0> `
-	if (page.published != true) 
+	if (page.published !== true) 
 		data += `<a href=publish?docName=${docName}
 ><font effect=shadow><B>Publish page</B></font></a>
 <BR><spacer type=block width=18 height=30 align=top>

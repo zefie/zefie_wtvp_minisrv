@@ -8,7 +8,7 @@ if (auth === true) {
     let password = null;
     if (request_headers.Authorization) {
         const authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
@@ -53,7 +53,7 @@ wtv-noback-all: wtv-admin:/findaccount`;
                     if (Object.keys(user_info.account_users).length > 1) {
                         data += `<tr><td>Additional Users:</td><td>`;
                         Object.keys(user_info.account_users).forEach(function (k) {
-                            if (k == "subscriber") return;
+                            if (k === "subscriber") return;
                             data += user_info.account_users[k].subscriber_username + "<br>";
                         })
                         data += `</td></tr>`

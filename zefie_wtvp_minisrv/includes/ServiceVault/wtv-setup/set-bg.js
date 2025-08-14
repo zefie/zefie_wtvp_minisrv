@@ -96,7 +96,7 @@ Choose the songs that you'd like to include.
 	let songsListed = 0;
 	const divide = Math.round(musicList.length / 2, 0);
 	Object.keys(musicList).forEach(function (k) {
-		if (songsListed == divide) {
+		if (songsListed === divide) {
 			data += `</td ><td width="20">
 </td><td width="198" valign="top" align="left">`;
 		}

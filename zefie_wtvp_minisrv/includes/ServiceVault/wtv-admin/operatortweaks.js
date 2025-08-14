@@ -20,15 +20,15 @@ function generateFormField(type, confvar, options = null) {
         confvar_value = user_config.config[confvar] || minisrv_config.config[confvar];
     }
 
-    if (type == "input")
+    if (type === "input")
         return `<input bgcolor="101010" text="ee44bb" type="text" name="${confvar}" value="${confvar_value}"${(options) ? ' '+options : ''}>`
-    if (type == "checkbox")
+    if (type === "checkbox")
         return `<input type="hidden" name="${confvar}" value="false">\n<input type=checkbox name="${confvar}" ${wtvshared.parseBool(confvar_value) ? "checked=checked" : ''}${(options) ? ' ' + options : ''}>`
-    if (type == "select") {
+    if (type === "select") {
         let out = `<select name="${confvar}">\n`
         if (options) {
             Object.keys(options).forEach((k) => {
-                out += `<option value="${options[k].value}"${(confvar_value == options[k].value) ? ' selected' : ''}>${options[k].name}</option>\n`
+                out += `<option value="${options[k].value}"${(confvar_value === options[k].value) ? ' selected' : ''}>${options[k].name}</option>\n`
             });
         }
         return out + "</select>";
@@ -39,7 +39,7 @@ if (auth === true) {
     let password = null;
     if (request_headers.Authorization) {
         const authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }

@@ -5,14 +5,14 @@ session_data.loadSessionData();
 
 let user_id = null;
 if (request_headers.query.user_id) {
-    user_id = request_headers.query.user_id;
+    user_id = parseInt(request_headers.query.user_id);
 } else {
     errpage = wtvshared.doErrorPage(400, "User was not specified.");
     headers = errpage[0];
     data = errpage[1];
 }
 
-if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
+if (session_data.user_id !== 0 && session_data.user_id !== parseInt(request_headers.query.user_id)) {
     user_id = null; // force unset
     errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
@@ -24,10 +24,10 @@ if (user_id && !errpage) {
 Connection: Keep-Alive
 Content-Type: text/html`
     userSession = null;
-    if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
+    if (session_data.user_id === parseInt(request_headers.query.user_id)) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
-        userSession.user_id = user_id;``
+        userSession.user_id = user_id;
     }
 
     if (!userSession.loadSessionData()) {
@@ -36,7 +36,7 @@ Content-Type: text/html`
         data = errpage[1];
     }
     else {
-        if (request_headers.query.password.length == 0 && request_headers.query.password_verify.length == 0) {
+        if (request_headers.query.password.length === 0 && request_headers.query.password_verify.length === 0) {
             userSession.disableUserPassword();
             headers = `300 OK
 Content-type: text/html
@@ -76,5 +76,3 @@ if (errpage) {
     headers = errpage[0];
     data = errpage[1];
 }
-
-if (userSession) userSession = null;

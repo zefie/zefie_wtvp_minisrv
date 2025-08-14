@@ -35,7 +35,7 @@ class WTVMime {
                     if (ssid_session) {
                         // if gzip is enabled...
                         if (this.minisrv_config.config.enable_gzip_compression || this.minisrv_config.config.force_compression_type) {
-                            const is_bf0app = ssid_session.get("wtv-client-rom-type") == "bf0app";
+                            const is_bf0app = ssid_session.get("wtv-client-rom-type") === "bf0app";
                             const isOldBuild = this.wtvshared.isOldBuild(ssid_session);
                             let is_softmodem = false;
                             if (ssid_session.get("wtv-client-rom-type")) is_softmodem = ssid_session.get("wtv-client-rom-type").match(/softmodem/);
@@ -52,23 +52,23 @@ class WTVMime {
 
 
                     // mostly for debugging
-                    if (this.minisrv_config.config.force_compression_type == "lzpf") compression_type = 1;
-                    if (this.minisrv_config.config.force_compression_type == "gzip") compression_type = 2;
+                    if (this.minisrv_config.config.force_compression_type === "lzpf") compression_type = 1;
+                    if (this.minisrv_config.config.force_compression_type === "gzip") compression_type = 2;
 
                     // do not compress if already encoded
                     if (headers_obj["Content-Encoding"]) return 0;
 
                     // should we bother to compress?
                     let content_type = "";
-                    if (typeof (headers_obj) == 'string') content_type = headers_obj;
+                    if (typeof (headers_obj) === 'string') content_type = headers_obj;
                     else content_type = (typeof (headers_obj["wtv-modern-content-type"]) !== 'undefined') ? headers_obj["wtv-modern-content-type"] : headers_obj["Content-type"];
 
                     if (content_type) {
                         // both lzpf and gzip
-                        if (content_type.match(/^text\//) && content_type != "text/tellyscript") compress_data = true;
+                        if (content_type.match(/^text\//) && content_type !== "text/tellyscript") compress_data = true;
                         else if (content_type.match(/^application\/(x-?)javascript$/)) compress_data = true;
-                        else if (content_type == "application/json") compress_data = true;
-                        if (compression_type == 2) {
+                        else if (content_type === "application/json") compress_data = true;
+                        if (compression_type === 2) {
                             // gzip only
                             if (content_type.match(/^audio\/(x-)?(s3m|mod|xm|midi|wav|wave|aif(f)?)$/)) compress_data = true; // s3m, mod, xm, midi & wav
                             if (content_type.match(/^application\/karaoke$/)) compress_data = true; // midi karaoke

@@ -13,23 +13,22 @@ totalfavorites = folder_array.length;
 
 if (totalfavorites < 14)
 {
-	if (createFun == "true")
+	if (createFun === "true")
 		session_data.favstore.createTemplateFolder("Fun");
 
-	if (createMoney == "true")
+	if (createMoney === "true")
 		session_data.favstore.createTemplateFolder("Money");
 
-	if (createMovies == "true")
+	if (createMovies === "true")
 		session_data.favstore.createTemplateFolder("Movies");
 
-	if (createNews == "true")
+	if (createNews === "true")
 		session_data.favstore.createTemplateFolder("News");
 
-	if (createRecommended == "true")
+	if (createRecommended === "true")
 		session_data.favstore.createTemplateFolder("Recommended");
-		console.log("FUGHFVJSGHJFDGIJUFDSHGFJDSKHJKLGFHJKHDJKHJKLGF " + createRecommended)
 
-	if (createReference == "true")
+	if (createReference === "true")
 		session_data.favstore.createTemplateFolder("Reference");
 
 	headers = `300 OK

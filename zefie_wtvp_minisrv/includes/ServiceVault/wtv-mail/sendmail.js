@@ -7,7 +7,7 @@ const intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail?came-from=" + encodeURIComponent(request_headers.request_url);
-} else if (request_headers.query.clear == "true") {
+} else if (request_headers.query.clear === "true") {
     let gourl;
     if (request_headers.Referer)
         gourl = request_headers.Referer.replace(/[\?\&]clear\=true/, '');
@@ -105,8 +105,8 @@ Location: ${gourl}`;
         }
     }
 
-    if (request_headers.query.togglesign == "true") no_signature = false;
-    if (request_headers.query.togglesign == "false") no_signature = true;
+    if (request_headers.query.togglesign === "true") no_signature = false;
+    if (request_headers.query.togglesign === "false") no_signature = true;
 
     if (mail_draft_attachments) {
         if (mail_draft_attachments.message_snapshot_data) message_snapshot_data = mail_draft_attachments.message_snapshot_data;
@@ -136,10 +136,10 @@ Content-Type: audio/wav`;
             'noback': true,
         }).getURL();
 
-        if ((typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) || request_headers.query.saveoff || request_headers.query.get_snap || request_headers.query.get_gab) {
+        if ((typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff !== false) || request_headers.query.saveoff || request_headers.query.get_snap || request_headers.query.get_gab) {
             let from_addr = address;
             const signature = session_data.getSessionData("subscriber_signature") || null;
-            if (typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff != false) {
+            if (typeof request_headers.query.sendoff !== 'undefined' && request_headers.query.sendoff !== false) {
                 const attachments = [];
 
 
@@ -148,7 +148,7 @@ Content-Type: audio/wav`;
                         'mime': 'image/jpeg',
                         'filename': 'snapshot.jpg'
                     }
-                    if (typeof message_snapshot_data == "object") {
+                    if (typeof message_snapshot_data === "object") {
                         attachment.content = new Buffer.from(message_snapshot_data).toString('base64');
                         attachment.is_base64 = true;
                     } else
@@ -163,7 +163,7 @@ Content-Type: audio/wav`;
                         'filename': 'voicemail.wav'
                     }
 
-                    if (typeof message_voicemail_data == "object") {
+                    if (typeof message_voicemail_data === "object") {
                         attachment.content = new Buffer.from(message_voicemail_data).toString('base64');
                         attachment.is_base64 = true;
                     } else
@@ -196,7 +196,7 @@ Content-Type: audio/wav`;
                             wtvnews.initializeUsenet(service_config.upstream_address, service_config.upstream_port, service_config.upstream_tls || null);
                     }
                     from_addr = userdisplayname + " <" + from_addr + ">";
-                    if (signature && signature != "" && !no_signature) {
+                    if (signature && signature !== "" && !no_signature) {
                         if (signature.indexOf('<html>') >= 0) {
                             attachments.push({
                                 "mime": 'text/html',
@@ -299,13 +299,13 @@ wtv-expire-all: wtv-mail:/sendmail`;
             headers = `200 OK
 Content-type: text/html`;
             mail_draft_data = session_data.getSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments") || {};
-            if (request_headers.query.snapping == "false") {
+            if (request_headers.query.snapping === "false") {
                 headers += "\nwtv-expire-all: cache:snapshot.jpg";
                 if (mail_draft_data.message_snapshot_data) mail_draft_data.message_snapshot_data = null;
                 session_data.setSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments", mail_draft_data);
             }
 
-            if (request_headers.query.gabbing == "false") {
+            if (request_headers.query.gabbing === "false") {
                 headers += "\nwtv-expire-all: cache:voicemail.wav";
                 if (mail_draft_data.message_voicemail_data) mail_draft_data.message_voicemail_data = null;
                 session_data.setSessionData((newsgroup) ? "usenet_draft_attachments" : "mail_draft_attachments", mail_draft_data);
@@ -617,7 +617,7 @@ link=${message_colors.link}
 vlink=${message_colors.vlink}
 vspace=0
 hspace=0>`;
-        if (session_data.getSessionData("subscriber_signature") && session_data.getSessionData("subscriber_signature") != "" && !no_signature) {
+        if (session_data.getSessionData("subscriber_signature") && session_data.getSessionData("subscriber_signature") !== "" && !no_signature) {
             data += wtvshared.sanitizeSignature(session_data.getSessionData("subscriber_signature"));
         }
         if (msg_url) {
@@ -642,7 +642,7 @@ Included Page: <a href="${msg_url}">${wtvshared.htmlEntitize(msg_url_title).repl
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td width=305 valign=top>`;
-        if (!session_data.getSessionData("subscriber_signature") || session_data.getSessionData("subscriber_signature") == "") {
+        if (!session_data.getSessionData("subscriber_signature") || session_data.getSessionData("subscriber_signature") === "") {
             data += `<input type = hidden name = "togglesign" value = "false"> <td abswidth=13 > `;
         } else if (no_signature) {
             data += `<a href="javascript:Signing('true')">

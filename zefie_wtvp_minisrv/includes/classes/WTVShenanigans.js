@@ -41,7 +41,7 @@ class WTVShenanigans {
 
         // shenanigans are enabled, so check if the requested shenanigan is within the level enabled
         Object.keys(shenanigans).forEach((k) => {
-            if (shenanigans[k] == value) {
+            if (shenanigans[k] === value) {
                 if (level >= shenanigans[k]) {
                     retval = true;
                     return false;

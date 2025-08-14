@@ -22,7 +22,7 @@ class PBTemplate {
 <title>${title}</title>
 </head>
 <BODY bgcolor=#ffffcc link=#006600 vlink=#660000>`;
-        if (state == "previewing") {
+        if (state === "previewing") {
             this.styledata.header += `<TABLE cellspacing=0 cellpadding=0 bgcolor=#1e4261 border=1 width=100%>
 <TR><TD valign=middle align=center><FONT color=#D1D1D1>
 You are previewing your page. Press <B>Back</B>
@@ -34,13 +34,13 @@ to return to editing it.
 <TR>
 <TD><IMG src=clipart/Nature/Flowers/na00140_.gif width=253 height=273 align=left> </TD>
 <TD>`;
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `<a href="wtv-author:/edit-title?docName=${docName}&titleOnly=true">
 `;
         }
         this.styledata.titheader += `<FONT size=+3 color=#003300>${title}</FONT>`;
 
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `</a>`;
         }
 

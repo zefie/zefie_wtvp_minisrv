@@ -88,7 +88,7 @@ Object.keys(categories).forEach(function (k) {
 	const catID = categories[k].id;
 	const songsInCat = wtvbgm.getCategorySongList(catID);
 	if (songsInCat.length > 0) {
-		if (catsListed == divide) {
+		if (catsListed === divide) {
 			data += `</td ><td width="20">
 </td><td width="198" valign="top" align="left">`;
 		}

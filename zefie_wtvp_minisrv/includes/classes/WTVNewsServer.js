@@ -40,7 +40,7 @@ class WTVNewsServer {
                 ...nntp_server.prototype,
                 _authenticate: function (session) {
                     // authenticate
-                    if (session.authinfo_user == self.username && session.authinfo_pass == self.password) {
+                    if (session.authinfo_user === self.username && session.authinfo_pass === self.password) {
                         session.posting_allowed = true;
                         return Promise.resolve(true);
                     }
@@ -157,7 +157,7 @@ class WTVNewsServer {
 
     getHeader(message, header) {
         if (message.headers) {
-            const search = Object.keys(message.headers).find(e => (e.toLowerCase() == header.toLowerCase()));
+            const search = Object.keys(message.headers).find(e => (e.toLowerCase() === header.toLowerCase()));
             if (search) return message.headers[search];
         }
         return null;
@@ -199,7 +199,7 @@ class WTVNewsServer {
         let response;
         if (headers) {
             Object.keys(headers).forEach((k) => {
-                if (k.toLowerCase() == header.toLowerCase()) {
+                if (k.toLowerCase() === header.toLowerCase()) {
                     response = k;
                     return false;
                 }
@@ -315,10 +315,10 @@ class WTVNewsServer {
             }
         } else out = { ...meta }
 
-        if (meta.min_index == 0) force_update = true;
+        if (meta.min_index === 0) force_update = true;
         if (this.featuredGroups) {
             Object.keys(this.featuredGroups).forEach((k) => {
-                if (group == this.featuredGroups[k].name) {
+                if (group === this.featuredGroups[k].name) {
                     out.wildmat = 'y';
                     out.description = this.featuredGroups[k].description
                     return false;
@@ -329,9 +329,9 @@ class WTVNewsServer {
             if (force_update || this.doesMetaNeedRefreshing(meta)) {
                 out.total = 0;
                 this.fs.readdirSync(g).forEach(file => {
-                    if (file == "meta.json") return;
+                    if (file === "meta.json") return;
                     const articleNumber = parseInt(file.split('.')[0]);
-                    if (out.min_index == 0) out.min_index = articleNumber;
+                    if (out.min_index === 0) out.min_index = articleNumber;
                     else if (articleNumber < out.min_index) out.min_index = articleNumber;
                     else if (articleNumber > out.max_index) out.max_index = articleNumber;
 
@@ -371,18 +371,18 @@ class WTVNewsServer {
         try {
             const articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
-                if (file == "meta.json") return;
+                if (file === "meta.json") return;
                 const articleNumber = parseInt(file.split('.')[0]);
                 articleNumbers.push(articleNumber);
             });
             articleNumbers.sort((a, b) => a - b)
-            const index = articleNumbers.findIndex((e) => e == current) - 1;
+            const index = articleNumbers.findIndex((e) => e === current) - 1;
             if (index >= 0) res = articleNumbers[index];
         } catch (e) {
             return e;
         }
         if (res) {
-            if (res == current) return null;
+            if (res === current) return null;
             const message = this.getArticle(group, res);
             if (message.messageId) {
                 res = { "articleNumber": res, "message_id": message.messageId };
@@ -397,12 +397,12 @@ class WTVNewsServer {
         try {
             const articleNumbers = [];
             this.fs.readdirSync(g).forEach(file => {
-                if (file == "meta.json") return;
+                if (file === "meta.json") return;
                 const articleNumber = parseInt(file.split('.')[0]);
                 articleNumbers.push(articleNumber);
             });
             articleNumbers.sort((a, b) => a - b)
-            const index = articleNumbers.findIndex((e) => e == current) + 1;
+            const index = articleNumbers.findIndex((e) => e === current) + 1;
             if (index < articleNumbers.length) res = articleNumbers[index];
         } catch (e) {
             return e;
@@ -444,11 +444,11 @@ class WTVNewsServer {
         try {
             meta = this.getMetadata(group);
             this.fs.readdirSync(g).forEach(file => {
-                if (file == "meta.json") return;
+                if (file === "meta.json") return;
                 const articleNumber = parseInt(file.split('.')[0]);
                 if (articleNumber < start) return;
                 if (articleNumber > end) return false;
-                if (out.min_index == null) out.min_index = articleNumber;
+                if (out.min_index === null) out.min_index = articleNumber;
                 else if (articleNumber < out.min_index) out.min_index = articleNumber;
 
                 if (articleNumber > out.max_index) out.max_index = articleNumber;

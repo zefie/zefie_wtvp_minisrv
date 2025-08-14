@@ -2,7 +2,7 @@ const minisrv_service_file = true;
 let userSession = null;
 let errpage = null;
 
-if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
+if (session_data.user_id !== 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
 
 // seperate if statements as to not overwrite the first error if multiple occur
 
@@ -72,5 +72,3 @@ Location: wtv-setup:/accounts`;
         }
     }    
 }
-
-if (userSession) userSession = null;

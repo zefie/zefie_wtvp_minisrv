@@ -64,7 +64,7 @@ the page's address.
 <form>
 <font color=ffcf69><shadow>
 <input type=button usestyle borderimage="file://ROM/Borders/ButtonBorder2.bif"`; 
-if (request_headers.query.goBack == "true")
+if (request_headers.query.goBack === "true")
 	data += "action=client:goback value=Done"
 else
 	data += "action=Print value=Continue"

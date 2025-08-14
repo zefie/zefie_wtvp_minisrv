@@ -1,12 +1,12 @@
 const minisrv_service_file = true;
 let wtvsec_login;
 
-if (socket.ssid != null && !session_data.get("wtvsec_login")) {
+if (socket.ssid !== null && !session_data.get("wtvsec_login")) {
 	wtvsec_login = session_data.createWTVSecSession();
 	wtvsec_login.IssueChallenge();
 	if (request_headers["wtv-incarnation"]) wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 	session_data.set("wtvsec_login", wtvsec_login);
-} else if (socket.ssid != null) {
+} else if (socket.ssid !== null) {
 	wtvsec_login = session_data.get("wtvsec_login");
 }
 

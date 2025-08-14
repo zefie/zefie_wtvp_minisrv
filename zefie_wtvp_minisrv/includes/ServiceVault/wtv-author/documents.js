@@ -4,7 +4,7 @@ const pagestore_exists = session_data.pagestore.pagestoreExists();
 
 const site = session_data.pagestore.getPublishDomain();
 
-if (pagestore_exists != true)
+if (pagestore_exists !== true)
 	session_data.pagestore.createPagestore();
 	
 const pagearray = session_data.pagestore.listPages();
@@ -163,7 +163,7 @@ data = `<HTML>
 `
 for (let i = 0; i < numofpages; i++) {
 data += `<tr>	<td rowspan=2 valign=top>`
-	if (i == 0)
+	if (i === 0)
 		data += `<img src="/ROMCache/left_mark.gif" width=5 height=9>
 <td colspan=4><img src="/ROMCache/horiz_line_top.gif" width=347 height=9>
 <td rowspan=2 valign=top><img src="/ROMCache/right_mark.gif" width=5 height=9>`
@@ -181,7 +181,7 @@ ${pagearray[i].description}
 </I></font>
 <P>
 <font size=1 color=AEBFD1>`
-if (pagearray[i].published == true)
+if (pagearray[i].published === true)
 	data += `published ${pagearray[i].publishdate}`
 else
 	data += "not published"
