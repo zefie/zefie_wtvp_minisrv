@@ -2452,7 +2452,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
         const using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
         console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Mode:", (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP");
 
-        if (minisrv_config.services[k].local_nntp_port) {
+        if (minisrv_config.services[k].local_nntp_enabled && minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
                 const WTVNewsServer = require(classPath + "/WTVNewsServer.js");
                 let local_nntp_using_auth = false;

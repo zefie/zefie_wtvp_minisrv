@@ -22,7 +22,7 @@ if (service_config.local_nntp_port && wtvnewsserver) {
  
 async function throwError(e) {
     console.log(e);
-    const errpage = wtvshared.doErrorPage(400, null, e.toString());
+    const errpage = wtvshared.doErrorPage(400 + " " + e.toString(), null, e.toString());
     sendToClient(socket, errpage[0], errpage[1]);
 }
 
@@ -48,11 +48,12 @@ async function WebTVListGroup(group) {
             }
             wtvnews.listGroup(group, page, limit_per_page).then((response) => {
                 if (response.code === 211) {
-                    const NGCount = response.group.number;
+                    let NGCount = response.group.number;
                     const NGArticles = response.group.articleNumbers;
                     page_start = (limit_per_page * page) + 1;
                     page_end = (page + 1) * limit_per_page;
                     wtvnews.getHeaderObj(NGArticles).then((messages) => {
+                        NGCount = NGArticles.length;
                         messages = wtvnews.sortByResponse(messages);
                         wtvnews.quitUsenet();
                         headers = `200 OK
@@ -193,7 +194,7 @@ Group: ${request_headers.query.group}
 <td height=33 width=256 valign=bottom>
 <font size=4>
 `
-                        if (NGCount === 0) {
+                        if (NGCount === 0 || isNaN(NGCount)) {
                             data += `This group has no postings`;
                         } else {
                             data += NGCount + " posting";
@@ -304,11 +305,11 @@ ${(message.headers.FROM.indexOf(' ') > 0) ? message.headers.FROM.split(' ')[0] :
                 }
             }).catch((e) => {
                 // listGroup error
-                throwError(e)
-            });;
+                throwError("No such group");
+            });
         }).catch((e) => {
             // selectGroup error
-            throwError(e)
+            throwError("No such group")
         });
     }).catch((e) => {
         // connect error
