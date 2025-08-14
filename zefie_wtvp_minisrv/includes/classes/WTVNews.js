@@ -111,7 +111,7 @@ class WTVNews {
                     reject(e);
                 });
             } else {
-                this.client.listNewsgroups((search === '*') ? '*' : '*' + search + '*').then((data) => {
+                this.client.listNewsgroups(search).then((data) => {
                     resolve(this.processGroupList(data));
                 }).catch((e) => {
                     console.error(" * WTVNews Error:", "Command: listGroups (search)", search, e);
@@ -359,7 +359,6 @@ class WTVNews {
                 if (article === "getCaseInsensitiveKey" || isNaN(article)) continue;
                 promises.push(new Promise((resolve, reject) => {
                     this.getHeader(NGArticles[article]).then((data) => {
-                        console.log(data)
                         if (data.article) messages.push(data.article)
                         resolve();
                     }).catch((e) => {

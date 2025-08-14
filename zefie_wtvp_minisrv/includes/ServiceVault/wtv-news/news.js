@@ -39,7 +39,6 @@ async function WebTVListGroup(group) {
         wtvnews.selectGroup(group).then((response) => {
             let limit_per_page = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : page_limit_default;
             const page = (request_headers.query.chunk) ? parseInt(request_headers.query.chunk) : 0;
-            console.log(response);
             let page_start = (limit_per_page * page) + 1;
             let page_end = (page + 1) * limit_per_page;
             if (page_end > response.group.high) {
