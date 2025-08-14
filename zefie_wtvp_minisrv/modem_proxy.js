@@ -12,7 +12,7 @@ const SERIAL_BAUDRATE = 115200;
 let NEXT_RECV_IS_LAST_ASCII = false;
 let DATA_MODE = false;
 
-const THINGS_TO_STRIP = ["S95=36", "&Q5", "S51=31"];
+const THINGS_TO_STRIP = ["S95=36", "&Q5", "S51=31", "S220=0", "&Q5", "&K3", "&D2"];
 const THINGS_TO_REPLACE = [
     ["M0", "M1"],           // M1 = Speaker on
     ["S11=110", "S11=50"],   // S11 = Dial speed

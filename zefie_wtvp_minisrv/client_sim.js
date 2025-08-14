@@ -72,6 +72,7 @@ class WebTVClientSimulator {
         this.debugLog(`Target: ${host}:${port}`);
         this.debugLog(`SSID: ${ssid}`);
         this.debugLog(`Target URL after auth: ${url}`);
+        this.debugLog(`Box Type: ${boxType}`);
         this.debugLog(`Encryption: ${useEncryption ? 'enabled' : 'disabled'}`);
         if (outputFile) {
             this.debugLog(`Output file: ${outputFile}`);
@@ -162,8 +163,7 @@ class WebTVClientSimulator {
             ]
         };
 
-        this.defaultBoxConfig = this.boxConfigs[this.defaultBox];
-        this.boxType = this.boxConfigs[boxType] || this.defaultBoxConfig;
+        this.boxType = boxType || this.defaultBox;
     }
 
     getBoxConfig(box) {
@@ -255,7 +255,7 @@ class WebTVClientSimulator {
      */
     async start() {
         try {
-            await this.makeRequestWithRetry('wtv-1800', '/preregister');
+            await this.makeRequestWithRetry('wtv-1800', '/preregister?scriptless-visit-reason=10&0');
         } catch (error) {
             console.error('Failed to start simulation:', error);
         }
@@ -531,8 +531,8 @@ class WebTVClientSimulator {
         request += `wtv-connect-session-id: ${this.connectSessionId}\r\n`
         // Add additional headers that real client sends (from PCAP analysis)
         if (this.useEncryption) request += `wtv-encryption: true\r\n`;
-        if (!this.challengeResponse) request += `wtv-script-id: -1896417432\r\n`;
-        if (!this.challengeResponse) request += `wtv-script-mod: 1754789923\r\n`;
+        if (!this.challengeResponse) request += `wtv-script-id: 0\r\n`;
+        if (!this.challengeResponse) request += `wtv-script-mod: 0\r\n`;
         request += this.getBoxHeaders(this.boxType);
         request += `wtv-client-address: 0.0.0.0\r\n`;
 
@@ -600,9 +600,6 @@ class WebTVClientSimulator {
 
         request += `wtv-request-type: ${(this.request_type_download) ? 'download' : 'primary'}\r\n`;
         request += `wtv-show-time: 0\r\n`;
-        request += `wtv-system-cpuspeed: 166187148\r\n`;
-        request += `wtv-system-sysconfig: 4163328\r\n`;
-        request += `wtv-disk-size: 8006\r\n`;
         request += `wtv-viewer: zefie-minisrv-client-sim\r\n`;  // Note: no space after colon
 
         // Add content if POST
