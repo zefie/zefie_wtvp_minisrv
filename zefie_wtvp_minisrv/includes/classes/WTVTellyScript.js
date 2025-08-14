@@ -1081,6 +1081,8 @@ class WTVTellyScript {
         // A stack to track whether the current block is active.
         // Start with "true" so that top-level lines are output.
         const stateStack = [true];
+        // Track the actual condition results (not combined with parent state)
+        const conditionStack = [true];
 
         // Process each line one by one.
         for (let i = 0; i < lines.length; i++) {
@@ -1090,21 +1092,23 @@ class WTVTellyScript {
             if (line.startsWith("#")) {
                 if (/^#ifdef\b/.test(line)) {
                     // Get the label immediately after "#ifdef"
-                    const token = line.slice(6).split(/\s/)[0];
+                    const token = line.slice(6).trim().split(/\s/)[0];
                     const condition = !!definitions[token];
                     // The block is active only if the parent block is active and condition is true.
                     const active = stateStack[stateStack.length - 1] && condition;
                     stateStack.push(active);
+                    conditionStack.push(condition);
                     continue; // Do not output this directive line.
                 } else if (/^#ifndef\b/.test(line)) {
-                    const token = line.slice(7).split(/\s/)[0];
+                    const token = line.slice(7).trim().split(/\s/)[0];
                     const condition = !definitions[token];
                     const active = stateStack[stateStack.length - 1] && condition;
                     stateStack.push(active);
+                    conditionStack.push(condition);
                     continue;
                 } else if (/^#if\b/.test(line)) {
                     // Expect exactly "#if 1" or "#if 0" (no extra spaces allowed).
-                    const token = line.slice(3).split(/\s/)[0];
+                    const token = line.slice(3).trim().split(/\s/)[0];
                     if (token !== "1" && token !== "0") {
                         throw new Error(
                             `Invalid #if condition at line ${i + 1}: "${line}"`
@@ -1113,21 +1117,27 @@ class WTVTellyScript {
                     const condition = token === "1";
                     const active = stateStack[stateStack.length - 1] && condition;
                     stateStack.push(active);
+                    conditionStack.push(condition);
                     continue;
                 } else if (/^#else\b/.test(line)) {
                     if (stateStack.length <= 1) {
                         throw new Error(`#else without matching #if at line ${i + 1}`);
                     }
-                    // Flip the state of the current block while considering the parent's state.
-                    const previous = stateStack.pop();
-                    const newState = stateStack[stateStack.length - 1] && !previous;
+                    // Pop the previous state and condition
+                    stateStack.pop();
+                    const previousCondition = conditionStack.pop();
+                    // Flip the condition while considering the parent's state
+                    const newCondition = !previousCondition;
+                    const newState = stateStack[stateStack.length - 1] && newCondition;
                     stateStack.push(newState);
+                    conditionStack.push(newCondition);
                     continue;
                 } else if (/^#endif\b/.test(line)) {
                     if (stateStack.length <= 1) {
                         throw new Error(`#endif without matching #if at line ${i + 1}`);
                     }
                     stateStack.pop();
+                    conditionStack.pop();
                     continue;
                 } else if (/^#include\b/.test(line)) {
                     // Silently remove #include directives.
