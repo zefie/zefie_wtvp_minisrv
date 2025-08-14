@@ -3,6 +3,7 @@
  */
 const CryptoJS = require('crypto-js');
 const WTVShenanigans = require('./WTVShenanigans.js');
+const e = require('express');
 
 class WTVShared {
 
@@ -51,6 +52,14 @@ class WTVShared {
                 return result;
             }
         }
+    }
+
+    escape(string) {
+        return encodeURIComponent(string).replace(/'/g, "%27").replace(/"/g, "%22");
+    }
+
+    unescape(string) {
+        return decodeURIComponent(string.replace(/\+/g, " "));
     }
 
     /**
