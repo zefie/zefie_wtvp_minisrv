@@ -92,7 +92,7 @@ class WTVGuide {
 								if (!link_word_start_letter && link_word_for_link.length > 0) link_word_start_letter = link_word_for_link.charAt(0).toUpperCase();
 								if (!link_word_override) link_word_override = link_word;
 
-								const link_url = `wtv-guide:/help?topic=Glossary&subtopic=${link_word_start_letter}&page=${link_word_for_link}&word=${encodeURIComponent(link_word_override)}`
+								const link_url = `wtv-guide:/help?topic=Glossary&subtopic=${link_word_start_letter}&page=${link_word_for_link}&word=${this.wtvshared.escape(link_word_override)}`
 								const new_definition = definition.slice(0, original_start - search.length) + `<a href="${link_url}">${link_word}</a>` + definition.slice(end + 7);
 								definition = new_definition;
 							}

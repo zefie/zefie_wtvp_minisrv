@@ -31,7 +31,7 @@ if (messenger_email && messenger_password) {
 				request.end();
 				const options = {
 					method: 'GET',
-					headers: { "Authorization": "Passport1.4 OrgVerb=GET,OrgURL=http%3A%2F%2Fmessenger%2Emsn%2Ecom,sign-in=" + email + ",pwd=" + encodeURIComponent(password) + "," + challenge }
+					headers: { "Authorization": "Passport1.4 OrgVerb=GET,OrgURL=http%3A%2F%2Fmessenger%2Emsn%2Ecom,sign-in=" + email + ",pwd=" + wtvshared.escape(password) + "," + challenge }
 				}
 				const request2 = https.get(passporturls, options, (response) => {
 					let req_data = '';

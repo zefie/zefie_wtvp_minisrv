@@ -39,7 +39,7 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
                 'image': minisrv_config.config.service_logo,
                 'message': "You are about to add an image to your scrapbook.<br><br>Do you wish to continue?",
                 'buttonlabel1': "Continue",
-                'buttonaction1': "wtv-author:/scrapbook-add?confirm=true&mediaPath=" + encodeURIComponent(request_headers.query.mediaPath || ''),
+                'buttonaction1': "wtv-author:/scrapbook-add?confirm=true&mediaPath=" + wtvshared.escape(request_headers.query.mediaPath || ''),
                 'buttonlabel2': "Cancel",
                 'buttonaction2': "client:donothing"
             }).getURL();

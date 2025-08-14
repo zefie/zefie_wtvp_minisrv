@@ -15,7 +15,7 @@ if (request_headers['wtv-request-type'] === "download") {
     query['success_url'] = 'wtv-disk:/delete-group';
     query['message'] = "Obtaining group data...";
     const queryString = Object.keys(query)
-        .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(query[key]))
+        .map(key => wtvshared.escape(key) + '=' + wtvshared.escape(query[key]))
         .join('&');
     headers = "302 Found\nwtv-expire-all: wtv-disk:\nLocation: wtv-disk:/content/DownloadScreen.tmpl" + (queryString ? ("?" + queryString) : "");
 }

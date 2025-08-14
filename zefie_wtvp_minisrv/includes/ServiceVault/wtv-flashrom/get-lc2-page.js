@@ -42,7 +42,7 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 		}
 
 		if (!flashrom_info.is_last_part) {
-			flashrom_info.next_rompath = service_name + ":/get-lc2-page?path=" + encodeURIComponent(flashrom_info.next_rompath.replace(service_name + ":/", ""));
+			flashrom_info.next_rompath = service_name + ":/get-lc2-page?path=" + wtvshared.escape(flashrom_info.next_rompath.replace(service_name + ":/", ""));
 		}
 
 		console.log(flashrom_info.next_rompath);

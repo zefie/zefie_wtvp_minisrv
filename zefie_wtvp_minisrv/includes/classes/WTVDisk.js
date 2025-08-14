@@ -126,7 +126,7 @@ class WTVDownloadList {
     * @param {string} destination Destination file path in the User Store
     */
     putUserStoreDest(path, destination) {
-        this.put(path, `${this.service_name}:/userstore?partialPath=${encodeURIComponent(destination)}`);
+        this.put(path, `${this.service_name}:/userstore?partialPath=${this.wtvshared.escape(destination)}`);
     }
 
     /**

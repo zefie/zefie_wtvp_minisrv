@@ -515,7 +515,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                 let update_str = "http://" + request_headers.host + request_headers.request_url.split('?')[0] + "?ssid=" + client_ssid;
                 Object.keys(request_headers.query).forEach((k) => {
                     if (k !== "random_ssid") {
-                        update_str += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(request_headers.query[k]);
+                        update_str += "&" + wtvshared.escape(k) + "=" + wtvshared.escape(request_headers.query[k]);
                     }
                 });
                 zip.addFile("update_url.txt", update_str);

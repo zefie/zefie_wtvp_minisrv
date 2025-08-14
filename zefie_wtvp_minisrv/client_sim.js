@@ -931,7 +931,7 @@ class WebTVClientSimulator {
                                 // Prepare form data as application/x-www-form-urlencoded
                                 const formBody = parseResult.formData
                                     ? Object.entries(parseResult.formData)
-                                        .map(([key, value]) => encodeURIComponent(key) + '=' + encodeURIComponent(value))
+                                        .map(([key, value]) => this.wtvshared.escape(key) + '=' + this.wtvshared.escape(value))
                                         .join('&')
                                     : '';
 
@@ -1210,7 +1210,7 @@ class WebTVClientSimulator {
             this.debugLog('Using tricks access with POST - first GET the tricks page, then POST to wtv-visit');
             
             // First, GET the tricks page to get the wtv-visit URL
-            const tricksUrl = `wtv-tricks:/access?url=${encodeURIComponent(this.url)}`;
+            const tricksUrl = `wtv-tricks:/access?url=${this.wtvshared.escape(this.url)}`;
             const match = tricksUrl.match(/^([\w-]+):\/?(.*)/);
             if (match) {
                 const serviceName = match[1];
@@ -1260,7 +1260,7 @@ class WebTVClientSimulator {
         } else if (this.useTricksAccess && !this.request_type_post) {
             // Regular tricks access (GET)
             this.debugLog('Using tricks access for target URL');
-            this.url = `wtv-tricks:/access?url=${encodeURIComponent(this.url)}`;
+            this.url = `wtv-tricks:/access?url=${this.wtvshared.escape(this.url)}`;
         }
         
         // Parse the target URL

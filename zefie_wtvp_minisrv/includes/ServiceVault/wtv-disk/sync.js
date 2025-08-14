@@ -85,7 +85,7 @@ if (request_headers['wtv-request-type'] === 'download') {
                     case "GET":
                         let get_url = service_name + ":/" + update_list[k].location + "?";
                         if (update_list[k].compress === false) get_url += "dont_compress=true&";
-                        if (update_list[k].type) get_url += "content_type=" + encodeURIComponent(update_list[k].type) + "&";
+                        if (update_list[k].type) get_url += "content_type=" + wtvshared.escape(update_list[k].type) + "&";
                         wtvdl.get(update_list[k].file.replace(diskmap_group_data.base, ""), update_list[k].file, get_url, diskmap_group_name, update_list[k].checksum, update_list[k].uncompressed_size || null, update_list[k].original_filename)
                         break;
                 }
@@ -317,7 +317,7 @@ if (request_headers['wtv-request-type'] === 'download') {
     }
 } else {
     const queryString = Object.keys(request_headers.query)
-        .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(request_headers.query[key]))
+        .map(key => wtvshared.escape(key) + '=' + wtvshared.escape(request_headers.query[key]))
         .join('&');
     headers = "302 Found\nLocation: wtv-disk:/content/DownloadScreen.tmpl" + (queryString ? ("?" + queryString) : "");
     data = "";

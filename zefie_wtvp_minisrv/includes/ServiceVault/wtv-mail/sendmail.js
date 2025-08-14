@@ -6,7 +6,7 @@ let message_voicemail_data = null;
 const intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
-    headers = "300 OK\nLocation: wtv-mail:/DiplomaMail?came-from=" + encodeURIComponent(request_headers.request_url);
+    headers = "300 OK\nLocation: wtv-mail:/DiplomaMail?came-from=" + wtvshared.escape(request_headers.request_url);
 } else if (request_headers.query.clear === "true") {
     let gourl;
     if (request_headers.Referer)

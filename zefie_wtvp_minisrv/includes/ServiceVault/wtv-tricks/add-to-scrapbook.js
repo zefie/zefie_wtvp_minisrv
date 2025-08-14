@@ -11,6 +11,6 @@ if (!request_headers.query.url && !request_headers.query.mediaPath) {
     handleError('No URL provided');
 } else {
     const mediaURL = request_headers.query.url || request_headers.query.mediaPath;
-    const targetURL = 'wtv-author:/scrapbook-add?mediaPath=' + encodeURIComponent(mediaURL);
+    const targetURL = 'wtv-author:/scrapbook-add?mediaPath=' + wtvshared.escape(mediaURL);
     sendToClient(socket, {'Status': 302, 'Location': targetURL, 'wtv-visit': targetURL}, '');
 }

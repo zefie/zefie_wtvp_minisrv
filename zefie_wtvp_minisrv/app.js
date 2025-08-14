@@ -1028,17 +1028,17 @@ async function processURL(socket, request_headers, pc_services = false) {
                                     const qraw_split = qraw[i].split("=");
                                     if (qraw_split.length === 2) {
                                         const k = qraw_split[0];
-                                        data = decodeURIComponent(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                        data = wtvshared.unescape(qraw[i].split("=")[1]);
                                         if (request_headers.query[k]) {
                                             if (typeof request_headers.query[k] === 'string') {
                                                 const keyarray = [request_headers.query[k]];
                                                 request_headers.query[k] = keyarray;
                                             }
                                             if (wtvshared.isASCII(data)) request_headers.query[k].push(data);
-                                            else request_headers.query[k].push(wtvshared.urlDecodeBytes(qraw[i].split("=")[1].replace(/\+/g, "%20")));
+                                            else request_headers.query[k].push(wtvshared.urlDecodeBytes(wtvshared.unescape(qraw[i].split("=")[1])));
                                         } else {
                                             if (wtvshared.isASCII(data)) request_headers.query[k] = data;
-                                            else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw[i].split("=")[1].replace(/\+/g, "%20"));
+                                            else request_headers.query[k] = wtvshared.urlDecodeBytes(wtvshared.unescape(qraw[i].split("=")[1]));
                                         }
                                     }
                                 }
@@ -1047,17 +1047,17 @@ async function processURL(socket, request_headers, pc_services = false) {
                             const qraw_split = post_data_string.split("=");
                             if (qraw_split.length === 2) {
                                 const k = qraw_split[0];
-                                data = decodeURIComponent(qraw_split[1].replace(/\+/g, "%20"));
+                                data = wtvshared.unescape(qraw_split[1]);
                                 if (request_headers.query[k]) {
                                     if (typeof request_headers.query[k] === 'string') {
                                         const keyarray = [request_headers.query[k]];
                                         request_headers.query[k] = keyarray;
                                     }
                                     if (wtvshared.isASCII(data)) request_headers.query[k].push(data);
-                                    else request_headers.query[k].push(wtvshared.urlDecodeBytes(qraw_split[1].replace(/\+/g, "%20")));
+                                    else request_headers.query[k].push(wtvshared.urlDecodeBytes(wtvshared.unescape(qraw_split[1])));
                                 } else {
                                     if (wtvshared.isASCII(data)) request_headers.query[k] = data;
-                                    else request_headers.query[k] = wtvshared.urlDecodeBytes(qraw_split[1].replace(/\+/g, "%20"));
+                                    else request_headers.query[k] = wtvshared.urlDecodeBytes(wtvshared.unescape(qraw_split[1]));
                                 }
                             }
                         }

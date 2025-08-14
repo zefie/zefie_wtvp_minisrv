@@ -592,7 +592,7 @@ ${strftime("%a, %b %e, %Y, %I:%M%P", new Date(Date.parse(response.article.header
 From:
 <td>`;
                               if (message.from_name !== message.from_addr) {
-                                    data += `<a href="client:showalert?sound=none&message=Would%20you%20like%20to%20add%20%3Cblackface%3E${wtvshared.htmlEntitize(message.from_name)}%3C%2Fblackface%3E%20to%20your%20address%20list%3F&buttonlabel2=No&buttonaction2=client:donothing&buttonlabel1=Yes&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${encodeURIComponent(encodeURIComponent(message.from_name))}%26address%3D${encodeURIComponent(encodeURIComponent(message.from_addr))}%26new_address%3Dtrue">${wtvshared.htmlEntitize(message.from_addr)} </a>`;
+                                    data += `<a href="client:showalert?sound=none&message=Would%20you%20like%20to%20add%20%3Cblackface%3E${wtvshared.htmlEntitize(message.from_name)}%3C%2Fblackface%3E%20to%20your%20address%20list%3F&buttonlabel2=No&buttonaction2=client:donothing&buttonlabel1=Yes&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${wtvshared.escape(wtvshared.escape(message.from_name))}%26address%3D${wtvshared.escape(wtvshared.escape(message.from_addr))}%26new_address%3Dtrue">${wtvshared.htmlEntitize(message.from_addr)} </a>`;
                                 } else {
                 data += `${wtvshared.htmlEntitize(response.article.headers.FROM)}`;
                                 }
@@ -642,7 +642,7 @@ From:
                             if (v.content_type.match(supported_images))
                                 attachment_data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Video%20Snapshot"><br><br>`;
                             else if (v.content_type.match(supported_audio))
-                                attachment_data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? encodeURIComponent(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
+                                attachment_data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? wtvshared.escape(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
     <td align=left valign=middle><img src="wtv-news:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;${(v.filename) ? (v.filename) : "Audio file"} (${v.content_type.split('/')[1]} attachment)</font>
     <td align=right valign=middle>
     </table><br><br>`;

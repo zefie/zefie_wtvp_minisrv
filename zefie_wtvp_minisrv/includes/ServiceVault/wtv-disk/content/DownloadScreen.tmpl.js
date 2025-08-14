@@ -45,7 +45,7 @@ if (fail_url === null) fail_url = new clientShowAlert({
 let url;
 
 if (request_headers.query.url) {
-	url = encodeURIComponent(request_headers.query.url);
+	url = wtvshared.escape(request_headers.query.url);
 } else {
 	url = `wtv-disk:/sync`;
 	if (request_headers.query.diskmap) url += `%3fdiskmap%3d${request_headers.query.diskmap}`;

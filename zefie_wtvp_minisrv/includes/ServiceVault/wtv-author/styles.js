@@ -118,13 +118,13 @@ vspace=0
 <tr>
 <td>
 <table cellspacing=0 cellpadding=0
-href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${encodeURIComponent(styleName)}&pageNum=${(page > 0) ? (page - 1) : (pages.length - 1)}#minus" id=minus><tr><td><img src="wtv-author:/ROMCache/minus_button.gif">
+href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${wtvshared.escape(styleName)}&pageNum=${(page > 0) ? (page - 1) : (pages.length - 1)}#minus" id=minus><tr><td><img src="wtv-author:/ROMCache/minus_button.gif">
 </table>
 </td>
 <td align=center><font color=D1D1D1><B>${page + 1} of ${pages.length}</B></font></td>
 <td>
 <table cellspacing=0 cellpadding=0
-href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${encodeURIComponent(styleName)}&pageNum=${(page+1 < pages.length) ? (page + 1) : 0}#plus" id=plus><tr><td><img src="wtv-author:/ROMCache/plus_button.gif">
+href="wtv-author:/styles?tmplClass=11&docName=${docName}&styleName=${wtvshared.escape(styleName)}&pageNum=${(page+1 < pages.length) ? (page + 1) : 0}#plus" id=plus><tr><td><img src="wtv-author:/ROMCache/plus_button.gif">
 </table>
 </td>
 </tr>

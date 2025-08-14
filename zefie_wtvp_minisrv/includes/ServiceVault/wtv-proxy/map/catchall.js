@@ -54,12 +54,12 @@ lib.get(targetUrl, (res) => {
             if (urlInputMatch) {
                 pageUrl = urlInputMatch[1];
             }
-            const redirectUrl = `${service_name}:/proxy?id=${proxy_id}&t=${imgExt}&url=${encodeURIComponent(pageUrl)}`;
+            const redirectUrl = `${service_name}:/proxy?id=${proxy_id}&t=${imgExt}&url=${wtvshared.escape(pageUrl)}`;
             sendToClient(socket, {'Status': 302, 'Location': redirectUrl}, '');
         } else {
             const idx = data.indexOf('<BR>');
             data = data.slice(0, idx);
-            const redirectUrl = `${service_name}:/proxy?err=${encodeURIComponent(data)}`;
+            const redirectUrl = `${service_name}:/proxy?err=${wtvshared.escape(data)}`;
             sendToClient(socket, {'Status': 302, 'Location': redirectUrl}, '');
         }
     });
