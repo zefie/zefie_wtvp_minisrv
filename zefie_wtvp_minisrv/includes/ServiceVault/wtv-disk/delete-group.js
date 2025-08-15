@@ -40,7 +40,7 @@ if (request_headers.query.group) {
             data += "<li>No groups found.</li>";
         } else {
             Object.entries(client_group_data).forEach(([group, _]) => {
-                if (group.includes("-UPDATE")) return;
+                if (group.includes("-UPDATE") || group === "undefined") return;
                 const path = client_group_data[group].path;
                 let state = client_group_data[group].state;
                 if (state === "invalid") {
