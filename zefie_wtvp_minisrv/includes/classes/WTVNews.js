@@ -111,7 +111,7 @@ class WTVNews {
                     reject(e);
                 });
             } else {
-                this.client.listNewsgroups(search).then((data) => {
+                this.client.listNewsgroups((search === '*') ? '*' : '*' + search + '*').then((data) => {
                     resolve(this.processGroupList(data));
                 }).catch((e) => {
                     console.error(" * WTVNews Error:", "Command: listGroups (search)", search, e);
