@@ -33,7 +33,6 @@ This open source server is in beta status. Use at your own risk.
 - "ViewerGen" Generate "WebTV Viewer" (Windows WebTV Sim) with unique SSIDs
 
 ### Feature Todo:
-- Finish wtv-news, complete with upstream integration support (cross-minisrv usenet)
 - Finish wtv-guide
 - Finish Scrapbook
 - Polish account transfer system (#16)
