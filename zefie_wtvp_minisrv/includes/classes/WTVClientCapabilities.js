@@ -135,7 +135,7 @@ class WTVClientCapabilities {
     }
 
     get(key = null) {
-        if (typeof (this.capabilities) === 'undefined') return null;
+        if (typeof (this.capabilities) === 'undefined' || !this.capabilities) return null;
         else if (key === null) return this.capabilities;
         else if (this.capabilities[key]) return this.capabilities[key];
         else return null;

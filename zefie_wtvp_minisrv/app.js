@@ -587,6 +587,10 @@ async function processPath(socket, service_vault_file_path, request_headers = []
         updateFromVM.push(["socket_sessions", "socket_sessions"]);         // global socket_sessions object for privileged service scripts, such as wtv-1800, etc
     }
 
+    if (request_headers['User-Agent'] === "Artemis/0.0") {
+        socket_sessions[socket.id].prealpha = true;
+    }
+
     try {
         vaults_to_scan.forEach(function (service_vault_dir) {
             if (service_vault_found) return;
@@ -1631,7 +1635,7 @@ async function sendToClient(socket, headers_obj, data = null) {
 
     if (!socket.res) {
         // encrypt if needed
-        if (socket_sessions[socket.id].secure === true && !socket_sessions[socket.id].do_not_encrypt) {
+        if (socket_sessions[socket.id].secure === true && !socket_sessions[socket.id].do_not_encrypt && !socket_sessions[socket.id].prealpha) {
             headers_obj["wtv-encrypted"] = 'true';
             headers_obj = wtvshared.moveObjectKey('wtv-encrypted', 'Connection', headers_obj);
             if (content_length > 0 && socket_sessions[socket.id].wtvsec) {
@@ -1646,6 +1650,9 @@ async function sendToClient(socket, headers_obj, data = null) {
         }
     }
 
+    if (socket_sessions[socket.id].prealpha === true && !socket_sessions[socket.id].secure) {
+        if (headers_obj["wtv-encrypted"]) delete headers_obj["wtv-encrypted"];
+    }
 
     // calculate content length
     // make sure we are using our Content-length and not one set in a script.

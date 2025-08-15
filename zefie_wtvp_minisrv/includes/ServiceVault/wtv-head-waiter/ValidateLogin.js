@@ -69,15 +69,19 @@ wtv-visit: client:hangupphone`
 					} else {
 						console.log(" * wtv-challenge-response FAILED for " + wtvshared.filterSSID(socket.ssid));
 						if (minisrv_config.config.debug_flags.debug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
-						if (minisrv_config.config.debug_flags.debug) console.log("Response Received:", client_challenge_response)
+						if (minisrv_config.config.debug_flags.debug) console.log("Response Received:", client_challenge_response);
 						errpage = wtvshared.doErrorPage(500, "Invalid challenge response received");
 						headers = errpage[0];
 						data = errpage[1];
 					}
 				} else {
-					errpage = wtvshared.doErrorPage(500, "No challenge response received");
-					headers = errpage[0];
-					data = errpage[1];
+					if (!socket_sessions[socket.id].prealpha) {
+						errpage = wtvshared.doErrorPage(500, "No challenge response received");
+						headers = errpage[0];
+						data = errpage[1];
+					} else {
+						gourl = "wtv-head-waiter:/login-stage-two?";
+					}
 				}
 			} else {
 				gourl = "wtv-head-waiter:/login-stage-two?";
@@ -110,10 +114,9 @@ minisrv-no-mail-count: true`;
 					limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
 				}
 				headers = `200 OK
-wtv-connection-close: true
-Connection: close
 minisrv-no-mail-count: true
 Content-Type: text/html`;
+
 				if (client_challenge_response) {
 					headers += `
 wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}`;

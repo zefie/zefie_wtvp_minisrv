@@ -40,11 +40,11 @@ AutoCaps selected value="${request_headers.query.subscriber_contact || ""}">
 <font size="-2"><b>CONTACT INFO TYPE:</b></font><img src="ROMCache/spacer.gif" width="7">
 <img src="ROMCache/spacer.gif" width="3"><select usestyle id="subscriber_contact_method" name="subscriber_contact_method">
 <option value="">Type</option>
-<option${(request_headers.query.subscriber_contact_method === "E-Mail") ? " selected" : ""}>E-Mail</option>
-<option${(request_headers.query.subscriber_contact_method === "Discord") ? " selected" : ""}>Discord</option>
-<option${(request_headers.query.subscriber_contact_method === "Twitter") ? " selected" : ""}>Twitter</option>
-<option${(request_headers.query.subscriber_contact_method === "Telegram") ? " selected" : ""}>Telegram</option>
-<option${(request_headers.query.subscriber_contact_method === "Instagram") ? " selected" : ""}>Instagram</option>
+<option value="E-Mail"${(request_headers.query.subscriber_contact_method === "E-Mail") ? " selected" : ""}>E-Mail</option>
+<option value="Discord"${(request_headers.query.subscriber_contact_method === "Discord") ? " selected" : ""}>Discord</option>
+<option value="Twitter"${(request_headers.query.subscriber_contact_method === "Twitter") ? " selected" : ""}>Twitter</option>
+<option value="Telegram"${(request_headers.query.subscriber_contact_method === "Telegram") ? " selected" : ""}>Telegram</option>
+<option value="Instagram"${(request_headers.query.subscriber_contact_method === "Instagram") ? " selected" : ""}>Instagram</option>
 </select>
 `;
     const form_data = `<shadow>
