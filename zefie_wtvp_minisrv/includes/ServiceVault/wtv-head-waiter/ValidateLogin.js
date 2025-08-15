@@ -98,6 +98,9 @@ minisrv-no-mail-count: true`;
 minisrv-no-mail-count: true
 Content-Type: text/html
 wtv-visit: ${gourl}`;
+					if (!socket_sessions[socket.id].prealpha) {
+						headers += "\nwtv-connection-close: true\nConnection: close";
+					}
 				} else {
 					headers = `403 The password you entered was incorrect. Please retype it and try again.
 minisrv-no-mail-count: true`;
