@@ -89,7 +89,7 @@ class WTVClientCapabilities {
         const capabilities = [];
 
         // might want to pass without a flag to get the table
-        if (wtv_capability_flags != null) {
+        if (wtv_capability_flags !== null) {
 
             // define function to convert hex string to binary string (0s & 1s)
             const hex2bin = function (hex) {
@@ -118,7 +118,7 @@ class WTVClientCapabilities {
             // process bitfield and set capabilities
             Object.keys(bitfield).forEach(function (k) {
                 // Convert binary to boolean, 0 to false, 1 to true
-                const bitfield_result = (bitfield[k] == "1")
+                const bitfield_result = (bitfield[k] === "1")
 
                 // set flags based on position of bit
                 try {
@@ -135,7 +135,7 @@ class WTVClientCapabilities {
     }
 
     get(key = null) {
-        if (typeof (this.capabilities) === 'undefined') return null;
+        if (typeof (this.capabilities) === 'undefined' || !this.capabilities) return null;
         else if (key === null) return this.capabilities;
         else if (this.capabilities[key]) return this.capabilities[key];
         else return null;

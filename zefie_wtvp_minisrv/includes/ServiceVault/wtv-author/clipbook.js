@@ -1875,7 +1875,7 @@ ${cat.name}
 		if (i % 4 === 0) data += `<tr>`;
 		data += `
 <td border=1 width=64 align=center valign=middle
-href="wtv-author:/add-media-to-block?docName=${docName}&blockNum=${blockNum}&blockClass=23&mediaPath=clipart%2F${encodeURIComponent(cat.path + "/" + cat.images[i])}&thumbnailPath=clipart%2Ficons%2F${encodeURIComponent(cat.path + "/" + cat.images[i])}">
+href="wtv-author:/add-media-to-block?docName=${docName}&blockNum=${blockNum}&blockClass=23&mediaPath=clipart%2F${wtvshared.escape(cat.path + "/" + cat.images[i])}&thumbnailPath=clipart%2Ficons%2F${wtvshared.escape(cat.path + "/" + cat.images[i])}">
 <img src="clipart/icons/${cat.path}/${cat.images[i]}" width=64 height=64>
 </td>`;
 	}

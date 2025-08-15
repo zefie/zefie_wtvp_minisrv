@@ -125,7 +125,7 @@ Discard favorites
 <input type=hidden name=favorite_folder_name value="${foldername}">
 <tbody><tr><spacer type=block WIDTH=199 HEIGHT=0><td width="5" height="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="199" height="1">
 </td></tr></tbody></table></table>`
-if (favoritenum == 0)
+if (favoritenum === 0)
 {
 	data += "<font size=2>&nbsp;&nbsp;&nbsp;<i>There are no favorites to discard in this folder.</i></font>";
 } else {
@@ -133,7 +133,7 @@ for (let i = 0; i < favoritenum; i++) {
 data += `<tr><table cellspacing=0 cellpadding=0>
 <td abswidth=15><img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
 <td abswidth=75 height=52 align=center valign=center>`
-if (favarray[i].imagetype == "url")
+if (favarray[i].imagetype === "url")
 	data += `<img src="${favarray[i].image}" width="70" vspace="5" height="52"><br>`
 else
 	data += `<img src="get-thumbnail?folder=${favarray[i].folder}&id=${favarray[i].id}" width="70" vspace="5" height="52"><br>`
@@ -190,7 +190,7 @@ data += `
 <td align=right valign=center>
 <td valign=center>
 <font color="#E7CE4A" size=-1><shadow>`
-if (favoritenum != 0)
+if (favoritenum !== 0)
 {
 	data += `
 <input

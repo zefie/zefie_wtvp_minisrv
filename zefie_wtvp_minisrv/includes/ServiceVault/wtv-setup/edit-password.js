@@ -3,18 +3,18 @@ let userSession = null;
 
 session_data.loadSessionData();
 
-let user_id = (request_headers.query.user_id) ? request_headers.query.user_id : session_data.user_id;
+let user_id = (request_headers.query.user_id) ? parseInt(request_headers.query.user_id) : session_data.user_id;
 
 // security
-if (session_data.user_id != 0 && session_data.user_id != user_id) {
+if (session_data.user_id !== 0 && session_data.user_id !== parseInt(request_headers.query.user_id)) {
     user_id = null; // force unset
     const errpage = wtvshared.doErrorPage(400, "You are not authorized to change the selected user's password.");
     headers = errpage[0];
     data = errpage[1];
 }
 
-if (user_id != null) {
-    if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
+if (user_id !== null) {
+    if (session_data.user_id === user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
         userSession.user_id = user_id;
@@ -34,7 +34,7 @@ Content-Type: text/html`;
 <HTML>
 <HEAD>
 <TITLE>
-Change ${(user_id == session_data.user_id) ? 'your' : 'user'} password
+Change ${(user_id === session_data.user_id) ? 'your' : 'user'} password
 </TITLE>
 <DISPLAY nosave skipback noscroll>
 </HEAD>
@@ -73,7 +73,7 @@ Change ${(user_id == session_data.user_id) ? 'your' : 'user'} password
 <td abswidth=14>
 <td abswidth=416 absheight=80 valign=center>
 <font size="+2" color="E7CE4A"><blackface><shadow>
-Change ${(user_id == session_data.user_id) ? 'your' : 'user'} password
+Change ${(user_id === session_data.user_id) ? 'your' : 'user'} password
 <td abswidth=20>
 <tr>
 <td>
@@ -162,4 +162,3 @@ value=Done name="Done" usestyle width=103>
 `;
     }
 }
-if (userSession) userSession = null;

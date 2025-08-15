@@ -16,7 +16,7 @@ class WTVRegister {
     }
 
     getServiceOperator(first_letter_lower = false) {
-        if (this.service_owner == "a minisrv user") {
+        if (this.service_owner === "a minisrv user") {
             if (first_letter_lower) return "the operator of this service";
             else return "The operator of this service";
         } else {
@@ -45,7 +45,7 @@ class WTVRegister {
         let available = true;
         if (this.fs.existsSync(directory)) {
             this.fs.readdirSync(directory).forEach(file => {
-                if (file.toLowerCase() == ssid.toLowerCase()) {
+                if (file.toLowerCase() === ssid.toLowerCase()) {
                     available = false;
                     return false;
                 }
@@ -97,7 +97,7 @@ class WTVRegister {
                     const temp_session_data_file = self.fs.readFileSync(directory + self.path.sep + file, 'Utf8');
                     const temp_session_data = JSON.parse(temp_session_data_file);
                     if (temp_session_data.subscriber_username) {
-                        if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                        if (temp_session_data.subscriber_username.toLowerCase() === username.toLowerCase()) {
                             return_val = true;
                         }
                     }

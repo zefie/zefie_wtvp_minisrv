@@ -5,7 +5,7 @@ let challenge_response, gourl, wtvsec_login;
 
 const hasPendingTransfer = session_data.hasPendingTransfer()
 if (hasPendingTransfer) {
-	if (hasPendingTransfer.type == "target") {
+	if (hasPendingTransfer.type === "target") {
 		const xferSession = new WTVClientSessionData(minisrv_config, hasPendingTransfer.ssid);
 		xferSession.user_id = 0
 		const primary_username = xferSession.listPrimaryAccountUsers()['subscriber']['subscriber_username'];
@@ -21,7 +21,7 @@ if (hasPendingTransfer) {
 		const errpage = wtvshared.doRedirect(transferPendingDest);
 		headers = errpage[0];
 		data = errpage[1];
-	} else if (hasPendingTransfer.type == "source") {
+	} else if (hasPendingTransfer.type === "source") {
 		const transferPendingSrc = new clientShowAlert({
 			'image': minisrv_config.config.service_logo,
 			'message': "There is a pending transfer of this account to <b>" + hasPendingTransfer.ssid + "</b>. In order to use this box, you need to complete or cancel the transfer.",
@@ -58,34 +58,38 @@ wtv-visit: client:hangupphone`
 		}
 		let errpage;
 		if (socket.ssid !== null) {
-			if (wtvsec_login.ticket_b64 == null) {
+			if (wtvsec_login.ticket_b64 === null) {
 				challenge_response = wtvsec_login.challenge_response;
 				client_challenge_response = request_headers["wtv-challenge-response"] || null;
 				if (challenge_response && client_challenge_response) {
-					if (challenge_response.toString(CryptoJS.enc.Base64) == client_challenge_response) {
+					if (challenge_response.toString(CryptoJS.enc.Base64) === client_challenge_response) {
 						console.log(" * wtv-challenge-response success for " + wtvshared.filterSSID(socket.ssid));
 						wtvsec_login.PrepareTicket();
 						gourl = "wtv-head-waiter:/login-stage-two?";
 					} else {
 						console.log(" * wtv-challenge-response FAILED for " + wtvshared.filterSSID(socket.ssid));
 						if (minisrv_config.config.debug_flags.debug) console.log("Response Expected:", challenge_response.toString(CryptoJS.enc.Base64));
-						if (minisrv_config.config.debug_flags.debug) console.log("Response Received:", client_challenge_response)
+						if (minisrv_config.config.debug_flags.debug) console.log("Response Received:", client_challenge_response);
 						errpage = wtvshared.doErrorPage(500, "Invalid challenge response received");
 						headers = errpage[0];
 						data = errpage[1];
 					}
 				} else {
-					errpage = wtvshared.doErrorPage(500, "No challenge response received");
-					headers = errpage[0];
-					data = errpage[1];
+					if (socket_sessions[socket.id].prealpha) {
+						gourl = "wtv-head-waiter:/login-stage-two?";
+					} else {
+						errpage = wtvshared.doErrorPage(500, "No challenge response received");
+						headers = errpage[0];
+						data = errpage[1];						
+					}
 				}
 			} else {
 				gourl = "wtv-head-waiter:/login-stage-two?";
 			}
 		}
 		if (!errpage) {
-			if (user_id != null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
-				if (request_headers.query.password == "") {
+			if (user_id !== null && !request_headers.query.initial_login && !request_headers.query.user_login && !request_headers.query.relogin && !request_headers.query.reconnect) {
+				if (request_headers.query.password === "") {
 					headers = `403 Please enter your password and try again
 minisrv-no-mail-count: true`;
 				} else if (session_data.validateUserPassword(request_headers.query.password)) {
@@ -94,6 +98,9 @@ minisrv-no-mail-count: true`;
 minisrv-no-mail-count: true
 Content-Type: text/html
 wtv-visit: ${gourl}`;
+					if (!socket_sessions[socket.id].prealpha) {
+						headers += "\nwtv-connection-close: true\nConnection: close";
+					}
 				} else {
 					headers = `403 The password you entered was incorrect. Please retype it and try again.
 minisrv-no-mail-count: true`;
@@ -110,10 +117,12 @@ minisrv-no-mail-count: true`;
 					limitedLoginRegistered = (limitedLogin && session_data.isRegistered());
 				}
 				headers = `200 OK
-wtv-connection-close: true
-Connection: close
 minisrv-no-mail-count: true
 Content-Type: text/html`;
+				if (!socket_sessions[socket.id].prealpha) {
+					headers += "\nwtv-connection-close: true\nConnection: close";
+				}
+
 				if (client_challenge_response) {
 					headers += `
 wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}`;

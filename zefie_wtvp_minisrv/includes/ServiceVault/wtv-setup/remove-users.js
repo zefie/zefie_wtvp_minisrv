@@ -1,10 +1,10 @@
 const minisrv_service_file = true;
 let errpage;
 
-if (Object.keys(session_data.listPrimaryAccountUsers()).length == 1) {
+if (Object.keys(session_data.listPrimaryAccountUsers()).length === 1) {
 	errpage = wtvshared.doErrorPage(400, "There are no more users to remove.");
 }
-else if (session_data.user_id != 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
+else if (session_data.user_id !== 0) errpage = wtvshared.doErrorPage(400, "You are not authorized to add users to this account.");
 if (errpage) {
 	headers = errpage[0];
 	data = errpage[1];

@@ -8,7 +8,7 @@ if (auth === true) {
     let password = null;
     if (request_headers.Authorization) {
         const authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }

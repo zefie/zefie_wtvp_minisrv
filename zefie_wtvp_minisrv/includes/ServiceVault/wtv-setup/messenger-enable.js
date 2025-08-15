@@ -1,7 +1,7 @@
 const minisrv_service_file = true;
 let justenabled, enablestatus;
 
-if (!session_data.getSessionData("messenger_enabled") == 1) {
+if (!session_data.getSessionData("messenger_enabled") === 1) {
 	session_data.setSessionData("messenger_enabled", 1);
 	session_data.saveSessionData;
 	justenabled = "true";

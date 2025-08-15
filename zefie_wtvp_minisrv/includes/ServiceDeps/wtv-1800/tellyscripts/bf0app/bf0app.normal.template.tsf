@@ -21,7 +21,7 @@ InitGeneratedValues()
 
 LoginToPOP(int Fb, int Gb)
 {
-	return PAPChat("wtv_%s", 0);
+	return PAPChat("wtv_%s", 2);
 }
 
 ChatWithIndexedProvider(int idx)

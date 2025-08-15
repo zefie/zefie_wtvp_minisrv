@@ -126,7 +126,7 @@ class WTVDownloadList {
     * @param {string} destination Destination file path in the User Store
     */
     putUserStoreDest(path, destination) {
-        this.put(path, `${this.service_name}:/userstore?partialPath=${encodeURIComponent(destination)}`);
+        this.put(path, `${this.service_name}:/userstore?partialPath=${this.wtvshared.escape(destination)}`);
     }
 
     /**
@@ -159,9 +159,9 @@ class WTVDownloadList {
         this.download_list += `group: ${group}-UPDATE\n`;
         this.download_list += `location: ${source}\n`;
         this.download_list += `file-permission: ${file_permission}\n`;
-        if (checksum != null) this.download_list += `wtv-checksum: ${checksum}\n`;
-        if (uncompressed_size != null) this.download_list += `wtv-uncompressed-filesize: ${uncompressed_size}\n`;
-        this.download_list += `service-source-location: /webtv/content/${source.slice(source.indexOf('-') + 1, source.indexOf(':/'))}d/${source.slice(source.indexOf(':/') + 2)}\n`;        
+        if (checksum !== null) this.download_list += `wtv-checksum: ${checksum}\n`;
+        if (uncompressed_size !== null) this.download_list += `wtv-uncompressed-filesize: ${uncompressed_size}\n`;
+        this.download_list += `service-source-location: /webtv/content/${source.slice(source.indexOf('-') + 1, source.indexOf(':/'))}d/${source.slice(source.indexOf(':/') + 2)}\n`;
         this.download_list += `client-dest-location: ${path}\n\n`;
     }
 
@@ -180,10 +180,10 @@ class WTVDownloadList {
     }
 
     getGroupDataFromClientPost(post_data) {
-        if (typeof post_data == 'string') post_data = post_data.split("\n\n");
+        if (typeof post_data === 'string') post_data = post_data.split("\n\n");
         const group_data = [];
         post_data.forEach(function (v) {
-            if (v.slice(0, 4) == "file") {
+            if (v.slice(0, 4) === "file") {
                 const block_split = v.split("\n");
                 const group_data_entry = {};
                 group_data_entry.path = block_split[0];

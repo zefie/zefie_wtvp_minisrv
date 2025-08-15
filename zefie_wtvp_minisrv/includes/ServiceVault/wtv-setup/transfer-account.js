@@ -1,7 +1,7 @@
 const minisrv_service_file = true;
 
 // security
-if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
+if (session_data.user_id !== 0 && session_data.user_id !== parseInt(request_headers.query.user_id)) {
     const errpage = wtvshared.doErrorPage(400, "You are not authorized to transfer this account. Please log in as the primary user.");
     headers = errpage[0];
     data = errpage[1];

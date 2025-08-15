@@ -23,7 +23,7 @@ class PBTemplate {
 </head>
 <body vlink="#fa7474" text="#faf3ed" link="#fa9d46" background="clipart/styleMedia/tile5.gif">`;
         // Do some templating here for some fucking reason
-        if (state == "previewing") {
+        if (state === "previewing") {
             this.styledata.header += `
 <TABLE cellspacing=0 cellpadding=0 bgcolor=#1e4261 border=1 width=100%>
 <TR><TD valign=middle align=center><FONT color=#D1D1D1>
@@ -33,7 +33,7 @@ to return to editing it.
 </TABLE>`;
         }
         this.styledata.titheader = ``;
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `<a href="wtv-author:/edit-title?docName=${docName}&titleOnly=true">
 `;
         }
@@ -43,7 +43,7 @@ to return to editing it.
         this.styledata.titheader += `
 ${title}
 </font></h1></center>`;
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `</a>`;
         }
 

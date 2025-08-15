@@ -96,7 +96,7 @@ appear on your screen.
 <BR>
 <BR>
 `;
-if (settings_obj['setup-keyboard'] == "standard") {
+if (settings_obj['setup-keyboard'] === "standard") {
     data += '<INPUT TYPE="radio" id="standard" NAME="setup-keyboard" VALUE="standard" selected>';
 } else {
     data += '<INPUT TYPE="radio" id="standard" NAME="setup-keyboard" VALUE="standard">';

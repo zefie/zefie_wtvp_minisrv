@@ -7,7 +7,7 @@ if (socket.ssid && session_data) {
 			socket_sessions[socket.id].wtvsec.ticket_b64 = request_headers["wtv-ticket"];
 			//socket_sessions[socket.id].secure == true;
 		}
-	} else if (socket_sessions[socket.id].wtvsec.ticket_b64 == null) {
+	} else if (socket_sessions[socket.id].wtvsec.ticket_b64 === null) {
 		// TODO: client should have a ticket and send it back by now, if not we should handle this correctly
 	}
 }

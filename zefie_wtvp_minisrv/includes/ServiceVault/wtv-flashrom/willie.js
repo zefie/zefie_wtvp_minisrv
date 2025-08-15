@@ -11,7 +11,7 @@ if (request_headers.query.vflash) delete request_headers.query.vflash;
 if (request_headers.query.pflash) delete request_headers.query.pflash;
 
 for (const [key, value] of Object.entries(request_headers.query)) {
-	proxy_query += "&" + key + "=" + encodeURIComponent(value);
+	proxy_query += "&" + key + "=" + wtvshared.escape(value);
 }
 
 if (!minisrv_config.services[service_name].use_zefie_server) {
@@ -20,7 +20,7 @@ if (!minisrv_config.services[service_name].use_zefie_server) {
 
 const options = {
 	host: "roms.minisrv.dev",
-	path: "/?minisrv=true&service_name="+encodeURIComponent(service_name)+"&pflash=" + session_data.get("wtv-client-rom-type") + proxy_query,
+	path: "/?minisrv=true&service_name="+wtvshared.escape(service_name)+"&pflash=" + session_data.get("wtv-client-rom-type") + proxy_query,
 	timeout: 5000,
 	method: 'GET'
 }

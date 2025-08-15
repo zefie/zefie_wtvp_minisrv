@@ -54,7 +54,7 @@ else {
 		if (session_data.getSessionData("subscriber_smtp_password") === null) {
 			session_data.setUserSMTPPassword(wtvshared.generatePassword(16));
         }
-		if (session_data.user_id == 0) {
+		if (session_data.user_id === 0) {
 			const accounts = session_data.listPrimaryAccountUsers();
 			let offline_user_list_str = "<user-list>\n";
 			let i = 0;
@@ -167,7 +167,7 @@ wtv-inactive-timeout: 1440
 			headers += "wtv-home-url: " + home_url + "\n";
 		}
 
-		if (session_data.get('wtv-need-upgrade') != 'true' && !request_headers.query.reconnect && !limitedLogin && !limitedLoginRegistered)
+		if (session_data.get('wtv-need-upgrade') !== 'true' && !request_headers.query.reconnect && !limitedLogin && !limitedLoginRegistered)
 			headers += "wtv-settings-url: wtv-setup:/get\n";
 
 		if (!limitedLogin && !limitedLoginRegistered) {

@@ -188,7 +188,7 @@ by name only.
 <td valign=top>
 <input type=hidden name=autosubmit autosubmit=onleave>
 <INPUT TYPE="checkbox" NAME="with_pictures" `
-if (session_data.getSessionData("subscriber_fav_images") == "true")
+if (session_data.getSessionData("subscriber_fav_images") === "true")
 	console.log("SELECTED")
 	data += "checked"
 data += ` selected>

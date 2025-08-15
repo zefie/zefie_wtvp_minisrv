@@ -87,7 +87,7 @@ class WTVFavorites {
 		const self = this;
 		if (folder_templates[folder]) {
 			Object.keys(folder_templates[folder]).forEach(function (k) {
-				self.createFavorite(folder_templates[folder][k].title, folder_templates[folder][k].url, folder, (folder_templates[folder][k].image_type == "image/wtv-bitmap") ? atob(folder_templates[folder][k].image) : folder_templates[folder][k].image, folder_templates[folder][k].image_type);
+				self.createFavorite(folder_templates[folder][k].title, folder_templates[folder][k].url, folder, (folder_templates[folder][k].image_type === "image/wtv-bitmap") ? atob(folder_templates[folder][k].image) : folder_templates[folder][k].image, folder_templates[folder][k].image_type);
             })
         } 
 	}
@@ -95,12 +95,12 @@ class WTVFavorites {
 	createDefaultFolders() {
 		const brandId = this.ssid.charAt(8);
 		this.createTemplateFolder("Recommended");
-		if (brandId == 7)
+		if (brandId === 7)
 			this.createTemplateFolder("Personal (Samsung)");
 		else
 			this.createTemplateFolder("Personal");
-		
-		if (brandId == 0)
+
+		if (brandId === 0)
 			this.createTemplateFolder("Sony");
 	}	
 	
@@ -145,7 +145,7 @@ class WTVFavorites {
 		const favoriteid = this.createFavoriteID();
 		const favoritefile = favoriteid + this.favFileExt;
 		const favoritefileout = folderpath + favoritefile;
-		if (imagetype != "url")
+		if (imagetype !== "url")
 			image = btoa(image);
 
 		title = decodeURIComponent(title).replaceAll("+", " ");
@@ -307,7 +307,7 @@ class WTVFavorites {
 		const keydata = JSON.parse(this.fs.readFileSync(favoritefileout));
 		const keys = Object.keys(keydata);
 		for (let i = 0; i < keys.length; i++) {
-			if (keydata[keys[i]].id == favoriteid) {
+			if (keydata[keys[i]].id === favoriteid) {
 				return { key: keys[i], folder: keydata[keys[i]].folder };
 			}
 		}
@@ -419,7 +419,7 @@ class WTVFavorites {
 					}
 					break;
 				}
-			if (oldkey != "none") {
+			if (oldkey !== "none") {
 				keydata[oldkey].folder = null;
 				keydata[oldkey].id = null;
 			}

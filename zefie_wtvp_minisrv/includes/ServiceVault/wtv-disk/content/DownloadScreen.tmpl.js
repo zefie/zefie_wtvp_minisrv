@@ -12,7 +12,7 @@ let diskmap_data = {};
 
  if (!request_headers.query.url) {
 	Object.keys(service_vaults).forEach(function (g) {
-		if (diskmap_json_file != null) return;
+		if (diskmap_json_file !== null) return;
 		diskmap_json_file = service_vaults[g] + "/" + service_name + "/" + diskmap_dir + diskmap + ".json";
 		if (!fs.existsSync(diskmap_json_file)) diskmap_json_file = null;
 	});
@@ -45,7 +45,7 @@ if (fail_url === null) fail_url = new clientShowAlert({
 let url;
 
 if (request_headers.query.url) {
-	url = encodeURIComponent(request_headers.query.url);
+	url = wtvshared.escape(request_headers.query.url);
 } else {
 	url = `wtv-disk:/sync`;
 	if (request_headers.query.diskmap) url += `%3fdiskmap%3d${request_headers.query.diskmap}`;
@@ -88,7 +88,7 @@ data = `<html>
 		<td colspan=2>
 		<td>
 			<font size=+1>
-				Your ${session_data.getBoxName()} is retrieving some files.
+				Your ${session_data.getBoxName(true)} is retrieving some files.
 				<p>This usually takes a while.
 			</font>
 	<tr>

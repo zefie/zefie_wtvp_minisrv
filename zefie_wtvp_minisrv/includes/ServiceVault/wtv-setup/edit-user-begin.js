@@ -3,27 +3,27 @@ session_data.loadSessionData();
 let userSession, user_id;
 
 if (request_headers.query.user_id) {
-    user_id = request_headers.query.user_id;
+    user_id = parseInt(request_headers.query.user_id);
 } else {
     user_id = session_data.user_id;
 }
 
 // security
-if (session_data.user_id != 0 && session_data.user_id != request_headers.query.user_id) {
+if (session_data.user_id !== 0 && session_data.user_id !== parseInt(request_headers.query.user_id)) {
     user_id = null; // force unset
     const errpage = wtvshared.doErrorPage(400, "You are not authorized to edit the selected user.");
     headers = errpage[0];
     data = errpage[1];
 }
 
-if (user_id != null) {
+if (user_id !== null) {
     headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html
 wtv-expire-all: wtv-setup:/edit-user
 wtv-noback-all: wtv-setup:/edit-user`
     
-    if (session_data.user_id == request_headers.query.user_id) userSession = session_data;
+    if (session_data.user_id === user_id) userSession = session_data;
     else {
         userSession = new WTVClientSessionData(minisrv_config, socket.ssid);
         userSession.user_id = user_id;
@@ -39,7 +39,7 @@ wtv-noback-all: wtv-setup:/edit-user`
 <HTML>
 <HEAD>
 <TITLE>
-Changing ${(user_id == 0) ? 'subscriber' : 'user'} information
+Changing ${(user_id === 0) ? 'subscriber' : 'user'} information
 </TITLE>
 <DISPLAY nosave
 noscroll>
@@ -79,7 +79,7 @@ noscroll>
 <td abswidth=14>
 <td abswidth=416 absheight=80 valign=center>
 <font size="+2" color="E7CE4A"><blackface><shadow>
-${(user_id == 0) ? 'Subscriber' : 'User'} information
+${(user_id === 0) ? 'Subscriber' : 'User'} information
 <td abswidth=20>
 <tr>
 <td>
@@ -162,4 +162,3 @@ value=Done name="Done" usestyle width=103>
 `;
     }
 }
-if (userSession) userSession = null;

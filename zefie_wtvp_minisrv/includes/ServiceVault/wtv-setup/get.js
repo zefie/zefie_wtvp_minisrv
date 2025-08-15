@@ -46,7 +46,7 @@ Content-Type: text/html`;
     data = "";
 
     Object.keys(settings_obj).forEach(function (k, v) {
-        data += k + "=" + encodeURIComponent(settings_obj[k]) + "&";
+        data += k + "=" + wtvshared.escape(settings_obj[k]) + "&";
     });
 
     data = data.slice(0, (data.length - 1));

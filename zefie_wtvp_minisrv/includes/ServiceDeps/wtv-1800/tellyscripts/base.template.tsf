@@ -1323,6 +1323,8 @@ PAPChat(char* userNameBase, char* fixedPassword)
 	} else if (fixedPassword == 1) {
 		/* pad out to 8 chars for PSI */
 		sprintf(password, "%08d", computefcs(gUsername));
+	} else if (fixedPassword == 2) {
+		sprintf(password, "%d", computefcs(gUsername));
 	} else {
 		strcpy(password, fixedPassword);
 	}

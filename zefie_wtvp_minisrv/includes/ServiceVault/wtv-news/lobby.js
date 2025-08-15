@@ -117,12 +117,12 @@ function printGroup(group) {
 }
 
 // evens
-Object.keys(featuredGroups).forEach((k) => { if (k % 2 == 0) { data += printGroup(featuredGroups[k]); } });
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 === 0) { data += printGroup(featuredGroups[k]); } });
 
 if (featuredGroups.length > 1) data += `<td WIDTH=20><td WIDTH=198 HEIGHT=220 VALIGN=top ALIGN=left>`;
 
 // odds
-Object.keys(featuredGroups).forEach((k) => { if (k % 2 != 0) data += printGroup(featuredGroups[k]); });
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 !== 0) data += printGroup(featuredGroups[k]); });
 
 
 data += `

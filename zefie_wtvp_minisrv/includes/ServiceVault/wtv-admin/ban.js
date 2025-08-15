@@ -7,7 +7,7 @@ if (auth === true) {
     let result, ssid, password;
     if (request_headers.Authorization) {
         const authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
@@ -44,10 +44,10 @@ wtv-expire-all: wtv-admin:/ban`;
 <input type="submit" value="Ban SSID">
 </form><br><br>`
         if (request_headers.query.ssid) {
-            if (result == wtva.REASON_SELF) {
+            if (result === wtva.REASON_SELF) {
                 data += "<strong>Cannot ban yourself.</strong>"
             } else {
-                if (result == wtva.REASON_EXISTS) {
+                if (result === wtva.REASON_EXISTS) {
                     data += "<strong>SSID " + request_headers.query.ssid + " is already in the ban list.</strong><br><br>";
                 } else if (result === wtva.SUCCESS) {
                     reloadConfig();

@@ -1259,9 +1259,9 @@ class WTVBGMusic {
         // check if we need to set defaults
         let setDefaults = force_default;
         if (!music_obj.enableCategories) setDefaults = true;
-        else if (music_obj.enableCategories.length == 0) setDefaults = true;
+        else if (music_obj.enableCategories.length === 0) setDefaults = true;
         if (!music_obj.enableSongs) setDefaults = true;
-        else if (music_obj.enableSongs.length == 0) setDefaults = true;
+        else if (music_obj.enableSongs.length === 0) setDefaults = true;
 
         if (setDefaults === true) {
             // set up defaults
@@ -1355,10 +1355,10 @@ class WTVBGMusic {
             musiclist[k].id = k;
             if (String(category).length === 1) {
                 // 3 digit song id
-                if (parseInt(k.slice(0, 1)) == parseInt(category) && String(k).length === 3) songList.push(musiclist[k]);
+                if (parseInt(k.slice(0, 1)) === parseInt(category) && String(k).length === 3) songList.push(musiclist[k]);
             } else if (String(category).length === 2) {
                 // 4 digit song id
-                if (parseInt(k.slice(0, 2)) == parseInt(category) && String(k).length === 4) songList.push(musiclist[k]);
+                if (parseInt(k.slice(0, 2)) === parseInt(category) && String(k).length === 4) songList.push(musiclist[k]);
             }
         });
         return songList.filter(value => Object.keys(value).length !== 0);
@@ -1385,7 +1385,7 @@ class WTVBGMusic {
         const music_obj = this.getMusicObj();
         let enabled = false;
         music_obj.enableCategories.forEach(function (v) {
-            if (parseInt(v) == parseInt(category)) {
+            if (parseInt(v) === parseInt(category)) {
                 enabled = true;
             }
         });
@@ -1396,7 +1396,7 @@ class WTVBGMusic {
         const music_obj = this.getMusicObj();
         let enabled = false;
         music_obj.enableSongs.forEach(function (v) {
-            if (parseInt(v) == parseInt(song)) {
+            if (parseInt(v) === parseInt(song)) {
                 if (checkCat) {
                     const songCategory = this.getSongCategory(song);
                     if (this.isCategoryEnabled(songCategory)) {

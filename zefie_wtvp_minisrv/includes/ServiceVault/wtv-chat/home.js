@@ -109,12 +109,12 @@ Chat Home
 <table>
 <tr>
 <td abswidth="120">Server:</td>
-<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || (minisrv_config.config.irc.enabled) ? minisrv_config.config.service_ip : "irc.libera.chat"}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || "irc.libera.chat"}"></td>
 </tr>
 
 <tr>
 <td>Port:</td>
-<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="port" value="${request_headers.query.port || (minisrv_config.config.irc.enabled) ? minisrv_config.config.irc.port : 6667}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="port" value="${request_headers.query.port || 6667}"></td>
 </tr>
 
 <tr>

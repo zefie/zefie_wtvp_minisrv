@@ -71,22 +71,23 @@ Television
 <spacer type=block height=24 width=1>
 <td WIDTH=200 HEIGHT=244 VALIGN=top ALIGN=left>
 <br><font size="-1">
-<A HREF="wtv-setup:/center-display" selected><BLACKFACE>Center</BLACKFACE></A><BR>
-<FONT SIZE="-1">Center WebTV on your screen</FONT><BR>`;
+<A HREF="wtv-setup:/adjust-display-intro"><BLACKFACE>Picture</BLACKFACE></A><BR>
+<FONT SIZE="-1">Adjust brightness, contrast, and sharpness</FONT><BR>
+`;
 
 // old classic apparently can do Screen Border
-if (session_data.get("wtv-client-rom-type") == "bf0app") {
+if (session_data.get("wtv-client-rom-type") === "bf0app") {
     data += `<spacer type=block width=1 height=5><BR>
 <A HREF="wtv-setup:/screen-border" selected><BLACKFACE>Border</BLACKFACE></A><BR>
-<FONT SIZE="-1">Change the color of the screen border</FONT><BR>`;
-}
+<FONT SIZE="-1">Change the color of the screen border</FONT><BR>
 
-data += `
 <TD WIDTH=20>
 <TD WIDTH=500 VALIGN=top ALIGN=left>
 <spacer type=block width=15 height=14> <font size="2"><br>
-<A HREF="wtv-setup:/adjust-display-intro"><BLACKFACE>Picture</BLACKFACE></A><BR>
-<FONT SIZE="-1">Adjust brightness, contrast, and sharpness</FONT><BR>
+<A HREF="wtv-setup:/center-display" selected><BLACKFACE>Center</BLACKFACE></A><BR>
+<FONT SIZE="-1">Center WebTV on your screen</FONT><BR>`;
+}
+data += `
 <TD>
 <TR>
 <TD>

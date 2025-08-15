@@ -47,7 +47,7 @@ to return to editing it.
 <td><img height="150" width="150" src="clipart/Animations/j0205352.gif"></td>
 <td >
 <center>`;
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `<a href="wtv-author:/edit-title?docName=${docName}&titleOnly=true">
 `;
         }
@@ -56,7 +56,7 @@ to return to editing it.
             this.styledata.text +
             `><b>${title}</b></font></center>`;
 
-        if (state == "editing") {
+        if (state === "editing") {
             this.styledata.titheader += `</a>`;
         }
 

@@ -5,7 +5,7 @@ let site = "";
 if (minisrv_config.services['wtv-author'].public_domain) {
     site = minisrv_config.services['wtv-author'].public_domain;
 } else {
-    if (minisrv_config.services['wtv-author'].publish_mode == "service") {
+    if (minisrv_config.services['wtv-author'].publish_mode === "service") {
         const target_service = minisrv_config.services[minisrv_config.services['wtv-author'].publish_dest];
         if (target_service) {
             site = target_service.host + ":" + target_service.port;

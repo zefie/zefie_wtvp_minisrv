@@ -74,7 +74,7 @@ const patch_limits = {
 
 function getPatchDataType(type, invert = false) {
     let patch_data = false;
-    if ((type == "wtv-incarnation" && !invert) || (type == "wtv-encryption" && invert)) {
+    if ((type === "wtv-incarnation" && !invert) || (type === "wtv-encryption" && invert)) {
         patch_data = "wtv-client-serial-number: %s\r\n"
         patch_data += "wtv-user-requested-upgrade: %s\r\n";
         patch_data += "wtv-system-cpuprid: %s\r\n";
@@ -87,7 +87,7 @@ function getPatchDataType(type, invert = false) {
         patch_data += "wtv-system-chipversion: %s\r\n";
         patch_data += "User-Agent: %s\r\n";
     }
-    else if ((type == "wtv-encryption" && !invert) || (type == "wtv-incarnation" && invert) ) {
+    else if ((type === "wtv-encryption" && !invert) || (type === "wtv-incarnation" && invert) ) {
         patch_data = "wtv-tourist-enabled: %s\r\n";
         patch_data += "wtv-demo-enabled: %s\r\n";
         patch_data += "wtv-default-client-scriptprops: %s\r\n";
@@ -106,7 +106,7 @@ function getPatchDataType(type, invert = false) {
 
 function getResData(file) {
     let res_data = null;
-    if (file.slice(-2, 2).toLowerCase() == "gz") {
+    if (file.slice(-2, 2).toLowerCase() === "gz") {
         const res_gz_data = wtvshared.getServiceDep("/viewergen/" + file);
         res_data = zlib.gunzipSync(res_gz_data);
     } else {
@@ -227,14 +227,14 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
         const val = customized_patch_data[idx];
         if (typeof val === 'string') {
             // start url override
-            if (start_url != patch_defaults.start_url && start_url.length <= patch_limits.start_url) {
-                if (val.slice(0, patch_defaults.start_url.length) == patch_defaults.start_url)
+            if (start_url !== patch_defaults.start_url && start_url.length <= patch_limits.start_url) {
+                if (val.slice(0, patch_defaults.start_url.length) === patch_defaults.start_url)
                     customized_patch_data[idx] = start_url + "\x00";
             }
 
             // default service ip override
-            if (default_ip != patch_defaults.default_ip && default_ip.length <= patch_limits.default_ip) {
-                if (val.slice(0, patch_defaults.default_ip.length) == patch_defaults.default_ip)
+            if (default_ip !== patch_defaults.default_ip && default_ip.length <= patch_limits.default_ip) {
+                if (val.slice(0, patch_defaults.default_ip.length) === patch_defaults.default_ip)
                     customized_patch_data[idx] = default_ip + "\x00";
             }
         } else {
@@ -242,7 +242,7 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
                 // not a buffer object
                 let patch_data_string = "";
                 const block_length = val['length'];
-                const patch_data = getPatchDataType(val['type'], (fname.slice(12, 3) != "1.1"));
+                const patch_data = getPatchDataType(val['type'], (fname.slice(12, 3) !== "1.1"));
                 if (patch_data) {
                     const patch_data_array = patch_data.split("\r\n");
                     
@@ -256,7 +256,7 @@ function getPatchData(fname, client_data_obj, start_url = "client:GoToConn", def
                         }
                     });
                 }
-                if (fname.slice(12, 3) != "2.5") {
+                if (fname.slice(12, 3) !== "2.5") {
                     const length_difference = block_length - patch_data_string.length;
                     if (length_difference > 0)
                         patch_data_string += "\x00".repeat(length_difference - (val['type'].length + 1));
@@ -292,7 +292,7 @@ function patchBinary(patchDataObject) {
 function generateSSID() {
     const ssid_template = "91xxxxxxaeb002";
     let ssid = ssid_template;
-    while (ssid.indexOf("x") != -1) {
+    while (ssid.indexOf("x") !== -1) {
         // random hex char from 0-F
         ssid = ssid.replace("x", Math.floor(Math.random() * 16).toString(16))
     }    
@@ -458,7 +458,7 @@ if (request_headers.query.viewer &&
         const viewer_gz_data = wtvshared.getServiceDep("/viewergen/" + viewer_file + ".gz");
         const viewer_data = zlib.gunzipSync(viewer_gz_data);
         const viewer_md5 = crypto.createHash('md5').update(viewer_data).digest("hex");
-        if (viewer_md5 != viewer_stock_md5s[viewer_file]) {
+        if (viewer_md5 !== viewer_stock_md5s[viewer_file]) {
             console.error(viewer_file, "md5sum error. expected:", viewer_stock_md5s[viewer_file], ", got:", viewer_md5)
             const errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
             headers = errpage[0];
@@ -514,8 +514,8 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                 console.log(request_headers)
                 let update_str = "http://" + request_headers.host + request_headers.request_url.split('?')[0] + "?ssid=" + client_ssid;
                 Object.keys(request_headers.query).forEach((k) => {
-                    if (k != "random_ssid") {
-                        update_str += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(request_headers.query[k]);
+                    if (k !== "random_ssid") {
+                        update_str += "&" + wtvshared.escape(k) + "=" + wtvshared.escape(request_headers.query[k]);
                     }
                 });
                 zip.addFile("update_url.txt", update_str);
@@ -525,7 +525,7 @@ Content-Disposition: attachment; filename="${viewer_file.replace(".exe", ".zip")
                     const romset_zip = new AdmZip(wtvshared.getServiceDep("/viewergen/" + viewer_file.replace(".exe", "").replace("WebTVIntel", "AppData") + ".zip", true));
                     const zipEntries = romset_zip.getEntries();
                     zipEntries.forEach(function (zipEntry) {
-                        if (zipEntry.entryName == "Setup.bmp" && request_headers.query.logo) {
+                        if (zipEntry.entryName === "Setup.bmp" && request_headers.query.logo) {
                             const logo_file = logos[parseInt(request_headers.query.logo) || 0];
                             if (logo_file) {
                                 const logo_gz_data = wtvshared.getServiceDep("/viewergen/" + logo_file + ".gz");

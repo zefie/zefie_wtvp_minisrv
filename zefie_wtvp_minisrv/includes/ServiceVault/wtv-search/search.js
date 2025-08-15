@@ -94,9 +94,9 @@ function process(data) {
                 if (result.description) {
                     result.description = result.description.replace(/\</g, '&lt;').replace(/\>/g, '&gt;');
                 }
-                result.encodedurl = encodeURIComponent(result.url);
+                result.encodedurl = wtvshared.escape(result.url);
                 if (result.thumbnail_src) {
-                    result.thumbnail_src = service_name + "/imgproxy?url=" + encodeURIComponent(result.thumbnail_src);
+                    result.thumbnail_src = service_name + "/imgproxy?url=" + wtvshared.escape(result.thumbnail_src);
                 }
 
                 content.push(result);

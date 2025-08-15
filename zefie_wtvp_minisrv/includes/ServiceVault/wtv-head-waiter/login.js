@@ -14,7 +14,7 @@ let send_to_relogin = true;
 
 if (session_data) {
 	if (request_headers["wtv-ticket"]) {
-		if (session_data.data_store.wtvsec_login.ticket_b64 == null) {
+		if (session_data.data_store.wtvsec_login.ticket_b64 === null) {
 			if (request_headers["wtv-ticket"].length > 8) {
 				session_data.data_store.wtvsec_login.DecodeTicket(request_headers["wtv-ticket"]);
 				session_data.data_store.wtvsec_login.ticket_b64 = request_headers["wtv-ticket"];
@@ -25,7 +25,7 @@ if (session_data) {
 		if (session_data.data_store.wtvsec_login) {
 			const client_challenge_response = request_headers["wtv-challenge-response"] || null;
 			if (challenge_response && client_challenge_response) {
-				if (challenge_response.toString(CryptoJS.enc.Base64).slice(0, 85) == client_challenge_response.slice(0, 85)) {
+				if (challenge_response.toString(CryptoJS.enc.Base64).slice(0, 85) === client_challenge_response.slice(0, 85)) {
 					console.log(" * wtv-challenge-response success for " + socket.ssid);
 					session_data.data_store.wtvsec_login.PrepareTicket();
 					send_to_relogin = false;
@@ -50,7 +50,7 @@ Expires: Wed, 09 Oct 1991 22:00:00 GMT
 wtv-expire-all: wtv-head-waiter:
 `+ getServiceString('wtv-log') + `
 wtv-log-url: wtv-log:/log`;
-	if (challenge_header != "") headers += "\n" + challenge_header;
+	if (challenge_header !== "") headers += "\n" + challenge_header;
 	headers += `
 wtv-country: US
 wtv-language-header: en-US,en

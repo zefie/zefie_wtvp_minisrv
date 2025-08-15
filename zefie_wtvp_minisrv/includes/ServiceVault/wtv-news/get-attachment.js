@@ -4,7 +4,7 @@ request_is_async = true;
 let errpage = null;
 const group = request_headers.query.group;
 const attachment_id = parseInt(request_headers.query.attachment_id);
-if ((!attachment_id && attachment_id != 0) || !group || !request_headers.query.article) {
+if ((!attachment_id && attachment_id !== 0) || !group || !request_headers.query.article) {
     errpage = wtvshared.doErrorPage(400, "Attachment ID required.");
     sendToClient(socket, errpage[0], errpage[1]);
 } else {
@@ -32,13 +32,13 @@ if ((!attachment_id && attachment_id != 0) || !group || !request_headers.query.a
         wtvnews.selectGroup(group).then((response) => {
             wtvnews.getArticle(article).then((response) => {
                 wtvnews.quitUsenet();
-                if (response.code == 220) {
+                if (response.code === 220) {
                     const message_data = wtvnews.parseAttachments(response);
                     if (message_data.attachments) {
                         if (attachment_id < message_data.attachments.length) {
                             const attachment = message_data.attachments[attachment_id];
                             const encoding = attachment.content_encoding.toLowerCase()
-                            if (encoding == 'base64') {
+                            if (encoding === 'base64') {
                                 data = Buffer.from(attachment.data, encoding);
                                 headers = "200 OK\n"
                                 headers += "Content-Type: " + attachment.content_type + "\n";

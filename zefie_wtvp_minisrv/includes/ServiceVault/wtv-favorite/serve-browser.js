@@ -207,7 +207,7 @@ Object.keys(favarray).forEach(function (k) {
 	data += `</td><td abswidth="139" valign="top">
 <table href="${url}" bgcolor="191919">
 <tbody><tr><td abswidth="139" align="center">`;
-	if (favarray[k].imagetype == "url")
+	if (favarray[k].imagetype === "url")
 		data += `<img src="${favarray[k].image}" width="70" vspace="5" height="52"><br>`;
 	else
 		data += `<img src="get-thumbnail?folder=${favarray[k].folder}&id=${favarray[k].id}" width="70" vspace="5" height="52"><br>`;
@@ -218,7 +218,7 @@ ${favarray[k].title}
 </font>
 </td></tr></tbody></table>
 </td></tr></tbody></table>`;
-	if ((parseInt(k) + 1) % 3 == 0) {
+	if ((parseInt(k) + 1) % 3 === 0) {
 		// every 3 objects
 		data += `</td></tr></tbody></table>
 <table cellspacing="0" cellpadding="0">

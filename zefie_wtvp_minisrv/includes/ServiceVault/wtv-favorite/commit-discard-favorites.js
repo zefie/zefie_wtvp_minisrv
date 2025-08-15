@@ -6,11 +6,11 @@ const query = request_headers.query
 const discardAll = request_headers.query.DiscardAll
 let strName;
 
-if (discardAll != "Discard All")
+if (discardAll !== "Discard All")
 {
 	for(strName in query)
 	{
-		if (strName != "favorite_folder_name")
+		if (strName !== "favorite_folder_name")
 			break;
 	}
 
@@ -24,7 +24,7 @@ if (request_headers.query.ForwardToBrowser)
 Connection: Keep-Alive
 Content-Type: text/html
 Location: wtv-favorite:/serve-browser?favorite_folder_name=${folder}`
-} else if (strName != "getCaseInsensitiveKey") {
+} else if (strName !== "getCaseInsensitiveKey") {
 	const favorite = session_data.favstore.getFavorite(folder, strName);
 
 	if (errpage) {
@@ -33,7 +33,7 @@ Location: wtv-favorite:/serve-browser?favorite_folder_name=${folder}`
 	} else {
 		if (!request_headers.query.confirm_remove) {
 			let message, removeurl;
-			if (discardAll == "Discard All")
+			if (discardAll === "Discard All")
 			{
 				message = `Are you sure you want to discard all favorites in this folder?`;
 				removeurl = request_headers.request_url + "&confirm_remove=true&DiscardAll=Discard All";
@@ -58,7 +58,7 @@ Location: ${confirmAlert}`
 		} else {
 			
 			const gourl = `wtv-favorite:/serve-discard-favorites?favorite_folder_name=${folder}`;
-			if (discardAll == "Discard All")
+			if (discardAll === "Discard All")
 			{
 				session_data.favstore.clearFolder(folder);
 			} else {

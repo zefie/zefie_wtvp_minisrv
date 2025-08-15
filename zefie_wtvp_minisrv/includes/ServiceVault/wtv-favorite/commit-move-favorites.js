@@ -12,14 +12,14 @@ else {
 		// one favorite
 		const favid = request_headers.query.favoriteid;
 		const favfolder = request_headers.query.favoritefolder;
-		if (folder != favfolder) session_data.favstore.moveFavorite(folder, favfolder, favid);
+		if (folder !== favfolder) session_data.favstore.moveFavorite(folder, favfolder, favid);
 	} else {
-		if (request_headers.query.favoriteid.length == request_headers.query.favoritefolder.length) {
-			// both queries should have the same number of entries 
+		if (request_headers.query.favoriteid.length === request_headers.query.favoritefolder.length) {
+			// both queries should have the same number of entries
 			Object.keys(request_headers.query.favoriteid).forEach(function (k) {
 				const favid = request_headers.query.favoriteid[k];
 				const favfolder = request_headers.query.favoritefolder[k];
-				if (folder != favfolder) session_data.favstore.moveFavorite(folder, favfolder, favid);
+				if (folder !== favfolder) session_data.favstore.moveFavorite(folder, favfolder, favid);
 			})
 		} else {
 			error_occured = true;

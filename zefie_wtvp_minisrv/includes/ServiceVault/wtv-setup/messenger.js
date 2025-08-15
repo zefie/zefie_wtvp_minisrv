@@ -47,7 +47,7 @@ function ShowMessengerPanel()
 </table>
 </sidebar>
 <BODY BGCOLOR="#191919" TEXT="#42CC55" LINK="189CD6" VLINK="189CD6" HSPACE=0 VSPACE=0 FONTSIZE="large"`;
-if (request_headers.query.just_enabled == "true") {
+if (request_headers.query.just_enabled === "true") {
 	data += "onload=ShowMessengerPanel()"
 } data += `
 >
@@ -69,7 +69,7 @@ Messenger
 <tr>
 <td absheight=195 valign=top>
 Messenger is currently <b>`;
-if (session_data.getSessionData("messenger_enabled") == 1) {
+if (session_data.getSessionData("messenger_enabled") === 1) {
 	data += "on"
 } else {
 	data += "off"
@@ -81,7 +81,7 @@ if (session_data.getSessionData("messenger_enabled") == 1) {
 <tr>
 <td align=left>
 <a href="messenger-enable">Turn messenger `;
-if (!session_data.getSessionData("messenger_enabled") == 1) {
+if (!session_data.getSessionData("messenger_enabled") === 1) {
 	data += "on"
 } else {
 	data += "off"

@@ -39,7 +39,7 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
                 'image': minisrv_config.config.service_logo,
                 'message': "You are about to add an image to your scrapbook.<br><br>Do you wish to continue?",
                 'buttonlabel1': "Continue",
-                'buttonaction1': "wtv-author:/scrapbook-add?confirm=true&mediaPath=" + encodeURIComponent(request_headers.query.mediaPath || ''),
+                'buttonaction1': "wtv-author:/scrapbook-add?confirm=true&mediaPath=" + wtvshared.escape(request_headers.query.mediaPath || ''),
                 'buttonlabel2': "Cancel",
                 'buttonaction2': "client:donothing"
             }).getURL();
@@ -48,7 +48,7 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
             function isValidImageType(contentType, url) {
                 // Check content-type header or file extension
                 if (contentType) {
-                    return contentType === 'image/jpeg' || contentType == 'image/jpg' || contentType === 'image/gif';
+                    return contentType === 'image/jpeg' || contentType === 'image/jpg' || contentType === 'image/gif';
                 }
                 return url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.gif');
             }

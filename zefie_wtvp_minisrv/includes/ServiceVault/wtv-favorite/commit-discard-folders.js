@@ -33,7 +33,7 @@ Location: wtv-favorite:/favorite`
 	} else {
 		if (!request_headers.query.confirm_remove) {
 			let message = '';
-			if (numoffavorites == 0) {
+			if (numoffavorites === 0) {
 				message = `Are you sure you want to remove <b>${folder}</b>?`;
 			} else {
 				message = `Removing <b>${folder}</b> will also remove the ${numoffavorites} favorites it contains.`;

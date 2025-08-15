@@ -1,0 +1,486 @@
+{
+	"YDKJ": {
+		"base": "file://Disk/Jack2/",
+		"location": "content/YDKJ/",
+        "partition_size": 44457280,
+	    "service_owned": true,
+	    "execute_end": "client:boota?partition=JackROM&action=create&size=5242880&source=file://disk/Jack2/jack.o",
+		"files": [
+			{
+				"display": "Getting YDKJ Application...",
+				"file": "file://Disk/Jack2/jack.o"
+			},
+			{
+                "display": "Getting YDKJ Content...",
+				"file": "file://Disk/Jack2/DemoGame1/JackNetShow.ini"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/base1.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/base2uc.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/base3.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/adfold/acr182.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/adfold/bud143.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/adfold/hug173.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/adfold/nab184.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/adfold/usr135.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/adfold/vis171.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fonts/Jac_____.ttf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fonts/Jaec____.ttf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fonts/Jar_____.ttf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp030.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp060.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp070.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp075.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp080.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp090.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp100.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp110.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp120.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp130.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp140.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp150.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp251.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp252.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp253.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp254.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp255.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp256.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp257.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp258.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp259.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp260.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp261.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp262.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp263.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp264.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp265.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp266.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp267.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp268.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp269.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp270.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp271.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp272.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp273.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp274.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp275.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp276.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp277.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp278.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp279.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp280.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp281.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp282.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp283.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp284.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp285.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp286.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp287.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp288.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp289.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp290.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp291.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp292.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp293.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp294.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/fp/fp295.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq01082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq01800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq01801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq02082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq02800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq02801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq03082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq03800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq03801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq04082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq04800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq04801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq05082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq05800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq05801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq06082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq06800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq06801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq07082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq07800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq07801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq08082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq08800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq08801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq09082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq09800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq09801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq10082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq10800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq10801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq11082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq11800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq11801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq12082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq12800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq12801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq13082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq13800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq13801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq14082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq14800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq14801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq15082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq15800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq15801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq16082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq16800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq16801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq17082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq17800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq17801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq18082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq18800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq18801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq19082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq19800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq19801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq20082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq20800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq20801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq21082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq21800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq21801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq22082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq22800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq22801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq23082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq23800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq23801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq24082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq24800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/dq24801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/tmpl082.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/tmpl800.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/DemoGame1/data/qfold/tmpl801.srf"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/AboutESRB.html"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/AboutJack.html"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/Arrow_TOC.gif"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/GamesBanner.gif"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/GamesShadowLogo.gif"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/JackHints.html"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/JackInstructions.html"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/JackLogo_LG.gif"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/JackRating.html"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/JackSpotArt.gif"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/JackTOC.html"
+			},
+			{
+				"file": "file://Disk/Jack2/docs/Pattern_Games.gif"
+			}		]
+	}
+}

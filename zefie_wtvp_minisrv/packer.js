@@ -14,7 +14,7 @@ if (process.argv) {
     if (process.argv[2]) {
         let reverse = false;
         let file = process.argv[2];
-        if (file == "-d") {
+        if (file === "-d") {
             file = process.argv[3];
             reverse = true;
         }

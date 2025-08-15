@@ -4,7 +4,7 @@ const action = request_headers.query.action;
 
 let address_book = null
 address_book = session_data.getSessionData("address_book")
-if (address_book == null) {
+if (address_book === null) {
 	session_data.setSessionData("address_book", [])
 	address_book = [];
 }
@@ -625,9 +625,9 @@ text="E7CE4A"
 font=proportional
 name="nickname"
 value="`;
-			if (action == 'editfromheader') {
+			if (action === 'editfromheader') {
 				data += request_headers.query.nickname
-			} else if (action == 'edit' && request_headers.query.id) {
+			} else if (action === 'edit' && request_headers.query.id) {
 				data += address_book[request_headers.query.id].name
 			}
 			data += `"
@@ -652,9 +652,9 @@ font=proportional
 nosoftbreaks nohardbreaks
 name="address"
 value="`;
-			if (action == 'editfromheader') {
+			if (action === 'editfromheader') {
 				data += request_headers.query.address
-			} else if (action == 'edit' && request_headers.query.id) {
+			} else if (action === 'edit' && request_headers.query.id) {
 				data += address_book[request_headers.query.id].address
 			}
 			data += `"
@@ -784,7 +784,7 @@ Location: wtv-mail:/addressbook`;
 			break;
 
 		case "discard":
-			if (address_book.length == 1) {
+			if (address_book.length === 1) {
 				address_book = []
 			} else {
 				address_book.splice(request_headers.query.id, 1)

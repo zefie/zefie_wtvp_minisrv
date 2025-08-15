@@ -37,13 +37,13 @@ class WTVNews {
     connectUsenet() {
         return new Promise((resolve, reject) => {
             this.client.connect().then((response) => {
-                if (response.code == 200 || response.code == 201) {
-                    if (response.code == 201) this.posting_allowed = false;
+                if (response.code === 200 || response.code === 201) {
+                    if (response.code === 201) this.posting_allowed = false;
                     if (this.username && this.password) {
                         this.client.authInfoUser(this.username).then((res) => {
-                            if (res.code == "381") {
+                            if (res.code === 381) {
                                 res.authInfoPass(this.password).then((res) => {
-                                    if (res.code == 281) resolve(true);
+                                    if (res.code === 281) resolve(true);
                                     else reject(res.description);
                                 }).catch((e) => {
                                     console.error(" * WTVNews Error:", "Command: connect", e);
@@ -124,7 +124,7 @@ class WTVNews {
     selectGroup(group) {
         return new Promise((resolve, reject) => {
             this.client.group(group).then((response) => {
-                if (response.code == 211) resolve(response);
+                if (response.code === 211) resolve(response);
                 else reject(`No such group <b>${group}</b>`);
             }).catch((e) => {
                 console.error(" * WTVNews Error:", "Command: selectGroup", e);
@@ -241,7 +241,7 @@ class WTVNews {
         let response;
         if (message.article.headers) {
             Object.keys(message.article.headers).forEach((k) => {
-                if (k.toLowerCase() == header.toLowerCase()) {
+                if (k.toLowerCase() === header.toLowerCase()) {
                     response = message.article.headers[k];
                     return false;
                 }
@@ -253,7 +253,7 @@ class WTVNews {
     quitUsenet() {
         return new Promise((resolve, reject) => {
             this.client.quit().then((response) => {
-                if (response.code == 205) resolve(true);
+                if (response.code === 205) resolve(true);
                 else {
                     console.error(" * WTVNews Error:", "Command: quit", response.code);
                     reject(`Unexpected response code ${response.code}`);
@@ -290,7 +290,7 @@ class WTVNews {
                     Promise.all(promises).then(() => {
                         this.client.post()
                             .then((response) => {
-                                if (response.code == 340) {
+                                if (response.code === 340) {
                                     const articleData = {};
                                     articleData.headers = {
                                         'Relay-Version': "version zefie_wtvp_minisrv " + this.minisrv_config.version + "; site " + this.minisrv_config.config.domain_name,
@@ -356,7 +356,7 @@ class WTVNews {
             const messages = [];
             const promises = [];
             for (const article in NGArticles) {
-                if (article == "getCaseInsensitiveKey" || isNaN(article)) continue;
+                if (article === "getCaseInsensitiveKey" || isNaN(article)) continue;
                 promises.push(new Promise((resolve, reject) => {
                     this.getHeader(NGArticles[article]).then((data) => {
                         if (data.article) messages.push(data.article)
@@ -419,7 +419,7 @@ class WTVNews {
                             section_match = line.match(/^Content-Transfer-Encoding: (.+)/i)
                             if (section_match) attachments[i].content_encoding = section_match[1];
                         } else {
-                            if (section_type != null) {
+                            if (section_type !== null) {
                                 if (section_type.match("text/plain")) message_body += line;
                                 else {
                                     if (attachments[i].data) attachments[i].data += line;
@@ -459,7 +459,7 @@ class WTVNews {
             const messageId = messages[k].messageId;
             const ref = messages[k].headers.REFERENCES;
             if (ref) {
-                const res = message_id_roots.find(e => e.messageId == ref);
+                const res = message_id_roots.find(e => e.messageId === ref);
                 if (res) {
                     // see if its attached to a root post
                     if (message_relations[res.messageId]) message_relations[res.messageId].push({ "messageId": messageId, "index": k });
@@ -473,11 +473,11 @@ class WTVNews {
                             if (message_relations[j].length > 0) {
                                 Object.keys(message_relations[j]).forEach((h) => {
                                     if (found) return;
-                                    if (message_relations[j][h].messageId == ref) {
+                                    if (message_relations[j][h].messageId === ref) {
                                         let searchref = messages[message_relations[j][h].index].headers.REFERENCES || null;
                                         let mainref = j; // j is already the main reference messageId
                                         while (searchref !== null) {
-                                            const searchart = messages.find(e => e.messageId == searchref);
+                                            const searchart = messages.find(e => e.messageId === searchref);
                                             if (searchart) {
                                                 mainref = searchart.messageId;
                                                 searchref = searchart.headers.REFERENCES || null;
@@ -495,7 +495,7 @@ class WTVNews {
                     
                     // If not found in relations, add as root (but check for duplicates first)
                     if (!found) {
-                        const existingRoot = message_id_roots.find(e => e.messageId == messageId);
+                        const existingRoot = message_id_roots.find(e => e.messageId === messageId);
                         if (!existingRoot) {
                             message_id_roots.push({ "messageId": messageId, "index": k });
                         }
@@ -504,7 +504,7 @@ class WTVNews {
             }
             else {
                 // Check for duplicates before adding as root
-                const existingRoot = message_id_roots.find(e => e.messageId == messageId);
+                const existingRoot = message_id_roots.find(e => e.messageId === messageId);
                 if (!existingRoot) {
                     message_id_roots.push({ "messageId": messageId, "index": k });
                 }

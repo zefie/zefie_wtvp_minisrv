@@ -28,17 +28,20 @@ function checkScopeErrors(file) {
 		// Check if file is in ServiceDeps or ServiceVault directories
 		const normalizedFile = file.replace(/\\/g, '/');
 		const isServiceFile = normalizedFile.includes('includes/ServiceDeps') || normalizedFile.includes('includes/ServiceVault');
+		const isWTVSharedFile = normalizedFile.includes('includes/classes/WTVShared.js');
 		
 		const eslintConfig = {
 			"parserOptions": {
 				"ecmaVersion": 2022,
-				"sourceType": "module"
+				"sourceType": isServiceFile ? "script" : "module"
 			},
 			"env": {
 				"node": true,
 				"es2022": true
 			},
 			"rules": {
+				"eqeqeq": ["warn", "always"],
+    			"no-eq-null": "warn",
 				"no-redeclare": 2,
 				"no-undef": 2,
 				"no-use-before-define": ["error", {"variables": false, "functions": false, "classes": false}],
@@ -57,145 +60,187 @@ function checkScopeErrors(file) {
 						"message": "unescape() is deprecated. Use decodeURIComponent() instead."
 					}
 				],
-				"no-restricted-syntax": [
-					"warn",
-					// String methods
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.property.name='substr']",
-						"message": "String.prototype.substr() is deprecated. Use String.prototype.slice() instead."
-					},
-					{
-						"selector": "CallExpression[callee.name='substr']",
-						"message": "substr() is deprecated. Use slice() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.property.name='substring']",
-						"message": "substring() found, for continuity, please use String.prototype.slice() instead."
-					},
-					{
-						"selector": "CallExpression[callee.name='substring']",
-						"message": "substring() found, for continuity, please use slice() instead."
-					},
-					// Buffer methods
-					{
-						"selector": "CallExpression[callee.type='Buffer'][callee.property.name='slice']",
-						"message": "Found .slice() call. If this is on a Buffer, use Buffer.subarray() instead for better performance."
-					},
-					{
-						"selector": "NewExpression[callee.name='Buffer']",
-						"message": "new Buffer() is deprecated. Use Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe() instead."
-					},
-					// Node.js specific deprecations
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='fs'][callee.property.name='exists']",
-						"message": "fs.exists() is deprecated. Use fs.existsSync() or fs.access() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isArray']",
-						"message": "util.isArray() is deprecated. Use Array.isArray() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isBoolean']",
-						"message": "util.isBoolean() is deprecated. Use typeof x === 'boolean' instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isBuffer']",
-						"message": "util.isBuffer() is deprecated. Use Buffer.isBuffer() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isDate']",
-						"message": "util.isDate() is deprecated. Use x instanceof Date instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isError']",
-						"message": "util.isError() is deprecated. Use x instanceof Error instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isFunction']",
-						"message": "util.isFunction() is deprecated. Use typeof x === 'function' instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isNull']",
-						"message": "util.isNull() is deprecated. Use x === null instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isNullOrUndefined']",
-						"message": "util.isNullOrUndefined() is deprecated. Use x == null instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isNumber']",
-						"message": "util.isNumber() is deprecated. Use typeof x === 'number' instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isObject']",
-						"message": "util.isObject() is deprecated. Use typeof x === 'object' && x !== null instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isPrimitive']",
-						"message": "util.isPrimitive() is deprecated. Use manual type checking instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isRegExp']",
-						"message": "util.isRegExp() is deprecated. Use x instanceof RegExp instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isString']",
-						"message": "util.isString() is deprecated. Use typeof x === 'string' instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isSymbol']",
-						"message": "util.isSymbol() is deprecated. Use typeof x === 'symbol' instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isUndefined']",
-						"message": "util.isUndefined() is deprecated. Use x === undefined instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='debug']",
-						"message": "util.debug() is deprecated. Use console.error() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='error']",
-						"message": "util.error() is deprecated. Use console.error() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='print']",
-						"message": "util.print() is deprecated. Use console.log() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='puts']",
-						"message": "util.puts() is deprecated. Use console.log() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='pump']",
-						"message": "util.pump() is deprecated. Use stream.pipeline() instead."
-					},
-					// Domain module (deprecated)
-					{
-						"selector": "CallExpression[callee.name='require'][arguments.0.value='domain']",
-						"message": "The 'domain' module is deprecated. Use AsyncLocalStorage or async_hooks instead."
-					},
-					// Crypto deprecations
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='crypto'][callee.property.name='createCredentials']",
-						"message": "crypto.createCredentials() is deprecated. Use tls.createSecureContext() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='crypto'][callee.property.name='Credentials']",
-						"message": "crypto.Credentials is deprecated. Use tls.SecureContext instead."
-					},
-					// Custom project-specific deprecations
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='session_data'][callee.property.name='hasCap']",
-						"message": "session_data.hasCap() is deprecated. Use session_data.capabilities.get() instead."
-					},
-					{
-						"selector": "CallExpression[callee.type='MemberExpression'][callee.object.type='MemberExpression'][callee.object.property.name='session_data'][callee.property.name='hasCap']",
-						"message": "session_data.hasCap() is deprecated. Use session_data.capabilities.get() instead."
-					}
-				]
+				"no-restricted-syntax": []
 			}
 		};
+
+		// Build restricted syntax rules array
+		const restrictedSyntaxRules = [
+			"warn",
+			// String methods
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.property.name='substr']",
+				"message": "String.prototype.substr() is deprecated. Use String.prototype.slice() instead."
+			},
+			{
+				"selector": "CallExpression[callee.name='substr']",
+				"message": "substr() is deprecated. Use slice() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.property.name='substring']",
+				"message": "substring() found, for continuity, please use String.prototype.slice() instead."
+			},
+			{
+				"selector": "CallExpression[callee.name='substring']",
+				"message": "substring() found, for continuity, please use slice() instead."
+			},
+			// Buffer methods
+			{
+				"selector": "CallExpression[callee.type='Buffer'][callee.property.name='slice']",
+				"message": "Found .slice() call. If this is on a Buffer, use Buffer.subarray() instead for better performance."
+			},
+			{
+				"selector": "NewExpression[callee.name='Buffer']",
+				"message": "new Buffer() is deprecated. Use Buffer.from(), Buffer.alloc(), or Buffer.allocUnsafe() instead."
+			},
+			// Node.js specific deprecations
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='fs'][callee.property.name='exists']",
+				"message": "fs.exists() is deprecated. Use fs.existsSync() or fs.access() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isArray']",
+				"message": "util.isArray() is deprecated. Use Array.isArray() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isBoolean']",
+				"message": "util.isBoolean() is deprecated. Use typeof x === 'boolean' instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isBuffer']",
+				"message": "util.isBuffer() is deprecated. Use Buffer.isBuffer() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isDate']",
+				"message": "util.isDate() is deprecated. Use x instanceof Date instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isError']",
+				"message": "util.isError() is deprecated. Use x instanceof Error instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isFunction']",
+				"message": "util.isFunction() is deprecated. Use typeof x === 'function' instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isNull']",
+				"message": "util.isNull() is deprecated. Use x === null instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isNullOrUndefined']",
+				"message": "util.isNullOrUndefined() is deprecated. Use x == null instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isNumber']",
+				"message": "util.isNumber() is deprecated. Use typeof x === 'number' instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isObject']",
+				"message": "util.isObject() is deprecated. Use typeof x === 'object' && x !== null instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isPrimitive']",
+				"message": "util.isPrimitive() is deprecated. Use manual type checking instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isRegExp']",
+				"message": "util.isRegExp() is deprecated. Use x instanceof RegExp instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isString']",
+				"message": "util.isString() is deprecated. Use typeof x === 'string' instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isSymbol']",
+				"message": "util.isSymbol() is deprecated. Use typeof x === 'symbol' instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='isUndefined']",
+				"message": "util.isUndefined() is deprecated. Use x === undefined instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='debug']",
+				"message": "util.debug() is deprecated. Use console.error() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='error']",
+				"message": "util.error() is deprecated. Use console.error() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='print']",
+				"message": "util.print() is deprecated. Use console.log() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='puts']",
+				"message": "util.puts() is deprecated. Use console.log() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='util'][callee.property.name='pump']",
+				"message": "util.pump() is deprecated. Use stream.pipeline() instead."
+			},
+			// Domain module (deprecated)
+			{
+				"selector": "CallExpression[callee.name='require'][arguments.0.value='domain']",
+				"message": "The 'domain' module is deprecated. Use AsyncLocalStorage or async_hooks instead."
+			},
+			// Crypto deprecations
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='crypto'][callee.property.name='createCredentials']",
+				"message": "crypto.createCredentials() is deprecated. Use tls.createSecureContext() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='crypto'][callee.property.name='Credentials']",
+				"message": "crypto.Credentials is deprecated. Use tls.SecureContext instead."
+			},
+			// Custom project-specific deprecations
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.name='session_data'][callee.property.name='hasCap']",
+				"message": "session_data.hasCap() is deprecated. Use session_data.capabilities.get() instead."
+			},
+			{
+				"selector": "CallExpression[callee.type='MemberExpression'][callee.object.type='MemberExpression'][callee.object.property.name='session_data'][callee.property.name='hasCap']",
+				"message": "session_data.hasCap() is deprecated. Use session_data.capabilities.get() instead."
+			}
+		];
+
+		// Add encodeURIComponent warning only if this is not WTVShared.js
+		if (!isWTVSharedFile) {
+			restrictedSyntaxRules.push({
+				"selector": "CallExpression[callee.name='encodeURIComponent']",
+				"message": "Use wtvshared.escape() instead of encodeURIComponent() for consistency."
+			});
+		}
+
+		// Add type coercion warnings
+		restrictedSyntaxRules.push(
+			{
+				"selector": "BinaryExpression[operator='==='][left.type='Literal'][left.value=/^\\d+$/][left.typeof='number'][right.type='Identifier']",
+				"message": "Comparing string literal that looks like a number with a variable using strict equality. Consider parseInt() or ensure both operands are the same type."
+			},
+			{
+				"selector": "BinaryExpression[operator='==='][left.type='Identifier'][right.type='Literal'][right.value=/^\\d+$/][right.typeof='number']",
+				"message": "Comparing variable with string literal that looks like a number using strict equality. Consider parseInt() or ensure both operands are the same type."
+			},
+			{
+				"selector": "BinaryExpression[operator='==='][left.type='Literal'][left.typeof='string'][right.type='Literal'][right.typeof='number']",
+				"message": "Comparing string literal with number literal using strict equality. This will always be false."
+			},
+			{
+				"selector": "BinaryExpression[operator='==='][left.type='Literal'][left.typeof='number'][right.type='Literal'][right.typeof='string']",
+				"message": "Comparing number literal with string literal using strict equality. This will always be false."
+			},
+			{
+				"selector": "BinaryExpression[operator='!=='][left.type='Literal'][left.typeof='string'][right.type='Literal'][right.typeof='number']",
+				"message": "Comparing string literal with number literal using strict inequality. This will always be true."
+			},
+			{
+				"selector": "BinaryExpression[operator='!=='][left.type='Literal'][left.typeof='number'][right.type='Literal'][right.typeof='string']",
+				"message": "Comparing number literal with string literal using strict inequality. This will always be true."
+			}
+		);
+
+		// Set the rules array
+		eslintConfig.rules["no-restricted-syntax"] = restrictedSyntaxRules;
 		
 		// Add global variables for service files to ignore specific undefined variables
 		if (isServiceFile) {
@@ -294,8 +339,10 @@ function checkScopeErrors(file) {
 		fs.writeFileSync(tempConfigPath, JSON.stringify(eslintConfig, null, 2));
 		
 		// Use ESLint to check for scope-related errors with let/const
-		const eslintCmd = `npx eslint --no-eslintrc --config "${tempConfigPath}" --format compact "${file}"`;
-		
+		// Create a temporary .eslintignore file to exclude files or directories
+		const eslintIgnorePath = path.join(__dirname, '.eslintignore');
+		const eslintCmd = `npx eslint --no-eslintrc --config "${tempConfigPath}" --ignore-path "${eslintIgnorePath}" --format compact "${file}"`;
+
 		exec(eslintCmd, (error, stdout, stderr) => {
 			// Clean up temporary config file
 			try {
@@ -370,8 +417,8 @@ getFiles(__dirname)
 		} else {
 			// If no specific path, check all JS files as before
 			jsFiles = files.filter(file => 
-				path.extname(file) == ".js" && 
-				file.indexOf("node_modules") == -1
+				path.extname(file) === ".js" && 
+				file.indexOf("node_modules") === -1
 			);
 			console.log("Running syntax and scope checks on all JavaScript files...\n");
 		}

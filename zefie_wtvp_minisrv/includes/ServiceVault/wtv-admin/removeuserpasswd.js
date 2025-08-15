@@ -10,7 +10,7 @@ if (auth === true) {
    let password = null;
     if (request_headers.Authorization) {
         const authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
@@ -19,7 +19,7 @@ if (auth === true) {
         if (request_headers.query.username) {
             user_info = wtva.getAccountInfo(request_headers.query.username.toLowerCase()); // username search
             if (user_info) {
-                if (user_info.ssid == socket.ssid) {
+                if (user_info.ssid === socket.ssid) {
                     show_cannot_modify_self = true;
                 }
                 const userAccount = wtva.getAccountBySSID(user_info.ssid);

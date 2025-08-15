@@ -63,11 +63,11 @@ Choose a word to see what it means.
             // test
             data += `<a href="wtv-guide:/help?topic=Glossary&subtopic=${self.page_args.letter}&page=${self.page_args.words[k].link}" selected>${self.page_args.words[k].word}</a><br>\n`
             words_rendered++;
-            if (self.page_args.words.length % 2 != 0) {
+            if (self.page_args.words.length % 2 !== 0) {
                 // odd so split later to put extra on first row
-                if (words_rendered - 1 == table_split) data += `<td>`;
+                if (words_rendered - 1 === table_split) data += `<td>`;
             } else {
-                if (words_rendered == table_split) data += `<td>`;
+                if (words_rendered === table_split) data += `<td>`;
             }
         });
 

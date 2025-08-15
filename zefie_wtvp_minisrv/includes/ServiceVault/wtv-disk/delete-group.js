@@ -15,7 +15,7 @@ if (request_headers.query.group) {
         const query = request_headers.query;
         query['url'] = 'wtv-disk:/delete-group';
         const queryString = Object.keys(query)
-            .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(query[key]))
+            .map(key => wtvshared.escape(key) + '=' + wtvshared.escape(query[key]))
             .join('&');
         headers = "302 Found\nLocation: wtv-disk:/content/DownloadScreen.tmpl" + (queryString ? ("?" + queryString) : "");    
     }
@@ -40,14 +40,14 @@ if (request_headers.query.group) {
             data += "<li>No groups found.</li>";
         } else {
             Object.entries(client_group_data).forEach(([group, _]) => {
-                if (group.includes("-UPDATE")) return;
+                if (group.includes("-UPDATE") || group === "undefined") return;
                 const path = client_group_data[group].path;
                 let state = client_group_data[group].state;
                 if (state === "invalid") {
                     state = `<a href="wtv-disk:/content/DownloadScreen.tmpl?group=${group}&diskmap=${group}&force=true">invalid</a>`;
                 }
                 const date = client_group_data[group]['last-checkup-time'] || "never";
-                data += `<tr><td><a href="wtv-disk:/content/DownloadScreen.tmpl?url=${encodeURIComponent('wtv-disk:/delete-group?path='+path+'&group='+group)}">${group}</a></td><td>${path}</td><td>${state}</td><td>${date}</td></tr>\n`;
+                data += `<tr><td><a href="wtv-disk:/content/DownloadScreen.tmpl?url=${wtvshared.escape('wtv-disk:/delete-group?path='+path+'&group='+group)}">${group}</a></td><td>${path}</td><td>${state}</td><td>${date}</td></tr>\n`;
             })
         }
         data += `

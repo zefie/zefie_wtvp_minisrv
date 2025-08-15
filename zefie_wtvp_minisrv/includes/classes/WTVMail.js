@@ -119,7 +119,7 @@ class WTVMail {
     getMailboxByName(mailbox_name) {
         let mailbox_id = false;
         this.mailboxes.every(function (v, k) {
-            if (v.toLowerCase() == mailbox_name.toLowerCase()) {
+            if (v.toLowerCase() === mailbox_name.toLowerCase()) {
                 mailbox_id = k;
                 return false;
             }
@@ -238,7 +238,7 @@ class WTVMail {
                         subj = header[1];
                         break;
                 }
-            } else if (line == '') end_of_headers = true;
+            } else if (line === '') end_of_headers = true;
             else {
                 msg += line.replace(/\$\{(\w{1,})\}/g, function (x) {
                     let out = '';
@@ -327,7 +327,7 @@ class WTVMail {
                     if (v.name.slice((v.name.length - self.msgFileExt.length)) === self.msgFileExt) return v.name.slice(0, (v.name.length - 5));
                 });
 
-            if (files.length == 0) return false; // no messages
+            if (files.length === 0) return false; // no messages
             else {
                 // todo filter previous results when offset
                 const messagelist_out = new Array();
@@ -388,7 +388,7 @@ class WTVMail {
                 const temp_session_data_file = self.fs.readFileSync(search_dir + self.path.sep + file, 'Utf8');
                 const temp_session_data = JSON.parse(temp_session_data_file);
                 if (temp_session_data.subscriber_username) {
-                    if (temp_session_data.subscriber_username.toLowerCase() == username.toLowerCase()) {
+                    if (temp_session_data.subscriber_username.toLowerCase() === username.toLowerCase()) {
                         // Use the absolute path for replacement since search_dir is now absolute
                         const accounts_dir = self.wtvshared.getAbsolutePath(self.minisrv_config.config.SessionStore + self.path.sep + "accounts" + self.path.sep);
                         let path_after_replace = search_dir.replace(accounts_dir, '');
@@ -505,7 +505,7 @@ class WTVMail {
         const mailbox_name = this.getMessageMailboxName(messageid);
         if (!mailbox_name) return false;
 
-        const mailboxid = this.mailboxes.findIndex((value) => value == mailbox_name);
+        const mailboxid = this.mailboxes.findIndex((value) => value === mailbox_name);
 
         if (mailboxid !== false) return this.getMessage(mailboxid, messageid);
         return null;
@@ -515,7 +515,7 @@ class WTVMail {
         // returns true if successful, false if failed.
         const currentMailbox = this.getMessageMailboxID(messageid);
         // Same mailbox
-        if (dest_mailbox_id == currentMailbox) return false;
+        if (dest_mailbox_id === currentMailbox) return false;
 
         // Invalid destination mailbox ID
         if (dest_mailbox_id > (this.mailboxes.length - 1) || dest_mailbox_id < 0) return false;
@@ -540,7 +540,7 @@ class WTVMail {
     deleteMessage(messageid) {
         const currentMailbox = this.getMessageMailboxName(messageid);
         const trashMailbox = this.getMailboxByName(this.trashMailboxName);
-        if (currentMailbox != trashMailbox) {
+        if (currentMailbox !== trashMailbox) {
             // if not in the trash, move it to trash
             return this.moveMailMessage(messageid, trashMailbox);
         } else {

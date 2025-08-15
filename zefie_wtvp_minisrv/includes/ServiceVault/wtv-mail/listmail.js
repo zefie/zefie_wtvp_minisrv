@@ -58,14 +58,14 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             const total_unread_message_count = session_data.mailstore.countUnreadMessages(mailbox);
 
             let message_list_string = null;
-            if (total_message_count == 0) {
+            if (total_message_count === 0) {
                 message_list_string = "No new mail messages for ";
             } else {
                 if (total_unread_message_count > 0) {
-                    message_list_string = total_unread_message_count + " new mail message" + ((total_message_count != 1) ? 's' : '');
-                    if (total_message_count - total_unread_message_count > 0) message_list_string += ", " + (total_message_count - total_unread_message_count) + " mail message" + (((total_message_count - total_unread_message_count) != 1) ? 's' : '') + " for ";
-                } else {                   
-                    message_list_string = total_message_count + " mail message" + ((total_message_count != 1) ? 's' : '') + " for ";
+                    message_list_string = total_unread_message_count + " new mail message" + ((total_message_count !== 1) ? 's' : '');
+                    if (total_message_count - total_unread_message_count > 0) message_list_string += ", " + (total_message_count - total_unread_message_count) + " mail message" + (((total_message_count - total_unread_message_count) !== 1) ? 's' : '') + " for ";
+                } else {
+                    message_list_string = total_message_count + " mail message" + ((total_message_count !== 1) ? 's' : '') + " for ";
                 }
             }
 
@@ -281,7 +281,7 @@ ${username}@${minisrv_config.config.service_name}
 `;
             Object.keys(message_list).forEach(function (k) {
                 const message = message_list[k];
-                if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
+                if (typeof message.subject === "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                 message.known_sender = session_data.isAddressInAddressBook(message.from_addr);
                 let message_font_open = "<font color=#7A9FCC>";
                 let message_font_close = "</font>";
@@ -319,7 +319,7 @@ ${message_font_close}
             });
         } else {
             data += `
-<font sizerange=medium> No ${(mailbox_name == "Inbox") ? `new e-mail messages for<table cellspacing=0 cellpadding=0 border=0>
+<font sizerange=medium> No ${(mailbox_name === "Inbox") ? `new e-mail messages for<table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
 ${username}@${minisrv_config.config.service_name}
 </TD></TR>

@@ -66,7 +66,7 @@ class WTVFlashrom {
 
 		flashrom_info.magic = part_header.toString('hex', 0, 4);
 		flashrom_info.valid_flashrom = false;
-		if (flashrom_info.magic == flashrom_magic) flashrom_info.valid_flashrom = true;
+		if (flashrom_info.magic === flashrom_magic) flashrom_info.valid_flashrom = true;
 		if (!flashrom_info.valid_flashrom) console.error(" * Warning! FlashROM File Magic (" + flashrom_info.magic + ") did not match expected magic (" + flashrom_magic + ")...");
 
 		//if (this.minisrv_config.config.debug_flags.debug && !this.no_debug) console.log(" # FlashROM File Magic (" + flashrom_info.magic + "), expected magic (" + flashrom_magic + "), OK = " + flashrom_info.valid_flashrom + "...");
@@ -88,7 +88,7 @@ class WTVFlashrom {
 		flashrom_info.part_number = data.readUInt16BE(28);
 
 		if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Curr Part Number :", flashrom_info.part_number);
-		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) == flashrom_info.total_parts_size) ? true : false;
+		flashrom_info.is_last_part = ((flashrom_info.byte_progress + flashrom_info.part_total_size) === flashrom_info.total_parts_size) ? true : false;
 
 		if (flashrom_info.is_last_part) {
 			if (this.minisrv_config.config.debug_flags.debug && !this.minisrv_config.config.debug_flags.quiet && !this.no_debug) console.log(" # Flashrom Curr Part is Last:", flashrom_info.is_last_part);
@@ -117,7 +117,7 @@ class WTVFlashrom {
 		const flashrom_info = this.getFlashromInfo(data, request_path)
 		if (flashrom_info.is_bootrom) headers += "Content-Type: binary/x-wtv-bootrom"; // maybe?
 		else headers += "Content-Type: binary/x-wtv-flashblock";
-		if (flashrom_info.next_rompath != null && this.bf0app_update) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
+		if (flashrom_info.next_rompath !== null && this.bf0app_update) headers += "\nwtv-visit: " + flashrom_info.next_rompath;
 		headers += "\nminisrv-no-mail-count: true";
 		callback(data, headers);
 	}
@@ -132,7 +132,7 @@ class WTVFlashrom {
 		let headers, data, flashrom_file_path = null;
 		const self = this;
 		Object.keys(self.service_vaults).forEach(function (g) {
-			if (flashrom_file_path != null) return;
+			if (flashrom_file_path !== null) return;
 			flashrom_file_path = self.service_vaults[g] + "/" + self.service_name + "/" + request_path;
 			if (!self.fs.existsSync(flashrom_file_path)) flashrom_file_path = null;
 		});
@@ -160,11 +160,11 @@ class WTVFlashrom {
 
 				res.on('end', function () {
 					if (self.minisrv_config.config.debug_flags.debug) console.log(` * minisrv FlashROM Server HTTP Status: ${res.statusCode} ${res.statusMessage}`)
-					if (res.statusCode == 200) {
+					if (res.statusCode === 200) {
 						data = Buffer.from(data_hex, 'hex');
-					} else if (res.statusCode == 206) {
+					} else if (res.statusCode === 206) {
 						data = self.getFlashromInfo(Buffer.from(data_hex, 'hex'), request_path);
-					} else if (res.statusCode == 404) {
+					} else if (res.statusCode === 404) {
 						const errpage = self.wtvshared.doErrorPage(404, "The service could not find the requested ROM on the minisrv FlashROM server.")
 						headers = errpage[0];
 						data = errpage[1];
@@ -173,7 +173,7 @@ class WTVFlashrom {
 						headers = errpage[0];
 						data = errpage[1];
 					}
-					if (!headers && res.statusCode != 206) {
+					if (!headers && res.statusCode !== 206) {
 						self.sendToClient(data, request_path, callback);
 					} else {
 						callback(data, headers);
@@ -182,7 +182,7 @@ class WTVFlashrom {
 			});
 			req.end();
 		} else {
-			this.doLocalFlashROM(flashrom_file_path, request_path, callback, ((length != 0) ? true : false));
+			this.doLocalFlashROM(flashrom_file_path, request_path, callback, ((length !== 0) ? true : false));
 		}
 	}
 }

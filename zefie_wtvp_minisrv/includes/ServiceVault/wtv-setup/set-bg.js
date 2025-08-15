@@ -96,7 +96,7 @@ Choose the songs that you'd like to include.
 	let songsListed = 0;
 	const divide = Math.round(musicList.length / 2, 0);
 	Object.keys(musicList).forEach(function (k) {
-		if (songsListed == divide) {
+		if (songsListed === divide) {
 			data += `</td ><td width="20">
 </td><td width="198" valign="top" align="left">`;
 		}
@@ -110,7 +110,7 @@ Choose the songs that you'd like to include.
 		let songTitle = musicList[k]['title'];
 		if (songTitle.length > strLenLimit) songTitle = musicList[k]['title'].slice(0, strLenLimit - 3) + "...";
 		if (musicList.length > 14) data += '<font size="-2">';
-		data += `<a href="${musicList[k]['url']}?wtv-title=${encodeURIComponent(musicList[k]['title'])}" onmouseout="clearTitle()" onmouseover="showTitle('${musicList[k]['title'].replace(/\'/g, "\\'")}')">${songTitle}</a>
+		data += `<a href="${musicList[k]['url']}?wtv-title=${wtvshared.escape(musicList[k]['title'])}" onmouseout="clearTitle()" onmouseover="showTitle('${musicList[k]['title'].replace(/\'/g, "\\'")}')">${songTitle}</a>
 </td></tr></tbody></table>`;
 		if (musicList.length > 14) data += '</font>';
 		songsListed++;

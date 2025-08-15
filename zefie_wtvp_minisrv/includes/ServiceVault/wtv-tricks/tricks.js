@@ -46,11 +46,11 @@ for (let i = 0; i < tricks.length; i += 2) {
 	data += `<tr>
 <td colspan=3 height=6>
 <tr>
-<td>${(tricks[i][0] != "") ? `&#128; <a href="${tricks[i][0]}">${tricks[i][1]}</a>` : `<!-- TODO --> &nbsp;`}
+<td>${(tricks[i][0] !== "") ? `&#128; <a href="${tricks[i][0]}">${tricks[i][1]}</a>` : `<!-- TODO --> &nbsp;`}
 <td width=25>
 <td>`
 	if (i + 1 < tricks.length) {
-		data += (tricks[i + 1][0] != "") ? `&#128; <a href="${tricks[i + 1][0]}">${tricks[i + 1][1]}</a>` : `<!-- TODO --> &nbsp;`
+		data += (tricks[i + 1][0] !== "") ? `&#128; <a href="${tricks[i + 1][0]}">${tricks[i + 1][1]}</a>` : `<!-- TODO --> &nbsp;`
 	} else {
 		// require even number of tricks
 		data += "<!-- TODO --> &nbsp;"

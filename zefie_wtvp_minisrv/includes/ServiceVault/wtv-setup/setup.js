@@ -105,11 +105,11 @@ for (let i = 0; i < settings.length; i += 2) {
 	data += `<tr>
 <td colspan=3 height=6>
 <tr>
-<td>${(settings[i][0] != "") ? `&#128; <a href="${settings[i][0]}">${settings[i][1]}</a>` : `<!-- TODO --> &nbsp;`}
+<td>${(settings[i][0] !== "") ? `&#128; <a href="${settings[i][0]}">${settings[i][1]}</a>` : `<!-- TODO --> &nbsp;`}
 <td width=25>
 <td>`
 	if (i + 1 < settings.length) {
-		data += (settings[i + 1][0] != "") ? `&#128; <a href="${settings[i + 1][0]}">${settings[i + 1][1]}</a>` : `<!-- TODO --> &nbsp;`
+		data += (settings[i + 1][0] !== "") ? `&#128; <a href="${settings[i + 1][0]}">${settings[i + 1][1]}</a>` : `<!-- TODO --> &nbsp;`
 	} else {
 		// require even number of settings
 		data += "<!-- TODO --> &nbsp;"
