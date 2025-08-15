@@ -18,6 +18,7 @@
       "UserServiceDeps",
       "includes/ServiceDeps"
     ],
+    "enable_prealpha_workaround": false, // Allows prealpha to minimally connect, but may cause security issues
     "cgi_enabled": false, // Disable CGI by default
     "php_enabled": false, // Disable PHP by default
     "php_binpath": "php-cgi",

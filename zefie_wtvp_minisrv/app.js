@@ -587,7 +587,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
         updateFromVM.push(["socket_sessions", "socket_sessions"]);         // global socket_sessions object for privileged service scripts, such as wtv-1800, etc
     }
 
-    if (request_headers['User-Agent'] === "Artemis/0.0") {
+    if (request_headers['User-Agent'] === "Artemis/0.0" && minisrv_config.config.enable_prealpha_workaround === true) {
         socket_sessions[socket.id].prealpha = true;
     }
 
