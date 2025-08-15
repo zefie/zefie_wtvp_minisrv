@@ -75,12 +75,12 @@ wtv-visit: client:hangupphone`
 						data = errpage[1];
 					}
 				} else {
-					if (!socket_sessions[socket.id].prealpha) {
+					if (socket_sessions[socket.id].prealpha) {
+						gourl = "wtv-head-waiter:/login-stage-two?";
+					} else {
 						errpage = wtvshared.doErrorPage(500, "No challenge response received");
 						headers = errpage[0];
-						data = errpage[1];
-					} else {
-						gourl = "wtv-head-waiter:/login-stage-two?";
+						data = errpage[1];						
 					}
 				}
 			} else {
