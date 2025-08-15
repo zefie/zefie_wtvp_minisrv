@@ -316,7 +316,7 @@ data = `<html>
 		<td valign=top align=right>${capabilitiesTable[k][1]}
 		<td width=10>
 		`;
-        if (client_caps[capabilitiesTable[k][0]]) data += "<td valign=top>True\n";
+        if (client_caps && client_caps[capabilitiesTable[k][0]]) data += "<td valign=top>True\n";
         else data += "<td valign=top>False\n";
     });
 
