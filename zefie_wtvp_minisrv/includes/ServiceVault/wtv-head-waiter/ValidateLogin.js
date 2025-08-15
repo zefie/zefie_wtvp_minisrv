@@ -116,6 +116,9 @@ minisrv-no-mail-count: true`;
 				headers = `200 OK
 minisrv-no-mail-count: true
 Content-Type: text/html`;
+				if (!socket_sessions[socket.id].prealpha) {
+					headers += "\nwtv-connection-close: true\nConnection: close";
+				}
 
 				if (client_challenge_response) {
 					headers += `
