@@ -300,6 +300,7 @@ class WTVNews {
                                         'Newsgroups': group,
                                         'Subject': msg_subject || "(No subject)",
                                         'Message-ID': "<" + this.wtvshared.generateString(16) + "@" + this.minisrv_config.config.domain_name + ">",
+                                        'Injection-Date': this.strftime('%a, %-d %b %Y %H:%M:%S %z', new Date()),
                                         'Date': this.strftime('%a, %-d %b %Y %H:%M:%S %z', new Date())
                                     }
                                     if (headers) {
