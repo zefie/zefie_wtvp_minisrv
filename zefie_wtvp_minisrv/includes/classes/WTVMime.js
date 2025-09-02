@@ -7,6 +7,7 @@ class WTVMime {
     mime = require('mime-types');
     wtvshared = null;
     minisrv_config = [];
+
     constructor(minisrv_config) {
         const { WTVShared }  = require("./WTVShared.js");
         this.minisrv_config = minisrv_config;
@@ -311,12 +312,12 @@ class WTVMime {
 
         const delimiter = CRLF + '--' + boundary;
         const closeDelimiter = delimiter + '--';
-
+        const self = this;
         const encapsulations = tuples.map(function (tuple, i) {
             const mimetype = tuple.mime || 'text/plain';
             const encoding = tuple.encoding || 'utf-8';
-            const use_base64 = tuple.use_base64 || !this.wtvshared.isASCII(tuple.content);
-            const is_base64 = tuple.is_base64 || this.wtvshared.isBase64(tuple.content);
+            const use_base64 = tuple.use_base64 || !self.wtvshared.isASCII(tuple.content);
+            const is_base64 = tuple.is_base64 || self.wtvshared.isBase64(tuple.content);
             const filename = (tuple.filename) ? tuple.filename : (use_base64) ? ('file' + i) : null;
 
             const headers = [
@@ -327,8 +328,8 @@ class WTVMime {
             headers.push(`Content-Transfer-Encoding: ${(use_base64) ? 'base64' : '7bit'}`);
 
             let bodyPart = headers.join(CRLF) + CRLF + CRLF;
-            if (use_base64 && !is_base64) bodyPart += this.wtvshared.lineWrap(Buffer.from(tuple.content).toString('base64'),72) + CRLF;
-            else bodyPart += this.wtvshared.lineWrap(tuple.content,72);
+            if (use_base64 && !is_base64) bodyPart += self.wtvshared.lineWrap(Buffer.from(tuple.content).toString('base64'),72) + CRLF;
+            else bodyPart += self.wtvshared.lineWrap(tuple.content,72);
 
             return delimiter + CRLF + bodyPart;
         });
