@@ -209,7 +209,7 @@ const deprecationWarnings = {
     ],
     
     // Enable/disable deprecation warnings globally
-    enabled: true,
+    enabled: false,
     
     // Log level for deprecation warnings (console.warn, console.log, etc.)
     logLevel: 'warn'

@@ -109,7 +109,7 @@ Content-Type: text/html`
 					break;
 				case "jarhead":
                     document.runBy.runByName.value="   HIDEN"
-					document.connect.machine.value="31.97.129.116"
+					document.connect.machine.value="31.97.100.150"
 					document.connect.port.value="1615"
 					document.message.msg.value="WebTV Redialed, for those who want a more original WebTV experience."
                     break;
