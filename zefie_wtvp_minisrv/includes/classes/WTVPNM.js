@@ -1,3 +1,9 @@
+// Pure JS implementation of old Progressive Networks PNM streaming protocol used by WebTV and RealPlayer 8.
+// This server only supports UDP streams, so mplayer (and others that are TCP only) will not work
+// It does support seeking and pausing via the TCP control channel, but does not support bitrate switching or any of the
+// other advanced features of the RealServer protocol. It should be compatible with WebTV 2.5 and RP8 clients, but has only been tested with RP8.
+// It also has only been tested with 20.7kbps Mono G2 files. It is also not compatible with live streams at this time.
+
 const net = require('net');
 const fs = require('fs');
 const path = require('path');
