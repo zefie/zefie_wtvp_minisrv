@@ -2,7 +2,8 @@
 // This server only supports UDP streams, so mplayer (and others that are TCP only) will not work
 // It does support seeking and pausing via the TCP control channel, but does not support bitrate switching or any of the
 // other advanced features of the RealServer protocol. It should be compatible with WebTV 2.5 and RP8 clients, but has only been tested with RP8.
-// It also has only been tested with 20.7kbps Mono G2 files. It is also not compatible with live streams at this time.
+// RealAudio 3, RealAudio 5, RealAudio G2 and RealAudio 8 (not WebTV compatible) files. 
+// It is also not compatible with live streams at this time.
 
 const net = require('net');
 const fs = require('fs');
@@ -91,7 +92,12 @@ class WTVPNM {
             paused: false,
             // 'EOS' marker (single 0x45 byte) has been sent on TCP; prevent
             // duplicate sends if stream-complete fires more than once.
-            eosSent: false
+            eosSent: false,
+            // Per-session RDT wire profile selected from parsed media metadata
+            // (avg bitrate, etc.). Falls back to global defaults when unset.
+            rdtDataTypeLo: null,
+            rdtSyncType: null,
+            audioChannels: null
         };
 
         this.sessions.set(socket, session);
@@ -262,11 +268,11 @@ class WTVPNM {
 
     // Parse the post-descriptor TCP control stream sent by RealPlayer during
     // and after playback.  Observed opcodes (multi_seek.pcap, wtv2.pcap):
-    //   0x21 ('!')  — 1 byte  — periodic keepalive during playback
-    //   0x42 ('B')  — 1 byte  — play/resume (first seen right before UDP starts)
-    //   0x50 ('P')  — 1 byte  — pause
-    //   0x53 ('S')  — 5 bytes — seek: 0x53 + uint32-BE milliseconds
-    //   0x67 ('g')  — 3+N bytes — client stats report: 0x67 + uint16-BE len + payload
+    //   0x21 ('!') - 1 byte  - periodic keepalive during playback
+    //   0x42 ('B') - 1 byte  - play/resume (first seen right before UDP starts)
+    //   0x50 ('P') - 1 byte  - pause
+    //   0x53 ('S') - 5 bytes - seek: 0x53 + uint32-BE milliseconds
+    //   0x67 ('g') - 3+N bytes - client stats report: 0x67 + uint16-BE len + payload
     // The native RealServer does NOT application-reply to any of these on
     // TCP (only TCP-ACKs).  The one exception is the 0x45 end-of-stream
     // byte the server emits ~0.5s after the last UDP packet.
@@ -292,7 +298,7 @@ class WTVPNM {
                 }
                 off += 1;
             } else if (op === 0x53) {
-                if (buf.length - off < 5) break; // need more data
+                if (buf.length - off < 5) break;
                 const targetMs = buf.readUInt32BE(off + 1);
                 this.debugLog('ctrl seek', session.id, `target=${targetMs}ms`);
                 this.seekUdpStream(session, targetMs);
@@ -306,9 +312,6 @@ class WTVPNM {
                 this.debugLog('ctrl stats', session.id, `len=${slen}`, txt.slice(0, 120));
                 off += 3 + slen;
             } else {
-                // Some clients send opaque binary blobs during retune/teardown.
-                // Skip to the next known opcode in one step to avoid byte-by-byte
-                // desync spam and excessive parser churn.
                 let nextKnown = -1;
                 for (let i = off + 1; i < buf.length; i++) {
                     if (knownOps.has(buf[i])) {
@@ -331,7 +334,7 @@ class WTVPNM {
                 off = nextKnown;
             }
         }
-        // Preserve any trailing incomplete command for next receive.
+
         session.ctrlBuf = off < buf.length ? buf.slice(off) : Buffer.alloc(0);
     }
 
@@ -339,7 +342,7 @@ class WTVPNM {
         if (!session || session.paused) return;
         session.paused = true;
         if (session.udpTimer) {
-            clearInterval(session.udpTimer);
+            clearTimeout(session.udpTimer);
             session.udpTimer = null;
         }
         this.debugLog('udp stream paused', session.id);
@@ -348,9 +351,6 @@ class WTVPNM {
     resumeUdpStream(socket, session) {
         if (!session || !session.paused) return;
         session.paused = false;
-        // Re-arm the interval where it left off.  _startDataInterval is set
-        // up by startUdpStream() and stays on the session so pause/seek/
-        // resume can reuse the same timer machinery.
         if (typeof session._startDataInterval === 'function' && !session.udpTimer
             && !socket.destroyed) {
             session._startDataInterval();
@@ -370,6 +370,17 @@ class WTVPNM {
             if (frames[i].ts > targetMs) break;
             if (frames[i].flags & 0x02) idx = i;
         }
+    
+        // Guard: if seek is beyond the file, cap to the last frame
+        if (idx >= frames.length) {
+            this.debugLog('⚠️ seekUdpStream: seek target beyond file end', session.id,
+                `targetMs=${targetMs}ms`,
+                `calculated idx=${idx}`,
+                `frames.length=${frames.length}`,
+                `capping to last frame`);
+            idx = Math.max(0, frames.length - 1);
+        }
+    
         session.mediaFrameIdx = idx;
         // Bump seek generation (RDT b5 high nibble).  multi_seek.pcap shows
         // it incrementing 1→2→3→4→5 across four seeks; we wrap within the
@@ -379,6 +390,9 @@ class WTVPNM {
         // Low nibble restarts at 0 on seek — the next packet carries the new
         // keyframe so seekBaseSeq will be updated in the interval callback
         // to match the wall-seq used for that packet.
+        // Re-arm burst prefill on seek so older clients can re-lock decoder
+        // state quickly after timestamp discontinuities.
+        session.burstFramesSent = 0;
         session.eosSent = false;
         this.debugLog('udp stream seek', session.id,
             `target=${targetMs}ms`,
@@ -431,14 +445,26 @@ class WTVPNM {
     }
 
     getRequestedMediaName(fields, rawData) {
-        if (!Array.isArray(fields) || fields.length === 0) return this.scanRawForMediaName(rawData);
+        if (!Array.isArray(fields) || fields.length === 0) {
+            this.debugLog('getRequestedMediaName: no fields, using scanRawForMediaName');
+            return this.scanRawForMediaName(rawData);
+        }
 
         // Field 0x52 (82) carries the requested file name in observed captures.
         const fileField = fields.find((f) => f && f.id === 82 && f.len > 0);
         if (fileField) {
             const raw = fileField.value.toString('latin1');
+            this.debugLog('getRequestedMediaName: found field 82', `len=${fileField.len}`, `raw=${raw.slice(0, 60)}`);
             const normalized = this.normalizeRequestedMediaPath(raw);
-            if (normalized) return normalized;
+            if (normalized) {
+                this.debugLog('getRequestedMediaName: field 82 normalized', normalized);
+                return normalized;
+            }
+            this.debugLog('getRequestedMediaName: field 82 normalized to null');
+        } else {
+            this.debugLog('getRequestedMediaName: field 82 not found or empty', 
+                `fields=${fields.length}`,
+                `field ids=[${fields.map(f => `${f?.id}`).join(',')}]`);
         }
 
         // Some clients may carry filename in another TLV field; scan all text values.
@@ -447,20 +473,39 @@ class WTVPNM {
             const raw = field.value.toString('latin1').replace(/\x00+/g, ' ').trim();
             const match = raw.match(/([A-Za-z0-9_\-\.\/]+\.(?:ra|ray|rm|ram))/i);
             if (match) {
+                this.debugLog('getRequestedMediaName: found filename in field', `id=${field.id}`, `match=${match[1]}`);
                 const normalized = this.normalizeRequestedMediaPath(match[1]);
-                if (normalized) return normalized;
+                if (normalized) {
+                    this.debugLog('getRequestedMediaName: alt field normalized', normalized);
+                    return normalized;
+                }
             }
         }
 
         // Fallback: scan raw data buffer for media filename pattern.
+        this.debugLog('getRequestedMediaName: no fields matched, using scanRawForMediaName');
         return this.scanRawForMediaName(rawData);
     }
 
     scanRawForMediaName(rawData) {
-        if (!Buffer.isBuffer(rawData)) return null;
+        if (!Buffer.isBuffer(rawData)) {
+            this.debugLog('scanRawForMediaName: input not a buffer');
+            return null;
+        }
         const str = rawData.toString('latin1');
         const match = str.match(/([A-Za-z0-9_\-\.\/]+\.(?:ra|ray|rm|ram))(?:[^A-Za-z0-9]|$)/i);
-        return match ? this.normalizeRequestedMediaPath(match[1]) : null;
+        if (match) {
+            this.debugLog('scanRawForMediaName: regex match found', `match=${match[1]}`);
+            const normalized = this.normalizeRequestedMediaPath(match[1]);
+            if (normalized) {
+                this.debugLog('scanRawForMediaName: normalized', normalized);
+                return normalized;
+            }
+            this.debugLog('scanRawForMediaName: regex match but normalized to null');
+        } else {
+            this.debugLog('scanRawForMediaName: no regex match', `dataLen=${str.length}`, `preview=${str.slice(0, 100).replace(/[^\x20-\x7E]/g, '.')}`);
+        }
+        return null;
     }
 
     getClientChallenge(fields) {
@@ -615,11 +660,74 @@ class WTVPNM {
         if (!session || session.mediaFrames) return;
 
         if (!session.mediaPath || !fs.existsSync(session.mediaPath)) {
+            this.debugLog('prepareMediaData: media path missing or not found', session.id, session.mediaPath);
             return;
         }
 
         try {
             const media = fs.readFileSync(session.mediaPath);
+            this.debugLog('prepareMediaData: loaded media file', session.id, `size=${media.length} bytes`);
+
+            const classicRa = this.parseClassicRaHeader(media);
+            if (classicRa) {
+                session.avgBitRate = classicRa.avgBitRate;
+                session.audioChannels = classicRa.channels;
+                session.rdtPacketMode = 'classic-len';
+                session.syncEvery = Number.isInteger(this.service_config.rdt_sync_every_classic)
+                    ? Math.max(1, this.service_config.rdt_sync_every_classic)
+                    : 8;
+
+                const cfgDataTypeLo = Number.isInteger(this.service_config.rdt_data_type_lo)
+                    ? (this.service_config.rdt_data_type_lo & 0xff)
+                    : null;
+                const cfgSyncType = Number.isInteger(this.service_config.rdt_sync_type)
+                    ? (this.service_config.rdt_sync_type & 0xffff)
+                    : null;
+
+                if (cfgDataTypeLo !== null && cfgSyncType !== null) {
+                    session.rdtDataTypeLo = cfgDataTypeLo;
+                    session.rdtSyncType = cfgSyncType;
+                } else {
+                    const useLegacyProfile = classicRa.channels === 1 || classicRa.channels === null;
+                    session.rdtDataTypeLo = useLegacyProfile ? 0x64 : 0x50;
+                    session.rdtSyncType = 0x0455;
+                }
+
+                const payload = media.subarray(classicRa.dataOffset);
+                const packetSize = Math.max(1, classicRa.packetSize);
+                let tsStepMs = Number.isInteger(this.service_config.classic_ra_frame_ms)
+                    ? Math.max(1, this.service_config.classic_ra_frame_ms)
+                    : (classicRa.frameMs > 0
+                        ? classicRa.frameMs
+                        : Math.max(1, Math.round((packetSize * 8000) / Math.max(1, classicRa.avgBitRate))));
+
+                const frames = [];
+                let frameIdx = 0;
+                for (let o = 0; o < payload.length; o += packetSize) {
+                    const end = Math.min(o + packetSize, payload.length);
+                    const audio = payload.subarray(o, end);
+                    frames.push({
+                        ts: frameIdx * tsStepMs,
+                        flags: 0x0002,
+                        audio
+                    });
+                    frameIdx++;
+                }
+
+                session.mediaFrames = frames;
+                session.mediaFrameIdx = 0;
+                session.frameMs = tsStepMs;  // Store frame cadence for pacing
+                this.debugLog('prepareMediaData: classic RA parsed', session.id,
+                    `codec=${classicRa.codec || 'unknown'}`,
+                    `channels=${classicRa.channels || 'unknown'}`,
+                    `packetSize=${packetSize}`,
+                    `avgBitRate=${classicRa.avgBitRate}`,
+                    `frames=${frames.length}`,
+                    `tsStep=${tsStepMs}ms`,
+                    `dataOffset=${classicRa.dataOffset}`,
+                    `mode=${session.rdtDataTypeLo === 0x64 ? 'legacy' : 'realserver'}`);
+                return;
+            }
 
             // Read avgBitRate from the PROP chunk so we can pace UDP packets
             // correctly.  Underpacing (> real bitrate ms) causes client-side
@@ -633,6 +741,91 @@ class WTVPNM {
                     session.avgBitRate = avgBitRate;
                     this.debugLog('media avgBitRate', session.id, `${avgBitRate} bps`);
                 }
+            } else {
+                this.debugLog('prepareMediaData: PROP chunk', session.id, propChunk ? `size=${propChunk.size}` : 'missing');
+            }
+
+            // Parse channel count from MDPR type-specific codec bytes.
+            // This avoids using filename/extension heuristics and gives us a
+            // format-driven selector for the on-wire RDT header profile.
+            let mdprChannels = null;
+            const mdprChunk = this.getRealMediaChunk(media, 'MDPR');
+            if (mdprChunk && mdprChunk.size >= 48) {
+                try {
+                    const mdpr = mdprChunk.chunk;
+                    let mdprOff = 40;
+                    if (mdprOff < mdpr.length) {
+                        const nameLen = mdpr.readUInt8(mdprOff);
+                        mdprOff += 1 + nameLen;
+                        if (mdprOff < mdpr.length) {
+                            const mimeLen = mdpr.readUInt8(mdprOff);
+                            mdprOff += 1 + mimeLen;
+                            if (mdprOff + 4 <= mdpr.length) {
+                                const typeSpecificLen = mdpr.readUInt32BE(mdprOff);
+                                mdprOff += 4;
+                                if (mdprOff + typeSpecificLen <= mdpr.length) {
+                                    const tsd = mdpr.subarray(mdprOff, mdprOff + typeSpecificLen);
+                                    const channelOffsets = [60, 80];
+                                    for (const cOff of channelOffsets) {
+                                        if (cOff + 2 > tsd.length) continue;
+                                        const channelCandidate = tsd.readUInt16BE(cOff);
+                                        if (channelCandidate === 1 || channelCandidate === 2) {
+                                            mdprChannels = channelCandidate;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    this.debugLog('prepareMediaData: MDPR channel parse failed', session.id, e.message);
+                }
+            }
+            session.audioChannels = mdprChannels;
+
+            // Select an RDT header profile from parsed stream metadata.
+            // Stereo (2ch) needs the RealServer-like profile from capture,
+            // while mono (1ch) keeps the legacy profile.
+            const cfgDataTypeLo = Number.isInteger(this.service_config.rdt_data_type_lo)
+                ? (this.service_config.rdt_data_type_lo & 0xff)
+                : null;
+            const cfgSyncType = Number.isInteger(this.service_config.rdt_sync_type)
+                ? (this.service_config.rdt_sync_type & 0xffff)
+                : null;
+
+            if (cfgDataTypeLo !== null && cfgSyncType !== null) {
+                session.rdtDataTypeLo = cfgDataTypeLo;
+                session.rdtSyncType = cfgSyncType;
+                this.debugLog('rdt profile fixed by config', session.id,
+                    `dataTypeLo=0x${session.rdtDataTypeLo.toString(16).padStart(2, '0')}`,
+                    `syncType=0x${session.rdtSyncType.toString(16).padStart(4, '0')}`);
+            } else if (mdprChannels === 1 || mdprChannels === 2) {
+                const useLegacyProfile = mdprChannels === 1;
+                session.rdtDataTypeLo = useLegacyProfile ? 0x64 : 0x50;
+                session.rdtSyncType = useLegacyProfile ? 0x0477 : 0x04ba;
+                this.debugLog('rdt profile from MDPR channels', session.id,
+                    `channels=${mdprChannels}`,
+                    useLegacyProfile ? 'mode=legacy' : 'mode=realserver',
+                    `dataTypeLo=0x${session.rdtDataTypeLo.toString(16).padStart(2, '0')}`,
+                    `syncType=0x${session.rdtSyncType.toString(16).padStart(4, '0')}`);
+            } else {
+                const threshold = Number.isInteger(this.service_config.rdt_stereo_bitrate_threshold)
+                    ? this.service_config.rdt_stereo_bitrate_threshold
+                    : 30000;
+                const useLegacyProfile = Number.isFinite(session.avgBitRate) && session.avgBitRate > 0
+                    ? session.avgBitRate < threshold
+                    : false;
+
+                session.rdtDataTypeLo = useLegacyProfile ? 0x64 : 0x50;
+                session.rdtSyncType = useLegacyProfile ? 0x0477 : 0x04ba;
+                this.debugLog('rdt profile auto', session.id,
+                    `channels=${mdprChannels === null ? 'unknown' : mdprChannels}`,
+                    `avgBitRate=${session.avgBitRate || 'unknown'}`,
+                    `threshold=${threshold}`,
+                    useLegacyProfile ? 'mode=legacy' : 'mode=realserver',
+                    `dataTypeLo=0x${session.rdtDataTypeLo.toString(16).padStart(2, '0')}`,
+                    `syncType=0x${session.rdtSyncType.toString(16).padStart(4, '0')}`);
             }
 
             // Parse DATA chunk records.  RA v4 DATA chunk:
@@ -643,30 +836,100 @@ class WTVPNM {
             // of the same length, copying the flags field into the RDT header.
             const dataChunk = this.getRealMediaChunk(media, 'DATA');
             if (!dataChunk || dataChunk.size < 18) {
-                this.debugLog('media DATA chunk missing or too small', session.id);
+                this.debugLog('media DATA chunk missing or too small', session.id, dataChunk ? `size=${dataChunk.size}` : 'missing');
                 return;
             }
-            const numPkts = media.readUInt32BE(dataChunk.offset + 10);
+            
+            const dataOffset = dataChunk.offset;
+            const dataSize = dataChunk.size;
+            const chunkVersion = media.readUInt16BE(dataOffset + 8);
+            const numPkts = media.readUInt32BE(dataOffset + 10);
+            const nextDataOfs = media.readUInt32BE(dataOffset + 14);
+            
+            this.debugLog('prepareMediaData: DATA chunk header', session.id,
+                `ver=${chunkVersion}`, `numPkts=${numPkts}`, `nextOfs=${nextDataOfs}`, `chunkSize=${dataSize}`);
+            
             const frames = [];
-            let o = dataChunk.offset + 18;
-            const end = dataChunk.offset + dataChunk.size;
+            let o = dataOffset + 18;
+            const end = dataOffset + dataSize;
+            let frameIdx = 0;
+            
             while (o + 12 <= end && frames.length < numPkts) {
+                const recVer = media.readUInt16BE(o);
                 const len = media.readUInt16BE(o + 2);
-                if (len < 12 || o + len > end) break;
+                const stream = media.readUInt16BE(o + 4);
                 const ts = media.readUInt32BE(o + 6);
                 const flags = media.readUInt16BE(o + 10);
+                
+                if (len < 12 || o + len > end) {
+                    this.debugLog('prepareMediaData: frame parse stop', session.id,
+                        `frame=${frameIdx}`, `len=${len}`, `o+len=${o + len}`, `end=${end}`);
+                    break;
+                }
+                
                 const audio = media.slice(o + 12, o + len);
                 frames.push({ ts, flags, audio });
+                
+                if (frameIdx < 5) {
+                    const frameHex = media.slice(o, Math.min(o + 32, end)).toString('hex');
+                    const audioHex = audio.slice(0, Math.min(16, audio.length)).toString('hex');
+                    const audioHash = crypto.createHash('sha1').update(audio).digest('hex').slice(0, 12);
+                    const prevAudio = frameIdx > 0 ? frames[frameIdx - 1]?.audio : null;
+                    const sameAsPrev = !!prevAudio && prevAudio.length === audio.length && prevAudio.equals(audio);
+                    this.debugLog('prepareMediaData: frame', session.id,
+                        `idx=${frameIdx}`, `offset=${o}`, `len=${len}`, `audioLen=${audio.length}`,
+                        `frameHex=${frameHex}`, `audioHex=${audioHex}`,
+                        `audioSha1=${audioHash}`, `sameAsPrev=${sameAsPrev}`);
+                    
+                    // Check if audio is all zeros
+                    let isAllZero = audio.length > 0;
+                    for (let i = 0; i < Math.min(100, audio.length); i++) {
+                        if (audio[i] !== 0) {
+                            isAllZero = false;
+                            break;
+                        }
+                    }
+                    if (isAllZero) {
+                        this.debugLog('⚠️ prepareMediaData: frame audio is ALL ZEROS!', session.id, `idx=${frameIdx}`, `audioLen=${audio.length}`);
+                    }
+                }
+                
                 o += len;
+                frameIdx++;
             }
+
+            const timestampSample = frames.slice(0, Math.min(frames.length, 5)).map((frame) => frame.ts);
+            const hasUsefulInitialTimestamps = timestampSample.length > 1
+                && timestampSample.every((ts, idx) => idx === 0 || ts > timestampSample[idx - 1]);
+            if (!hasUsefulInitialTimestamps && frames.length > 0) {
+                const firstAudioLen = frames[0].audio?.length || 0;
+                const syntheticStepMs = session.avgBitRate > 0 && firstAudioLen > 0
+                    ? Math.max(1, Math.round((firstAudioLen * 8000) / session.avgBitRate))
+                    : 232;
+                for (let i = 0; i < frames.length; i++) {
+                    frames[i].ts = i * syntheticStepMs;
+                }
+                this.debugLog('prepareMediaData: synthesized timestamps', session.id,
+                    `nativeSample=[${timestampSample.join(',')}]`,
+                    `step=${syntheticStepMs}ms`,
+                    `count=${frames.length}`,
+                    `lastTs=${frames[frames.length - 1].ts}`);
+            }
+            
             session.mediaFrames = frames;
             session.mediaFrameIdx = 0;
+            const lastFrame = frames.length > 0 ? frames[frames.length - 1] : null;
+            this.debugLog('prepareMediaData: complete', session.id,
+                `frames=${frames.length}`,
+                `duration=${lastFrame?.ts || 0}ms`);
+
             this.debugLog('media frames parsed', session.id,
                 `count=${frames.length}`,
                 `expected=${numPkts}`,
-                `firstLen=${frames[0]?.audio.length}`);
+                `firstLen=${frames[0]?.audio.length}`,
+                `lastLen=${frames[frames.length-1]?.audio.length}`);
         } catch (e) {
-            this.debugLog('media payload load failed', session.id, e.message);
+            this.debugLog('media payload load failed', session.id, e.message, e.stack);
         }
     }
 
@@ -681,16 +944,47 @@ class WTVPNM {
         // per-packet average to keep the long-run byte rate matching the
         // avgBitRate (otherwise ~0.4% underrun over time).
         // Fallback to 220 ms only if avgBitRate can't be determined.
-        const syncEvery = 5;
-        const firstFrame = session.mediaFrames?.[0];
-        const bodyLen = firstFrame ? firstFrame.audio.length : 600;
-        const avgBytesPerPacket = bodyLen + (10 / syncEvery);
-        const intervalMs = session.avgBitRate > 0
-            ? (avgBytesPerPacket * 8000) / (session.avgBitRate + 1024)
-            : 220;
+        const syncEvery = Number.isInteger(session?.syncEvery) && session.syncEvery > 0
+            ? session.syncEvery
+            : 5;
+        
+        // Compute actual average frame siz
+        // e from all frames
+        let totalAudioBytes = 0;
+        if (session.mediaFrames && session.mediaFrames.length > 0) {
+            for (const frame of session.mediaFrames) {
+                totalAudioBytes += frame.audio?.length || 0;
+            }
+        }
+        const frameCount = session.mediaFrames?.length || 1;
+        const bodyLen = frameCount > 0 ? totalAudioBytes / frameCount : 600;
+        
+        // Account for all overhead in actual UDP packets sent:
+        // - 12-byte RDT header per packet
+        // - 10-byte sync frame every syncEvery packets  
+        const rdtHeaderSize = 12;
+        const avgBytesPerPacket = rdtHeaderSize + bodyLen + (10 / syncEvery);
+        
+        // Compute pacing interval from avgBitRate.
+        // Use the bitrate directly without buffer since avgBitRate is computed
+        // from actual file payload and duration.
+        // On Windows, setTimeout fires slower than requested due to timer
+        // granularity. Compensation scales with interval: shorter intervals
+        // need more compensation. Formula: 1 - (fixedOverhead / calculatedInterval)
+        let intervalMs;
+        if (session.avgBitRate > 0) {
+            intervalMs = (avgBytesPerPacket * 8000) / session.avgBitRate;
+            // Adaptive Windows timer compensation: 13ms is empirical fixed overhead
+            const compensation = Math.max(0.90, 1 - (13 / intervalMs));
+            intervalMs *= compensation;
+        } else {
+            intervalMs = 220;
+        }
 
         const startDelayMs = 72;
-        const redundantSeqs = [0, 1];
+        const redundantSeqs = Array.isArray(this.service_config.redundant_initial_seqs)
+            ? this.service_config.redundant_initial_seqs.filter((value) => Number.isInteger(value) && value >= 0)
+            : [];
 
         // Pre-start burst: send the first N ms of audio at double rate to
         // pre-fill the client buffer before settling into normal pacing.
@@ -722,7 +1016,7 @@ class WTVPNM {
 
         // sendPacket wraps buildMediaPayload with the every-5th-sync-frame
         // prefix and writes to the UDP socket.  Wall-seq and frame are passed
-        // explicitly so the initial-burst retransmit of seq 0,1 (and seeks)
+        // explicitly so any configured initial retransmit (and seeks)
         // can pair any wall-seq with any frame index.
         const sendPacket = (seq, frame) => {
             if (socket.destroyed || !session.udpSocket) return;
@@ -797,10 +1091,8 @@ class WTVPNM {
             session.udpStartTimer = null;
             if (socket.destroyed) return;
 
-            // Initial redundant burst: send seq 0,1 once, then the interval
-            // takes over and re-sends frame 0,1,2,3,... with wall-seq 0,1,2,...
-            // multi_auth.pcap shows the real RealServer doing this — RP8
-            // uses the duplicates for loss recovery.
+            // Optional initial redundant burst for clients that benefit from
+            // replaying the first packets before the normal interval starts.
             const frames = session.mediaFrames || [];
             for (const s of redundantSeqs) {
                 const f = frames[s];
@@ -820,8 +1112,11 @@ class WTVPNM {
     // Captured example at seq 4: `00 0a 04 77 62 00 00 0a dc 00`.
     buildSyncFrame(session, seq) {
         const out = Buffer.alloc(10);
+        const syncType = Number.isInteger(this.service_config.rdt_sync_type)
+            ? (this.service_config.rdt_sync_type & 0xffff)
+            : (Number.isInteger(session?.rdtSyncType) ? (session.rdtSyncType & 0xffff) : 0x04ba);
         out.writeUInt16BE(0x000a, 0);           // length
-        out.writeUInt16BE(0x0477, 2);           // type (latency report)
+        out.writeUInt16BE(syncType, 2);         // type (latency report)
         out.writeUInt8(0x62, 4);                // flags/stream
         out.writeUInt8(0x00, 5);                // pad
         // Embed a pseudo-timestamp derived from seq (ms since stream start,
@@ -837,6 +1132,10 @@ class WTVPNM {
     buildMediaPayload(session, pSeq, pFrame) {
         const seq = pSeq !== undefined ? pSeq : (session ? session.udpSeq || 0 : 0);
         if (session && pSeq === undefined) session.udpSeq = seq + 1;
+        const packetMode = session?.rdtPacketMode || 'rdt';
+        const dataTypeLo = Number.isInteger(this.service_config.rdt_data_type_lo)
+            ? (this.service_config.rdt_data_type_lo & 0xff)
+            : (Number.isInteger(session?.rdtDataTypeLo) ? (session.rdtDataTypeLo & 0xff) : 0x50);
 
         // Pick the frame: caller can pass one explicitly (interval / burst /
         // seek path) or fall back to indexing by seq against mediaFrames.
@@ -859,14 +1158,25 @@ class WTVPNM {
         // natural reset at mid-stream keyframes within a generation).
         const seekGen = (session?.seekGen || 1) & 0x0f;
         const seekBaseSeq = session?.seekBaseSeq || 0;
-        const b5 = (seekGen << 4) | ((seq - seekBaseSeq) & 0x0f);
+        const b5 = ((seekGen << 4) | ((seq - seekBaseSeq) & 0x0f));
 
         if (!frame) {
             // No media (or stream exhausted): emit a 12-byte-header filler.
             const out = Buffer.alloc(12);
-            out[0] = 0x02; out[1] = 0x64;
-            out.writeUInt16BE(seq & 0xffff, 2);
-            out[4] = 0x5a; out[5] = b5;
+            if (packetMode === 'classic-len') {
+                out.writeUInt16BE(out.length & 0xffff, 0);
+                out.writeUInt16BE(seq & 0xffff, 2);
+                out[4] = 0x5a; out[5] = b5;
+                out.writeUInt32BE(0, 6);
+                out.writeUInt16BE(0, 10);
+            } else {
+                out[0] = 0x02; out[1] = dataTypeLo;
+                out.writeUInt16BE(seq & 0xffff, 2);
+                out[4] = 0x5a; out[5] = b5;
+            }
+            if (this.getDebugEnabled() && seq < 3) {
+                this.debugLog('buildMediaPayload: no frame', `seq=${seq}`, `sessionSeq=${session?.mediaFrameIdx}`);
+            }
             return out;
         }
 
@@ -875,22 +1185,36 @@ class WTVPNM {
 
         // RDT data-packet header (12 bytes).  Layout confirmed against
         // multi_auth.pcap seq 0..3 and multi_seek.pcap gen2+:
-        //   [0..1]  02 64               — packet type/flags (constant)
+        //   [0..1]  02 xx               — packet type/flags (default 0x50)
         //   [2..3]  uint16 BE seq
         //   [4]     5a                  — stream flags (constant)
         //   [5]     (seekGen<<4) | ((seq-seekBaseSeq)&0xf)  — see b5 above
         //   [6..7]  uint16 BE ts high (0 for short clips)
         //   [8..9]  uint16 BE ts low  — from RA record
         //   [10..11] uint16 BE flags  — from RA record (0x0002 keyframe)
-        out[0] = 0x02;
-        out[1] = 0x64;
-        out.writeUInt16BE(seq & 0xffff, 2);
-        out[4] = 0x5a;
-        out[5] = b5;
+        if (packetMode === 'classic-len') {
+            out.writeUInt16BE(out.length & 0xffff, 0);
+            out.writeUInt16BE(seq & 0xffff, 2);
+            out[4] = 0x5a;
+            out[5] = b5;
+        } else {
+            out[0] = 0x02;
+            out[1] = dataTypeLo;
+            out.writeUInt16BE(seq & 0xffff, 2);
+            out[4] = 0x5a;
+            out[5] = b5;
+        }
         out.writeUInt16BE((frame.ts >>> 16) & 0xffff, 6);
         out.writeUInt16BE(frame.ts & 0xffff, 8);
         out.writeUInt16BE(frame.flags & 0xffff, 10);
         frame.audio.copy(out, 12);
+        
+        if (this.getDebugEnabled() && seq < 3) {
+            this.debugLog('buildMediaPayload: frame', `seq=${seq}`, `ts=${frame.ts}`, 
+                `flags=0x${frame.flags.toString(16)}`, `audioLen=${audioLen}`,
+                `audioHex=${frame.audio.slice(0, 16).toString('hex')}`);
+        }
+        
         return out;
     }
 
@@ -973,6 +1297,7 @@ class WTVPNM {
             offset += rmfSize;
 
             let chunksFound = [];
+            const descriptorChunks = new Map();
             while (offset < raBuffer.length) {
                 const tag = raBuffer.toString('latin1', offset, offset + 4);
                 const size = raBuffer.readUInt32BE(offset + 4);
@@ -1039,72 +1364,102 @@ class WTVPNM {
                         }
                     }
 
-                    // Clean MDPR chunk by ensuring string fields are null-terminated and codec is injected
+                    // Preserve the source MDPR unless a specific override is requested.
                     if (tag === 'MDPR' && chunkData.length >= 42) {
                         try {
-                            // The native RealServer replaces the 'startTime' field (offset 28) 
-                            // with the 4cc codec ID (e.g. 'slae' or 'cook') for Audio streams
-                            // and seemingly adds a static padding byte after the MIME string.
-                            
-                            // The native RealServer overwrites the 'preroll' offset (32) and sometimes the
-                            // 'startTime' offset (28) based on the link bandwidth of the client.
-                            if (chunkData.indexOf(Buffer.from('audio/x-pn-', 'ascii')) > -1) {
-                                // Enforce the '00 00 10 52' Preroll seen across all WebTV PCAPs
-                                chunkData.writeUInt32BE(0x00001052, 32);
-                                
-                                // Legacy codec compatibility.  In wtv_multi.pcap the
-                                // real RealServer leaks *uninitialized stack memory*
-                                // into this slot (" lae", "\0\0\0\0", "Slae", "W ro"
-                                // across 6 sessions) — WebTV still accepts it, so the
-                                // client clearly doesn't read this field.  Default to
-                                // zeros (the safest "uninitialized" equivalent).
-                                // Override via service_config.mdpr_codec.
-                                const codecCfg = this.service_config.mdpr_codec;
-                                let codec;
-                                if (codecCfg === 'slae' || codecCfg === 'cook') {
-                                    codec = Buffer.from(codecCfg, 'ascii');
-                                } else if (typeof codecCfg === 'string' && codecCfg.length === 4) {
-                                    codec = Buffer.from(codecCfg, 'ascii');
-                                } else {
-                                    codec = Buffer.alloc(4, 0); // default: null bytes
-                                }
-                                codec.copy(chunkData, 28);
+                            const mdprFullHex = chunkData.toString('hex');
+                            this.debugLog('buildDescriptor MDPR full hex ENTIRE', session?.id || '?',
+                                `len=${chunkData.length}`, `hex=${mdprFullHex}`);
+
+                            // RealMedia MDPR structure (after 8-byte "MDPR"+size header):
+                            // 8-9: object version (u16)
+                            // 10-11: stream number (u16)
+                            // 12-15: max bitrate (u32)
+                            // 16-19: avg bitrate (u32)
+                            // 20-23: max packet size (u32)
+                            // 24-27: avg packet size (u32)
+                            // 28-31: start time (u32)
+                            // 32-35: preroll (u32)
+                            // 36-39: duration (u32)
+                            const mdprObjVer = chunkData.readUInt16BE(8);
+                            const mdprStreamNum = chunkData.readUInt16BE(10);
+                            const mdprMaxBitrate = chunkData.readUInt32BE(12);
+                            const mdprAvgBitrate = chunkData.readUInt32BE(16);
+                            const mdprMaxPacketSize = chunkData.readUInt32BE(20);
+                            const mdprAvgPacketSize = chunkData.readUInt32BE(24);
+                            const mdprStartTime = chunkData.readUInt32BE(28);
+                            const mdprPreroll = chunkData.readUInt32BE(32);
+                            const mdprDuration = chunkData.readUInt32BE(36);
+
+                            this.debugLog('buildDescriptor MDPR before cleanup', session?.id || '?',
+                                `objVer=${mdprObjVer}`,
+                                `streamNum=${mdprStreamNum}`,
+                                `maxBr=${mdprMaxBitrate} bps`,
+                                `avgBr=${mdprAvgBitrate} bps`,
+                                `maxPkt=${mdprMaxPacketSize} B`,
+                                `avgPkt=${mdprAvgPacketSize} B`,
+                                `start=${mdprStartTime} ms`,
+                                `preroll=${mdprPreroll} ms`,
+                                `duration=${mdprDuration} ms`,
+                                `mdprLen=${chunkData.length}`);
+
+                            const codecCfg = this.service_config.mdpr_codec;
+                            if (typeof codecCfg === 'string' && codecCfg.length === 4) {
+                                const newChunk = Buffer.from(chunkData);
+                                Buffer.from(codecCfg, 'ascii').copy(newChunk, 28);
+                                chunkData = newChunk;
+                                this.debugLog('buildDescriptor MDPR codec override', session?.id || '?', `codec=${codecCfg}`);
+                            } else {
+                                this.debugLog('buildDescriptor MDPR preserved', session?.id || '?', 'using source chunk without rewrite');
                             }
 
-                            // Re-align and null-terminate string arrays
-                            let off = 40; 
-                            const nameL = chunkData.readUInt8(off);
-                            const nameStr = chunkData.subarray(off + 1, off + 1 + nameL);
-                            off += 1 + nameL;
-                            const mimeL = chunkData.readUInt8(off);
-                            const mimeStr = chunkData.subarray(off + 1, off + 1 + mimeL);
-                            off += 1 + mimeL;
+                            // Normalize string payload shape to match RealServer:
+                            // StreamName and MIME are length-prefixed fields in the MDPR tail.
+                            // RealServer includes explicit trailing NUL bytes in both fields,
+                            // which increases MDPR size (commonly 0xA4 -> 0xA6).
+                            let off = 40;
+                            if (off + 1 < chunkData.length) {
+                                const nameL = chunkData.readUInt8(off);
+                                const nameStart = off + 1;
+                                const nameEnd = nameStart + nameL;
+                                if (nameEnd < chunkData.length) {
+                                    off = nameEnd;
+                                    const mimeL = chunkData.readUInt8(off);
+                                    const mimeStart = off + 1;
+                                    const mimeEnd = mimeStart + mimeL;
+                                    if (mimeEnd <= chunkData.length) {
+                                        const nameStr = chunkData.subarray(nameStart, nameEnd);
+                                        const mimeStr = chunkData.subarray(mimeStart, mimeEnd);
+                                        const needNameNull = nameL > 0 && nameStr[nameL - 1] !== 0;
+                                        const needMimeNull = mimeL > 0 && mimeStr[mimeL - 1] !== 0;
 
-                            const needNameNull = nameStr[nameL - 1] !== 0;
-                            const needMimeNull = mimeStr[mimeL - 1] !== 0;
+                                        if (needNameNull || needMimeNull) {
+                                            const finalNameL = nameL + (needNameNull ? 1 : 0);
+                                            const finalMimeL = mimeL + (needMimeNull ? 1 : 0);
+                                            const strBuf = Buffer.alloc(1 + finalNameL + 1 + finalMimeL);
+                                            let w = 0;
+                                            strBuf.writeUInt8(finalNameL, w++);
+                                            nameStr.copy(strBuf, w); w += nameL;
+                                            if (needNameNull) strBuf.writeUInt8(0, w++);
+                                            strBuf.writeUInt8(finalMimeL, w++);
+                                            mimeStr.copy(strBuf, w); w += mimeL;
+                                            if (needMimeNull) strBuf.writeUInt8(0, w++);
 
-                            const finalNameL = nameL + (needNameNull ? 1 : 0);
-                            const finalMimeL = mimeL + (needMimeNull ? 1 : 0);
+                                            const head = chunkData.subarray(0, 40);
+                                            const tail = chunkData.subarray(mimeEnd);
+                                            const newChunk = Buffer.concat([head, strBuf, tail]);
+                                            finalSize = newChunk.length;
+                                            newChunk.writeUInt32BE(finalSize, 4);
+                                            chunkData = newChunk;
 
-                            // Construct replacement middle-section
-                            const strBuf = Buffer.alloc(1 + finalNameL + 1 + finalMimeL);
-                            let w = 0;
-                            strBuf.writeUInt8(finalNameL, w++);
-                            nameStr.copy(strBuf, w); w += nameL;
-                            if (needNameNull) strBuf.writeUInt8(0, w++);
-
-                            strBuf.writeUInt8(finalMimeL, w++);
-                            mimeStr.copy(strBuf, w); w += mimeL;
-                            if (needMimeNull) strBuf.writeUInt8(0, w++);
-
-                            const head = chunkData.subarray(0, 40);
-                            const tail = chunkData.subarray(off);
-                            
-                            const newChunk = Buffer.concat([head, strBuf, tail]);
-                            finalSize = newChunk.length;
-                            newChunk.writeUInt32BE(finalSize, 4); // update internal size
-                            chunkData = newChunk;
-
+                                            this.debugLog('buildDescriptor MDPR string normalize', session?.id || '?',
+                                                `newLen=${finalSize}`,
+                                                `nameL=${finalNameL}`,
+                                                `mimeL=${finalMimeL}`);
+                                        }
+                                    }
+                                }
+                            }
                         } catch (e) {
                             this.debugLog('buildDescriptor MDPR rewrite error', e.message);
                         }
@@ -1114,21 +1469,44 @@ class WTVPNM {
                     const wrap = Buffer.alloc(3);
                     wrap[0] = 0x72;
                     wrap.writeUInt16BE(finalSize & 0xFFFF, 1);
-                    outChunks.push(wrap);
-                    outChunks.push(chunkData);
+                    descriptorChunks.set(tag, [wrap, chunkData]);
                 }
 
                 if (tag === 'DATA') break; // stop parsing once media data starts
                 offset += size;
             }
+
+            for (const tag of ['PROP', 'CONT', 'MDPR']) {
+                const chunkParts = descriptorChunks.get(tag);
+                if (chunkParts) outChunks.push(...chunkParts);
+            }
             
             // The real server appends a 5-byte 0x4C packet EOF marker before the session token tag
             outChunks.push(Buffer.from('4c00000000', 'hex'));
 
+        } else if (raBuffer) {
+            const classicRa = this.parseClassicRaHeader(raBuffer);
+            if (classicRa) {
+                const descriptorChunks = this.buildClassicRaDescriptorChunks(classicRa, raBuffer);
+                for (const tag of ['PROP', 'CONT', 'MDPR']) {
+                    const chunkData = descriptorChunks[tag];
+                    if (!chunkData) continue;
+                    const wrap = Buffer.alloc(3);
+                    wrap[0] = 0x72;
+                    wrap.writeUInt16BE(chunkData.length & 0xffff, 1);
+                    outChunks.push(wrap, chunkData);
+                }
+                outChunks.push(Buffer.from('4c00000000', 'hex'));
+                this.debugLog('buildDescriptor: classic RA fallback', session?.id || '?',
+                    `codec=${classicRa.codec || 'unknown'}`,
+                    `channels=${classicRa.channels || 'unknown'}`,
+                    `packet=${classicRa.packetSize}`,
+                    `dataOffset=${classicRa.dataOffset}`);
+            } else {
+                throw(new Error('Media file missing or unsupported format; expected .RMF or classic .ra'));
+            }
         } else {
-            // Fallback generic chunks if media cannot be read or is invalid
-            this.debugLog('Falling back to default metadata headers');
-            outChunks.push(Buffer.from('72003250524f50000000320000000050bf000050bf0000025800000258000000000000cc130000105200000000000000000001000972001a434f4e540000001a0000000000000008284329203230303500007200a64d445052000000a600000000000050bf000050bf000002580000025800000000000010520000cc130d417564696f2053747265616d0015617564696f2f782d706e2d7265616c617564696f00000000562e7261fd000500002e726135000000100005000000460003000002580000000000025d990000000000090258003c0000000056220000562200000010000167656e72636f6f6b010700000000000801000001020000174c', 'hex'));
+            throw(new Error('Media file missing or invalid .RMF format; cannot build descriptor'));
         }
 
         // Include the session token as tag 0x23 [size_16 = 64]
@@ -1157,6 +1535,251 @@ class WTVPNM {
     }
 
 
+
+    parseClassicRaHeader(buffer) {
+        if (!Buffer.isBuffer(buffer) || buffer.length < 64) return null;
+        if (!(buffer[0] === 0x2e && buffer[1] === 0x72 && buffer[2] === 0x61 && buffer[3] === 0xfd)) return null;
+
+        const header = {
+            version: buffer.readUInt16BE(4),
+            fourcc: buffer.toString('latin1', 8, 12),
+            packetSize: null,
+            channels: null,
+            sampleRate: null,
+            sampleSize: null,
+            interleaver: null,
+            codec: null,
+            title: null,
+            dataOffset: 0,
+            avgBitRate: 20000,
+            frameMs: 232,
+            durationMs: 0
+        };
+
+        const packetA = buffer.readUInt16BE(42);
+        const packetB = buffer.readUInt16BE(26);
+        header.packetSize = (packetA > 0 && packetA <= 2000) ? packetA : ((packetB > 0 && packetB <= 2000) ? packetB : 600);
+
+        const channels = buffer.readUInt16BE(54);
+        header.channels = (channels === 1 || channels === 2) ? channels : null;
+        header.sampleRate = buffer.readUInt16BE(48);
+        header.sampleSize = buffer.readUInt16BE(52);
+
+        // Duration is at a fixed offset in the RA4 header (offset 32)
+        const rawDuration = buffer.readUInt32BE(32);
+        if (rawDuration > 0 && rawDuration < 86_400_000) {
+            header.durationMs = rawDuration;
+        }
+
+        let off = 56;
+        // interleaver: uint8-length pascal string
+        if (off < buffer.length) {
+            const ilen = buffer.readUInt8(off); off++;
+            if (ilen >= 1 && ilen <= 32 && off + ilen <= buffer.length) {
+                header.interleaver = buffer.subarray(off, off + ilen).toString('latin1');
+                off += ilen;
+            }
+        }
+        // codec: uint8-length pascal string
+        if (off < buffer.length) {
+            const clen = buffer.readUInt8(off); off++;
+            if (clen >= 1 && clen <= 32 && off + clen <= buffer.length) {
+                header.codec = buffer.subarray(off, off + clen).toString('latin1');
+                off += clen;
+            }
+        }
+        // After codec, classic RA4 commonly stores:
+        //   u16 aux/opaque marker, u16 titleLen, title bytes, optional NUL pad.
+        // Example from realaudio3.pcap: 00 02 00 14 "Dialing WebTV (Mono)" 00 00 00
+        if (off + 4 <= buffer.length) {
+            off += 2; // aux/opaque marker (kept for alignment only)
+            const titleLen = buffer.readUInt16BE(off); off += 2;
+            if (titleLen > 0 && titleLen <= 255 && off + titleLen <= buffer.length) {
+                header.title = buffer.subarray(off, off + titleLen).toString('latin1').replace(/\x00+$/g, '');
+                off += titleLen;
+            } else {
+                // Fallback for variants that use 8-bit title length
+                off -= 2;
+                if (off < buffer.length) {
+                    const titleLen8 = buffer.readUInt8(off); off++;
+                    if (titleLen8 > 0 && titleLen8 <= 255 && off + titleLen8 <= buffer.length) {
+                        header.title = buffer.subarray(off, off + titleLen8).toString('latin1').replace(/\x00+$/g, '');
+                        off += titleLen8;
+                    }
+                }
+            }
+        }
+
+        // Some files pad with 1-4 NUL bytes before packetized data.
+        let nulPad = 0;
+        while (off < buffer.length && buffer[off] === 0x00 && nulPad < 4) {
+            off++;
+            nulPad++;
+        }
+
+        header.dataOffset = Math.min(Math.max(off, 64), buffer.length);
+
+        if (!(header.durationMs > 0 && header.durationMs < 86_400_000)) {
+            header.durationMs = 0;
+        }
+
+        // Compute frame cadence from known profiles or header duration.
+        // Known profiles are preferred; header duration is only used if no profile applies.
+        if (header.codec === 'dnet' && header.dataOffset < buffer.length) {
+            const payloadBytes = buffer.length - header.dataOffset;
+            const packetCount = payloadBytes / header.packetSize;
+            
+            // Try known dnet profiles by (channels, packetSize) combinations
+            let profileFrameMs = null;
+            let profileChosen = false;
+            
+            if (header.channels === 1 && header.packetSize === 278) {
+                profileFrameMs = 139;  // mono RA3/4 @ ~16kbps
+                // Always use this profile for mono 278; duration inference will correct if needed
+                header.frameMs = profileFrameMs;
+                profileChosen = true;
+            } else if (header.channels === 2 && header.packetSize === 480) {
+                // Multiple bitrates possible for stereo 480:
+                // Try 80kbps (frameMs=48) and 20kbps (frameMs=192)
+                const dur80k = packetCount * 48;
+                const dur20k = packetCount * 192;
+                const ratio80k = header.durationMs > 0 ? (header.durationMs / dur80k) : 0;
+                const ratio20k = header.durationMs > 0 ? (header.durationMs / dur20k) : 0;
+                
+                // Try to match header with a known profile
+                if (ratio80k >= 0.9 && ratio80k <= 1.1) {
+                    header.frameMs = 48;
+                    profileChosen = true;
+                } else if (ratio20k >= 0.9 && ratio20k <= 1.1) {
+                    header.frameMs = 192;
+                    profileChosen = true;
+                } else if (!header.durationMs) {
+                    // No header duration: default to 20kbps
+                    header.frameMs = 192;
+                    profileChosen = true;
+                } else {
+                    // Header duration doesn't match either profile closely.
+                    // Don't trust the header; pick profile based on file size.
+                    // Larger files tend to be 80kbps; smaller files 20kbps.
+                    // Use ~600KB as threshold: 20kbps*240s ≈ 600KB
+                    if (payloadBytes > 1_000_000) {
+                        header.frameMs = 48;  // 80kbps profile
+                    } else {
+                        header.frameMs = 192;  // 20kbps profile
+                    }
+                    profileChosen = true;
+                }
+            } else if (header.channels === 1 && header.packetSize === 384) {
+                profileFrameMs = 95;   // RA5 @ ~32kbps
+                // Always use this profile for mono 384; duration inference will correct if needed
+                header.frameMs = profileFrameMs;
+                profileChosen = true;
+            }
+            
+            // If no profile matched and we didn't already set frameMs, compute from header
+            if (!profileChosen && header.durationMs > 0) {
+                header.frameMs = Math.max(1, Math.round(header.durationMs / packetCount));
+            }
+        }
+
+        // Generic cadence fallback when still no valid frameMs (non-dnet codec)
+        if (!(header.frameMs > 0) || header.frameMs === 232) {
+            header.frameMs = Math.max(1, Math.round((header.packetSize * 8000) / Math.max(1, header.avgBitRate)));
+        }
+
+        // Infer duration from packet count and cadence. This corrects header duration
+        // when it's mismatched to actual packet timing.
+        if (header.dataOffset < buffer.length && header.packetSize > 0 && header.frameMs > 0) {
+            const payloadBytes = buffer.length - header.dataOffset;
+            const packetCount = Math.ceil(payloadBytes / header.packetSize);
+            const inferredDurationMs = packetCount * header.frameMs;
+            if (inferredDurationMs > 0 && inferredDurationMs < 86_400_000) {
+                const hasDuration = header.durationMs > 0;
+                const ratio = hasDuration ? (header.durationMs / inferredDurationMs) : 0;
+                if (!hasDuration || ratio < 0.75 || ratio > 1.25) {
+                    header.durationMs = inferredDurationMs;
+                }
+            }
+        }
+
+        // Now compute bitrate from corrected duration and actual file payload.
+        if (header.durationMs > 0 && header.dataOffset < buffer.length) {
+            const payloadBytes = buffer.length - header.dataOffset;
+            const computedAvg = Math.round((payloadBytes * 8 * 1000) / header.durationMs);
+            if (computedAvg >= 2000 && computedAvg <= 256000) {
+                header.avgBitRate = computedAvg;
+            }
+        }
+
+        if (Number.isInteger(this.service_config.classic_ra_avg_bitrate)) {
+            header.avgBitRate = Math.max(1000, this.service_config.classic_ra_avg_bitrate);
+        }
+
+        return header;
+    }
+
+    buildClassicRaDescriptorChunks(classicRa, buffer) {
+        const avgBr = classicRa.avgBitRate || 20000;
+        const maxBr = avgBr;
+        const pkt = classicRa.packetSize || 600;
+        const prerollMs = 2000;
+        const durationMs = classicRa.durationMs || 0;
+
+        const prop = Buffer.alloc(50);
+        prop.write('PROP', 0, 'ascii');
+        prop.writeUInt32BE(50, 4);
+        prop.writeUInt16BE(0, 8);
+        prop.writeUInt32BE(maxBr >>> 0, 10);
+        prop.writeUInt32BE(avgBr >>> 0, 14);
+        prop.writeUInt32BE(pkt >>> 0, 18);
+        prop.writeUInt32BE(pkt >>> 0, 22);
+        prop.writeUInt32BE(0, 26);
+        prop.writeUInt32BE(0, 30);
+        prop.writeUInt32BE(durationMs >>> 0, 34);
+        prop.writeUInt32BE(prerollMs >>> 0, 38);
+        prop.writeUInt32BE(0, 42);
+        prop.writeUInt16BE(1, 46);
+        prop.writeUInt16BE(9, 48);
+
+        const titleBuf = Buffer.from(classicRa.title || '', 'latin1');
+        const contSize = 10 + 2 + titleBuf.length + 2 + 0 + 2 + 0 + 2 + 0;
+        const cont = Buffer.alloc(contSize);
+        cont.write('CONT', 0, 'ascii');
+        cont.writeUInt32BE(contSize, 4);
+        cont.writeUInt16BE(0, 8);
+        let cOff = 10;
+        cont.writeUInt16BE(titleBuf.length, cOff); cOff += 2;
+        titleBuf.copy(cont, cOff); cOff += titleBuf.length;
+        cont.writeUInt16BE(0, cOff); cOff += 2;
+        cont.writeUInt16BE(0, cOff); cOff += 2;
+        cont.writeUInt16BE(0, cOff);
+
+        const nameBuf = Buffer.from('Audio Stream\x00', 'latin1');
+        const mimeBuf = Buffer.from('audio/x-pn-realaudio\x00', 'latin1');
+        const tsd = buffer.subarray(0, Math.max(1, classicRa.dataOffset));
+        const mdprSize = 40 + 1 + nameBuf.length + 1 + mimeBuf.length + 4 + tsd.length;
+        const mdpr = Buffer.alloc(mdprSize);
+        mdpr.write('MDPR', 0, 'ascii');
+        mdpr.writeUInt32BE(mdprSize, 4);
+        mdpr.writeUInt16BE(0, 8);
+        mdpr.writeUInt16BE(0, 10);
+        mdpr.writeUInt32BE(maxBr >>> 0, 12);
+        mdpr.writeUInt32BE(avgBr >>> 0, 16);
+        mdpr.writeUInt32BE(pkt >>> 0, 20);
+        mdpr.writeUInt32BE(pkt >>> 0, 24);
+        mdpr.writeUInt32BE(0, 28);
+        mdpr.writeUInt32BE(prerollMs >>> 0, 32);
+        mdpr.writeUInt32BE(durationMs >>> 0, 36);
+        let mOff = 40;
+        mdpr.writeUInt8(nameBuf.length, mOff); mOff += 1;
+        nameBuf.copy(mdpr, mOff); mOff += nameBuf.length;
+        mdpr.writeUInt8(mimeBuf.length, mOff); mOff += 1;
+        mimeBuf.copy(mdpr, mOff); mOff += mimeBuf.length;
+        mdpr.writeUInt32BE(tsd.length >>> 0, mOff); mOff += 4;
+        tsd.copy(mdpr, mOff);
+
+        return { PROP: prop, CONT: cont, MDPR: mdpr };
+    }
 
     getRealMediaChunk(buffer, tag) {
         if (!buffer || !tag || tag.length !== 4) return null;
@@ -1280,9 +1903,13 @@ class WTVPNM {
 
         const fields = [];
         let offset = pnaOffset + 5;
+        const dbg = this.getDebugEnabled();
 
         // Phase 1: TLV fields (u16 tag, u16 len, value) until we hit the
-        // special 'tag 0' end-of-TLV sentinel.
+        // special 'tag 0' end-of-TLV sentinel OR field 11 with len 0.
+        // NOTE: field 11 with len 0 is NOT a guaranteed end marker;
+        // phase 2 may still follow. We scan TLV until we can't parse more,
+        // then unconditionally proceed to phase 2.
         while (offset + 4 <= data.length) {
             const fieldId = data.readUInt16BE(offset);
 
@@ -1296,15 +1923,17 @@ class WTVPNM {
                 const value = data.slice(offset + 2, offset + 6);
                 fields.push({ id: 0, len: 4, value, implicitLen: true });
                 offset += 6;
+                if (dbg) this.debugLog('pna phase 1 end at offset', offset, 'field 0 (special)');
                 break; // tag 0 is always last in TLV phase
             }
 
             const fieldLen = data.readUInt16BE(offset + 2);
             offset += 4;
             if (fieldLen > 1024 || offset + fieldLen > data.length) {
-                // Unparseable TLV entry — skip 1 byte from the field start and retry.
-                offset -= 3;
-                continue;
+                // Unparseable TLV entry — likely end of phase 1, break to phase 2
+                if (dbg) this.debugLog('pna tlv end (unparse)', `id=0x${fieldId.toString(16)}`, `len=${fieldLen}`, `offset=${offset}`);
+                offset -= 4;  // Back up to try as phase 2
+                break;
             }
 
             const value = data.slice(offset, offset + fieldLen);
@@ -1315,11 +1944,11 @@ class WTVPNM {
             });
             offset += fieldLen;
 
-            if (fieldId === 11 && fieldLen === 0) {
-                // End-of-header marker in older (non-tag-0) captures.
-                return fields;
-            }
+            // Field 11 with len 0 is just a marker, doesn't guarantee end of phase 1
+            // (phase 2 may still follow). Only break explicitly on tag 0.
         }
+
+        if (dbg) this.debugLog('pna phase 1 end at offset', offset, `phase1_fields=${fields.length}`, `remaining=${data.length - offset} bytes`);
 
         // Phase 2: ASCII-marker section (single-byte marker, u16 BE length,
         // value).  Known markers observed in captures & ROM disasm:
@@ -1329,21 +1958,36 @@ class WTVPNM {
         //   'y' (0x79) — end-of-request terminator
         // We fold these into the same `fields` array using the marker byte
         // as the id so callers that look up id === 82 etc. still work.
+        const phase2Start = offset;
+        let phase2Count = 0;
         while (offset < data.length) {
             const marker = data[offset];
+            const markerChar = String.fromCharCode(marker);
             if (marker === 0x79) {
                 // 'y' terminator — optionally consumes nothing else.
                 fields.push({ id: 0x79, len: 0, value: Buffer.alloc(0), asciiMarker: true });
                 offset += 1;
+                if (dbg) this.debugLog('pna phase 2 found terminator y at offset', offset - 1);
                 break;
             }
-            if (offset + 3 > data.length) break;
+            if (offset + 3 > data.length) {
+                if (dbg) this.debugLog('pna phase 2 break: not enough data', `offset=${offset}`, `need 3, have=${data.length - offset}`);
+                break;
+            }
             const valLen = data.readUInt16BE(offset + 1);
-            if (valLen > 1024 || offset + 3 + valLen > data.length) break;
+            if (valLen > 1024 || offset + 3 + valLen > data.length) {
+                if (dbg) this.debugLog('pna phase 2 break: bad valLen', `marker=0x${marker.toString(16)}(${markerChar})`, `valLen=${valLen}`, `at offset=${offset}`);
+                break;
+            }
             const value = data.slice(offset + 3, offset + 3 + valLen);
+            const valuePreview = value.toString('latin1').slice(0, 60).replace(/[^\x20-\x7E]/g, '.');
             fields.push({ id: marker, len: valLen, value, asciiMarker: true });
+            phase2Count++;
+            if (dbg) this.debugLog('pna phase 2 marker', `0x${marker.toString(16)}(${markerChar})`, `len=${valLen}`, `val=${valuePreview}`);
             offset += 3 + valLen;
         }
+
+        if (dbg) this.debugLog('pna phase 2 complete', `start_offset=${phase2Start}`, `end_offset=${offset}`, `phase2_markers=${phase2Count}`, `total_fields=${fields.length}`);
 
         return fields;
     }
