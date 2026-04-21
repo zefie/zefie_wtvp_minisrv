@@ -123,7 +123,18 @@ class WTVPNM {
         this.debugLog('rx', session.id, 'len', data.length, ascii.slice(0, 120));
         this.debugLog('rx hex', session.id, data.toString('hex'));
 
-        if (data.includes(Buffer.from('PNA\x00\x0a', 'latin1'))) {
+        const hasPnaHello = data.includes(Buffer.from('PNA\x00\x0a', 'latin1'));
+        const hasGetA = ascii.includes('GET /a');
+
+        // Some clients retune on the same TCP socket without first sending a
+        // full stop/teardown. When that happens, treat a new hello marker as
+        // a fresh session start and clear prior stream/control state.
+        if ((hasPnaHello || hasGetA) && (session.helloSent || session.descriptorSent)) {
+            this.debugLog('retune detected, resetting session state', session.id);
+            this.resetSessionForRetune(session);
+        }
+
+        if (hasPnaHello) {
             session.pnaFields = this.parsePnaMessage(data);
 
             // Dump all parsed PNA fields for debugging
@@ -185,7 +196,7 @@ class WTVPNM {
 
         if (session.notFoundSent) return;
 
-        if (!session.helloSent && (ascii.includes('GET /a') || data.includes(Buffer.from('PNA\x00\x0a', 'latin1')))) {
+        if (!session.helloSent && (hasGetA || hasPnaHello)) {
             this.sendHelloSequence(socket, session);
             return;
         }
@@ -222,6 +233,27 @@ class WTVPNM {
         }
     }
 
+    resetSessionForRetune(session) {
+        if (!session) return;
+        this.clearDescriptorTimer(session);
+        this.stopUdpStream(session);
+
+        session.helloSent = false;
+        session.descriptorSent = false;
+        session.notFoundSent = false;
+        session.capabilitiesLogged = false;
+        session.capabilities = [];
+        session.clientChallenge = null;
+        session.requestedMedia = null;
+        session.mediaPath = null;
+        session.pnaFields = null;
+        session.ctrlBuf = Buffer.alloc(0);
+        session.paused = false;
+        session.eosSent = false;
+        session.hashVerified = false;
+        session.sessionNumber = undefined;
+    }
+
     // Parse the post-descriptor TCP control stream sent by RealPlayer during
     // and after playback.  Observed opcodes (multi_seek.pcap, wtv2.pcap):
     //   0x21 ('!')  — 1 byte  — periodic keepalive during playback
@@ -237,6 +269,7 @@ class WTVPNM {
             ? Buffer.concat([session.ctrlBuf, data])
             : Buffer.from(data);
 
+        const knownOps = new Set([0x21, 0x42, 0x50, 0x53, 0x67]);
         let off = 0;
         const buf = session.ctrlBuf;
         while (off < buf.length) {
@@ -267,10 +300,29 @@ class WTVPNM {
                 this.debugLog('ctrl stats', session.id, `len=${slen}`, txt.slice(0, 120));
                 off += 3 + slen;
             } else {
-                // Unknown byte — log once and skip to resync.
-                this.debugLog('ctrl unknown', session.id, `op=0x${op.toString(16)}`,
-                    'hex', buf.slice(off, off + 16).toString('hex'));
-                off += 1;
+                // Some clients send opaque binary blobs during retune/teardown.
+                // Skip to the next known opcode in one step to avoid byte-by-byte
+                // desync spam and excessive parser churn.
+                let nextKnown = -1;
+                for (let i = off + 1; i < buf.length; i++) {
+                    if (knownOps.has(buf[i])) {
+                        nextKnown = i;
+                        break;
+                    }
+                }
+
+                if (nextKnown === -1) {
+                    this.debugLog('ctrl opaque blob', session.id,
+                        `len=${buf.length - off}`,
+                        'hex', buf.slice(off, off + 24).toString('hex'));
+                    off = buf.length;
+                    break;
+                }
+
+                this.debugLog('ctrl unknown block skipped', session.id,
+                    `len=${nextKnown - off}`,
+                    'hex', buf.slice(off, Math.min(nextKnown, off + 24)).toString('hex'));
+                off = nextKnown;
             }
         }
         // Preserve any trailing incomplete command for next receive.
