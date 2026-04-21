@@ -401,7 +401,8 @@
       "protocol_handler": "pnm",
       "descriptor_after_hello_ms": 85,
       "burst_prestart_ms": 5000,
-      "debug": false
+      "debug": false,
+      "allow_indexing": true
     }
   },
   "favorites": {
