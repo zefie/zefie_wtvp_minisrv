@@ -1,10 +1,19 @@
 // Pure JS implementation of old Progressive Networks PNM streaming protocol used by WebTV and RealPlayer 8.
 // This server only supports UDP streams, so mplayer (and others that are TCP only) will not work
 // It does support seeking and pausing via the TCP control channel, but does not support bitrate switching or any of the
-// other advanced features of the RealServer protocol. It should be compatible with WebTV 2.5 and RP8 clients, but has only been tested with RP8.
+// other advanced features of the RealServer protocol. It should be compatible with WebTV 2.5 and RP8 clients.
 // RealAudio 3, RealAudio 5, RealAudio G2 and RealAudio 8 (not WebTV compatible) files. 
 // It is also not compatible with live streams at this time. 
 // Also not tested with SureStream since they never worked with WebTV. (could we, as the server, make SureStream work with WebTV?)
+
+// How it works (roughly):
+// The client sends a md5 challenge in the initial request with the filename, and the current timestamp.
+// The current timestamp (sent by the client) is parsed into epoch, then XORed with 0x67E32B93 to form "v12"
+// The server then generates a challenge response with this value and the client challenge. (this is "initMD5")
+// The server then generates a second hash based on the server challenge (random, but small for WebTV, large for RP8) and the request filename, XORed with "initMD5" (this is "resp1").
+// The server sends resp1+initMD5 as a large 64-byte challenge
+// The client validates this challenge by calculating the server challenge and its own client challenge to produce a final hash, which it sends back to the server.
+// If the hash matches, the client is authenticated and the server starts sending UDP packets.
 
 const net = require('net');
 const fs = require('fs');
@@ -585,19 +594,8 @@ class WTVPNM {
     sendHelloSequence(socket, session) {
         if (!socket || !session || session.helloSent) return;
 
-        // RealServer sends the 9-byte PNA hello first, then WAITS for the
-        // client to ACK it before sending the 361-byte descriptor (observed
-        // ~85ms gap in wtv_multi.pcap).  When we send both back-to-back,
-        // WebTV silently disconnects after the hello and RP8 gets stuck
-        // buffering at 0kbps — both clients parse hello and descriptor in
-        // separate states and dislike receiving the descriptor bytes before
-        // the hello-handling state completes.
-        //
-        // Node's 'net' socket doesn't expose per-write ACK callbacks, but a
-        // short timer approximates the real flow well enough: send hello,
-        // then send descriptor ~100ms later (> typical delayed-ACK of 40ms
-        // but < client timeout).  The gap also gives the client time to
-        // parse the challenge before the next packet arrives.
+        // RealServer sends the 9-byte PNA hello first, then sends the
+        // descriptor to the client a several milliseconds later
         const hello = this.buildPnaHello(session);
         session.helloSent = true;
         this.send(socket, hello);
