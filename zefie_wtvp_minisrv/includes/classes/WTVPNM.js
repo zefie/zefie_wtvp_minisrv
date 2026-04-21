@@ -3,7 +3,8 @@
 // It does support seeking and pausing via the TCP control channel, but does not support bitrate switching or any of the
 // other advanced features of the RealServer protocol. It should be compatible with WebTV 2.5 and RP8 clients, but has only been tested with RP8.
 // RealAudio 3, RealAudio 5, RealAudio G2 and RealAudio 8 (not WebTV compatible) files. 
-// It is also not compatible with live streams at this time.
+// It is also not compatible with live streams at this time. 
+// Also not tested with SureStream since they never worked with WebTV. (could we, as the server, make SureStream work with WebTV?)
 
 const net = require('net');
 const fs = require('fs');
