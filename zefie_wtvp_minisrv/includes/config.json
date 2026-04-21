@@ -399,20 +399,9 @@
       "flags": "0x00000001",
       "allow_double_slash": true,
       "protocol_handler": "pnm",
-      "send_keepalive": false,
-      "keepalive_zero_ack": true,
-      "hello_split_ms": 8,
-      "descriptor_on_first_pna": true,
       "descriptor_after_hello_ms": 85,
-      "descriptor_fallback_ms": 85,
-      "descriptor_idle_fallback_ms": 85,
-      "tcp_start_delay_ms": 72,
-      "tcp_initial_burst": 1,
-      "tcp_interval_ms": 232,
-      "dynamic_session_token": true,
-      "adapt_codec_from_caps": false,
-      "auto_stream": true,
-      "debug": true
+      "burst_prestart_ms": 5000,
+      "debug": false
     }
   },
   "favorites": {

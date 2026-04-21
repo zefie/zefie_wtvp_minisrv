@@ -2,6 +2,7 @@ const net = require('net');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const dgram = require('dgram');
 const { WTVShared } = require('./WTVShared.js');
 
 class WTVPNM {
@@ -67,12 +68,6 @@ class WTVPNM {
             mediaPath: null,
             notFoundSent: false,
             pnaFields: null,
-            tcpTimer: null,
-            tcpSeq: 0,
-            ipId: 0,
-            tcpStartTimer: null,
-            mediaData: null,
-            mediaOffset: 0,
             bytesRx: 0,
             bytesTx: 0,
             // Control-stream command accumulator.  TCP is byte-oriented so
@@ -179,9 +174,12 @@ class WTVPNM {
             }
 
             if (session.requestedMedia && !session.mediaPath) {
+                console.log(' * PNM RealServer Warning: requested media not found', session.requestedMedia);
                 this.sendNotFound(socket, session.requestedMedia);
                 session.notFoundSent = true;
                 return;
+            } else {
+                console.log(' * PNM RealServer Request from', session.id, 'for media', session.mediaPath);
             }
         }
 
@@ -210,7 +208,7 @@ class WTVPNM {
                 } else {
                     this.debugLog('client hash MISMATCH', session.id, 'expected', expectedResp);
                 }
-                if (session.clientUdpPort && this.service_config.auto_stream !== false) {
+                if (session.clientUdpPort) {
                     this.startUdpStream(socket, session);
                 }
             } else {
@@ -501,24 +499,6 @@ class WTVPNM {
         }
     }
 
-    scheduleDescriptorSequence(socket, session) {
-        this.clearDescriptorTimer(session);
-        let delayMs = null;
-        let reason = 'webtv-sequence';
-
-        if (this.service_config.descriptor_on_first_pna === true) {
-            delayMs = (typeof this.service_config.descriptor_after_hello_ms === 'number')
-                ? this.service_config.descriptor_after_hello_ms
-                : (this.service_config.descriptor_fallback_ms || 20);
-        }
-
-        if (delayMs === null) return;
-        this.debugLog('descriptor scheduled', session.id, reason, `${delayMs}ms`);
-        session.descriptorTimer = setTimeout(() => {
-            this.sendDescriptorAndStartStream(socket, session, reason);
-        }, delayMs);
-    }
-
     sendDescriptorAndStartStream(socket, session, reason) {
         if (!socket || !session || session.descriptorSent) return;
         this.clearDescriptorTimer(session);
@@ -631,14 +611,22 @@ class WTVPNM {
         const startDelayMs = 72;
         const redundantSeqs = [0, 1];
 
+        // Pre-start burst: send the first N ms of audio at double rate to
+        // pre-fill the client buffer before settling into normal pacing.
+        const burstPrestartMs = typeof this.service_config.burst_prestart_ms === 'number'
+            ? this.service_config.burst_prestart_ms
+            : 3000;
+        const burstFrameCount = burstPrestartMs > 0 ? Math.ceil(burstPrestartMs / intervalMs) : 0;
+        session.burstFramesSent = 0;
+
         this.debugLog('udp stream start', session.id,
             `frames=${session.mediaFrames?.length || 0}`,
             `avgBitRate=${session.avgBitRate || 'unknown'}bps`,
             `bodyLen=${bodyLen}`,
             `interval=${intervalMs.toFixed(2)}ms`,
+            `burstFrames=${burstFrameCount}`,
             `target=${socket.remoteAddress}:${session.clientUdpPort}`);
 
-        const dgram = require('dgram');
         session.udpSocket = dgram.createSocket('udp4');
         session.udpSocket.on('error', (err) => {
             this.debugLog('udp socket error', session.id, err.message);
@@ -678,20 +666,18 @@ class WTVPNM {
 
         session._startDataInterval = () => {
             if (session.udpTimer) return;
-            session.udpTimer = setInterval(() => {
+            const tick = () => {
+                session.udpTimer = null;
                 if (socket.destroyed || !session.udpSocket) {
                     this.stopUdpStream(session);
                     return;
                 }
+                // Don't re-arm while paused; resumeUdpStream calls _startDataInterval.
                 if (session.paused) return;
                 const frames = session.mediaFrames;
                 if (!frames || session.mediaFrameIdx >= frames.length) {
                     // End of media: stop sending once all RA frames are out.
                     this.debugLog('udp stream complete', session.id, `sent=${seq}`);
-                    if (session.udpTimer) {
-                        clearInterval(session.udpTimer);
-                        session.udpTimer = null;
-                    }
                     // Signal end-of-stream to the client on TCP.  wtv2.pcap
                     // shows the native RealServer sending a single 0x45 byte
                     // ~0.5s after the last UDP packet; the client then FINs.
@@ -716,7 +702,14 @@ class WTVPNM {
                 sendPacket(seq, frame);
                 seq++;
                 session.mediaFrameIdx++;
-            }, intervalMs);
+                session.burstFramesSent++;
+                // Use half the interval during the pre-start burst window, then
+                // drop to normal pacing once burstFrameCount frames have been sent.
+                const delay = session.burstFramesSent < burstFrameCount ? intervalMs / 2 : intervalMs;
+                session.udpTimer = setTimeout(tick, delay);
+            };
+            const initialDelay = session.burstFramesSent < burstFrameCount ? intervalMs / 2 : intervalMs;
+            session.udpTimer = setTimeout(tick, initialDelay);
         };
 
         session.udpStartTimer = setTimeout(() => {
@@ -760,18 +753,12 @@ class WTVPNM {
         return out;
     }
 
-    buildTunnelFrame(session) {
-        // Send raw PNA media data directly on TCP (no PPP/IP/UDP wrapping).
-        return this.buildMediaPayload(session);
-    }
-
     buildMediaPayload(session, pSeq, pFrame) {
         const seq = pSeq !== undefined ? pSeq : (session ? session.udpSeq || 0 : 0);
         if (session && pSeq === undefined) session.udpSeq = seq + 1;
 
         // Pick the frame: caller can pass one explicitly (interval / burst /
-        // seek path) or, for the legacy tunnel path, we fall back to indexing
-        // by seq against mediaFrames as before.
+        // seek path) or fall back to indexing by seq against mediaFrames.
         let frame = pFrame;
         if (frame === undefined) {
             frame = session?.mediaFrames?.[seq];
@@ -825,83 +812,6 @@ class WTVPNM {
         frame.audio.copy(out, 12);
         return out;
     }
-
-    buildIPv4UdpPacket(session, udpPayload) {
-        const srcIp = this.parseIPv4(this.service_config.stream_src_ip || '10.0.0.2');
-        const dstIp = this.parseIPv4(this.service_config.stream_dst_ip || '10.0.0.3');
-        const srcPort = this.service_config.stream_udp_src_port || 0xb385;
-        const dstPort = this.service_config.stream_udp_dst_port || 6970;
-
-        const ipHeader = Buffer.alloc(20);
-        const udpHeader = Buffer.alloc(8);
-        const totalLen = 20 + 8 + udpPayload.length;
-        const ipId = (session.ipId++ & 0xffff);
-
-        ipHeader[0] = 0x45;
-        ipHeader[1] = 0x00;
-        ipHeader.writeUInt16BE(totalLen, 2);
-        ipHeader.writeUInt16BE(ipId, 4);
-        ipHeader.writeUInt16BE(0x4000, 6);
-        ipHeader[8] = 0x40;
-        ipHeader[9] = 0x11;
-        srcIp.copy(ipHeader, 12);
-        dstIp.copy(ipHeader, 16);
-        ipHeader.writeUInt16BE(this.ipv4HeaderChecksum(ipHeader), 10);
-
-        udpHeader.writeUInt16BE(srcPort & 0xffff, 0);
-        udpHeader.writeUInt16BE(dstPort & 0xffff, 2);
-        udpHeader.writeUInt16BE(8 + udpPayload.length, 4);
-        udpHeader.writeUInt16BE(0, 6);
-
-        return Buffer.concat([ipHeader, udpHeader, udpPayload]);
-    }
-
-    buildPppIpFrame(ipPacket) {
-        const protocol = Buffer.from([0x21]);
-        const raw = Buffer.concat([protocol, ipPacket]);
-        return this.pppEscape(raw);
-    }
-
-    pppEscape(buffer) {
-        const escaped = [];
-        for (let i = 0; i < buffer.length; i++) {
-            const b = buffer[i];
-            if (b === 0x7d || b === 0x7e || b < 0x20) {
-                escaped.push(0x7d, b ^ 0x20);
-            } else {
-                escaped.push(b);
-            }
-        }
-        return Buffer.from(escaped);
-    }
-
-    parseIPv4(ipStr) {
-        const parts = String(ipStr).split('.').map((v) => parseInt(v, 10));
-        if (parts.length !== 4 || parts.some((v) => Number.isNaN(v) || v < 0 || v > 255)) {
-            return Buffer.from([10, 0, 0, 2]);
-        }
-        return Buffer.from(parts);
-    }
-
-    ipv4HeaderChecksum(header) {
-        let sum = 0;
-        for (let i = 0; i < 20; i += 2) {
-            if (i === 10) continue;
-            sum += header.readUInt16BE(i);
-            while (sum > 0xffff) sum = (sum & 0xffff) + (sum >>> 16);
-        }
-        return (~sum) & 0xffff;
-    }
-
-    // The server-challenge wire format has two observed variants:
-    //   - 16-bit: small values like 0x03f1, 0x047d, 0x011e..0x0138. Seen in
-    //     every WebTV capture (wtv.pcap, wtv2.pcap, wtv_multi.pcap).  WebTV's
-    //     PNM client REFUSES to send its hash response when the upper 16 bits
-    //     are non-zero.
-    //   - 32-bit Unix timestamp: seen in multi_auth.pcap (a newer RealServer
-    //     build talking to modern RealPlayer).
-    // Detection is by User-Agent (set in handleData from the raw request data)
-    // since WebTV clients advertise the same cook/sipr caps as modern RP.
 
     buildPnaHello(session = null) {
         // The client advertises its local `time()` value in tag 0 of the
@@ -960,7 +870,6 @@ class WTVPNM {
     }
 
     buildDescriptorPacket(session = null) {
-        const fs = require('fs');
         const outChunks = [];
 
         // 4F headers: Rule Tags / Properties (based on capture to appease client parser)
@@ -1120,20 +1029,6 @@ class WTVPNM {
                         }
                     }
 
-                    // Optional codec adaptation
-                    if (tag === 'MDPR' && this.service_config.adapt_codec_from_caps === true) {
-                        const caps = (session && Array.isArray(session.capabilities)) ? session.capabilities : [];
-                        if (caps.includes('cook')) {
-                            // Replace 'slae' codec with 'cook' if requested
-                            const at = chunkData.indexOf(Buffer.from('slae', 'ascii'));
-                            if (at >= 0) {
-                                const newChunk = Buffer.from(chunkData);
-                                Buffer.from('cook', 'ascii').copy(newChunk, at);
-                                chunkData = newChunk;
-                            }
-                        }
-                    }
-
                     // Wrap in [0x72] [size_16]
                     const wrap = Buffer.alloc(3);
                     wrap[0] = 0x72;
@@ -1156,9 +1051,7 @@ class WTVPNM {
         }
 
         // Include the session token as tag 0x23 [size_16 = 64]
-        const token = (this.service_config.dynamic_session_token === true) 
-            ? this.buildSessionToken(session) 
-            : '8e475de1df1ddc5c58c5ecef20e64d26073fe6f98fc0077dd0eb4429e0d8c375';
+        const token = this.buildSessionToken(session);
 
         const tokenBuf = Buffer.alloc(3 + 64);
         tokenBuf[0] = 0x23;
