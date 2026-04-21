@@ -352,14 +352,35 @@ class WTVPNM {
         socket.write(headers + body, () => socket.end());
     }
 
+    normalizeRequestedMediaPath(value) {
+        if (value === null || value === undefined) return null;
+
+        let raw = String(value).replace(/\x00+$/g, '').trim();
+        if (!raw) return null;
+
+        // Trim query/fragment and normalize separators to URL-style slashes.
+        raw = raw.split(/[?#]/)[0].replace(/\\+/g, '/');
+
+        // Drop common URI scheme prefixes if present.
+        raw = raw.replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\/[^/]*\/?/, '');
+        raw = raw.replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/*/, '');
+
+        // Keep only a safe relative path under the service vault.
+        const parts = raw.split('/').filter((part) => part && part !== '.' && part !== '..');
+        if (parts.length === 0) return null;
+
+        return parts.join('/');
+    }
+
     getRequestedMediaName(fields, rawData) {
         if (!Array.isArray(fields) || fields.length === 0) return this.scanRawForMediaName(rawData);
 
         // Field 0x52 (82) carries the requested file name in observed captures.
         const fileField = fields.find((f) => f && f.id === 82 && f.len > 0);
         if (fileField) {
-            const raw = fileField.value.toString('latin1').replace(/\x00+$/g, '').trim();
-            if (raw) return path.basename(raw);
+            const raw = fileField.value.toString('latin1');
+            const normalized = this.normalizeRequestedMediaPath(raw);
+            if (normalized) return normalized;
         }
 
         // Some clients may carry filename in another TLV field; scan all text values.
@@ -368,7 +389,8 @@ class WTVPNM {
             const raw = field.value.toString('latin1').replace(/\x00+/g, ' ').trim();
             const match = raw.match(/([A-Za-z0-9_\-\.\/]+\.(?:ra|ray|rm|ram))/i);
             if (match) {
-                return path.basename(match[1]);
+                const normalized = this.normalizeRequestedMediaPath(match[1]);
+                if (normalized) return normalized;
             }
         }
 
@@ -379,8 +401,8 @@ class WTVPNM {
     scanRawForMediaName(rawData) {
         if (!Buffer.isBuffer(rawData)) return null;
         const str = rawData.toString('latin1');
-        const match = str.match(/([A-Za-z0-9_\-\.]+\.(?:ra|ray|rm|ram))(?:[^A-Za-z0-9]|$)/i);
-        return match ? path.basename(match[1]) : null;
+        const match = str.match(/([A-Za-z0-9_\-\.\/]+\.(?:ra|ray|rm|ram))(?:[^A-Za-z0-9]|$)/i);
+        return match ? this.normalizeRequestedMediaPath(match[1]) : null;
     }
 
     getClientChallenge(fields) {
@@ -423,6 +445,7 @@ class WTVPNM {
             const base = this.wtvshared.getAbsolutePath(serviceVaultDir, vault);
             for (const variant of extensionVariants) {
                 const candidate = this.wtvshared.makeSafePath(base, variant);
+                this.debugLog('testing media candidate', candidate);
                 if (candidate && fs.existsSync(candidate) && fs.lstatSync(candidate).isFile()) {
                     if (this.service_config.debug) {
                         this.debugLog('media file found', variant, '->', candidate);
@@ -438,12 +461,12 @@ class WTVPNM {
     }
 
     getMediaNameVariants(requestedMedia) {
-        const base = path.basename(requestedMedia || '').trim();
-        if (!base) return [];
+        const requestedPath = this.normalizeRequestedMediaPath(requestedMedia);
+        if (!requestedPath) return [];
 
-        const ext = path.extname(base).toLowerCase();
-        const stem = ext.length > 0 ? base.slice(0, -ext.length) : base;
-        const variants = [base];
+        const ext = path.posix.extname(requestedPath).toLowerCase();
+        const stem = ext.length > 0 ? requestedPath.slice(0, -ext.length) : requestedPath;
+        const variants = [requestedPath];
 
         if (ext === '.ray') variants.push(`${stem}.ra`);
         if (ext === '.ram') variants.push(`${stem}.ra`);
@@ -1147,7 +1170,12 @@ class WTVPNM {
         const serverChallenge = session?.serverChallenge || 0;
         const challengeBuf = Buffer.from(challenge, 'latin1');
         const requestedMedia = session?.requestedMedia || '';
-        const resolvedMedia = session?.mediaPath ? path.basename(session.mediaPath) : '';
+        const requestedMediaPath = this.normalizeRequestedMediaPath(requestedMedia);
+        const resolvedBase = session?.mediaPath ? path.basename(session.mediaPath) : '';
+        const requestedDir = requestedMediaPath ? path.posix.dirname(requestedMediaPath) : '';
+        const resolvedMedia = resolvedBase
+            ? (requestedDir && requestedDir !== '.' ? `${requestedDir}/${resolvedBase}` : resolvedBase)
+            : requestedMediaPath;
         const responseSource = resolvedMedia || requestedMedia || challenge;
         const respSrcBuf = Buffer.from(responseSource, 'latin1');
         const timestamp = this.getClientTimestamp(session?.pnaFields) ?? Math.floor(Date.now() / 1000);
@@ -1159,7 +1187,8 @@ class WTVPNM {
 
         this.debugLog('session token seed', session?.id || '?',
             `clientChallenge=${challenge}`,
-            `requestedMedia=${requestedMedia || '(fallback:clientChallenge)'}`,
+            `requestedMedia=${requestedMedia}`,
+            `responseSource=${responseSource}`,
             `serverChallenge=${serverChallenge.toString(16)}`,
             `v12=${v12}`,
             `resp1=${resp1}`, `initMD5=${initMD5}`);
