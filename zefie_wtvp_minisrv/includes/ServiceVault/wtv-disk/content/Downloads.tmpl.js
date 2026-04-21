@@ -17,7 +17,6 @@ Welcome to Download-O-Rama.
 Download any of our fine file sets.<br>
 Click the <b>!</b> to force download a specific file set.
 </p><h2>Demos</h2>
-<ul>
 <table border=1 cellspacing=3 cellpadding=8>
 <tr>
 <td><a href="wtv-disk:/content/DownloadScreen.tmpl?diskmap=DealerDemo&amp;group=DealerDemo">Dealer Demo</a></td>
@@ -30,11 +29,10 @@ Click the <b>!</b> to force download a specific file set.
 <td><a href="file://Disk/Demo-BPS/index.html">View Demo</a></td>
 </tr>
 </table>
-</ul>
 <h2>Firmware</h2>
-<ul>
 <i>These are always forced downloads</i>
-<li><br><a href="wtv-disk:/content/DownloadScreen.tmpl?diskmap=ModemFirmwareDel&amp;group=ModemFirmware&force=true">
+<ul>
+<li><a href="wtv-disk:/content/DownloadScreen.tmpl?diskmap=ModemFirmwareDel&amp;group=ModemFirmware&force=true">
 Delete Modem Firmware (Use 33.6k technology)
 </a></li>
 <li><a href="wtv-disk:/content/DownloadScreen.tmpl?diskmap=ModemFirmwareOld&amp;group=ModemFirmware&force=true">
@@ -70,12 +68,11 @@ V.90 Modem Firmware (Use common 56k technology)
 <h2>Tools</h2>
 
 </p>
-<ul>
 <i><b>WARNING: Use the following with caution</b></i>
 
-<li><br>
-<a href="wtv-disk:/get-group-data">View & Delete Groups</a>
-</li></ul>
+<ul>
+<li><a href="wtv-disk:/get-group-data">View & Delete Groups</a></li>
+</ul>
 <h2>Home</h2>
 <ul><li><a href="wtv-home:/home">Leave Download-O-Rama and Go Home</a></li>
 </ul>
