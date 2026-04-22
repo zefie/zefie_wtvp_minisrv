@@ -331,6 +331,7 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
         mp3dec_frame_info_t info;
         mp3d_sample_t pcm[MINIMP3_MAX_SAMPLES_PER_FRAME];
         int samples = mp3dec_decode_frame(&dec, inputData + pos, (int)(inputSize - pos), pcm, &info);
+        int totalSamples;
 
         if (info.frame_bytes <= 0) {
             ++pos;
@@ -341,6 +342,15 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
         if (samples <= 0) {
             continue;
         }
+
+        if (info.channels <= 0) {
+            fclose(out);
+            DeleteFileA(outputPath);
+            free(inputData);
+            return 0;
+        }
+
+        totalSamples = samples * info.channels;
 
         if (!haveAudio) {
             sampleRate = info.hz;
@@ -355,18 +365,18 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
 
         if (gainScale != 1.0) {
             int sampleIndex;
-            for (sampleIndex = 0; sampleIndex < samples; ++sampleIndex) {
+            for (sampleIndex = 0; sampleIndex < totalSamples; ++sampleIndex) {
                 pcm[sampleIndex] = apply_gain_sample(pcm[sampleIndex], gainScale);
             }
         }
 
-        if (fwrite(pcm, sizeof(mp3d_sample_t), (size_t)samples, out) != (size_t)samples) {
+        if (fwrite(pcm, sizeof(mp3d_sample_t), (size_t)totalSamples, out) != (size_t)totalSamples) {
             fclose(out);
             DeleteFileA(outputPath);
             free(inputData);
             return 0;
         }
-        dataBytes += (unsigned)(samples * sizeof(mp3d_sample_t));
+        dataBytes += (unsigned)(totalSamples * sizeof(mp3d_sample_t));
     }
 
     free(inputData);
