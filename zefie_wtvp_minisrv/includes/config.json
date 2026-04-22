@@ -403,7 +403,7 @@
       "udp_bind_port_max": 57391,
       "descriptor_after_hello_ms": 85,
       "burst_prestart_ms": 5000,
-      "debug": true,
+      "debug": false,
       "allow_indexing": true
     }
   },
