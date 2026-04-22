@@ -1,6 +1,6 @@
 // rpcli.cpp - Minimal RealAudio 5/6 (G2) CLI encoder using RealProducer ActiveX
 // Build (MSVC example):
-//   cl rpcli.cpp /EHsc /D_CRT_SECURE_NO_WARNINGS ole32.lib oleaut32.lib
+//   cl rpcli.cpp /O2 /MT /Fe:rpcli.exe
 //
 // You must also #import the RealProducer control type library (prct3260.ocx).
 // Adjust the path below to wherever the control is registered/installed.
@@ -300,6 +300,8 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
     FILE *out = NULL;
     unsigned char wavHeader[44] = {0};
     unsigned dataBytes = 0;
+    unsigned long long gainSamples = 0;
+    unsigned long long gainChanged = 0;
     int sampleRate = 0;
     int channels = 0;
     int haveAudio = 0;
@@ -366,7 +368,13 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
         if (gainScale != 1.0) {
             int sampleIndex;
             for (sampleIndex = 0; sampleIndex < totalSamples; ++sampleIndex) {
-                pcm[sampleIndex] = apply_gain_sample(pcm[sampleIndex], gainScale);
+                short before = (short)pcm[sampleIndex];
+                short after = apply_gain_sample(before, gainScale);
+                pcm[sampleIndex] = after;
+                ++gainSamples;
+                if (after != before) {
+                    ++gainChanged;
+                }
             }
         }
 
@@ -458,6 +466,8 @@ static int rewrite_wav_with_gain(const char *inputPath,
     unsigned char header[44] = {0};
     unsigned sampleCount;
     unsigned i;
+    unsigned long long gainSamples = 0;
+    unsigned long long gainChanged = 0;
 
     if (!make_temp_wav_path(outputPath, outputPathSize)) {
         return 0;
@@ -505,6 +515,10 @@ static int rewrite_wav_with_gain(const char *inputPath,
         short sample = (short)((unsigned short)data[dataOffset + i * 2] |
                                ((unsigned short)data[dataOffset + i * 2 + 1] << 8));
         short scaled = apply_gain_sample(sample, gainScale);
+        ++gainSamples;
+        if (scaled != sample) {
+            ++gainChanged;
+        }
         unsigned char outBytes[2];
         outBytes[0] = (unsigned char)(scaled & 0xff);
         outBytes[1] = (unsigned char)(((unsigned short)scaled >> 8) & 0xff);
@@ -518,6 +532,15 @@ static int rewrite_wav_with_gain(const char *inputPath,
 
     fclose(out);
     free(data);
+
+    if (gainScale != 1.0) {
+        fprintf(stderr,
+                "gain: rewrote wav with scale=%.6f, changed %llu/%llu samples\n",
+                gainScale,
+                gainChanged,
+                gainSamples);
+    }
+
     return 1;
 }
 
@@ -1273,12 +1296,16 @@ int main(int argc, char **argv) {
             usage();
             return 1;
         } else {
-            // first non-option is input
-            infile = argv[i];
-            if (i+1 < argc) {
-                outfile = argv[i+1];
+            // Positional arguments can appear anywhere: first is input, second is output.
+            if (!infile) {
+                infile = argv[i];
+            } else if (!outfile) {
+                outfile = argv[i];
+            } else {
+                fprintf(stderr, "unexpected positional argument: %s\n", argv[i]);
+                usage();
+                return 1;
             }
-            break;
         }
     }
 
@@ -1400,6 +1427,9 @@ int main(int argc, char **argv) {
 
     // AudioContent (mode)
     ctl->put_AudioContent(codec_index >= 0 ? selected_codec.content : mode_to_audio_content(mode));
+
+    // Disable producer-side emphasis so manual --gain attenuation is preserved.
+    ctl->put_EmphasizeAudio(VARIANT_FALSE);
 
     // Target audience
     set_target_audience(ctl, parse_target(target_str));
