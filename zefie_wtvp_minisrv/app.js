@@ -158,6 +158,11 @@ function configureService(service_name, service_obj, initial = false) {
         else ports.push(service_obj.port);
     }
 
+    // Exclude PNM services
+    if (service_obj.protocol_handler === 'pnm') {
+        return true;
+    }
+
     // minisrv_config service toString
     service_obj.toString = function (overrides) {
         const self = Object.assign({}, this);
