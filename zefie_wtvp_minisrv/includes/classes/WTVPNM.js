@@ -37,9 +37,9 @@ class WTVPNM {
         this.wtvshared = new WTVShared(minisrv_config, true);
         this.server = net.createServer((socket) => this.handleConnection(socket));
 
-        // Auth-sensitive descriptor server id shape observed in captures.
-        // Keep fixed upper 24 bits 0x00071a and vary only the low byte.
-        this.serverIdBase = 0x00071a00;
+        // Descriptor server-id mapping uses full 16-bit source UDP port:
+        // serverId = 0x0007pppp where pppp is the reserved UDP source port.
+        this.serverIdPort16Base = 0x00070000;
 
         // Per-session counter embedded in bytes 9..12 of the first 0x4F chunk.
         // multi_auth.pcap increments this 1,2,3,... across successive sessions.
@@ -826,16 +826,17 @@ class WTVPNM {
         return Number.isInteger(parsed) && parsed > 0 && parsed <= 65535 ? parsed : null;
     }
 
-    async ensureSessionUdpSocket(session) {
-        if (!session) return false;
+    getUdpBindRange() {
+        const configuredMin = this.sanitizeUdpPort(this.service_config.udp_bind_port_min);
+        const configuredMax = this.sanitizeUdpPort(this.service_config.udp_bind_port_max);
 
-        const existingPort = this.sanitizeUdpPort(session.serverUdpPort);
-        if (session.udpSocket && existingPort) return true;
+        if (configuredMin && configuredMax) {
+            const min = Math.min(configuredMin, configuredMax);
+            const max = Math.max(configuredMin, configuredMax);
+            return { min, max, mode: 'minmax' };
+        }
 
-        const bindIp = this.minisrv_config?.config?.bind_ip || '0.0.0.0';
-        // Keep source ports in 0x1a00-0x1aff so descriptor serverId can stay
-        // in the auth-compatible 0x00071a?? shape while still supporting
-        // per-session unique ports.
+        // Backward compatibility for older base/span config.
         const basePort = Number.isInteger(this.service_config.udp_bind_port_base)
             ? this.service_config.udp_bind_port_base
             : 0x1a00;
@@ -843,12 +844,34 @@ class WTVPNM {
             ? Math.max(1, this.service_config.udp_bind_port_span)
             : 0x100;
 
+        const min = Math.max(1, basePort);
+        const max = Math.min(65535, basePort + span - 1);
+        return { min, max, mode: 'basespan' };
+    }
+
+    buildServerIdForPort(port) {
+        const parsedPort = this.sanitizeUdpPort(port);
+        if (!parsedPort) return null;
+        return (this.serverIdPort16Base | (parsedPort & 0xffff)) >>> 0;
+    }
+
+    async ensureSessionUdpSocket(session) {
+        if (!session) return false;
+
+        const existingPort = this.sanitizeUdpPort(session.serverUdpPort);
+        if (session.udpSocket && existingPort) return true;
+
+        const bindIp = this.minisrv_config?.config?.bind_ip || '0.0.0.0';
+        // Keep source ports in 0x1a00-0x1aff by default. When a custom range
+        // is used, server-id mapping can follow the full source port.
+        const range = this.getUdpBindRange();
+        const span = Math.max(1, (range.max - range.min) + 1);
         const startOffset = crypto.randomInt(0, span);
         let udpSocket = null;
         let boundPort = null;
 
         for (let i = 0; i < span; i++) {
-            const port = basePort + ((startOffset + i) % span);
+            const port = range.min + ((startOffset + i) % span);
             if (port <= 0 || port > 65535) continue;
 
             const candidate = dgram.createSocket('udp4');
@@ -872,7 +895,7 @@ class WTVPNM {
 
         if (!udpSocket || !boundPort) {
             this.debugLog('udp reserve bind failed', session.id,
-                `base=${basePort}`, `span=${span}`, 'no free ports');
+                `range=${range.min}-${range.max}`, `mode=${range.mode}`, 'no free ports');
             return false;
         }
 
@@ -882,8 +905,10 @@ class WTVPNM {
         try {
             const addr = udpSocket.address();
             session.serverUdpPort = this.sanitizeUdpPort(addr.port);
-            session.serverId = (this.serverIdBase | (addr.port & 0xff)) >>> 0;
-            this.debugLog('udp socket reserved', session.id, `${addr.address}:${addr.port}`);
+            session.serverId = this.buildServerIdForPort(addr.port);
+            this.debugLog('udp socket reserved', session.id,
+                `${addr.address}:${addr.port}`,
+                `serverId=0x${(session.serverId >>> 0).toString(16)}`);
         } catch (_) {
             session.serverId = null;
             session.serverUdpPort = null;
@@ -894,6 +919,13 @@ class WTVPNM {
 
     normalizeIpAddress(ip) {
         return String(ip || '').replace(/^::ffff:/i, '');
+    }
+
+    getMediaTargetPort(session) {
+        if (!session) return null;
+        return this.sanitizeUdpPort(session.udpFeedbackPeerPort)
+            || this.sanitizeUdpPort(session.mediaUdpPort)
+            || this.sanitizeUdpPort(session.clientUdpPort);
     }
 
     attachUdpSocketHandlers(socket, session) {
@@ -1068,15 +1100,19 @@ class WTVPNM {
 
         if (!strictPeerPort && !session.udpFeedbackPeerPort) {
             session.udpFeedbackPeerPort = rxPort;
+            const currentTargetPort = this.getMediaTargetPort(session);
+            if (this.sanitizeUdpPort(rxPort) && currentTargetPort !== rxPort) {
+                session.mediaUdpPort = rxPort;
+            }
             this.debugLog('udp feedback peer learned', session.id,
                 `peer=${rxIp}:${rxPort}`,
-                `mediaTarget=${expectedIp}:${session.mediaUdpPort || session.clientUdpPort}`,
+                `mediaTarget=${expectedIp}:${this.getMediaTargetPort(session) || 'unknown'}`,
                 `retransmitTarget=${expectedIp}:${rxPort}`);
 
             // If auth already passed and stream hasn't started yet, begin now.
             if (session.hashVerified && !session.udpTimer && !session.udpStartTimer) {
                 this.debugLog('starting UDP stream after peer learn', session.id,
-                    `target=${expectedIp}:${session.mediaUdpPort || session.clientUdpPort}`);
+                    `target=${expectedIp}:${this.getMediaTargetPort(session) || 'unknown'}`);
                 this.startUdpStream(socket, session);
             }
         }
@@ -1120,9 +1156,8 @@ class WTVPNM {
             const cached = session.udpPacketCache.get(seq16 & 0xffff);
             if (!cached || !Buffer.isBuffer(cached.payload)) continue;
 
-            const txPort = this.sanitizeUdpPort(session.udpFeedbackPeerPort)
-                || session.mediaUdpPort
-                || session.clientUdpPort;
+            const txPort = this.getMediaTargetPort(session);
+            if (!txPort) continue;
             session.udpSocket.send(cached.payload, 0, cached.payload.length,
                 txPort, expectedIp, (err) => {
                     if (err) this.debugLog('udp retransmit send err', session.id, `seq=${seq16}`, err.message);
@@ -1477,7 +1512,7 @@ class WTVPNM {
         session.burstFramesSent = 0;
 
         const targetIp = this.normalizeIpAddress(socket.remoteAddress);
-        const mediaTargetPort = this.sanitizeUdpPort(session.mediaUdpPort) || session.clientUdpPort;
+        const mediaTargetPort = this.getMediaTargetPort(session);
         this.debugLog('udp stream start', session.id,
             `frames=${session.mediaFrames?.length || 0}`,
             `avgBitRate=${session.avgBitRate || 'unknown'}bps`,
@@ -1489,6 +1524,12 @@ class WTVPNM {
 
         if (!session.udpSocket || !this.sanitizeUdpPort(session.serverUdpPort)) {
             this.debugLog('udp stream start failed: socket not reserved', session.id);
+            return;
+        }
+        if (!mediaTargetPort) {
+            this.debugLog('udp stream start failed: no target port', session.id,
+                `clientUdpPort=${session.clientUdpPort || 'none'}`,
+                `feedbackPeerPort=${session.udpFeedbackPeerPort || 'none'}`);
             return;
         }
 
@@ -1519,7 +1560,8 @@ class WTVPNM {
                 ? Buffer.concat([this.buildSyncFrame(session, seq), dataFrame])
                 : dataFrame;
             this.cacheUdpPacketForRetransmit(session, seq, out);
-            const txPort = mediaTargetPort;
+            const txPort = this.getMediaTargetPort(session);
+            if (!txPort) return;
             session.udpSocket.send(out, 0, out.length,
                 txPort, targetIp, (err) => {
                     if (err) this.debugLog('udp send err', session.id, `${targetIp}:${txPort}`, err.message);
@@ -2024,11 +2066,12 @@ class WTVPNM {
         const out = Buffer.concat(outChunks);
 
         // The first 0x4F/0x08 chunk carries [serverId_u32_BE][sessionCounter_u32_BE].
-        // Keep auth-compatible 0x00071a?? serverId shape and encode per-session
-        // UDP port in the low byte (port range 0x1a00-0x1aff).
+        // serverId is mapped from the reserved UDP source port as 0x0007pppp
+        // so the client can route UDP feedback to the same socket used for
+        // media transmission.
         const serverId = Number.isInteger(session?.serverId)
             ? session.serverId
-            : ((this.serverIdBase | 0x27) >>> 0);
+            : ((this.serverIdPort16Base | 0x1a27) >>> 0);
         out.writeUInt32BE(serverId, 2);
         const sessionNumber = (session && typeof session.sessionNumber === 'number')
             ? session.sessionNumber

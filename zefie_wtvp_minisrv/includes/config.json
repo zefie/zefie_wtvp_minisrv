@@ -399,6 +399,8 @@
       "flags": "0x00000001",
       "allow_double_slash": true,
       "protocol_handler": "pnm",
+      "udp_bind_port_min": 57361,
+      "udp_bind_port_max": 57391,
       "descriptor_after_hello_ms": 85,
       "burst_prestart_ms": 5000,
       "debug": true,
