@@ -205,7 +205,7 @@ const deprecationWarnings = {
             // Example deprecations - you can modify these as needed
             pattern: /session\_data\.hasCap\s*\(/g,
             message: "session_data.hasCap() is deprecated and will be removed",
-            removeVersion: "0.9.70",
+            removeVersion: "0.9.80",
             replacement: "Use session_data.capabilities.get() instead"
         }
     ],
