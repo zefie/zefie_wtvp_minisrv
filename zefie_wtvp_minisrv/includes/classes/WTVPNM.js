@@ -202,13 +202,9 @@ class WTVPNM {
                 session.capabilitiesLogged = true;
                 const cap = this.extractCapabilities(data);
                 session.capabilities = cap;
-                // Detect WebTV via User-Agent string in raw request data.
-                // The WebTV PNM client advertises cook/sipr caps like modern
-                // RealPlayer, so codec-sniffing is unreliable; the UA is the
-                // only dependable discriminator.  Captured UA format:
-                //   'Mozilla/3.0 WebTV/2.5 (Compatible; MSIE 2.0)'
+                // Detect WebTV via User-Agent, since it prefers low server challenges
                 const raw = data.toString('latin1');
-                session.isWebTV = /WebTV\//i.test(raw);
+                session.isWebTV = /WebTV\//i.test(session.pnaFields?.useragent) || false;
                 if (cap.length > 0) {
                     this.debugLog('client capabilities', session.id, cap.join(', '));
                 }
@@ -1489,11 +1485,13 @@ class WTVPNM {
         // granularity. Compensation scales with interval: shorter intervals
         // need more compensation. Formula: 1 - (fixedOverhead / calculatedInterval)
         let intervalMs;
+
         if (session.avgBitRate > 0) {
             intervalMs = (avgBytesPerPacket * 8000) / session.avgBitRate;
             // Adaptive Windows timer compensation: 13ms is empirical fixed overhead
             const compensation = Math.max(0.90, 1 - (13 / intervalMs));
             intervalMs *= compensation;
+            intervalMs -= 6;
         } else {
             intervalMs = 220;
         }
@@ -1508,6 +1506,8 @@ class WTVPNM {
         const burstPrestartMs = typeof this.service_config.burst_prestart_ms === 'number'
             ? this.service_config.burst_prestart_ms
             : 3000;
+        const burstMultiplier = typeof this.service_config.burst_multiplier === 'number'
+            ? this.service_config.burst_multiplier : 2;
         const burstFrameCount = burstPrestartMs > 0 ? Math.ceil(burstPrestartMs / intervalMs) : 0;
         session.burstFramesSent = 0;
 
@@ -1519,6 +1519,7 @@ class WTVPNM {
             `bodyLen=${bodyLen}`,
             `interval=${intervalMs.toFixed(2)}ms`,
             `burstFrames=${burstFrameCount}`,
+            `burstRate=${(session.avgBitRate * burstMultiplier) || 'unknown'}bps`,
             `target=${targetIp}:${mediaTargetPort}`,
             `sourcePort=${session.serverUdpPort || 'unknown'}`);
 
@@ -1625,10 +1626,10 @@ class WTVPNM {
                 session.burstFramesSent++;
                 // Use half the interval during the pre-start burst window, then
                 // drop to normal pacing once burstFrameCount frames have been sent.
-                const delay = session.burstFramesSent < burstFrameCount ? intervalMs / 2 : intervalMs;
+                const delay = session.burstFramesSent < burstFrameCount ? intervalMs / burstMultiplier : intervalMs;
                 session.udpTimer = setTimeout(tick, delay);
             };
-            const initialDelay = session.burstFramesSent < burstFrameCount ? intervalMs / 2 : intervalMs;
+            const initialDelay = session.burstFramesSent < burstFrameCount ? intervalMs / burstMultiplier : intervalMs;
             session.udpTimer = setTimeout(tick, initialDelay);
         };
 
