@@ -2464,7 +2464,8 @@ Object.keys(minisrv_config.services).forEach(function (k) {
     if (typeof(minisrv_config.services[k]) === 'function') return;
     if (configureService(k, minisrv_config.services[k], true)) {
         const using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
-        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Mode:", (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP");
+        const protocol = (minisrv_config.services[k].protocol_handler) ? minisrv_config.services[k].protocol_handler.toUpperCase() : (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP";
+        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Protocol:", protocol);
 
         if (minisrv_config.services[k].local_nntp_enabled && minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
@@ -2550,7 +2551,6 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
             const pnmServer = new WTVPNM(minisrv_config, service_name);
             pnmServer.listen(service.port, minisrv_config.config.bind_ip);
             protocolServers.push(pnmServer);
-            console.log(" * Configured Protocol Handler:", service.protocol_handler, "for", service_name, "on Port", service.port);
         } catch (e) {
             throw ("Could not bind PNM protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
         }
@@ -2563,12 +2563,14 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     const service = minisrv_config.services[service_name];
     if (!service || service.disabled || !service.port) return;
     if (service.protocol_handler === 'pnm') {
-        protocolHandledPorts.add(parseInt(service.port));
+        protocolHandledPorts.add([service_name, service.protocol_handler, parseInt(service.port)]);
     }
+    // Any other future special protocols would go here, and should be added to the `protocolHandledPorts` set to avoid conflicts with the main socket listener
+    // We ignore unknown protocols and treat it like the flag doesn't exist.
 });
 
 // de-duplicate ports in case user configured multiple services on same port
-const bind_ports = [...new Set(ports)].filter((port) => !protocolHandledPorts.has(parseInt(port)));
+const bind_ports = [...new Set(ports)].filter((port) => ![...protocolHandledPorts].some(([sn, sp, pt]) => pt === parseInt(port)));
 if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 bind_ports.every(function (v) {
     try {
@@ -2733,6 +2735,6 @@ Content-type: text/html`;
 
 if (bind_ports.length > 0) console.log(` * Started WTVP Server on port${bind_ports.length !== 1 ? "s" : ""} ` + bind_ports.join(", ") + "...");
 if (pc_bind_ports.length > 0) console.log(` * Started HTTP Server on port${pc_bind_ports.length !== 1 ? "s" : ""} ` + pc_bind_ports.join(", ") + "...");
-
+if (protocolHandledPorts.size > 0) console.log(` * Started ${protocolHandledPorts.size} specialized protocol handler${protocolHandledPorts.size !== 1 ? "s" : ""} on port${protocolHandledPorts.size !== 1 ? "s" : ""} ` + [...protocolHandledPorts].map(([sn, sp, pt]) => `${pt} (${sp.toUpperCase()})`).join(", ") + "...");
 const listening_ip_string = (minisrv_config.config.bind_ip !== "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
 console.log(" * Listening on", listening_ip_string, "~", "Service IP:", service_ip);
