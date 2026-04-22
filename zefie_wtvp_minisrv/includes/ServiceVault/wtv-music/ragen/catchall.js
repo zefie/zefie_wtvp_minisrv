@@ -34,15 +34,12 @@ if (serviceVaultIdx !== -1) {
         subDirPath = '/' + subdirs.join('/');
     }
 }
-console.log("DEBUG: Detected subDirPath =", subDirPath);
 
 const url_path = request_headers.request_url.split('?')[0];
 const pathParts = url_path.split('/').filter(p => p);
 const serviceName = pathParts.length > 0 ? pathParts[0] : '';
 let remainingPath = '/' + pathParts.slice(1).join('/');
 const hadTrailingSlash = request_headers.request_url.endsWith('/');
-
-console.log("DEBUG: Before stripping - subDirPath =", subDirPath, "remainingPath =", remainingPath);
 
 let strippedSubDir = ''; // Store what was stripped for link rebuilding
 // Strip the subdirectory structure from the request path
@@ -58,7 +55,6 @@ if (subDirPath) {
     }
 }
 
-console.log("DEBUG: After stripping - remainingPath =", remainingPath, "strippedSubDir =", strippedSubDir);
 
 // Restore trailing slash if original URL had one
 if (hadTrailingSlash && !remainingPath.endsWith('/')) {
@@ -67,7 +63,6 @@ if (hadTrailingSlash && !remainingPath.endsWith('/')) {
 
 const filename = remainingPath.endsWith('/') ? '' : remainingPath.split('/').pop().replace('.ram', '');
 const directory = remainingPath.endsWith('/') ? remainingPath.replace(/\/$/, '') : remainingPath.substring(0, remainingPath.lastIndexOf('/'));
-console.log("DEBUG: Request for service", serviceName, "with filename", filename, "and directory", directory, "remainingPath", remainingPath);
 
 let fileFound = false;
 const extensions = ['.ra', '.rm'];
@@ -80,7 +75,6 @@ if (!filename || (request_headers.request_url.endsWith('/') && minisrv_config.se
     
     for (const pnmVault of pnmVaults) {
         const targetDir = path.join(pnmVault, listingDir);
-        console.log("DEBUG: Listing files in", targetDir);
         if (fs.existsSync(targetDir) && fs.statSync(targetDir).isDirectory()) {
             const files = fs.readdirSync(targetDir);
             files.forEach(file => {
@@ -118,7 +112,6 @@ Content-type: text/html`;
     for (const pnmVault of pnmVaults) {
         for (const ext of extensions) {
             const filePath = path.join(pnmVault, directory, filename + ext);
-            console.log("DEBUG: Checking for file", filePath);
             if (fs.existsSync(filePath)) {
                 fileFound = true;
                 resolvedPath = filePath;
@@ -134,7 +127,6 @@ Content-type: text/html`;
     } else {
         const filePath = path.join(directory || '/', filename + path.extname(resolvedPath));
         const pnmURL = `pnm://${minisrv_config.config.service_ip}:${minisrv_config.services['pnm'].port}${filePath.replace(/\\/g, '/')}`;
-        console.log("DEBUG: File found at", resolvedPath, "serving as", pnmURL);
         headers = `200 OK
 Content-type: audio/x-pn-realaudio`
         data = pnmURL;
