@@ -28,11 +28,13 @@ const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const WTVFTP = require(classPath + "/WTVFTP.js");
+const WTVPNM = require(classPath + "/WTVPNM.js");
 const vm = require('vm');
 const debug = require('debug')('app');
 const express = require('express');
 
 let wtvnewsserver = null;
+const protocolServers = [];
 
 const minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
 const wtvmime = new WTVMime(minisrv_config);
@@ -203,7 +205,7 @@ const deprecationWarnings = {
             // Example deprecations - you can modify these as needed
             pattern: /session\_data\.hasCap\s*\(/g,
             message: "session_data.hasCap() is deprecated and will be removed",
-            removeVersion: "0.9.70",
+            removeVersion: "0.9.80",
             replacement: "Use session_data.capabilities.get() instead"
         }
     ],
@@ -2534,8 +2536,34 @@ process.on('uncaughtException', function (err) {
 ports.sort();
 pc_ports.sort();
 
+Object.keys(minisrv_config.services).forEach((service_name) => {
+    if (typeof (minisrv_config.services[service_name]) === 'function') return;
+    const service = minisrv_config.services[service_name];
+    if (!service || service.disabled || !service.port) return;
+    if (service.protocol_handler === 'pnm') {
+        try {
+            const pnmServer = new WTVPNM(minisrv_config, service_name);
+            pnmServer.listen(service.port, minisrv_config.config.bind_ip);
+            protocolServers.push(pnmServer);
+            console.log(" * Configured Protocol Handler:", service.protocol_handler, "for", service_name, "on Port", service.port);
+        } catch (e) {
+            throw ("Could not bind PNM protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
+        }
+    }
+});
+
+const protocolHandledPorts = new Set();
+Object.keys(minisrv_config.services).forEach((service_name) => {
+    if (typeof (minisrv_config.services[service_name]) === 'function') return;
+    const service = minisrv_config.services[service_name];
+    if (!service || service.disabled || !service.port) return;
+    if (service.protocol_handler === 'pnm') {
+        protocolHandledPorts.add(parseInt(service.port));
+    }
+});
+
 // de-duplicate ports in case user configured multiple services on same port
-const bind_ports = [...new Set(ports)]
+const bind_ports = [...new Set(ports)].filter((port) => !protocolHandledPorts.has(parseInt(port)));
 if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 bind_ports.every(function (v) {
     try {

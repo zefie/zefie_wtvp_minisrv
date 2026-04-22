@@ -19,7 +19,7 @@ const AdmZip = require('adm-zip');
  * using the WTVP protocol with proper authentication and service discovery.
  */
 class WebTVClientSimulator {
-    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5, requestDelay = 250, boxType = null, username = null, keepgz = false, request_type_post = false, postData = null) {
+    constructor(host, port, ssid, url, outputFile = null, maxRedirects = 10, useEncryption = false, request_type_download = false, debug = false, tricks = false, followImages = false, followAll = false, maxDepth = 5, maxRetries = 5, requestDelay = 250, boxType = null, username = null, keepgz = false, request_type_post = false, postData = null, testing = false) {
         this.host = host;
         this.port = port;
         this.ssid = ssid;
@@ -51,7 +51,7 @@ class WebTVClientSimulator {
         this.targetUrlFetched = false; // Prevent multiple target URL fetches
         this.services = new Map(); // Store service name -> {host, port} mappings
         this.wtvsec = null;
-        this.wtvshared = new WTVShared();
+        this.wtvshared = new WTVShared(null, true);
         this.ticket = null;
         this.incarnation = 0; // Start at 0, will be incremented to 1 on first request
         this.lastHost = null; // Track last host for incarnation management
@@ -62,6 +62,11 @@ class WebTVClientSimulator {
         this.hasSeenEncryptedResponse = false; // Track if we've seen an encrypted response
         this.previousUrl = null; // Store previous URL for Referer header
         this.debug = debug;
+        this.testing = testing;
+        // In testing mode, auto-enable debug but suppress normal output
+        if (this.testing && !this.debug) {
+            this.debug = true;
+        }
         this.defaultBox = "plus";
         this.connectSessionId = crypto.randomBytes(4).toString('hex');
         this.username = username;
@@ -194,7 +199,14 @@ class WebTVClientSimulator {
     }
 
     debugLog(...args) {
-        if (this.debug) {
+        if (this.debug && !this.testing) {
+            console.log(...args);
+        }
+    }
+
+    debugLogIfError(status, ...args) {
+        // In testing mode, only show debug info if the status is not 200
+        if (this.debug && (!this.testing || !status.startsWith('200'))) {
             console.log(...args);
         }
     }
@@ -1048,6 +1060,11 @@ class WebTVClientSimulator {
                     }
                 } else {
                     this.debugLog('No wtv-visit header found, resolving...');
+                    // If we're fetching the target URL, don't exit here - let handleTargetUrlResponse handle it
+                    if (this.userIdDetected && this.targetUrlFetched) {
+                        resolve({ headers, body: bodyBuf, status: statusLine });
+                        return;
+                    }
                     this.cleanup();
                     process.exit(0);
                 }
@@ -1203,7 +1220,7 @@ class WebTVClientSimulator {
      * Fetch the target URL after authentication is complete
      */
     async fetchTargetUrl() {
-        console.log(`Fetching target URL: ${this.url}`);
+        this.debugLog(`Fetching target URL: ${this.url}`);
         
         // Handle special case for tricks access with POST
         if (this.useTricksAccess && this.request_type_post) {
@@ -1296,7 +1313,30 @@ class WebTVClientSimulator {
      * Handle the response from the target URL
      */
     async handleTargetUrlResponse(result) {
-        // Handle the response
+        // In testing mode, only show the status of the final request
+        if (this.testing) {
+            console.log(result.status);
+            // Only show debug info if the response is not 200
+            if (!result.status.startsWith('200')) {
+                this.debugLogIfError(result.status, '\n*** Target URL Response Details ***');
+                this.debugLogIfError(result.status, 'Status:', result.status);
+                this.debugLogIfError(result.status, 'Headers:', result.headers);
+                if (result.body) {
+                    const contentType = result.headers['content-type'] || '';
+                    if (/^text\//.test(contentType) || /json|xml|javascript||download-list/.test(contentType) || contentType === "x-wtv-addresses") {
+                        this.debugLogIfError(result.status, 'Body:', result.body.toString('utf8'));
+                    } else if (result.body.length === 0) {
+                        this.debugLogIfError(result.status, 'Body: <empty response>');
+                    } else {
+                        this.debugLogIfError(result.status, 'Body: <binary data>');
+                    }
+                }
+            }
+            this.cleanup();
+            process.exit(0);
+        }
+
+        // Handle the response normally for non-testing mode
         if (result.body) {
             this.debugLog('\n*** Target URL Response Body ***');
             if (this.outputFile) {
@@ -2679,6 +2719,7 @@ function parseArgs() {
         maxRetries: 5,
         requestDelay: 250,
         debug: false,
+        testing: false,
         username: null,
         keepgz: false,
         request_type_post: false,
@@ -2734,6 +2775,9 @@ function parseArgs() {
                 break;
             case '--debug':
                 config.debug = true;
+                break;
+            case '--testing':
+                config.testing = true;
                 break;
             case '--follow':
                 config.followImages = true;
@@ -2800,6 +2844,7 @@ Options:
   --post                  Use POST method for the final target URL request
   --data <data>           POST data to send with --post requests (required with --post)
   --debug                 Enable debug logging
+  --testing               Only show the final request status (eg "200 OK"). Show debug info only if response is not 200
   --help                  Show this help message
 
 Example:
@@ -2827,7 +2872,7 @@ Example:
  */
 async function main() {
     const config = parseArgs();
-    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries, config.requestDelay, config.boxType, config.username, config.keepgz, config.request_type_post, config.postData);
+    const simulator = new WebTVClientSimulator(config.host, config.port, config.ssid, config.url, config.outputFile, config.maxRedirects, config.useEncryption, config.request_type_download, config.debug, config.useTricksAccess, config.followImages, config.followAll, config.maxDepth, config.maxRetries, config.requestDelay, config.boxType, config.username, config.keepgz, config.request_type_post, config.postData, config.testing);
     
     // Handle graceful shutdown
     process.on('SIGINT', () => {
