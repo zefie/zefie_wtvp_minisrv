@@ -2,8 +2,8 @@
 // Build (MSVC example):
 //   cl rpcli.cpp /O2 /MT /Fe:rpcli.exe
 //
-// You must also #import the RealProducer control type library (prct3260.ocx).
-// Adjust the path below to wherever the control is registered/installed.
+// This tool imports and loads the RealProducer control type library (prct3260.ocx)
+// from the same folder as the executable at runtime (no global COM registration required).
 
 #ifndef __cplusplus
 #error rpcli.cpp uses C++ COM features (#import, __uuidof). Compile with MSVC C++.
@@ -25,8 +25,14 @@
 
 static void die(const char *msg);
 static void cleanup_temp_input(void);
+static HRESULT create_local_producer_control(IProducerControl **ctlOut, char *loadedPath, size_t loadedPathSize);
+static void unload_local_ocx(void);
 
 static char g_temp_input_path[MAX_PATH] = {0};
+static char g_temp_resample_path[MAX_PATH] = {0};
+static HMODULE g_local_ocx_module = NULL;
+
+typedef HRESULT (STDAPICALLTYPE *DllGetClassObjectFn)(REFCLSID rclsid, REFIID riid, LPVOID *ppv);
 
 static BSTR ansi_to_bstr(const char *s) {
     int wlen;
@@ -112,6 +118,99 @@ static void cleanup_temp_input(void) {
         DeleteFileA(g_temp_input_path);
         g_temp_input_path[0] = '\0';
     }
+    if (g_temp_resample_path[0]) {
+        DeleteFileA(g_temp_resample_path);
+        g_temp_resample_path[0] = '\0';
+    }
+}
+
+static void unload_local_ocx(void) {
+    if (g_local_ocx_module) {
+        FreeLibrary(g_local_ocx_module);
+        g_local_ocx_module = NULL;
+    }
+}
+
+static HRESULT create_local_producer_control(IProducerControl **ctlOut, char *loadedPath, size_t loadedPathSize) {
+    char ocxPath[MAX_PATH];
+    DWORD pathLen;
+    HMODULE module = NULL;
+    DllGetClassObjectFn dllGetClassObject;
+    IClassFactory *factory = NULL;
+    HRESULT hr;
+
+    if (!ctlOut) {
+        return E_POINTER;
+    }
+
+    *ctlOut = NULL;
+    if (loadedPath && loadedPathSize > 0) {
+        loadedPath[0] = '\0';
+    }
+
+    pathLen = GetModuleFileNameA(NULL, ocxPath, (DWORD)sizeof(ocxPath));
+    if (pathLen == 0 || pathLen >= sizeof(ocxPath)) {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    {
+        char *lastSep = strrchr(ocxPath, '\\');
+        if (!lastSep) lastSep = strrchr(ocxPath, '/');
+        if (lastSep) {
+            strcpy(lastSep + 1, "prct3260.ocx");
+        } else {
+            strcpy(ocxPath, "prct3260.ocx");
+        }
+    }
+        /* Set CWD to the exe folder so the patched OCX's "DT_Codecs=.\" and
+           "DT_Plugins=.\" paths resolve to the directory containing the OCX/DLLs. */
+        {
+            char exeDir[MAX_PATH];
+            char *lastSep2;
+            strncpy(exeDir, ocxPath, sizeof(exeDir) - 1);
+            exeDir[sizeof(exeDir) - 1] = '\0';
+            lastSep2 = strrchr(exeDir, '\\');
+            if (lastSep2) {
+                *lastSep2 = '\0';
+                SetCurrentDirectoryA(exeDir);
+            }
+        }
+
+    if (GetFileAttributesA(ocxPath) == INVALID_FILE_ATTRIBUTES) {
+        return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+    }
+
+    module = LoadLibraryExA(ocxPath, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    if (!module) {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    dllGetClassObject = (DllGetClassObjectFn)GetProcAddress(module, "DllGetClassObject");
+    if (!dllGetClassObject) {
+        FreeLibrary(module);
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+
+    hr = dllGetClassObject(__uuidof(ProducerControl), __uuidof(IClassFactory), (void **)&factory);
+    if (FAILED(hr) || !factory) {
+        FreeLibrary(module);
+        return FAILED(hr) ? hr : E_NOINTERFACE;
+    }
+
+    hr = factory->CreateInstance(NULL, __uuidof(IProducerControl), (void **)ctlOut);
+    factory->Release();
+
+    if (FAILED(hr) || !*ctlOut) {
+        FreeLibrary(module);
+        return FAILED(hr) ? hr : E_FAIL;
+    }
+
+    g_local_ocx_module = module;
+    if (loadedPath && loadedPathSize > 0) {
+        strncpy(loadedPath, ocxPath, loadedPathSize - 1);
+        loadedPath[loadedPathSize - 1] = '\0';
+    }
+
+    return S_OK;
 }
 
 static const char *path_ext(const char *path) {
@@ -289,6 +388,21 @@ static int make_temp_wav_path(char *pathBuf, size_t pathBufSize) {
     return 1;
 }
 
+static int resolve_full_path(const char *path, char *pathBuf, size_t pathBufSize) {
+    DWORD written;
+
+    if (!path || !*path || !pathBuf || pathBufSize < MAX_PATH) {
+        return 0;
+    }
+
+    written = GetFullPathNameA(path, (DWORD)pathBufSize, pathBuf, NULL);
+    if (written == 0 || written >= pathBufSize) {
+        return 0;
+    }
+
+    return 1;
+}
+
 static int decode_mpeg_audio_to_wav(const char *inputPath,
                                     char *outputPath,
                                     size_t outputPathSize,
@@ -302,26 +416,45 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
     unsigned dataBytes = 0;
     unsigned long long gainSamples = 0;
     unsigned long long gainChanged = 0;
+    unsigned long long loopCount = 0;
+    unsigned long long decodeCalls = 0;
+    unsigned long long zeroFrameBytes = 0;
+    unsigned long long zeroSampleFrames = 0;
+    unsigned long long writtenFrames = 0;
     int sampleRate = 0;
     int channels = 0;
     int haveAudio = 0;
 
     if (!make_temp_wav_path(outputPath, outputPathSize)) {
+        fprintf(stderr,
+                "decode: failed to create temp wav path (outputPathSize=%llu)\n",
+                (unsigned long long)outputPathSize);
         return 0;
     }
 
     inputData = read_entire_file(inputPath, &inputSize);
     if (!inputData) {
+        fprintf(stderr,
+                "decode: failed to read input file '%s'\n",
+                inputPath ? inputPath : "(null)");
+        DeleteFileA(outputPath);
         return 0;
     }
 
     out = fopen(outputPath, "wb");
     if (!out) {
+        fprintf(stderr,
+                "decode: failed to open temp wav for write '%s'\n",
+                outputPath);
         free(inputData);
+        DeleteFileA(outputPath);
         return 0;
     }
 
     if (fwrite(wavHeader, 1, sizeof(wavHeader), out) != sizeof(wavHeader)) {
+        fprintf(stderr,
+            "decode: failed to write placeholder wav header '%s'\n",
+            outputPath);
         fclose(out);
         DeleteFileA(outputPath);
         free(inputData);
@@ -335,17 +468,30 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
         int samples = mp3dec_decode_frame(&dec, inputData + pos, (int)(inputSize - pos), pcm, &info);
         int totalSamples;
 
+        ++loopCount;
+        ++decodeCalls;
+
         if (info.frame_bytes <= 0) {
+            ++zeroFrameBytes;
             ++pos;
             continue;
         }
 
         pos += (size_t)info.frame_bytes;
         if (samples <= 0) {
+            ++zeroSampleFrames;
             continue;
         }
 
         if (info.channels <= 0) {
+            fprintf(stderr,
+                    "decode: invalid channels=%d at loop=%llu pos=%llu frame_bytes=%d samples=%d hz=%d\n",
+                    info.channels,
+                    loopCount,
+                    (unsigned long long)pos,
+                    info.frame_bytes,
+                    samples,
+                    info.hz);
             fclose(out);
             DeleteFileA(outputPath);
             free(inputData);
@@ -359,6 +505,14 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
             channels = info.channels;
             haveAudio = 1;
         } else if (sampleRate != info.hz || channels != info.channels) {
+            fprintf(stderr,
+                    "decode: stream format changed at loop=%llu pos=%llu from %dHz/%dch to %dHz/%dch\n",
+                    loopCount,
+                    (unsigned long long)pos,
+                    sampleRate,
+                    channels,
+                    info.hz,
+                    info.channels);
             fclose(out);
             DeleteFileA(outputPath);
             free(inputData);
@@ -379,17 +533,24 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
         }
 
         if (fwrite(pcm, sizeof(mp3d_sample_t), (size_t)totalSamples, out) != (size_t)totalSamples) {
+            fprintf(stderr,
+                    "decode: fwrite failed at frame=%llu totalSamples=%d\n",
+                    writtenFrames,
+                    totalSamples);
             fclose(out);
             DeleteFileA(outputPath);
             free(inputData);
             return 0;
         }
+        ++writtenFrames;
         dataBytes += (unsigned)(totalSamples * sizeof(mp3d_sample_t));
     }
 
     free(inputData);
 
     if (!haveAudio) {
+        fprintf(stderr,
+                "decode: failed - no decodable audio frames found\n");
         fclose(out);
         DeleteFileA(outputPath);
         return 0;
@@ -397,6 +558,7 @@ static int decode_mpeg_audio_to_wav(const char *inputPath,
 
     fill_wav_header(wavHeader, dataBytes, sampleRate, channels, 16);
     if (fseek(out, 0, SEEK_SET) != 0 || fwrite(wavHeader, 1, sizeof(wavHeader), out) != sizeof(wavHeader)) {
+        fprintf(stderr, "decode: failed writing wav header\n");
         fclose(out);
         DeleteFileA(outputPath);
         return 0;
@@ -541,6 +703,165 @@ static int rewrite_wav_with_gain(const char *inputPath,
                 gainSamples);
     }
 
+    return 1;
+}
+
+static int nearest_supported_rate(int rate) {
+    static const int rates[] = {11025, 16000, 22050, 32000, 44100};
+    int i;
+    int best = rates[0];
+    int bestDiff = abs(rate - rates[0]);
+    for (i = 1; i < (int)(sizeof(rates) / sizeof(rates[0])); ++i) {
+        int diff = abs(rate - rates[i]);
+        if (diff < bestDiff) {
+            bestDiff = diff;
+            best = rates[i];
+        }
+    }
+    return best;
+}
+
+static unsigned char *resample_pcm16(const unsigned char *inputBytes,
+                                      unsigned inputSamples,
+                                      int channels,
+                                      int inRate,
+                                      int outRate,
+                                      unsigned *outputSamplesOut) {
+    unsigned inputFrames;
+    unsigned outputFrames;
+    unsigned totalOut;
+    short *output;
+    unsigned f;
+
+    if (!inputBytes || inputSamples == 0 || channels <= 0 || inRate <= 0 || outRate <= 0) {
+        return NULL;
+    }
+
+    inputFrames  = inputSamples / (unsigned)channels;
+    outputFrames = (unsigned)((unsigned long long)inputFrames * (unsigned)outRate / (unsigned)inRate);
+    if (outputFrames == 0) {
+        return NULL;
+    }
+
+    totalOut = outputFrames * (unsigned)channels;
+    output   = (short *)malloc(totalOut * sizeof(short));
+    if (!output) {
+        return NULL;
+    }
+
+    for (f = 0; f < outputFrames; ++f) {
+        double pos  = (double)f * inRate / outRate;
+        unsigned p0 = (unsigned)pos;
+        unsigned p1 = p0 + 1;
+        double frac = pos - (double)p0;
+        int c;
+        if (p1 >= inputFrames) {
+            p1 = inputFrames - 1;
+        }
+        for (c = 0; c < channels; ++c) {
+            unsigned i0  = (p0 * (unsigned)channels + (unsigned)c) * 2u;
+            unsigned i1  = (p1 * (unsigned)channels + (unsigned)c) * 2u;
+            short s0 = (short)((unsigned short)inputBytes[i0] | ((unsigned short)inputBytes[i0 + 1] << 8));
+            short s1 = (short)((unsigned short)inputBytes[i1] | ((unsigned short)inputBytes[i1 + 1] << 8));
+            double sv = (double)s0 + ((double)s1 - (double)s0) * frac;
+            short out;
+            if (sv > 32767.0)       out = 32767;
+            else if (sv < -32768.0) out = -32768;
+            else                    out = (short)(sv >= 0.0 ? sv + 0.5 : sv - 0.5);
+            output[f * (unsigned)channels + (unsigned)c] = out;
+        }
+    }
+
+    *outputSamplesOut = totalOut;
+    return (unsigned char *)output;
+}
+
+static int resample_wav_if_needed(const char *inputPath,
+                                   char *outputPath,
+                                   size_t outputPathSize) {
+    unsigned char *data = NULL;
+    size_t size = 0;
+    size_t fmtOffset;
+    unsigned fmtSize;
+    size_t dataOffset;
+    unsigned dataSize;
+    unsigned short formatTag;
+    unsigned short channels;
+    unsigned sampleRate;
+    unsigned short bitsPerSample;
+    int targetRate;
+    unsigned outputSamples = 0;
+    unsigned char *resampled = NULL;
+    FILE *out = NULL;
+    unsigned char header[44] = {0};
+
+    if (!outputPath || outputPathSize == 0) {
+        return -1;
+    }
+
+    outputPath[0] = '\0';
+    data = read_entire_file(inputPath, &size);
+    if (!data) {
+        return -1;
+    }
+
+    if (!find_wav_data_chunk(data, size, &fmtOffset, &fmtSize, &dataOffset, &dataSize) || fmtSize < 16) {
+        free(data);
+        return -1;
+    }
+
+    formatTag     = (unsigned short)(data[fmtOffset]      | (data[fmtOffset + 1] << 8));
+    channels      = (unsigned short)(data[fmtOffset + 2]  | (data[fmtOffset + 3] << 8));
+    sampleRate    = (unsigned)data[fmtOffset + 4]  | ((unsigned)data[fmtOffset + 5] << 8) |
+                   ((unsigned)data[fmtOffset + 6] << 16) | ((unsigned)data[fmtOffset + 7] << 24);
+    bitsPerSample = (unsigned short)(data[fmtOffset + 14] | (data[fmtOffset + 15] << 8));
+
+    if (formatTag != 1 || bitsPerSample != 16 || channels == 0) {
+        free(data);
+        return -1;
+    }
+
+    targetRate = nearest_supported_rate((int)sampleRate);
+    if (targetRate == (int)sampleRate) {
+        free(data);
+        return 0;
+    }
+
+    fprintf(stderr, "resampling: %u Hz -> %d Hz\n", sampleRate, targetRate);
+
+    resampled = resample_pcm16(data + dataOffset, dataSize / 2u,
+                                (int)channels, (int)sampleRate, targetRate,
+                                &outputSamples);
+    free(data);
+
+    if (!resampled) {
+        return -1;
+    }
+
+    if (!make_temp_wav_path(outputPath, outputPathSize)) {
+        free(resampled);
+        return -1;
+    }
+
+    out = fopen(outputPath, "wb");
+    if (!out) {
+        free(resampled);
+        outputPath[0] = '\0';
+        return -1;
+    }
+
+    fill_wav_header(header, outputSamples * 2u, targetRate, (int)channels, 16);
+    if (fwrite(header, 1, sizeof(header), out) != sizeof(header) ||
+        fwrite(resampled, 2u, (size_t)outputSamples, out) != (size_t)outputSamples) {
+        fclose(out);
+        DeleteFileA(outputPath);
+        free(resampled);
+        outputPath[0] = '\0';
+        return -1;
+    }
+
+    fclose(out);
+    free(resampled);
     return 1;
 }
 
@@ -1251,6 +1572,9 @@ int main(int argc, char **argv) {
 
     const char *infile = NULL;
     char outbuf[MAX_PATH] = {0};
+    char infile_abs[MAX_PATH] = {0};
+    char outfile_abs[MAX_PATH] = {0};
+    char ocx_loaded_path[MAX_PATH] = {0};
     const char *outfile = NULL;
 
     // Parse options
@@ -1332,6 +1656,20 @@ int main(int argc, char **argv) {
         outfile = outbuf;
     }
 
+    if (infile && !resolve_full_path(infile, infile_abs, sizeof(infile_abs))) {
+        die("failed to resolve full path for input file");
+    }
+    if (outfile && !resolve_full_path(outfile, outfile_abs, sizeof(outfile_abs))) {
+        die("failed to resolve full path for output file");
+    }
+
+    if (infile) {
+        infile = infile_abs;
+    }
+    if (outfile) {
+        outfile = outfile_abs;
+    }
+
     memset(&id3_meta, 0, sizeof(id3_meta));
     if (use_id3 && !load_id3_metadata(infile, &id3_meta)) {
         fprintf(stderr, "warning: no usable ID3 metadata found in %s\n", infile);
@@ -1354,19 +1692,16 @@ int main(int argc, char **argv) {
     if (FAILED(hr)) die("CoInitialize failed");
 
     IProducerControl *ctl = NULL;
-    hr = CoCreateInstance(__uuidof(ProducerControl),
-                          NULL,
-                          CLSCTX_INPROC_SERVER,
-                          __uuidof(IProducerControl),
-                          (void**)&ctl);
+    hr = create_local_producer_control(&ctl, ocx_loaded_path, sizeof(ocx_loaded_path));
     if (FAILED(hr) || !ctl) {
         CoUninitialize();
-        die("failed to create ProducerControl (is prct3260.ocx installed/registered?)");
+        die("failed to create ProducerControl from local prct3260.ocx in current folder");
     }
 
     if (do_codec_list) {
         list_codecs(ctl);
         ctl->Release();
+        unload_local_ocx();
         CoUninitialize();
         return 0;
     }
@@ -1379,6 +1714,7 @@ int main(int argc, char **argv) {
     if (is_mpeg_audio_input(infile)) {
         if (!decode_mpeg_audio_to_wav(infile, decoded_input, sizeof(decoded_input), gain_scale)) {
             ctl->Release();
+            unload_local_ocx();
             CoUninitialize();
             die("failed to decode mpeg audio input with minimp3");
         }
@@ -1387,6 +1723,7 @@ int main(int argc, char **argv) {
     } else if (use_gain && is_wav_input(infile)) {
         if (!rewrite_wav_with_gain(infile, decoded_input, sizeof(decoded_input), gain_scale)) {
             ctl->Release();
+            unload_local_ocx();
             CoUninitialize();
             die("failed to apply gain to wav input; only PCM 16-bit WAV is supported");
         }
@@ -1394,8 +1731,23 @@ int main(int argc, char **argv) {
         encoder_input = g_temp_input_path;
     }
 
+    // Resample to nearest supported rate: 11025, 16000, 22050, 32000, 44100 (cap at 44100)
+    {
+        int rsResult = resample_wav_if_needed(encoder_input, g_temp_resample_path, sizeof(g_temp_resample_path));
+        if (rsResult < 0) {
+            fprintf(stderr, "warning: could not check sample rate of input; using as-is\n");
+        } else if (rsResult > 0) {
+            if (g_temp_input_path[0]) {
+                DeleteFileA(g_temp_input_path);
+                g_temp_input_path[0] = '\0';
+            }
+            encoder_input = g_temp_resample_path;
+        }
+    }
+
     if (codec_index >= 0 && !get_audio_codec_by_index(ctl, codec_index, &selected_codec)) {
         ctl->Release();
+        unload_local_ocx();
         CoUninitialize();
         die("invalid codec index");
     }
@@ -1437,6 +1789,7 @@ int main(int argc, char **argv) {
     if (codec_index >= 0 && !apply_selected_audio_codec(ctl, parse_target(target_str), &selected_codec)) {
         if (selected_codec.cookie) selected_codec.cookie->Release();
         ctl->Release();
+        unload_local_ocx();
         CoUninitialize();
         die("failed to apply selected codec");
     }
@@ -1449,6 +1802,7 @@ int main(int argc, char **argv) {
     hr = ctl->StartEncoding();
     if (FAILED(hr)) {
         ctl->Release();
+        unload_local_ocx();
         CoUninitialize();
         die("StartEncoding failed");
     }
@@ -1491,6 +1845,7 @@ int main(int argc, char **argv) {
 
     if (selected_codec.cookie) selected_codec.cookie->Release();
     ctl->Release();
+    unload_local_ocx();
     CoUninitialize();
     cleanup_temp_input();
 
