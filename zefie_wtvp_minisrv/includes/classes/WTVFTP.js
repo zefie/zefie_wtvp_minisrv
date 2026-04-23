@@ -9,7 +9,7 @@ class WTVFTP {
     ftp = null;
     url = null;
 
-    constructor(minisrv_config, sendToClient) {
+    constructor(minisrv_config, service_name, sendToClient) {
         this.minisrv_config = minisrv_config;
         this.sendToClient = sendToClient;        
         const WTVShared = require("./WTVShared.js")['WTVShared'];

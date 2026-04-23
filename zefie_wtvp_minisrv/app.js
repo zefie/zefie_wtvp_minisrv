@@ -26,8 +26,6 @@ const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
-const WTVFTP = require(classPath + "/WTVFTP.js");
-const WTVPNM = require(classPath + "/WTVPNM.js");
 const vm = require('vm');
 const debug = require('debug')('app');
 const express = require('express');
@@ -1195,10 +1193,9 @@ minisrv-no-mail-count: true`;
             handlerModules["wtvhttp"].doHTTPProxy(socket, request_headers);
         } else if (handlerModules["wtvgopher"] && shortURL.startsWith("gopher://")) {
             handlerModules["wtvgopher"].handleGopherRequest(socket, request_headers, wtvshared, sendToClient);
-        } else if (shortURL.startsWith('ftp://')) {
+        } else if (handlerModules["wtvftp"] &&shortURL.startsWith('ftp://')) {
             if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming FTP request on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
-            const wtvftp = new WTVFTP(wtvshared, sendToClient);
-            wtvftp.handleFTPRequest(socket, request_headers);
+            handlerModules["wtvftp"].handleFTPRequest(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
             shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
             service_name = "wtv-star";

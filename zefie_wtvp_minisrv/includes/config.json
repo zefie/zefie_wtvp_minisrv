@@ -301,7 +301,9 @@
     },
     "ftp": {
       "port": 1650,
-      "connections": 3   
+      "connections": 3,
+      "handler_module": "WTVFTP",
+      "handler_extra_vars": ["sendToClient"]
     },
     "http": {
       // http upstream
