@@ -30,7 +30,7 @@ class WTVPNM {
     wtvshared = null;
     sessions = new Map();
 
-    constructor(minisrv_config, service_name = 'pnm') {
+    constructor(...[minisrv_config, service_name]) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         this.service_config = minisrv_config.services[service_name] || {};

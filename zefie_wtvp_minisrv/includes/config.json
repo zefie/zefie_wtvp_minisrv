@@ -301,7 +301,7 @@
     },
     "ftp": {
       "port": 1650,
-      "connections": 3      
+      "connections": 3   
     },
     "http": {
       // http upstream
@@ -312,9 +312,13 @@
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
       "flags": "0x00000001",
-      "max_response_size": 16 // Megabytes
+      "max_response_size": 16, // Megabytes
+      "disallow_no_slash": true,
+      "handler_module": "WTVHTTP",
+      "handler_extra_vars": ["http", "sendToClient"]
     },
     "https": {
+      // https upstream
       "port": 1650,
       "connections": 3,
       "use_external_proxy": false, // use an external proxy (WebONE or some other minifying proxy is recommended)
@@ -322,9 +326,14 @@
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
       "flags": "0x00000001",
-      "max_response_size": 16 // Megabytes
+      "max_response_size": 16, // Megabytes
+      "disallow_no_slash": true,
+      "handler_module": "WTVHTTP",
+      "handler_extra_vars": ["http", "sendToClient"],
+      "allow_self_signed_ssl": true // If true, will allow self-signed SSL certificates via the proxy.
     },
     "proto": {
+      // ProtoWeb Proxy
       "port": 1650,
       "connections": 3,
       "use_external_proxy": true,
@@ -334,8 +343,22 @@
       "external_proxy_port": 7851,
       "external_proxy_is_http1": true,
       "flags": "0x00000001",
-      "max_response_size": 16 // Megabytes
-    },        
+      "max_response_size": 16, // Megabytes
+      "disallow_no_slash": true,
+      "handler_module": "WTVHTTP",
+      "handler_extra_vars": ["http", "sendToClient"]
+    },
+    "gopher": {
+      // Gopher processor
+      "port": 1651,
+      "connections": 3,
+      "allow_double_slash": true,
+      "flags": "0x00000001",
+      "uses_service_vault": false, // For custom services that use modules instead of service vaults
+      "disallow_no_slash": true,
+      "log_raw_gopher": false, // set to true to log raw gopher responses to the console for debugging
+      "handler_module": "WTVGopher"
+    },
     "wtv-passport": {
       // wtv-passport (for messenger)
       "port": 1654
@@ -404,7 +427,8 @@
       "descriptor_after_hello_ms": 85,
       "burst_prestart_ms": 5000,
       "debug": false,
-      "allow_indexing": true
+      "allow_indexing": true,
+      "handler_module": "WTVPNM"
     }
   },
   "favorites": {
