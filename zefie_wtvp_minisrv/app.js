@@ -791,7 +791,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                     request_headers.service_file_path = service_vault_file_path;
                     request_headers.raw_file = true;
                     // process flashroms
-                    if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "rom" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "brom") {
+                    if (minisrv_config.services[service_name].is_flashrom_service && (wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "rom" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "brom")) {
                         let bf0app_update = false;
                         const request_path = request_headers.request_url.replace(service_name + ":/", "");
                         const romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");

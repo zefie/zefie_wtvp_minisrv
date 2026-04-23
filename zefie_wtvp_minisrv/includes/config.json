@@ -234,7 +234,8 @@
       "catchall_file_name": "content-serve.js", // catchall for ROM part files. Best left untouched
       "modules": [
         "WTVFlashrom"
-      ]
+      ],
+      "is_flashrom_service": true
     },
     "wtv-setup": {
       // wtv-setup
