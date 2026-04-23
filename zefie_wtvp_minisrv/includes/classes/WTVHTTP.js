@@ -77,10 +77,6 @@ class WTVHTTP {
                     // configure connection to remote socks proxy
                     const { SocksProxyAgent }= require('socks-proxy-agent');
                     options.agent = new SocksProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
-                    options.agents = {
-                        "http": options.agent,
-                        "https": options.agent
-                    }
                 } else {
                     // configure connection to remote http proxy
                     this.proxy_agent = this.http;
@@ -97,6 +93,24 @@ class WTVHTTP {
                     options.headers.Connection = 'close'
                 }
             }
+            if (this.minisrv_config.services[request_type].support_bitdefender_self_signed_proxy) {
+                try {
+                    const WTVSSL = require('./WTVSSL.js');
+                    const ssl = new WTVSSL();
+                    const bitdefenderCACert = ssl.getBitdefenderCACert();
+                    if (bitdefenderCACert) {
+                        options.ca = [bitdefenderCACert];
+                        // this sucks, but bitdefender's cert is weird and doesn't seem to work properly with Node's TLS implementation
+                        // even when added to the trusted store, so we have to disable rejection of unauthorized certs
+                        // when the Bitdefender CA cert is present. At least this way we can still allow it without
+                        // completely breaking SSL proxying for Bitdefender users.
+                        // This will only trigger on Windows if support_bitdefender_self_signed_proxy is true, and the Bitdefender CA file exists
+                        options.rejectUnauthorized = false; 
+                    }
+                } catch (err) {
+                    console.warn(" * Failed to load Bitdefender CA certificate:", err.message);
+                }
+            }            
             const req = this.proxy_agent.request(options, (res) => {
                 let total_data = 0;
 

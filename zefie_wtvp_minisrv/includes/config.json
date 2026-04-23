@@ -330,7 +330,8 @@
       "disallow_no_slash": true,
       "handler_module": "WTVHTTP",
       "handler_extra_vars": ["http", "sendToClient"],
-      "allow_self_signed_ssl": true // If true, will allow self-signed SSL certificates via the proxy.
+      "allow_self_signed_ssl": false, // If true, will allow self-signed SSL certificates via the proxy.
+      "support_bitdefender_self_signed_proxy": true // If the user has bitdefender installed, it is intercepting SSL connections and re-signing them with its own self-signed certificate. Enabling this will add the Bitdefender certificate to the trusted store for the https service, allowing it to proxy https connections without errors.
     },
     "proto": {
       // ProtoWeb Proxy
