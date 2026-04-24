@@ -791,7 +791,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                     request_headers.service_file_path = service_vault_file_path;
                     request_headers.raw_file = true;
                     // process flashroms
-                    if (minisrv_config.services[service_name].is_flashrom_service && (wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "rom" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "brom")) {
+                    if (minisrv_config.services[(pc_service_name || service_name)].is_flashrom_service && (wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "rom" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "brom")) {
                         let bf0app_update = false;
                         const request_path = request_headers.request_url.replace(service_name + ":/", "");
                         const romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
@@ -1192,7 +1192,7 @@ minisrv-no-mail-count: true`;
         } else if (handlerModules["wtvhttp"] && ((shortURL.includes('http://') || shortURL.includes('https://')) || (use_external_proxy === true && shortURL.includes(service_name + "://")) && !pc_services)) {
             handlerModules["wtvhttp"].doHTTPProxy(socket, request_headers);
         } else if (handlerModules["wtvgopher"] && shortURL.startsWith("gopher://")) {
-            handlerModules["wtvgopher"].handleGopherRequest(socket, request_headers, wtvshared, sendToClient);
+            handlerModules["wtvgopher"].handleGopherRequest(socket, request_headers);
         } else if (handlerModules["wtvftp"] &&shortURL.startsWith('ftp://')) {
             if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming FTP request on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
             handlerModules["wtvftp"].handleFTPRequest(socket, request_headers);
@@ -2234,7 +2234,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
                         let extraVar = eval(minisrv_config.services[k].handler_extra_vars[i]);
                         args.push(extraVar);
                     }
-                    const constructorArgs = [minisrv_config, k, ...args];
+                    const constructorArgs = [minisrv_config, k, wtvshared, sendToClient, ...args];
                     handlerModules[minisrv_config.services[k].handler_module.toLowerCase()] = new handlerModules[minisrv_config.services[k].handler_module + "_main"](...constructorArgs);
                 }
                 loadedModule = true;

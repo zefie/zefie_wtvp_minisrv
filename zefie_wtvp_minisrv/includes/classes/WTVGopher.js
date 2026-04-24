@@ -1,11 +1,12 @@
-const WTVMime = require('./WTVMime.js');
 const net = require('net');
 
 class WTVGopher {
     // Adapted from WebTV Redialed's Gopher support
-    constructor(...[minisrv_config, service_name]) {
+    constructor(...[minisrv_config, service_name, wtvshared, sendToClient, wtvmime]) {
         this.minisrv_config = minisrv_config;
-        this.wtvmime = new WTVMime(minisrv_config);
+        this.wtvshared = wtvshared;
+        this.wtvmime = wtvmime;
+        this.sendToClient = sendToClient;
         this.logGopher = minisrv_config.services[service_name].log_raw_gopher || false;
     }
 
@@ -131,12 +132,12 @@ class WTVGopher {
         return html;
     }
 
-    async handleGopherRequest(socket, request_headers, wtvshared, sendToClient) {
+    async handleGopherRequest(socket, request_headers) {
         if (this.minisrv_config.config.debug_flags.show_headers) {
             console.log("Gopher: Client Request on socket ID",
                 socket.id,
-                await wtvshared.decodePostData(
-                    wtvshared.filterRequestLog(wtvshared.filterSSID(request_headers))
+                await this.wtvshared.decodePostData(
+                    this.wtvshared.filterRequestLog(this.wtvshared.filterSSID(request_headers))
                 ));
         }
 
@@ -225,7 +226,7 @@ class WTVGopher {
                     "Content-Type": mimetype
                 }
 
-                sendToClient(socket, headers, imageData);
+                this.sendToClient(socket, headers, imageData);
                 return;
             } else {
                 // convert gophermap to html
@@ -235,7 +236,7 @@ class WTVGopher {
                     "Status": "200 OK",
                     "Content-Type": "text/html"
                 }
-                sendToClient(socket, headers, htmlData);
+                this.sendToClient(socket, headers, htmlData);
             }
         });
 
@@ -251,7 +252,7 @@ class WTVGopher {
             } else if (friendlyErr.includes('ENOTFOUND')) {
                 friendlyErr = "Host not found";
             }
-            sendToClient(socket, {"Status": "400 Gopher Error: " + friendlyErr}, friendlyErr);
+            this.sendToClient(socket, {"Status": "400 Gopher Error: " + friendlyErr}, friendlyErr);
         });
     }
 }

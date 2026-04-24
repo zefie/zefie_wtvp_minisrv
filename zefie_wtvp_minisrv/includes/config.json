@@ -304,7 +304,7 @@
       "port": 1650,
       "connections": 3,
       "handler_module": "WTVFTP",
-      "handler_extra_vars": ["sendToClient"]
+      "handler_extra_vars": ["wtvmime"]
     },
     "http": {
       // http upstream
@@ -318,7 +318,7 @@
       "max_response_size": 16, // Megabytes
       "disallow_no_slash": true,
       "handler_module": "WTVHTTP",
-      "handler_extra_vars": ["http", "sendToClient"]
+      "handler_extra_vars": ["http"]
     },
     "https": {
       // https upstream
@@ -332,7 +332,7 @@
       "max_response_size": 16, // Megabytes
       "disallow_no_slash": true,
       "handler_module": "WTVHTTP",
-      "handler_extra_vars": ["http", "sendToClient"],
+      "handler_extra_vars": ["http"],
       "allow_self_signed_ssl": false, // If true, will allow self-signed SSL certificates via the proxy.
       "support_bitdefender_self_signed_proxy": true // If the user has bitdefender installed, it is intercepting SSL connections and re-signing them with its own self-signed certificate. Enabling this will add the Bitdefender certificate to the trusted store for the https service, allowing it to proxy https connections without errors.
     },
@@ -350,7 +350,7 @@
       "max_response_size": 16, // Megabytes
       "disallow_no_slash": true,
       "handler_module": "WTVHTTP",
-      "handler_extra_vars": ["http", "sendToClient"]
+      "handler_extra_vars": ["http"]
     },
     "gopher": {
       // Gopher processor
@@ -361,7 +361,8 @@
       "uses_service_vault": false, // For custom services that use modules instead of service vaults
       "disallow_no_slash": true,
       "log_raw_gopher": false, // set to true to log raw gopher responses to the console for debugging
-      "handler_module": "WTVGopher"
+      "handler_module": "WTVGopher",
+      "handler_extra_vars": ["wtvmime"]
     },
     "wtv-passport": {
       // wtv-passport (for messenger)

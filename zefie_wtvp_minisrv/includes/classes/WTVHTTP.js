@@ -1,10 +1,8 @@
-const {WTVShared, clientShowAlert} = require('./WTVShared.js');
-
 class WTVHTTP {
-    constructor(...[minisrv_config, service_name, http, sendToClient]) {
+    constructor(...[minisrv_config, service_name, wtvshared, sendToClient, http]) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
-        this.wtvshared = new WTVShared(minisrv_config);
+        this.wtvshared = wtvshared;
         this.sendToClient = sendToClient;
         this.http = http;
         this.https = require('follow-redirects').https

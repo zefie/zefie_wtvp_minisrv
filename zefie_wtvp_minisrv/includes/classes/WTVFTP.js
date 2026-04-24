@@ -1,5 +1,3 @@
-const dns = require('dns');
-
 class WTVFTP {
     wtvshared = null;
     wtvmime = null;
@@ -9,15 +7,14 @@ class WTVFTP {
     ftp = null;
     url = null;
 
-    constructor(minisrv_config, service_name, sendToClient) {
+    constructor(minisrv_config, service_name, wtvshared, sendToClient, wtvmime) {
         this.minisrv_config = minisrv_config;
         this.sendToClient = sendToClient;        
-        const WTVShared = require("./WTVShared.js")['WTVShared'];
-        const WTVMime = require("./WTVMime.js");
+        this.wtvshared = wtvshared;
+        this.wtvmime = wtvmime;
         this.url = require('url');
         this.ftp = require('ftp');
-        this.wtvshared = new WTVShared(minisrv_config);
-        this.wtvmime = new WTVMime(minisrv_config);
+        this.dns = require('dns');
     }
 
     handleFTPRequest(socket, request_headers) {
@@ -118,7 +115,7 @@ class WTVFTP {
         });
 
         // FIX: Resolve host to IPv4 address before connecting
-        dns.lookup(host, { family: 4 }, (err, address) => {
+        this.dns.lookup(host, { family: 4 }, (err, address) => {
             if (err) {
                 this.sendToClient(socket, { 'Status': '500 DNS resolution error', 'Content-Type': 'text/plain' }, 'DNS resolution error');
                 return;

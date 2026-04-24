@@ -16,11 +16,8 @@
 // If the hash matches, the client is authenticated and the server starts sending UDP packets.
 
 const net = require('net');
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 const dgram = require('dgram');
-const { WTVShared } = require('./WTVShared.js');
 
 class WTVPNM {
     minisrv_config = null;
@@ -30,11 +27,11 @@ class WTVPNM {
     wtvshared = null;
     sessions = new Map();
 
-    constructor(...[minisrv_config, service_name]) {
+    constructor(...[minisrv_config, service_name, wtvshared, sendToClient]) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         this.service_config = minisrv_config.services[service_name] || {};
-        this.wtvshared = new WTVShared(minisrv_config, true);
+        this.wtvshared = wtvshared;
         this.server = net.createServer((socket) => this.handleConnection(socket));
 
         // Descriptor server-id mapping uses full 16-bit source UDP port:
@@ -676,7 +673,7 @@ class WTVPNM {
             for (const variant of extensionVariants) {
                 const candidate = this.wtvshared.makeSafePath(base, variant);
                 this.debugLog('testing media candidate', candidate);
-                if (candidate && fs.existsSync(candidate) && fs.lstatSync(candidate).isFile()) {
+                if (candidate && this.wtvshared.fs.existsSync(candidate) && this.wtvshared.fs.lstatSync(candidate).isFile()) {
                     if (this.service_config.debug) {
                         this.debugLog('media file found', variant, '->', candidate);
                     }
@@ -694,7 +691,7 @@ class WTVPNM {
         const requestedPath = this.normalizeRequestedMediaPath(requestedMedia);
         if (!requestedPath) return [];
 
-        const ext = path.posix.extname(requestedPath).toLowerCase();
+        const ext = this.wtvshared.path.posix.extname(requestedPath).toLowerCase();
         const stem = ext.length > 0 ? requestedPath.slice(0, -ext.length) : requestedPath;
         const variants = [requestedPath];
 
@@ -1172,13 +1169,13 @@ class WTVPNM {
     prepareMediaData(session) {
         if (!session || session.mediaFrames) return;
 
-        if (!session.mediaPath || !fs.existsSync(session.mediaPath)) {
+        if (!session.mediaPath || !this.wtvshared.fs.existsSync(session.mediaPath)) {
             this.debugLog('prepareMediaData: media path missing or not found', session.id, session.mediaPath);
             return;
         }
 
         try {
-            const media = fs.readFileSync(session.mediaPath);
+            const media = this.wtvshared.fs.readFileSync(session.mediaPath);
             this.debugLog('prepareMediaData: loaded media file', session.id, `size=${media.length} bytes`);
 
             const classicRa = this.parseClassicRaHeader(media);
@@ -1830,7 +1827,7 @@ class WTVPNM {
         let raBuffer = null;
         if (session && session.mediaPath) {
             try {
-                raBuffer = fs.readFileSync(session.mediaPath);
+                raBuffer = this.wtvshared.fs.readFileSync(session.mediaPath);
             } catch(e) {
                 this.debugLog('buildDescriptor error reading media', session.mediaPath, e.message);
             }
@@ -2400,8 +2397,8 @@ class WTVPNM {
         const challengeBuf = Buffer.from(challenge, 'latin1');
         const requestedMedia = session?.requestedMedia || '';
         const requestedMediaPath = this.normalizeRequestedMediaPath(requestedMedia);
-        const resolvedBase = session?.mediaPath ? path.basename(session.mediaPath) : '';
-        const requestedDir = requestedMediaPath ? path.posix.dirname(requestedMediaPath) : '';
+        const resolvedBase = session?.mediaPath ? this.wtvshared.path.basename(session.mediaPath) : '';
+        const requestedDir = requestedMediaPath ? this.wtvshared.path.posix.dirname(requestedMediaPath) : '';
         const resolvedMedia = resolvedBase
             ? (requestedDir && requestedDir !== '.' ? `${requestedDir}/${resolvedBase}` : resolvedBase)
             : requestedMediaPath;
