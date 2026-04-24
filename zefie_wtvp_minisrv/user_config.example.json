@@ -129,6 +129,11 @@
 				"password": "mylocalpass"
 			}
 		},
+		"pnm": {
+			// optional UDP source-port range used by WTVPNM
+			"udp_bind_port_min": 6656,
+			"udp_bind_port_max": 6911
+		},
 		// the following uses zefie's public proxy with webone for web surfing and image scaling
 		"services": {
 			"http": {

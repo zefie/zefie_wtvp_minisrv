@@ -16,11 +16,8 @@
 // If the hash matches, the client is authenticated and the server starts sending UDP packets.
 
 const net = require('net');
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
 const dgram = require('dgram');
-const { WTVShared } = require('./WTVShared.js');
 
 class WTVPNM {
     minisrv_config = null;
@@ -30,16 +27,16 @@ class WTVPNM {
     wtvshared = null;
     sessions = new Map();
 
-    constructor(minisrv_config, service_name = 'pnm') {
+    constructor(...[minisrv_config, service_name, wtvshared, sendToClient]) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         this.service_config = minisrv_config.services[service_name] || {};
-        this.wtvshared = new WTVShared(minisrv_config, true);
+        this.wtvshared = wtvshared;
         this.server = net.createServer((socket) => this.handleConnection(socket));
 
-        // Auth-sensitive descriptor server id shape observed in captures.
-        // Keep fixed upper 24 bits 0x00071a and vary only the low byte.
-        this.serverIdBase = 0x00071a00;
+        // Descriptor server-id mapping uses full 16-bit source UDP port:
+        // serverId = 0x0007pppp where pppp is the reserved UDP source port.
+        this.serverIdPort16Base = 0x00070000;
 
         // Per-session counter embedded in bytes 9..12 of the first 0x4F chunk.
         // multi_auth.pcap increments this 1,2,3,... across successive sessions.
@@ -202,13 +199,9 @@ class WTVPNM {
                 session.capabilitiesLogged = true;
                 const cap = this.extractCapabilities(data);
                 session.capabilities = cap;
-                // Detect WebTV via User-Agent string in raw request data.
-                // The WebTV PNM client advertises cook/sipr caps like modern
-                // RealPlayer, so codec-sniffing is unreliable; the UA is the
-                // only dependable discriminator.  Captured UA format:
-                //   'Mozilla/3.0 WebTV/2.5 (Compatible; MSIE 2.0)'
+                // Detect WebTV via User-Agent, since it prefers low server challenges
                 const raw = data.toString('latin1');
-                session.isWebTV = /WebTV\//i.test(raw);
+                session.isWebTV = /WebTV\//i.test(session.pnaFields?.useragent) || false;
                 if (cap.length > 0) {
                     this.debugLog('client capabilities', session.id, cap.join(', '));
                 }
@@ -680,7 +673,7 @@ class WTVPNM {
             for (const variant of extensionVariants) {
                 const candidate = this.wtvshared.makeSafePath(base, variant);
                 this.debugLog('testing media candidate', candidate);
-                if (candidate && fs.existsSync(candidate) && fs.lstatSync(candidate).isFile()) {
+                if (candidate && this.wtvshared.fs.existsSync(candidate) && this.wtvshared.fs.lstatSync(candidate).isFile()) {
                     if (this.service_config.debug) {
                         this.debugLog('media file found', variant, '->', candidate);
                     }
@@ -698,7 +691,7 @@ class WTVPNM {
         const requestedPath = this.normalizeRequestedMediaPath(requestedMedia);
         if (!requestedPath) return [];
 
-        const ext = path.posix.extname(requestedPath).toLowerCase();
+        const ext = this.wtvshared.path.posix.extname(requestedPath).toLowerCase();
         const stem = ext.length > 0 ? requestedPath.slice(0, -ext.length) : requestedPath;
         const variants = [requestedPath];
 
@@ -826,16 +819,17 @@ class WTVPNM {
         return Number.isInteger(parsed) && parsed > 0 && parsed <= 65535 ? parsed : null;
     }
 
-    async ensureSessionUdpSocket(session) {
-        if (!session) return false;
+    getUdpBindRange() {
+        const configuredMin = this.sanitizeUdpPort(this.service_config.udp_bind_port_min);
+        const configuredMax = this.sanitizeUdpPort(this.service_config.udp_bind_port_max);
 
-        const existingPort = this.sanitizeUdpPort(session.serverUdpPort);
-        if (session.udpSocket && existingPort) return true;
+        if (configuredMin && configuredMax) {
+            const min = Math.min(configuredMin, configuredMax);
+            const max = Math.max(configuredMin, configuredMax);
+            return { min, max, mode: 'minmax' };
+        }
 
-        const bindIp = this.minisrv_config?.config?.bind_ip || '0.0.0.0';
-        // Keep source ports in 0x1a00-0x1aff so descriptor serverId can stay
-        // in the auth-compatible 0x00071a?? shape while still supporting
-        // per-session unique ports.
+        // Backward compatibility for older base/span config.
         const basePort = Number.isInteger(this.service_config.udp_bind_port_base)
             ? this.service_config.udp_bind_port_base
             : 0x1a00;
@@ -843,12 +837,34 @@ class WTVPNM {
             ? Math.max(1, this.service_config.udp_bind_port_span)
             : 0x100;
 
+        const min = Math.max(1, basePort);
+        const max = Math.min(65535, basePort + span - 1);
+        return { min, max, mode: 'basespan' };
+    }
+
+    buildServerIdForPort(port) {
+        const parsedPort = this.sanitizeUdpPort(port);
+        if (!parsedPort) return null;
+        return (this.serverIdPort16Base | (parsedPort & 0xffff)) >>> 0;
+    }
+
+    async ensureSessionUdpSocket(session) {
+        if (!session) return false;
+
+        const existingPort = this.sanitizeUdpPort(session.serverUdpPort);
+        if (session.udpSocket && existingPort) return true;
+
+        const bindIp = this.minisrv_config?.config?.bind_ip || '0.0.0.0';
+        // Keep source ports in 0x1a00-0x1aff by default. When a custom range
+        // is used, server-id mapping can follow the full source port.
+        const range = this.getUdpBindRange();
+        const span = Math.max(1, (range.max - range.min) + 1);
         const startOffset = crypto.randomInt(0, span);
         let udpSocket = null;
         let boundPort = null;
 
         for (let i = 0; i < span; i++) {
-            const port = basePort + ((startOffset + i) % span);
+            const port = range.min + ((startOffset + i) % span);
             if (port <= 0 || port > 65535) continue;
 
             const candidate = dgram.createSocket('udp4');
@@ -872,7 +888,7 @@ class WTVPNM {
 
         if (!udpSocket || !boundPort) {
             this.debugLog('udp reserve bind failed', session.id,
-                `base=${basePort}`, `span=${span}`, 'no free ports');
+                `range=${range.min}-${range.max}`, `mode=${range.mode}`, 'no free ports');
             return false;
         }
 
@@ -882,8 +898,10 @@ class WTVPNM {
         try {
             const addr = udpSocket.address();
             session.serverUdpPort = this.sanitizeUdpPort(addr.port);
-            session.serverId = (this.serverIdBase | (addr.port & 0xff)) >>> 0;
-            this.debugLog('udp socket reserved', session.id, `${addr.address}:${addr.port}`);
+            session.serverId = this.buildServerIdForPort(addr.port);
+            this.debugLog('udp socket reserved', session.id,
+                `${addr.address}:${addr.port}`,
+                `serverId=0x${(session.serverId >>> 0).toString(16)}`);
         } catch (_) {
             session.serverId = null;
             session.serverUdpPort = null;
@@ -894,6 +912,13 @@ class WTVPNM {
 
     normalizeIpAddress(ip) {
         return String(ip || '').replace(/^::ffff:/i, '');
+    }
+
+    getMediaTargetPort(session) {
+        if (!session) return null;
+        return this.sanitizeUdpPort(session.udpFeedbackPeerPort)
+            || this.sanitizeUdpPort(session.mediaUdpPort)
+            || this.sanitizeUdpPort(session.clientUdpPort);
     }
 
     attachUdpSocketHandlers(socket, session) {
@@ -1068,15 +1093,19 @@ class WTVPNM {
 
         if (!strictPeerPort && !session.udpFeedbackPeerPort) {
             session.udpFeedbackPeerPort = rxPort;
+            const currentTargetPort = this.getMediaTargetPort(session);
+            if (this.sanitizeUdpPort(rxPort) && currentTargetPort !== rxPort) {
+                session.mediaUdpPort = rxPort;
+            }
             this.debugLog('udp feedback peer learned', session.id,
                 `peer=${rxIp}:${rxPort}`,
-                `mediaTarget=${expectedIp}:${session.mediaUdpPort || session.clientUdpPort}`,
+                `mediaTarget=${expectedIp}:${this.getMediaTargetPort(session) || 'unknown'}`,
                 `retransmitTarget=${expectedIp}:${rxPort}`);
 
             // If auth already passed and stream hasn't started yet, begin now.
             if (session.hashVerified && !session.udpTimer && !session.udpStartTimer) {
                 this.debugLog('starting UDP stream after peer learn', session.id,
-                    `target=${expectedIp}:${session.mediaUdpPort || session.clientUdpPort}`);
+                    `target=${expectedIp}:${this.getMediaTargetPort(session) || 'unknown'}`);
                 this.startUdpStream(socket, session);
             }
         }
@@ -1120,9 +1149,8 @@ class WTVPNM {
             const cached = session.udpPacketCache.get(seq16 & 0xffff);
             if (!cached || !Buffer.isBuffer(cached.payload)) continue;
 
-            const txPort = this.sanitizeUdpPort(session.udpFeedbackPeerPort)
-                || session.mediaUdpPort
-                || session.clientUdpPort;
+            const txPort = this.getMediaTargetPort(session);
+            if (!txPort) continue;
             session.udpSocket.send(cached.payload, 0, cached.payload.length,
                 txPort, expectedIp, (err) => {
                     if (err) this.debugLog('udp retransmit send err', session.id, `seq=${seq16}`, err.message);
@@ -1141,13 +1169,13 @@ class WTVPNM {
     prepareMediaData(session) {
         if (!session || session.mediaFrames) return;
 
-        if (!session.mediaPath || !fs.existsSync(session.mediaPath)) {
+        if (!session.mediaPath || !this.wtvshared.fs.existsSync(session.mediaPath)) {
             this.debugLog('prepareMediaData: media path missing or not found', session.id, session.mediaPath);
             return;
         }
 
         try {
-            const media = fs.readFileSync(session.mediaPath);
+            const media = this.wtvshared.fs.readFileSync(session.mediaPath);
             this.debugLog('prepareMediaData: loaded media file', session.id, `size=${media.length} bytes`);
 
             const classicRa = this.parseClassicRaHeader(media);
@@ -1454,11 +1482,13 @@ class WTVPNM {
         // granularity. Compensation scales with interval: shorter intervals
         // need more compensation. Formula: 1 - (fixedOverhead / calculatedInterval)
         let intervalMs;
+
         if (session.avgBitRate > 0) {
             intervalMs = (avgBytesPerPacket * 8000) / session.avgBitRate;
             // Adaptive Windows timer compensation: 13ms is empirical fixed overhead
             const compensation = Math.max(0.90, 1 - (13 / intervalMs));
             intervalMs *= compensation;
+            intervalMs -= 6;
         } else {
             intervalMs = 220;
         }
@@ -1473,22 +1503,31 @@ class WTVPNM {
         const burstPrestartMs = typeof this.service_config.burst_prestart_ms === 'number'
             ? this.service_config.burst_prestart_ms
             : 3000;
+        const burstMultiplier = typeof this.service_config.burst_multiplier === 'number'
+            ? this.service_config.burst_multiplier : 2;
         const burstFrameCount = burstPrestartMs > 0 ? Math.ceil(burstPrestartMs / intervalMs) : 0;
         session.burstFramesSent = 0;
 
         const targetIp = this.normalizeIpAddress(socket.remoteAddress);
-        const mediaTargetPort = this.sanitizeUdpPort(session.mediaUdpPort) || session.clientUdpPort;
+        const mediaTargetPort = this.getMediaTargetPort(session);
         this.debugLog('udp stream start', session.id,
             `frames=${session.mediaFrames?.length || 0}`,
             `avgBitRate=${session.avgBitRate || 'unknown'}bps`,
             `bodyLen=${bodyLen}`,
             `interval=${intervalMs.toFixed(2)}ms`,
             `burstFrames=${burstFrameCount}`,
+            `burstRate=${(session.avgBitRate * burstMultiplier) || 'unknown'}bps`,
             `target=${targetIp}:${mediaTargetPort}`,
             `sourcePort=${session.serverUdpPort || 'unknown'}`);
 
         if (!session.udpSocket || !this.sanitizeUdpPort(session.serverUdpPort)) {
             this.debugLog('udp stream start failed: socket not reserved', session.id);
+            return;
+        }
+        if (!mediaTargetPort) {
+            this.debugLog('udp stream start failed: no target port', session.id,
+                `clientUdpPort=${session.clientUdpPort || 'none'}`,
+                `feedbackPeerPort=${session.udpFeedbackPeerPort || 'none'}`);
             return;
         }
 
@@ -1519,7 +1558,8 @@ class WTVPNM {
                 ? Buffer.concat([this.buildSyncFrame(session, seq), dataFrame])
                 : dataFrame;
             this.cacheUdpPacketForRetransmit(session, seq, out);
-            const txPort = mediaTargetPort;
+            const txPort = this.getMediaTargetPort(session);
+            if (!txPort) return;
             session.udpSocket.send(out, 0, out.length,
                 txPort, targetIp, (err) => {
                     if (err) this.debugLog('udp send err', session.id, `${targetIp}:${txPort}`, err.message);
@@ -1583,10 +1623,10 @@ class WTVPNM {
                 session.burstFramesSent++;
                 // Use half the interval during the pre-start burst window, then
                 // drop to normal pacing once burstFrameCount frames have been sent.
-                const delay = session.burstFramesSent < burstFrameCount ? intervalMs / 2 : intervalMs;
+                const delay = session.burstFramesSent < burstFrameCount ? intervalMs / burstMultiplier : intervalMs;
                 session.udpTimer = setTimeout(tick, delay);
             };
-            const initialDelay = session.burstFramesSent < burstFrameCount ? intervalMs / 2 : intervalMs;
+            const initialDelay = session.burstFramesSent < burstFrameCount ? intervalMs / burstMultiplier : intervalMs;
             session.udpTimer = setTimeout(tick, initialDelay);
         };
 
@@ -1787,7 +1827,7 @@ class WTVPNM {
         let raBuffer = null;
         if (session && session.mediaPath) {
             try {
-                raBuffer = fs.readFileSync(session.mediaPath);
+                raBuffer = this.wtvshared.fs.readFileSync(session.mediaPath);
             } catch(e) {
                 this.debugLog('buildDescriptor error reading media', session.mediaPath, e.message);
             }
@@ -2024,11 +2064,12 @@ class WTVPNM {
         const out = Buffer.concat(outChunks);
 
         // The first 0x4F/0x08 chunk carries [serverId_u32_BE][sessionCounter_u32_BE].
-        // Keep auth-compatible 0x00071a?? serverId shape and encode per-session
-        // UDP port in the low byte (port range 0x1a00-0x1aff).
+        // serverId is mapped from the reserved UDP source port as 0x0007pppp
+        // so the client can route UDP feedback to the same socket used for
+        // media transmission.
         const serverId = Number.isInteger(session?.serverId)
             ? session.serverId
-            : ((this.serverIdBase | 0x27) >>> 0);
+            : ((this.serverIdPort16Base | 0x1a27) >>> 0);
         out.writeUInt32BE(serverId, 2);
         const sessionNumber = (session && typeof session.sessionNumber === 'number')
             ? session.sessionNumber
@@ -2356,8 +2397,8 @@ class WTVPNM {
         const challengeBuf = Buffer.from(challenge, 'latin1');
         const requestedMedia = session?.requestedMedia || '';
         const requestedMediaPath = this.normalizeRequestedMediaPath(requestedMedia);
-        const resolvedBase = session?.mediaPath ? path.basename(session.mediaPath) : '';
-        const requestedDir = requestedMediaPath ? path.posix.dirname(requestedMediaPath) : '';
+        const resolvedBase = session?.mediaPath ? this.wtvshared.path.basename(session.mediaPath) : '';
+        const requestedDir = requestedMediaPath ? this.wtvshared.path.posix.dirname(requestedMediaPath) : '';
         const resolvedMedia = resolvedBase
             ? (requestedDir && requestedDir !== '.' ? `${requestedDir}/${resolvedBase}` : resolvedBase)
             : requestedMediaPath;

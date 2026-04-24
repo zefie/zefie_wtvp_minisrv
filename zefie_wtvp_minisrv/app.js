@@ -11,8 +11,7 @@ const nunjucks = require('nunjucks');
 const zlib = require('zlib');
 const {serialize, unserialize} = require('php-serialize');
 const {spawn} = require('child_process');
-const http = require('follow-redirects').http
-const https = require('follow-redirects').https
+const http = require('follow-redirects').http;
 const httpx = require(classPath + "/HTTPX.js");
 const { URL } = require('url');
 const net = require('net');
@@ -27,11 +26,10 @@ const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
-const WTVFTP = require(classPath + "/WTVFTP.js");
-const WTVPNM = require(classPath + "/WTVPNM.js");
 const vm = require('vm');
 const debug = require('debug')('app');
 const express = require('express');
+let handlerModules = [];
 
 let wtvnewsserver = null;
 const protocolServers = [];
@@ -156,6 +154,11 @@ function configureService(service_name, service_obj, initial = false) {
     if (service_obj.port && !service_obj.nobind && initial) {
         if (service_obj.pc_services) pc_ports.push(service_obj.port);
         else ports.push(service_obj.port);
+    }
+
+    // Exclude PNM services
+    if (service_obj.protocol_handler === 'pnm') {
+        return true;
     }
 
     // minisrv_config service toString
@@ -299,8 +302,8 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
 
         // Our modules
         "wtvmime": wtvmime,
-        "http": http,
-        "https": https,
+        "http": require('follow-redirects').http,
+        "https": require('follow-redirects').https,
         "util": util,
         "sharp": sharp,
         "nunjucks": nunjucks,
@@ -788,7 +791,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                     request_headers.service_file_path = service_vault_file_path;
                     request_headers.raw_file = true;
                     // process flashroms
-                    if (wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "rom" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "brom") {
+                    if (minisrv_config.services[(pc_service_name || service_name)].is_flashrom_service && (wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "rom" || wtvshared.getFileExt(service_vault_file_path).toLowerCase() === "brom")) {
                         let bf0app_update = false;
                         const request_path = request_headers.request_url.replace(service_name + ":/", "");
                         const romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
@@ -979,7 +982,11 @@ async function processURL(socket, request_headers, pc_services = false) {
     let shortURL, headers, data, service_name;
     let original_service_name = "";
     let shared_romcache = null;
-    let allow_double_slash = false, enable_multi_query = false, use_external_proxy = false;
+    let allow_double_slash = false;
+    let enable_multi_query = false;
+    let use_external_proxy = false;
+    let disallow_no_slash = false;
+    let uses_service_vault = true;
     request_headers.query = {};
 
     if (request_headers.request_url) {
@@ -988,6 +995,8 @@ async function processURL(socket, request_headers, pc_services = false) {
             allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
             enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
             use_external_proxy = minisrv_config.services[service_name].use_external_proxy || false;
+            disallow_no_slash = minisrv_config.services[service_name].disallow_no_slash || false;
+            uses_service_vault = (minisrv_config.services[service_name].uses_service_vault === false) ? false : true;
         }
         if (pc_services) {           
             original_service_name = socket.service_name; // store service name
@@ -1073,7 +1082,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                
             }
         }
-        if ((!shortURL.startsWith("http") && !shortURL.startsWith("ftp") && shortURL.includes(":") && !shortURL.includes(":/"))) {
+        if ((!disallow_no_slash && shortURL.includes(":") && !shortURL.includes(":/"))) {
             // Apparently it is within WTVP spec to accept urls without a slash (eg wtv-home:home)
             // Here, we just reassemble the request URL as if it was a proper URL (eg wtv-home:/home)
             // we will allow this on any service except http(s) and ftp
@@ -1138,7 +1147,7 @@ minisrv-no-mail-count: true`;
             else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
         } 
 
-        if ((shortURL.includes(':/')) && (!shortURL.includes('://') || (shortURL.includes('://') && allow_double_slash))) {
+        if ((shortURL.includes(':/')) && (!shortURL.includes('://') || (shortURL.includes('://') && allow_double_slash) && uses_service_vault)) {
             let ssid = socket.ssid;
             if (ssid === null) {
                 // prevent possible injection attacks via malformed SSID and filesystem SessionStore
@@ -1180,12 +1189,13 @@ minisrv-no-mail-count: true`;
 
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
-        } else if (shortURL.includes('http://') || shortURL.includes('https://') || (use_external_proxy === true && shortURL.includes(service_name + "://")) && !pc_services) {
-            doHTTPProxy(socket, request_headers);
-        } else if (shortURL.startsWith('ftp://')) {
+        } else if (handlerModules["wtvhttp"] && ((shortURL.includes('http://') || shortURL.includes('https://')) || (use_external_proxy === true && shortURL.includes(service_name + "://")) && !pc_services)) {
+            handlerModules["wtvhttp"].doHTTPProxy(socket, request_headers);
+        } else if (handlerModules["wtvgopher"] && shortURL.startsWith("gopher://")) {
+            handlerModules["wtvgopher"].handleGopherRequest(socket, request_headers);
+        } else if (handlerModules["wtvftp"] &&shortURL.startsWith('ftp://')) {
             if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming FTP request on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
-            const wtvftp = new WTVFTP(wtvshared, sendToClient);
-            wtvftp.handleFTPRequest(socket, request_headers);
+            handlerModules["wtvftp"].handleFTPRequest(socket, request_headers);
         } else if (shortURL.indexOf('file://') >= 0) {
             shortURL = shortURL.replace("file://",'').replace("romcache", "ROMCache");
             service_name = "wtv-star";
@@ -1221,250 +1231,6 @@ minisrv-no-mail-count: true`;
                 socket_sessions[socket.id].close_me = true;
                 sendToClient(socket, headers, data);
             }
-        }
-    }
-}
-
-function handleProxy(socket, request_type, request_headers, res, data) {
-    console.log(` * Proxy Request ${request_type.toUpperCase()} ${res.statusCode} for ${request_headers.request}`)
-    // an http response error is not a request error, and will come here under the 'end' event rather than an 'error' event.
-    switch (res.statusCode) {
-        case 404:
-            res.headers.Status = res.statusCode + " The publisher can&#146;t find the page requested.";
-            break;
-
-        case 401:
-        case 403:
-            res.headers.Status = res.statusCode + " The publisher of that page has not authorized you to use it.";
-            break;
-
-        case 500:
-            res.headers.Status = res.statusCode + " The publisher of that page can&#146;t be reached.";
-            break;
-
-        default:
-            res.headers.Status = res.statusCode + " " + res.statusMessage;
-            break;
-    }
-
-    if (res.headers['Content-type']) {
-        res.headers['Content-Type'] = res.headers['Content-type'];
-        delete (res.headers['Content-type'])
-    }
-
-    if (res.headers['content-type']) {
-        res.headers['Content-Type'] = res.headers['content-type'];
-        delete (res.headers['content-type'])
-    }
-  
-    // header pass-through whitelist, case insensitive comparsion to server, however, you should
-    // specify the header case as you intend for the client
-    const headers = wtvshared.stripHeaders(res.headers, [
-        'Connection',
-        'Server',
-        'Date',
-        'Content-Type',
-        'Cookie',
-        'Location',
-        'Accept-Ranges',
-        'Last-Modified'
-    ]);
-    headers["wtv-http-proxy"] = true;
-    headers["wtv-trusted"] = false;
-
-    if (typeof res.headers['Content-Type'] === 'string' && res.headers['Content-Type'].startsWith("text")) {
-        // Get the original URL for relative link fixing
-        const originalUrl = request_headers.request.split(' ')[1];
-        
-        // Transform HTML content for WebTV compatibility
-        if (res.headers['Content-Type'].includes('html') && 
-            minisrv_config.services[request_type]?.use_minifying_proxy === true) {
-            try {
-                const WTVMinifyingProxy = require('./includes/classes/WTVMinifyingProxy.js');
-                const proxy = new WTVMinifyingProxy(minisrv_config);
-                
-                let htmlContent = Buffer.concat(data).toString();
-                
-                // Apply WebTV-specific transformations
-                const transformOptions = {
-                    removeImages: minisrv_config.services[request_type]?.remove_images || false,
-                    maxImageWidth: minisrv_config.services[request_type]?.max_image_width || 400,
-                    simplifyTables: minisrv_config.services[request_type]?.simplify_tables !== false,
-                    maxWidth: minisrv_config.services[request_type]?.max_width || 544,
-                    preserveJellyScript: minisrv_config.services[request_type]?.preserve_jellyscript !== false,
-                    jellyScriptMaxSize: minisrv_config.services[request_type]?.jellyscript_max_size || 8192
-                };
-                
-                htmlContent = proxy.transformForWebTV(htmlContent, originalUrl, transformOptions);
-                data = [Buffer.from(htmlContent)];
-                
-                if (minisrv_config.config.verbosity >= 3) {
-                    console.log(` * HTML transformed for WebTV compatibility (${originalUrl})`);
-                }
-            } catch (err) {
-                console.warn(` * HTML transformation failed: ${err.message}`);
-            }
-        }
-
-        if (request_type !== "http" && request_type !== "https") {
-            // replace http and https links on non http/https protocol (for proto:// for example)
-            const data_t = Buffer.concat(data).toString().replaceAll("http://", request_type + "://").replaceAll("https://", request_type + "://");
-            data = [Buffer.from(data_t)]
-        }
-    }
-
-    // if Connection: close header, set our internal variable to close the socket
-    if (headers['Connection']) {
-        if (headers['Connection'].toLowerCase().includes('close')) {
-            headers["wtv-connection-close"] = true;
-        }
-    }
-
-    // if a wtv-explaination is defined for an error code (except 200), define the header here to
-    // show the 'Explain' button on the client error ShowAlert
-    if (minisrv_config.services['http']['wtv-explanation']) {
-        if (minisrv_config.services['http']['wtv-explanation'][res.statusCode]) {
-            headers['wtv-explanation-url'] = minisrv_config.services['http']['wtv-explanation'][res.statusCode];
-        }
-    }
-    let data_hex = Buffer.concat(data).toString('hex');
-    if (data_hex.startsWith("0d0a0d0a")) data_hex = data_hex.slice(8);
-    if (data_hex.startsWith("0a0d0a")) data_hex = data_hex.slice(6);
-    if (data_hex.startsWith("0a0a")) data_hex = data_hex.slice(4);
-    sendToClient(socket, headers, Buffer.from(data_hex, 'hex'));
-}
-
-async function doHTTPProxy(socket, request_headers) {
-    // detect protocol name
-    const idx = request_headers.request_url.indexOf('/') - 1;
-
-    const request_type = request_headers.request_url.slice(0, idx);
-    if (minisrv_config.config.debug_flags.show_headers) console.debug(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
-    else debug(request_type.toUpperCase() + " Proxy: Client Request Headers on socket ID", socket.id, (await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers)))));
-    let proxy_agent;
-
-    switch (request_type) {
-        case "https":
-            proxy_agent = https;
-            break;
-        case "http":
-        case "proto":
-            proxy_agent = http;
-            break;
-    }
-
-    const request_data = [];
-    const data = [];
-
-    request_data.method = request_headers.request.split(' ')[0];
-    const request_url_split = request_headers.request.split(' ')[1].split('/');
-    request_data.host = request_url_split[2];
-    if (request_data.host.indexOf(':') > 0) {
-        request_data.port = request_data.host.split(':')[1];
-        request_data.host = request_data.host.split(':')[0];
-    } else {
-        if (request_type === "https") request_data.port = 443;
-        else request_data.port = 80;
-    }
-    for (let i = 0; i < 3; i++) request_url_split.shift();
-    request_data.path = "/" + request_url_split.join('/');
-    if (request_data.method && request_data.host && request_data.path) {
-
-        const options = {
-            host: request_data.host,
-            port: request_data.port,
-            path: request_data.path,
-            method: request_data.method,
-            followAllRedirects: true,
-            headers: {
-                "User-Agent": request_headers["User-Agent"] || "WebTV",
-                "Connection": "Keep-Alive"
-            }
-        }
-
-        // RFC7239
-        if (socket.remoteAddress !== "127.0.0.1") {
-            options.headers["X-Forwarded-For"] = socket.remoteAddress;
-        }
-
-        if (request_headers.post_data) {
-            if (request_headers["Content-type"]) options.headers["Content-type"] = request_headers["Content-type"];
-            if (request_headers["Content-length"]) options.headers["Content-length"] = request_headers["Content-length"];
-        }
-
-        if (minisrv_config.services[request_type].use_external_proxy && minisrv_config.services[request_type].external_proxy_port) {
-            // configure connection to an external proxy
-            if (minisrv_config.services[request_type].external_proxy_is_socks) {
-                // configure connection to remote socks proxy
-                const { SocksProxyAgent }= require('socks-proxy-agent');
-                options.agent = new SocksProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
-                options.agents = {
-                    "http": options.agent,
-                    "https": options.agent
-                }
-            } else {
-                // configure connection to remote http proxy
-                proxy_agent = http;
-                options.host = minisrv_config.services[request_type].external_proxy_host;
-                options.port = minisrv_config.services[request_type].external_proxy_port;
-                options.path = request_headers.request.split(' ')[1];
-                options.headers.Host = request_data.host + ":" + request_data.port;
-                if (minisrv_config.services[request_type].replace_protocol) {
-                    options.path = options.path.replace(request_type, minisrv_config.services[request_type].replace_protocol);
-                }
-            }
-            if (minisrv_config.services[request_type].external_proxy_is_http1) {
-                options.insecureHTTPParser = true;
-                options.headers.Connection = 'close'
-            }
-        }
-        const req = proxy_agent.request(options, function (res) {
-            let total_data = 0;
-
-            res.on('data', d => {
-                data.push(d);
-                total_data += d.length;
-                if (total_data > 1024 * 1024 * parseFloat(minisrv_config.services[request_type].max_response_size || 16)) {
-                    console.warn(` * Response data exceeded ${minisrv_config.services[request_type].max_response_size || 16}MB limit, destroying...`);
-                    res.destroy();
-                    const errpage = wtvshared.doErrorPage(400, "The item chosen is too large to be used.");
-                    sendToClient(socket, errpage[0], errpage[1]);
-                }
-            })
-
-            res.on('error', function (err) {
-                // hack for Protoweb ECONNRESET
-                if (minisrv_config.services[request_type].external_proxy_is_http1 && data.length > 0) {
-                    handleProxy(socket, request_type, request_headers, res, data);
-                } else {
-                    console.error(" * Unhandled Proxy Request Error:", err);
-                }
-            });
-
-            res.on('end', function () {
-                // For when http proxies behave correctly
-                if (!minisrv_config.services[request_type].external_proxy_is_http1 || data.length > 0) {
-                    handleProxy(socket, request_type, request_headers, res, data);
-                }
-            });
-        }).on('error', function (err) {
-                // severe errors, such as unable to connect.
-            if (err.code === "ENOTFOUND" || err.message.indexOf("HostUnreachable") > 0) {
-                const errpage = wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
-                sendToClient(socket, errpage[0], errpage[1]);
-            } else {
-                console.error(" * Unhandled Proxy Request Error:", err);
-                const errpage = wtvshared.doErrorPage(400);
-                sendToClient(socket, errpage[0], errpage[1]);
-            }
-           
-        });
-        if (request_headers.post_data) {
-            req.write(Buffer.from(request_headers.post_data.toString(CryptoJS.enc.Hex), 'hex'), function () {
-                req.end();
-            });
-        } else {
-            req.end();
         }
     }
 }
@@ -2458,8 +2224,27 @@ const service_ip = minisrv_config.config.service_ip;
 Object.keys(minisrv_config.services).forEach(function (k) {
     if (typeof(minisrv_config.services[k]) === 'function') return;
     if (configureService(k, minisrv_config.services[k], true)) {
+        let loadedModule = false;
+        if (minisrv_config.services[k].handler_module) {
+            try {
+                if (!handlerModules[minisrv_config.services[k].handler_module + "_main"]) {
+                    handlerModules[minisrv_config.services[k].handler_module + "_main"] = require(classPath + "/" + minisrv_config.services[k].handler_module + ".js");
+                    var args = [];
+                    for (let i = 0; i < (minisrv_config.services[k].handler_extra_vars || []).length; i++) {
+                        let extraVar = eval(minisrv_config.services[k].handler_extra_vars[i]);
+                        args.push(extraVar);
+                    }
+                    const constructorArgs = [minisrv_config, k, wtvshared, sendToClient, ...args];
+                    handlerModules[minisrv_config.services[k].handler_module.toLowerCase()] = new handlerModules[minisrv_config.services[k].handler_module + "_main"](...constructorArgs);
+                }
+                loadedModule = true;
+            } catch (e) {
+                console.error(" # Failed to load handler module for service", k, "module:", minisrv_config.services[k].handler_module, e);
+            }
+        }
         const using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
-        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Mode:", (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP");
+        const protocol = (minisrv_config.services[k].protocol_handler) ? minisrv_config.services[k].protocol_handler.toUpperCase() : (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP";
+        console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Protocol:", protocol, (loadedModule) ? "- Handler Module: " + minisrv_config.services[k].handler_module : "");
 
         if (minisrv_config.services[k].local_nntp_enabled && minisrv_config.services[k].local_nntp_port) {
             if (!wtvnewsserver) {
@@ -2542,10 +2327,8 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     if (!service || service.disabled || !service.port) return;
     if (service.protocol_handler === 'pnm') {
         try {
-            const pnmServer = new WTVPNM(minisrv_config, service_name);
-            pnmServer.listen(service.port, minisrv_config.config.bind_ip);
-            protocolServers.push(pnmServer);
-            console.log(" * Configured Protocol Handler:", service.protocol_handler, "for", service_name, "on Port", service.port);
+            handlerModules['wtvpnm'].listen(service.port, minisrv_config.config.bind_ip);
+            protocolServers.push(handlerModules['wtvpnm']);
         } catch (e) {
             throw ("Could not bind PNM protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
         }
@@ -2558,12 +2341,14 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     const service = minisrv_config.services[service_name];
     if (!service || service.disabled || !service.port) return;
     if (service.protocol_handler === 'pnm') {
-        protocolHandledPorts.add(parseInt(service.port));
+        protocolHandledPorts.add([service_name, service.protocol_handler, parseInt(service.port)]);
     }
+    // Any other future special protocols would go here, and should be added to the `protocolHandledPorts` set to avoid conflicts with the main socket listener
+    // We ignore unknown protocols and treat it like the flag doesn't exist.
 });
 
 // de-duplicate ports in case user configured multiple services on same port
-const bind_ports = [...new Set(ports)].filter((port) => !protocolHandledPorts.has(parseInt(port)));
+const bind_ports = [...new Set(ports)].filter((port) => ![...protocolHandledPorts].some(([sn, sp, pt]) => pt === parseInt(port)));
 if (!minisrv_config.config.bind_ip) minisrv_config.config.bind_ip = "0.0.0.0";
 bind_ports.every(function (v) {
     try {
@@ -2728,6 +2513,6 @@ Content-type: text/html`;
 
 if (bind_ports.length > 0) console.log(` * Started WTVP Server on port${bind_ports.length !== 1 ? "s" : ""} ` + bind_ports.join(", ") + "...");
 if (pc_bind_ports.length > 0) console.log(` * Started HTTP Server on port${pc_bind_ports.length !== 1 ? "s" : ""} ` + pc_bind_ports.join(", ") + "...");
-
+if (protocolHandledPorts.size > 0) console.log(` * Started ${protocolHandledPorts.size} specialized protocol handler${protocolHandledPorts.size !== 1 ? "s" : ""} on port${protocolHandledPorts.size !== 1 ? "s" : ""} ` + [...protocolHandledPorts].map(([sn, sp, pt]) => `${pt} (${sp.toUpperCase()})`).join(", ") + "...");
 const listening_ip_string = (minisrv_config.config.bind_ip !== "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
 console.log(" * Listening on", listening_ip_string, "~", "Service IP:", service_ip);
