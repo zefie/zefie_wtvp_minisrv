@@ -242,7 +242,7 @@ class WTVMail {
             else {
                 msg += line.replace(/\$\{(\w{1,})\}/g, function (x) {
                     let out = '';
-                    const tag = x.replace("${", '').replace('}', '');
+                    const tag = x.replaceAll("${", '').replaceAll('}', '');
                     if (available_tags[tag]) out = available_tags[tag];
                     return out
                 }) + "\n";

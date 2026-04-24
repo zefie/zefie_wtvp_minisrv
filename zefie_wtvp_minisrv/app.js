@@ -1104,7 +1104,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                 headers += "minisrv-no-mail-count: true\n";
                 data = "";
                 sendToClient(socket, headers, data);
-                console.warn(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
+                console.warn(" * Lockdown rejected request for %s on socket ID %d", shortURL, socket.id);
                 return;
             }
 
@@ -1116,7 +1116,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                     headers += "minisrv-no-mail-count: true\n";
                     data = "";
                     sendToClient(socket, headers, data);
-                    console.warn(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
+                    console.warn(" * Incomplete login rejected request for %s on socket ID %d", shortURL, socket.id);
                     return;
                 }
             }
@@ -1136,15 +1136,15 @@ Location: ${minisrv_config.config.unauthorized_url}
 minisrv-no-mail-count: true`;
                 data = "";
                 sendToClient(socket, headers, data);
-                console.warn(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
+                console.warn(" * Rejected login bypass request for %s on socket ID %d", shortURL, socket.id);
                 return;
             }
         }
 
         if (pc_services) {
             const ssl = (socket.ssl) ? true : false;
-            if (original_service_name === service_name) console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
-            else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
+            if (original_service_name === service_name) console.log(" * PC" + ((ssl) ? "SSL " : "") + "PC request on service %s for %s on %d", service_name, request_headers.request_url, socket.id);
+            else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service %s (Service Vault %s) for %s on %d", original_service_name, service_name, request_headers.request_url, socket.id);
         } 
 
         if ((shortURL.includes(':/')) && (!shortURL.includes('://') || (shortURL.includes('://') && allow_double_slash) && uses_service_vault)) {
@@ -1158,9 +1158,9 @@ minisrv-no-mail-count: true`;
                 let reqverb = "Request";
                 if (request_headers.encrypted || request_headers.secure) reqverb = "Encrypted " + reqverb;
                 if (ssid !== null) {
-                    console.log(" * " + reqverb + " for " + request_headers.request_url + " from WebTV SSID " + (await wtvshared.filterSSID(ssid)), 'on', socket.id);
+                    console.log(" * " + reqverb + " for %s from WebTV SSID %s on socket ID %d", request_headers.request_url, await wtvshared.filterSSID(ssid), socket.id);
                 } else {
-                    console.log(" * " + reqverb + " for " + request_headers.request_url, 'on', socket.id);
+                    console.log(" * " + reqverb + " for %s on socket ID %d", request_headers.request_url, socket.id);
                 }
                 
                 if (!service_name) {
@@ -2469,16 +2469,17 @@ Content-type: text/html`;
                     if (typeof (req.body) === "string") {
                         request_headers.post_data = req.body;
                     } else if (Buffer.isBuffer(req.body)) {
-                        if (req.body.length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
+                        const bodyString = req.body.toString('utf8');                        
+                        if (bodyString.length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
                             errpage = wtvshared.doErrorPage("400", "POST size too large", null, true);
                         } else {
                             request_headers.post_data = "";
-                            for (let  i = 0; i < req.body.length; i++) {
-                                request_headers.post_data += String.fromCharCode(req.body[i]);
+                            for (let  i = 0; i < bodyString.length; i++) {
+                                request_headers.post_data += String.fromCharCode(bodyString.charCodeAt(i));
                             }
                         }
                     } else {
-                        request_headers.post_data = req.body.toString();
+                        request_headers.post_data = req.body.toString('utf8');
                     }
                 } else {
                     request_headers.post_data = "";	 // Invalid type (array/object), possible type confusion attack

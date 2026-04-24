@@ -665,11 +665,11 @@ class WebTVClientSimulator {
             
             // Parse headers first to check content-length
             const lines = headerSection.split(/\r?\n/);
-            const statusLine = lines[0].replace('\r', '');
+            const statusLine = lines[0].replaceAll('\r', '');
 
             const headers = {};
             for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].replace('\r', '');
+                const line = lines[i].replaceAll('\r', '');
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
                     const key = line.slice(0, colonIndex).toLowerCase();
@@ -807,12 +807,12 @@ class WebTVClientSimulator {
                 bodyBuf = Buffer.alloc(0);
             }
             const lines = headerSection.split(/\r?\n/);
-            const statusLine = lines[0].replace('\r', '');
+            const statusLine = lines[0].replaceAll('\r', '');
             this.debugLog(`Status: ${statusLine}`);
             // Parse headers
             const headers = {};
             for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].replace('\r', '');
+                const line = lines[i].replaceAll('\r', '');
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
                     const key = line.slice(0, colonIndex).toLowerCase();
@@ -1411,12 +1411,12 @@ class WebTVClientSimulator {
                 bodyBuf = Buffer.alloc(0);
             }
             const lines = headerSection.split(/\r?\n/);
-            const statusLine = lines[0].replace('\r', '');
+            const statusLine = lines[0].replaceAll('\r', '');
             this.debugLog(`Content Status: ${statusLine}`);
             // Parse headers
             const headers = {};
             for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].replace('\r', '');
+                const line = lines[i].replaceAll('\r', '');
                 const colonIndex = line.indexOf(':');
                 if (colonIndex > 0) {
                     const key = line.slice(0, colonIndex).toLowerCase();
