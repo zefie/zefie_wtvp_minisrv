@@ -156,8 +156,8 @@ function configureService(service_name, service_obj, initial = false) {
         else ports.push(service_obj.port);
     }
 
-    // Exclude PNM services
-    if (service_obj.protocol_handler === 'pnm') {
+    // Exclude PNM and MMS services (they manage their own TCP sockets)
+    if (service_obj.protocol_handler === 'pnm' || service_obj.protocol_handler === 'mms') {
         return true;
     }
 
@@ -457,7 +457,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     env.SERVER_PORT = request_data.port;
     env.SERVER_ADDR = request_data.host;
     env.SERVER_NAME = request_data.host;
-    if (minisrv_config.services[socket.service_name] && minisrv_config.services[socket.service_name].hide_minisrv_version) {
+    if ((minisrv_config.services[socket.service_name] && minisrv_config.services[socket.service_name].hide_minisrv_version) || minisrv_config.config.hide_server_version) {
         env.SERVER_SOFTWARE = "NodeJS; minisrv";
     } else {
         // Full version
@@ -2172,8 +2172,9 @@ function reloadConfig() {
 
 // SERVER START
 const git_commit = getGitRevision()
-let z_title = "zefie's wtv minisrv v" + require('./package.json').version;
-const z_cgiver = "minisrv/" + require('./package.json').version;
+const pkgjson = require('./package.json');
+let z_title = "zefie's wtv minisrv v" + pkgjson.version;
+const z_cgiver = "minisrv/" + pkgjson.version;
 if (git_commit) z_title += " (git " + git_commit + ")";
 console.log("**** Welcome to " + z_title + "  ****");
 console.log("**** Detected nodejs v" + process.versions.node + " ****")
@@ -2333,6 +2334,14 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
             throw ("Could not bind PNM protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
         }
     }
+    if (service.protocol_handler === 'mms') {
+        try {
+            handlerModules['wtvmms'].listen(service.port, minisrv_config.config.bind_ip);
+            protocolServers.push(handlerModules['wtvmms']);
+        } catch (e) {
+            throw ("Could not bind MMS protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
+        }
+    }
 });
 
 const protocolHandledPorts = new Set();
@@ -2341,6 +2350,9 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     const service = minisrv_config.services[service_name];
     if (!service || service.disabled || !service.port) return;
     if (service.protocol_handler === 'pnm') {
+        protocolHandledPorts.add([service_name, service.protocol_handler, parseInt(service.port)]);
+    }
+    if (service.protocol_handler === 'mms') {
         protocolHandledPorts.add([service_name, service.protocol_handler, parseInt(service.port)]);
     }
     // Any other future special protocols would go here, and should be added to the `protocolHandledPorts` set to avoid conflicts with the main socket listener

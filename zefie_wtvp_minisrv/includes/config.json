@@ -422,19 +422,30 @@
         "key": "%ServiceDeps%/https/selfsigned_key.pem"
       }
     },
+    "mms": {
+      "port": 1755,
+      "udp_port": 1755,
+      "enable_udp": true,
+      "protocol_handler": "mms",
+      "pacing_multiplier": 0.9,
+      "enable_burst": true,
+      "burst_multiplier": 4.0,
+      "burst_prestart_ms": 15000,
+      "allow_indexing": true,
+      "debug": false, 
+      "handler_module": "WTVMMS"
+    },
     "pnm": {
       "port": 7070,
-      "flags": "0x00000001",
-      "allow_double_slash": true,
       "protocol_handler": "pnm",
       "udp_bind_port_min": 57361,
       "udp_bind_port_max": 57391,
       "descriptor_after_hello_ms": 85,
       "burst_prestart_ms": 5000,
-      "debug": false,
       "allow_indexing": true,
+      "debug": false,
       "handler_module": "WTVPNM"
-    }
+    }    
   },
   "favorites": {
     "folder_templates": {
