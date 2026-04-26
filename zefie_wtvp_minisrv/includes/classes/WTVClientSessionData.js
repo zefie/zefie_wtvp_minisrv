@@ -692,8 +692,14 @@ class WTVClientSessionData {
         return CryptoJS.AES.decrypt(crypt, this.cryptoKey).toString(CryptoJS.enc.Utf8);
     }
 
-    encodePassword(passwd) {
+
+    oldDecodePassword(passwd) {
         return CryptoJS.SHA512(passwd).toString(CryptoJS.enc.Base64);
+    }
+
+    encodePassword(passwd) {
+        //return CryptoJS.SHA512(passwd).toString(CryptoJS.enc.Base64);
+        return this.encryptPassword(passwd);
     }
 
     setUserPassword(passwd) {
@@ -723,7 +729,13 @@ class WTVClientSessionData {
 
     validateUserPassword(passwd) {
         if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
-        return (this.encodePassword(passwd) === this.getSessionData("subscriber_password"));
+        if (passwd === this.decryptPassword(this.getSessionData("subscriber_password"))) return true; // check against current encryption
+        else if (this.oldDecodePassword(passwd) === this.getSessionData("subscriber_password")) {
+            // if password matches old hash, update to new encryption
+            this.setUserPassword(passwd);
+            return true;
+        }
+        return false;
     }
 
     isUserLoggedIn() {
