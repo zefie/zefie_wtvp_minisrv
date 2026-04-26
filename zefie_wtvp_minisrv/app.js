@@ -5,10 +5,11 @@ require(classPath + "Prototypes.js");
 const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
 
-const fs = require('fs');
+const fs = wtvshared.fs;
+const zlib = wtvshared.zlib;
+const process = wtvshared.process;
 const util = require('util');
 const nunjucks = require('nunjucks');
-const zlib = require('zlib');
 const {serialize, unserialize} = require('php-serialize');
 const {spawn} = require('child_process');
 const http = require('follow-redirects').http;
@@ -18,7 +19,6 @@ const net = require('net');
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
 const sharp = require('sharp')
-const process = require('process');
 const WTVSec = require(classPath + "/WTVSec.js");
 const WTVSSL = require(classPath + "/WTVSSL.js");
 const LZPF = require(classPath + "/LZPF.js");
@@ -2287,7 +2287,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
                         let extraVar = eval(minisrv_config.services[k].handler_extra_vars[i]);
                         args.push(extraVar);
                     }
-                    const constructorArgs = [minisrv_config, k, wtvshared, sendToClient, ...args];
+                    const constructorArgs = [minisrv_config, k, wtvshared, sendToClient, net, ...args];
                     handlerModules[minisrv_config.services[k].handler_module.toLowerCase()] = new handlerModules[minisrv_config.services[k].handler_module + "_main"](...constructorArgs);
                 }
                 loadedModule = true;

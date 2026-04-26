@@ -11,10 +11,7 @@
 
 'use strict';
 
-const net = require('net');
 const dgram = require('dgram');
-const fs = require('fs');
-const path = require('path');
 
 const MMS_MAGIC = 0xB00BFACE;
 const MMS_PROTOCOL = 0x20534D4D; // "MMS " little-endian
@@ -71,9 +68,9 @@ class WTVMMS {
     udpServer      = null;
     udpServerReady = false;
     wtvshared      = null;
-    sessions       = new Map();
+    sessions       = new Map();    
 
-    constructor(minisrv_config, service_name, wtvshared) {
+    constructor(minisrv_config, service_name, wtvshared, sendToClient, net) {
         this.minisrv_config = minisrv_config;
         this.service_name   = service_name;
         this.service_config = minisrv_config.services[service_name] || {};
@@ -147,7 +144,7 @@ class WTVMMS {
             const base = this.wtvshared.getAbsolutePath(serviceVaultDir, vault);
             for (const variant of variants) {
                 const candidate = this.wtvshared.makeSafePath(base, variant);
-                if (candidate && fs.existsSync(candidate) && fs.lstatSync(candidate).isFile()) {
+                if (candidate && this.wtvshared.fs.existsSync(candidate) && this.wtvshared.fs.lstatSync(candidate).isFile()) {
                     this.debugLog('media resolved', variant, '->', candidate);
                     return candidate;
                 }
@@ -158,7 +155,7 @@ class WTVMMS {
 
     _mediaVariants(media) {
         const p    = media.replace(/\\/g, '/').replace(/^\/+/, '');
-        const ext  = path.posix.extname(p).toLowerCase();
+        const ext  = this.wtvshared.path.posix.extname(p).toLowerCase();
         const stem = ext ? p.slice(0, -ext.length) : p;
         const list = [p];
         // Accept both .wma and .asf for the same stem
@@ -247,14 +244,14 @@ class WTVMMS {
 
         socket.on('close', () => {
             this._stopStream(session);
-            if (session.asfFd !== null) { try { fs.closeSync(session.asfFd); } catch(_){} session.asfFd = null; }
+            if (session.asfFd !== null) { try { this.wtvshared.fs.closeSync(session.asfFd); } catch(_){} session.asfFd = null; }
             this.sessions.delete(socket);
             this.debugLog('client disconnected', session.id, 'tx=' + session.bytesTx);
         });
 
         socket.on('error', (err) => {
             this._stopStream(session);
-            if (session.asfFd !== null) { try { fs.closeSync(session.asfFd); } catch(_){} session.asfFd = null; }
+            if (session.asfFd !== null) { try { this.wtvshared.fs.closeSync(session.asfFd); } catch(_){} session.asfFd = null; }
             this.sessions.delete(socket);
             this.debugLog('socket error', session.id, err.message);
         });
@@ -619,15 +616,15 @@ class WTVMMS {
         if (!session.mediaPath) return;
 
         try {
-            const stat = fs.statSync(session.mediaPath);
+            const stat = this.wtvshared.fs.statSync(session.mediaPath);
             session.asfFileSize = stat.size;
 
             // Read first 64 KB to find ASF header objects
             const readLen = Math.min(65536, stat.size);
             const buf = Buffer.alloc(readLen);
-            const fd = fs.openSync(session.mediaPath, 'r');
-            fs.readSync(fd, buf, 0, readLen, 0);
-            fs.closeSync(fd);
+            const fd = this.wtvshared.fs.openSync(session.mediaPath, 'r');
+            this.wtvshared.fs.readSync(fd, buf, 0, readLen, 0);
+            this.wtvshared.fs.closeSync(fd);
 
             // ASF Header Object GUID: {75B22630-668E-11CF-A6D9-00AA0062CE6C}
             const ASF_HEADER_GUID = Buffer.from([
@@ -725,9 +722,9 @@ class WTVMMS {
         try {
             const headerLength = Math.min(session.asfFileSize, session.asfDataOffset + 50);
             const buf = Buffer.alloc(headerLength);
-            const fd  = fs.openSync(session.mediaPath, 'r');
-            fs.readSync(fd, buf, 0, headerLength, 0);
-            fs.closeSync(fd);
+            const fd  = this.wtvshared.fs.openSync(session.mediaPath, 'r');
+            this.wtvshared.fs.readSync(fd, buf, 0, headerLength, 0);
+            this.wtvshared.fs.closeSync(fd);
             return buf;
         } catch (e) {
             console.error('[WTVMMS] ASF header read error', e.message);
@@ -801,7 +798,7 @@ class WTVMMS {
             'burstMultiplier=' + session.burstMultiplier);
 
         try {
-            session.asfFd = fs.openSync(session.mediaPath, 'r');
+            session.asfFd = this.wtvshared.fs.openSync(session.mediaPath, 'r');
         } catch (e) {
             console.error('[WTVMMS] failed to open media for streaming', e.message);
             session.streaming = false;
@@ -845,7 +842,7 @@ class WTVMMS {
         session.drainHandler = null;
         session.waitingForDrain = false;
         if (session.asfFd !== null) {
-            try { fs.closeSync(session.asfFd); } catch(_){}
+            try { this.wtvshared.fs.closeSync(session.asfFd); } catch(_){}
             session.asfFd = null;
         }
         session.packetQueue = [];
@@ -970,7 +967,7 @@ class WTVMMS {
 
         let bytesRead = 0;
         try {
-            bytesRead = fs.readSync(session.asfFd, buf, 0, pktSize, session._readPos);
+            bytesRead = this.wtvshared.fs.readSync(session.asfFd, buf, 0, pktSize, session._readPos);
         } catch (e) {
             this.debugLog('read error', session.id, e.message);
             this._endStream(socket, session);

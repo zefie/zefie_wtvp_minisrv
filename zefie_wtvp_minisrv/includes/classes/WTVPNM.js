@@ -15,8 +15,6 @@
 // The client validates this challenge by calculating the server challenge and its own client challenge to produce a final hash, which it sends back to the server.
 // If the hash matches, the client is authenticated and the server starts sending UDP packets.
 
-const net = require('net');
-const crypto = require('crypto');
 const dgram = require('dgram');
 
 class WTVPNM {
@@ -27,7 +25,7 @@ class WTVPNM {
     wtvshared = null;
     sessions = new Map();
 
-    constructor(...[minisrv_config, service_name, wtvshared, sendToClient]) {
+    constructor(...[minisrv_config, service_name, wtvshared, sendToClient, net, crypto]) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         this.service_config = minisrv_config.services[service_name] || {};

@@ -466,7 +466,8 @@
       "allow_indexing": true,
       "debug": false,
       "handler_module": "WTVPNM",
-      "handler_handles_port": true
+      "handler_handles_port": true,
+      "handler_extra_vars": ["crypto"]
     }    
   },
   "favorites": {
