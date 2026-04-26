@@ -26,7 +26,7 @@ const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
-const WTVPNG = require(classPath + "/WTVPNG.js");
+const WTVImage = require(classPath + "/WTVImage.js");
 const vm = require('vm');
 const debug = require('debug')('app');
 const express = require('express');
@@ -1338,21 +1338,32 @@ async function sendToClient(socket, headers_obj, data = null) {
         delete headers_obj['minisrv-no-last-modified'];
     }
 
-    if (minisrv_config.config.decode_png) {
+    if (minisrv_config.config.decode_unsupported_images) {
         const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
         if (contype_key) {
             if (headers_obj[contype_key].toLowerCase() === "image/png" ||
                 headers_obj[contype_key].toLowerCase() === "image/svg+xml" ||
+                headers_obj[contype_key].toLowerCase() === "image/avif" ||
+                headers_obj[contype_key].toLowerCase() === "image/tiff" ||
                 headers_obj[contype_key].toLowerCase() === "image/webp") {
                 const convertOpts = {
-                    jpegQuality: minisrv_config.config.decode_png_jpeg_quality,
+                    jpegQuality: minisrv_config.config.decode_unsupported_images_quality,
                     type: 'ALF'
                 };
                 const sourceData = Buffer.isBuffer(data) ? data : Buffer.from(data);
-                const converted = await WTVPNG.pngToWebTV(sourceData, convertOpts);
-                data = converted.data;
-                content_length = data.length;
-                headers_obj[contype_key] = (converted.mime === 'image/jpeg') ? 'image/jpeg' : 'image/gif';
+                try {
+                    const converted = await WTVImage.ImageToWebTV(sourceData, convertOpts);
+                    data = converted.data;
+                    content_length = data.length;
+                    headers_obj[contype_key] = (converted.mime === 'image/jpeg') ? 'image/jpeg' : 'image/gif';
+                } catch (e) {
+                    console.error("Error converting image for client:", e);
+                    headers_obj = {
+                        "Status": `400 ${minisrv_config.config.service_name} ran into a technical problem. (Image not supported)`,
+                        "Content-type": "text/html"
+                    }
+                    data = "";
+                }
             }
         }
     }
@@ -2336,8 +2347,8 @@ if (minisrv_config.config.shenanigans) console.log(" * WARNING: Shenanigans leve
 else console.log(" * Shenanigans disabled");
 
 // PNG
-if (minisrv_config.config.decode_png) console.log(" * PNG will be processed for WebTV clients");
-else console.log(" * PNG will not be processed, and sent to client as-is");
+if (minisrv_config.config.decode_png) console.log(" * WebTV Unsupported images will be processed and converted for WebTV clients");
+else console.log(" * WebTV Unsupported images will not be processed, and sent to client as-is");
 
 
 

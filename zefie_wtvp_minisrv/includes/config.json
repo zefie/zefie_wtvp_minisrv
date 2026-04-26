@@ -22,8 +22,8 @@
     "cgi_enabled": false, // Disable CGI by default
     "php_enabled": false, // Disable PHP by default
     "php_binpath": "php-cgi",
-    "decode_png": true, // Attempt to decode PNG into JPG/ALP/ALF/GIF
-    "decode_png_jpeg_quality": 75, // JPEG quality for decoded PNGs, 0-100 lower is worse quality but smaller files.
+    "decode_unsupported_images": true, // Attempt to decode images WebTV doesn't support into JPG/ALF/GIF
+    "decode_unsupported_images_quality": 75, // JPEG quality for decoded PNGs, 0-100 lower is worse quality but smaller files.
     "SessionStore": "SessionStore", // Where we store account (session) data. Best left unchanged.
     "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Found under service vault. Best left unchanged.
     "enable_shared_romcache": true, // Disabling this will cause a lot of problems without manual intervention. Best left unchanged.

@@ -24,7 +24,7 @@
 const fs   = require('fs');
 const path = require('path');
 
-const WTVPNG = require('./includes/classes/WTVPNG');
+const WTVImage = require('./includes/classes/WTVImage');
 
 // ---------------------------------------------------------------------------
 // Argument parser
@@ -55,12 +55,12 @@ function parseArgs(argv) {
 
 function printHelp() {
     console.log(`
-WebTV PNG/GIF Converter
+WebTV Image Converter
 =======================
-Usage: node wtv_png_converter.js <command> [options] <input> [output]
+Usage: node wtv_img_converter.js <command> [options] <input> [output]
 
 Commands:
-  convert   Convert a PNG to the best WebTV format
+  convert   Convert an image to the best WebTV format
             - No alpha       → JPEG
             - Palette PNG    → Artemis GIF (palette 1:1, no requantization)
             - Full-color RGBA → Artemis GIF (quantized)
@@ -73,7 +73,7 @@ Commands:
   detect    Report whether a file is an Artemis ALP/ALF GIF (no output file needed)
 
 Options:
-  --type <ALP|ALF>     Artemis variant for encoding/convert  (default: ALP)
+  --type <ALP|ALF>     Artemis variant for encoding/convert  (default: ALF)
   --colors <n>         Palette size for full-color quantization (default: 256)
   --quality <n>        JPEG quality when output is JPEG (default: 85)
   --output, -o <file>  Output file path
@@ -104,9 +104,9 @@ function resolveOutput(inputFile, suggestedExt, override) {
 // Commands
 // ---------------------------------------------------------------------------
 async function cmdConvert(inputFile, outputFile, opts) {
-    const pngBuf = fs.readFileSync(inputFile);
-    const { data, mime } = await WTVPNG.pngToWebTV(pngBuf, {
-        type:        opts.type    || 'ALP',
+    const ImageBuf = fs.readFileSync(inputFile);
+    const { data, mime } = await WTVImage.ImageToWebTV(ImageBuf, {
+        type:        opts.type    || 'ALF',
         colors:      opts.colors  || 256,
         jpegQuality: opts.quality || 85
     });
@@ -118,35 +118,35 @@ async function cmdConvert(inputFile, outputFile, opts) {
 }
 
 async function cmdEncode(inputFile, outputFile, opts) {
-    const pngBuf = fs.readFileSync(inputFile);
-    const gifBuf = await WTVPNG.pngToGIF(pngBuf, {
-        type:   opts.type   || 'ALP',
+    const ImageBuf = fs.readFileSync(inputFile);
+    const gifBuf = await WTVImage.ImageToGIF(ImageBuf, {
+        type:   opts.type   || 'ALF',
         colors: opts.colors || 256
     });
 
     const dest = resolveOutput(inputFile, '.gif', outputFile);
     fs.writeFileSync(dest, gifBuf);
-    const type = WTVPNG.detect(gifBuf);
+    const type = WTVImage.detect(gifBuf);
     console.log(`[encode] ${inputFile} → ${dest}  (Artemis ${type}, ${gifBuf.length} bytes)`);
 }
 
 async function cmdDecode(inputFile, outputFile, opts) {
     const gifBuf = fs.readFileSync(inputFile);
-    const type   = WTVPNG.detect(gifBuf);
+    const type   = WTVImage.detect(gifBuf);
     if (!type) {
         console.error(`[decode] ${inputFile} does not contain an Artemis ALP/ALF block.`);
         process.exit(1);
     }
 
-    const pngBuf = await WTVPNG.gifToPNG(gifBuf);
+    const ImageBuf = await WTVImage.gifToPNG(gifBuf);
     const dest   = resolveOutput(inputFile, '.png', outputFile);
-    fs.writeFileSync(dest, pngBuf);
-    console.log(`[decode] ${inputFile} (Artemis ${type}) → ${dest}  (${pngBuf.length} bytes)`);
+    fs.writeFileSync(dest, ImageBuf);
+    console.log(`[decode] ${inputFile} (Artemis ${type}) → ${dest}  (${ImageBuf.length} bytes)`);
 }
 
 function cmdDetect(inputFile) {
     const buf  = fs.readFileSync(inputFile);
-    const type = WTVPNG.detect(buf);
+    const type = WTVImage.detect(buf);
     if (type) {
         console.log(`[detect] ${inputFile}  →  Artemis ${type}`);
     } else {

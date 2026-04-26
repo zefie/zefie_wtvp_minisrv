@@ -1,5 +1,5 @@
 /**
- * WTVPNG - WebTV PNG/Image Conversion Utility
+ * WTVImage - WebTV PNG/Image Conversion Utility
  *
  * WebTV cannot display PNG natively.  This class converts PNGs (and other
  * sharp-compatible sources) to the appropriate WebTV format:
@@ -32,7 +32,7 @@ const zlib  = require('zlib');
 // Class wrapper
 // ---------------------------------------------------------------------------
 
-class WTVPNG {
+class WTVImage {
     // ---------------------------------------------------------------------------
     // Low-level GIF 89a helpers
     // ---------------------------------------------------------------------------
@@ -873,7 +873,7 @@ class WTVPNG {
      * @param {'ALP'|'ALF'} [opts.type='ALP']
      * @returns {Promise<Buffer>}
      */
-    async palettePNGToArtemisGIF(pngBuf, opts = {}) {
+    async paletteImageToArtemisGIF(pngBuf, opts = {}) {
         const type = opts.type || 'ALP';
         const { palette, alphaTable, indices, width, height, colors } = this.extractPalettePNG(pngBuf);
 
@@ -960,7 +960,7 @@ class WTVPNG {
      * @param {number} [opts.jpegQuality=85]     - JPEG quality (0-100) when no alpha
      * @returns {Promise<{ data: Buffer, mime: string }>}
      */
-    async pngToWebTV(input, opts = {}) {
+    async ImageToWebTV(input, opts = {}) {
         const pngBuf = Buffer.isBuffer(input) ? input : require('fs').readFileSync(input);
         const meta   = await sharp(pngBuf).metadata();
         let usesAlpha = false;
@@ -992,7 +992,7 @@ class WTVPNG {
             // Allow forcing re-quantization only when explicitly requested.
             const data = opts.forceRequantizePalette
                 ? await this.encodeArtemisGIF(pngBuf, opts)
-                : await this.palettePNGToArtemisGIF(pngBuf, opts);
+                : await this.paletteImageToArtemisGIF(pngBuf, opts);
             return { data, mime: 'image/gif' };
         }
 
@@ -1001,9 +1001,9 @@ class WTVPNG {
         return { data, mime: 'image/gif' };
     }
 
-    async pngToArtemisGIF(input, opts = {}) {
-        const result = await this.pngToWebTV(input, opts);
-        if (result.mime !== 'image/gif') throw new Error('Input PNG has no alpha; cannot encode as Artemis GIF. Use pngToWebTV() instead.');
+    async ImageToArtemisGIF(input, opts = {}) {
+        const result = await this.ImageToWebTV(input, opts);
+        if (result.mime !== 'image/gif') throw new Error('Input image has no alpha; cannot encode as Artemis GIF. Use ImageToWebTV() instead.');
         return result.data;
     }
 
@@ -1031,7 +1031,7 @@ class WTVPNG {
      * @returns {'ALP'|'ALF'|null}
      */
     static detect(gifBuf) {
-        return WTVPNG._impl.detectArtemisType(gifBuf);
+        return WTVImage._impl.detectArtemisType(gifBuf);
     }
 
     /**
@@ -1040,7 +1040,7 @@ class WTVPNG {
      * @returns {Promise<{ rgba: Buffer, width: number, height: number, type: string }>}
      */
     static decode(gifBuf) {
-        return WTVPNG._impl.decodeArtemisGIF(gifBuf);
+        return WTVImage._impl.decodeArtemisGIF(gifBuf);
     }
 
     /**
@@ -1053,21 +1053,21 @@ class WTVPNG {
      * @returns {Promise<Buffer>}
      */
     static encode(input, opts = {}) {
-        return WTVPNG._impl.encodeArtemisGIF(input, opts);
+        return WTVImage._impl.encodeArtemisGIF(input, opts);
     }
     
     /**
-     * Convert a PNG to the appropriate WebTV format.
+     * Convert an unsupported image to the appropriate WebTV format.
      * @param {string|Buffer} input
      * @param {object} [opts]
      * @returns {Promise<{ data: Buffer, mime: string }>}
      */
-    static pngToWebTV(input, opts = {}) {
-        return WTVPNG._impl.pngToWebTV(input, opts);
+    static ImageToWebTV(input, opts = {}) {
+        return WTVImage._impl.ImageToWebTV(input, opts);
     }
 
     /**
-     * Convert a PNG with alpha to a WebTV Artemis GIF.
+     * Convert a image with alpha to a WebTV Artemis GIF.
      * Throws if the input has no alpha channel.
      * @param {string|Buffer} input
      * @param {object} [opts]
@@ -1075,8 +1075,8 @@ class WTVPNG {
      * @param {'ALP'|'ALF'} [opts.type='ALP']
      * @returns {Promise<Buffer>}
      */
-    static pngToGIF(input, opts = {}) {
-        return WTVPNG._impl.pngToArtemisGIF(input, opts);
+    static ImageToGIF(input, opts = {}) {
+        return WTVImage._impl.ImageToArtemisGIF(input, opts);
     }
 
     /**
@@ -1085,10 +1085,10 @@ class WTVPNG {
      * @returns {Promise<Buffer>}
      */
     static gifToPNG(input) {
-        return WTVPNG._impl.artemisGIFtoPNG(input);
+        return WTVImage._impl.artemisGIFtoPNG(input);
     }
 }
 
-WTVPNG._impl = new WTVPNG();
+WTVImage._impl = new WTVImage();
 
-module.exports = WTVPNG;
+module.exports = WTVImage;
