@@ -1338,28 +1338,49 @@ async function sendToClient(socket, headers_obj, data = null) {
         delete headers_obj['minisrv-no-last-modified'];
     }
 
-    if (minisrv_config.config.decode_unsupported_images) {
+    if (minisrv_config.config.image_decoder && minisrv_config.config.image_decoder.enabled) {
         const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
         if (contype_key) {
-            if (headers_obj[contype_key].toLowerCase() === "image/png" ||
-                headers_obj[contype_key].toLowerCase() === "image/svg+xml" ||
-                headers_obj[contype_key].toLowerCase() === "image/avif" ||
-                headers_obj[contype_key].toLowerCase() === "image/tiff" ||
-                headers_obj[contype_key].toLowerCase() === "image/webp") {
+            if (minisrv_config.config.image_decoder.image_formats && minisrv_config.config.image_decoder.image_formats.includes(headers_obj[contype_key].toLowerCase())) {            
                 const convertOpts = {
-                    jpegQuality: minisrv_config.config.decode_unsupported_images_quality,
+                    jpegQuality: minisrv_config.config.image_decoder.jpg_quality,
                     type: 'ALF'
                 };
+
+                if (minisrv_config.config.image_decoder.max_height > 0) convertOpts.maxHeight = minisrv_config.config.image_decoder.max_height;
+                if (minisrv_config.config.image_decoder.max_width > 0) convertOpts.maxWidth = minisrv_config.config.image_decoder.max_width;
+
                 const sourceData = Buffer.isBuffer(data) ? data : Buffer.from(data);
                 try {
                     const converted = await WTVImage.ImageToWebTV(sourceData, convertOpts);
                     data = converted.data;
                     content_length = data.length;
-                    headers_obj[contype_key] = (converted.mime === 'image/jpeg') ? 'image/jpeg' : 'image/gif';
+                    var i=0;
+                    while (content_length > minisrv_config.config.image_decoder.max_size && converted.mime === 'image/jpeg') {
+                        // Image is too big, try to reduce quality
+                        if (i < minisrv_config.config.image_decoder.max_quality_tries) {
+                            convertOpts.jpegQuality -= minisrv_config.config.image_decoder.jpeg_interval;
+                            var converted2 = await WTVImage.ImageToWebTV(sourceData, convertOpts);
+                            data = converted2.data;
+                            content_length = data.length;
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (content_length > minisrv_config.config.image_decoder.max_size) {
+                        headers_obj = {
+                            "Status": `400 ${minisrv_config.config.service_name} ran into a technical problem. (Image too large)`,
+                            "Content-type": "text/html"
+                        }
+                    data = "";
+                    } else {
+                        headers_obj[contype_key] = (converted.mime === 'image/jpeg') ? 'image/jpeg' : 'image/gif';
+                    }
                 } catch (e) {
                     console.error("Error converting image for client:", e);
                     headers_obj = {
-                        "Status": `400 ${minisrv_config.config.service_name} ran into a technical problem. (Image not supported)`,
+                        "Status": `400 ${minisrv_config.config.service_name} ran into a technical problem. (Image not supported by backend, it may be corrupt)`,
                         "Content-type": "text/html"
                     }
                     data = "";

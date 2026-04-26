@@ -23,6 +23,8 @@
  *
  * Decoder reverse-engineered from:
  *   https://gist.github.com/PajamaFrix/399c0785c5bb3b1d80757e84a0c1d6ab
+ * 
+ * TODO: Fix ALP Generation (decoding works but encoding does not yet produce correct ALP files)
  */
 
 const sharp = require('sharp');
@@ -958,10 +960,23 @@ class WTVImage {
      * @param {number} [opts.colors=256]         - palette size for full-color quantization
      * @param {'ALP'|'ALF'} [opts.type='ALF']   - Artemis variant
      * @param {number} [opts.jpegQuality=85]     - JPEG quality (0-100) when no alpha
+     * @param {number} [opts.maxWidth]           - maximum width to scale to before encoding
+     * @param {number} [opts.maxHeight]          - maximum height to scale to before encoding
      * @returns {Promise<{ data: Buffer, mime: string }>}
      */
     async ImageToWebTV(input, opts = {}) {
-        const pngBuf = Buffer.isBuffer(input) ? input : require('fs').readFileSync(input);
+        let pngBuf = Buffer.isBuffer(input) ? input : require('fs').readFileSync(input);
+        const maxWidth  = Number(opts.maxWidth)  > 0 ? Number(opts.maxWidth)  : null;
+        const maxHeight = Number(opts.maxHeight) > 0 ? Number(opts.maxHeight) : null;
+        if (maxWidth || maxHeight) {
+            const resizeOpts = { fit: 'inside', withoutEnlargement: true };
+            if (maxWidth)  resizeOpts.width  = maxWidth;
+            if (maxHeight) resizeOpts.height = maxHeight;
+            pngBuf = await sharp(pngBuf)
+                .resize(resizeOpts)
+                .png()
+                .toBuffer();
+        }
         const meta   = await sharp(pngBuf).metadata();
         let usesAlpha = false;
 
@@ -989,8 +1004,10 @@ class WTVImage {
 
         if (this.isPalettePNG(pngBuf)) {
             // Palette/indexed PNGs should preserve palette + tRNS alpha exactly by default.
-            // Allow forcing re-quantization only when explicitly requested.
-            const data = opts.forceRequantizePalette
+            // If resizing was applied, the palette is no longer preserved and we must
+            // re-quantize the image before producing an Artemis GIF.
+            const forceRequantize = opts.forceRequantizePalette || maxWidth || maxHeight;
+            const data = forceRequantize
                 ? await this.encodeArtemisGIF(pngBuf, opts)
                 : await this.paletteImageToArtemisGIF(pngBuf, opts);
             return { data, mime: 'image/gif' };
