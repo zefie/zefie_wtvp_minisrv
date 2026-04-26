@@ -72,7 +72,7 @@
     },
     "keys": {
       "initial_shared_key": "bWluaXNydiE=", // Used for the initial RC4 rolling key. 8 bytes base64 encode. If you intend to link multiple minisrv's together, they must all share the same Initial Shared Key.
-      "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords in configs. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
+      "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords, recommended to change before hosting your minisrv for others to use. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
     },
     "passwords": {
       // password configuration
@@ -107,7 +107,11 @@
       "wtv-log:/log"
     ],
     /* shenanigans: this allows you to intentionally enable old minisrv bugs, as well as official WebTV Networks exploits 
-       Each level of shenanigans includes the previous level (eg 5 will also disable filters like 4)
+       Shenanigans is a bitwise flag, where each bit corresponds to a different bug or exploit.
+       Enabling a flag will re-enable the corresponding bug or exploit in the minisrv.
+       This is intended for educational purposes to study how these exploits work.
+       However, enabling shenanigans may cause security issues, so it should be used with caution and only if you understand what each flag does.
+       Shenanigans should be left disabled.
        See WTVShenanigans.js for more info.
     */
     "shenanigans": false,
