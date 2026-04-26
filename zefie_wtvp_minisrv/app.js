@@ -1341,7 +1341,9 @@ async function sendToClient(socket, headers_obj, data = null) {
     if (minisrv_config.config.decode_png) {
         const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
         if (contype_key) {
-            if (headers_obj[contype_key].toLowerCase() === "image/png") {
+            if (headers_obj[contype_key].toLowerCase() === "image/png" ||
+                headers_obj[contype_key].toLowerCase() === "image/svg+xml" ||
+                headers_obj[contype_key].toLowerCase() === "image/webp") {
                 const convertOpts = {
                     jpegQuality: minisrv_config.config.decode_png_jpeg_quality,
                     type: 'ALF'
@@ -2190,6 +2192,7 @@ function reloadConfig() {
 // SERVER START
 const git_commit = getGitRevision()
 const pkgjson = require('./package.json');
+const { head } = require('nntp-server-zefie/lib/commands/article');
 let z_title = "zefie's wtv minisrv v" + pkgjson.version;
 const z_cgiver = "minisrv/" + pkgjson.version;
 if (git_commit) z_title += " (git " + git_commit + ")";
