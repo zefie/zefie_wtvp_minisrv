@@ -8,7 +8,7 @@ const wtvshared = new WTVShared(); // creates minisrv_config
 const fs = wtvshared.fs;
 const zlib = wtvshared.zlib;
 const process = wtvshared.process;
-const util = require('util');
+const util = wtvshared.util;
 const nunjucks = require('nunjucks');
 const {serialize, unserialize} = require('php-serialize');
 const {spawn} = require('child_process');
@@ -41,7 +41,9 @@ const wtvmime = new WTVMime(minisrv_config);
 process
     .on('SIGTERM', shutdown('SIGTERM'))
     .on('SIGINT', shutdown('SIGINT'))
-    .on('uncaughtException', (e => { console.error(e); }));
+    .on('uncaughtException', function (err) {
+        console.error((err && err.stack) ? err.stack : err);
+    });
 
 
 function shutdown(signal = 'SIGTERM') {
@@ -196,10 +198,10 @@ let socket_sessions = [];
 const ports = [];
 const pc_ports = [];
 
-function moveArrayKey(array, from, to) {
-    array.splice(to, 0, array.splice(from, 1)[0]);
-    return array;
-};
+function getServiceString(service_name, overrides = {}) {
+    wtvshared.getServiceString(service_name, overrides);
+}
+
 
 // Deprecation warnings configuration
 const deprecationWarnings = {
@@ -211,11 +213,17 @@ const deprecationWarnings = {
             message: "session_data.hasCap() is deprecated and will be removed",
             removeVersion: "0.9.80",
             replacement: "Use session_data.capabilities.get() instead"
+        },
+        {
+            pattern: /(?<!wtvshared\.)getServiceString\s*\(/g,
+            message: "getServiceString() is deprecated and will be removed",
+            removeVersion: "0.9.80",
+            replacement: "Use wtvshared.getServiceString() instead"
         }
     ],
     
     // Enable/disable deprecation warnings globally
-    enabled: false,
+    enabled: true,
     
     // Log level for deprecation warnings (console.warn, console.log, etc.)
     logLevel: 'warn'
@@ -254,10 +262,6 @@ function checkDeprecationWarnings(script_data, filename = null, debug_name = nul
         });
         logFunction(''); // Empty line for readability
     }
-}
-
-function getServiceString(service, overrides = {}) {
-    return wtvshared.getServiceString(service, overrides);
 }
 
 async function sendRawFile(socket, path) {
@@ -329,12 +333,12 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
         "data": null,
         "request_is_async": false,
         "minisrv_version_string": z_title,
-        "getServiceString": getServiceString,
-        "sendToClient": sendToClient,
+        "getServiceString": getServiceString, // deprecated - use wtvshared.getServiceString() instead
+        "sendToClient": sendToClient,        
         "service_vaults": service_vaults,
         "service_deps": service_deps,
         "ssid_sessions": ssid_sessions,
-        "moveArrayKey": moveArrayKey,
+        "moveArrayKey": wtvshared.moveArrayKey,
         "cwd": (filename) ? path.dirname(filename) : __dirname, // current working directory        
 
         // Our prototype overrides
@@ -360,32 +364,38 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
                 } catch (e) {
                     console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name, e)
                 }
+                // Special case for WTVNews services which require a reference to the server for its functionality
                 if (vm_modules[k] === "WTVNews") contextObj['wtvnewsserver'] = wtvnewsserver;
-            })            
+            })
+        }
+        // Provide flashrom class to any service that is reported as a flashrom service in the config
+        if (minisrv_config.services[contextObj.service_name].is_flashrom_service) {
+            contextObj["WTVFlashrom"] = WTVFlashrom;
         }
     }
+
     switch (contextObj.service_name) {
         case "wtv-guide":
             // wtv-guide is a special case due to needing this function
             contextObj.wtvguide = new contextObj["WTVGuide"](minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
             break;
-        case "wtv-admin":
-            // wtv-admin needs util.isArray in validation of certain actions.
-            contextObj["util"] = require("util");
         case "wtv-1800":
-        case "wtv-flashrom":
-            // these are special cases because the primary app already loaded this
+            // special case for bf0app (wtv-1800:/noflash)
             contextObj["WTVFlashrom"] = WTVFlashrom;
             break;
     }
 
-
     if (contextObj.socket) {
-        if (contextObj.socket.id)
-            if (socket_sessions[contextObj.socket.id]) contextObj.wtv_encrypted = (socket_sessions[contextObj.socket.id].secure === true);
+        if(contextObj.socket.id) {
+            if (socket_sessions[contextObj.socket.id]) {
+                contextObj.wtv_encrypted = (socket_sessions[contextObj.socket.id].secure === true);
+            }
+        }
     }
 
     if (privileged) {
+        // Grant the service additional access to global variables, such as the session stores.
+        // This is needed for privileged services such as wtv-1800, wtv-setup, wtv-head-waiter, etc. but should be avoided for regular services for security.
         contextObj["privileged"] = true;
         contextObj["require"] = require; // this is dangerous but needed for some scripts at this time
         contextObj["SessionStore"] = SessionStore;
@@ -768,7 +778,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                             }
                         }
                     } else {
-                        // php is not enabled, don't expose source code
+                        // cgi is not enabled, don't expose source code
                         service_vault_found = true;
                         const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                         sendToClient(socket, errpage[0], errpage[1]);
@@ -2284,6 +2294,9 @@ Object.keys(minisrv_config.services).forEach(function (k) {
                     handlerModules[minisrv_config.services[k].handler_module + "_main"] = require(classPath + "/" + minisrv_config.services[k].handler_module + ".js");
                     var args = [];
                     for (let i = 0; i < (minisrv_config.services[k].handler_extra_vars || []).length; i++) {
+                        // is there a better way to do this than eval ? ...
+                        // concept: server owner can specify handler_extra_vars in the config as an array of
+                        // variable/function/module names (as strings in the config) that they want to pass to the handler module constructor
                         let extraVar = eval(minisrv_config.services[k].handler_extra_vars[i]);
                         args.push(extraVar);
                     }
@@ -2367,15 +2380,9 @@ if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
 if (minisrv_config.config.shenanigans) console.log(" * WARNING: Shenanigans level", minisrv_config.config.shenanigans, "enabled");
 else console.log(" * Shenanigans disabled");
 
-// PNG
-if (minisrv_config.config.decode_png) console.log(" * WebTV Unsupported images will be processed and converted for WebTV clients");
+// WTVImage
+if (minisrv_config.config.image_decoder.enabled) console.log(" * WebTV Unsupported images will be processed and converted for WebTV clients");
 else console.log(" * WebTV Unsupported images will not be processed, and sent to client as-is");
-
-
-
-process.on('uncaughtException', function (err) {
-    console.error((err && err.stack) ? err.stack : err);
-});
 
 ports.sort();
 pc_ports.sort();

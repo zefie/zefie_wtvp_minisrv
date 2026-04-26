@@ -16,7 +16,7 @@ class WTVShared {
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
     parentDirectory = process.cwd()
-    extend = require('util')._extend;
+    util = require('util');
     debug = require('debug')('WTVShared')
     process = require('process');
     shenanigans = null;
@@ -138,6 +138,19 @@ class WTVShared {
         }
         return false;
     }
+
+    /**
+      * Moves an array element from one index to another
+      * @param {Array} array The array to modify
+      * @param {number} from The index of the element to move 
+      * @param {number} to The index to move the element to
+      * @return {Array} The modified array with the element moved
+      * @notice This function modifies the original array and also returns it for convenience
+      */
+    moveArrayKey(array, from, to) {
+        array.splice(to, 0, array.splice(from, 1)[0]);
+        return array;
+    };
 
     /**
      * Converts a byte array to a 32-bit unsigned integer (big-endian)

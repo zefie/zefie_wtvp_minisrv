@@ -48,7 +48,7 @@ if (!send_to_relogin) {
 Connection: Keep-Alive
 Expires: Wed, 09 Oct 1991 22:00:00 GMT
 wtv-expire-all: wtv-head-waiter:
-`+ getServiceString('wtv-log') + `
+`+ wtvshared.getServiceString('wtv-log') + `
 wtv-log-url: wtv-log:/log`;
 	if (challenge_header !== "") headers += "\n" + challenge_header;
 	headers += `

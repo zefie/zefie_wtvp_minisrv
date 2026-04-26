@@ -166,15 +166,15 @@ if (session_data.data_store.wtvsec_login) {
 	headers += "wtv-initial-key: " + session_data.data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
 	headers += "Content-Type: " + prereg_contype + "\n";
 	if (!request_headers.query.reconnect) headers += "wtv-service: reset\n";
-	if (!bf0app_update) headers += getServiceString('wtv-1800') + "\n";
+	if (!bf0app_update) headers += wtvshared.getServiceString('wtv-1800') + "\n";
 
-	if (bf0app_update) headers += getServiceString('wtv-head-waiter', { "flags": "0x00000001" }) + "\n";
-	else headers += getServiceString('wtv-head-waiter') + "\n";
+	if (bf0app_update) headers += wtvshared.getServiceString('wtv-head-waiter', { "flags": "0x00000001" }) + "\n";
+	else headers += wtvshared.getServiceString('wtv-head-waiter') + "\n";
 
-	if (bf0app_update) headers += getServiceString('wtv-star', { "no_star_word": true }) + "\n";
-	else headers += getServiceString('wtv-star') + "\n";
-	if (request_headers.query.reconnect && !session_data.isRegistered() && !session_data.lockdown) headers += getServiceString('wtv-register') + "\n";
-	if (!session_data.lockdown) headers += getServiceString('wtv-flashrom') + "\n";
+	if (bf0app_update) headers += wtvshared.getServiceString('wtv-star', { "no_star_word": true }) + "\n";
+	else headers += wtvshared.getServiceString('wtv-star') + "\n";
+	if (request_headers.query.reconnect && !session_data.isRegistered() && !session_data.lockdown) headers += wtvshared.getServiceString('wtv-register') + "\n";
+	if (!session_data.lockdown) headers += wtvshared.getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {
 		headers += "wtv-boot-url: wtv-head-waiter:/login?relogin=true";
