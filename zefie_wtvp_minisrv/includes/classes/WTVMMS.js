@@ -1879,7 +1879,7 @@ class WTVMMS {
         buf.writeUInt32LE(0x00000000, 16);             // failedCubs
         buf.writeUInt32LE(0x00000001, 20);             // nDisks
         buf.writeUInt32LE(0x00000000, 24);             // decluster
-        buf.writeUInt32LE(0x00000000, 28);             // cubddDatagramSize
+        buf.writeUInt32LE((session.isCubddTransport) ? session.asfPacketSize + 8 : 0x00000000, 28);             // cubddDatagramSize
         return buf;
     }
 

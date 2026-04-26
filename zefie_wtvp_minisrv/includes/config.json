@@ -121,7 +121,7 @@
         "image/tiff",
         "image/webp"
       ],
-      "max_height": 0,
+      "max_height": 2048,
       "max_width": 640,
       "max_file_size": 524288,
       "jpeg_interval": 5, // lower quality by this amount to try to lower filesize

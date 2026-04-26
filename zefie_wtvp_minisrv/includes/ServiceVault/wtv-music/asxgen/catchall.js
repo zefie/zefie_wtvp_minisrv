@@ -22,12 +22,9 @@ if (minisrv_config.config.ServiceVaults) {
 let subDirPath = '';
 const currentDir = path.dirname(__filename);
 const serviceVaultIdx = currentDir.indexOf('ServiceVault');
-console.log("DEBUG: currentDir =", currentDir, "serviceVaultIdx =", serviceVaultIdx);
 if (serviceVaultIdx !== -1) {
     const afterVault = currentDir.substring(serviceVaultIdx + 12); // 12 = length of 'ServiceVault'
-    console.log("DEBUG: afterVault =", afterVault);
     const parts = afterVault.split(path.sep).filter(p => p);
-    console.log("DEBUG: parts =", parts);
     if (parts.length > 1) {
         // parts[0] is the service name (e.g., 'wtv-music'), parts[1+] are the subdirs
         const subdirs = parts.slice(1);
@@ -96,12 +93,57 @@ Content-type: text/html`;
 <body bgcolor="#110e1f" text="#44a1cc" link="36d5ff" vlink="36d5ff" vspace=0>
 <display nosave nosend>
 <title>Windows Media on this Service</title>
-<sidebar width=20%>
-<img src="wtv-tricks:/images/Realaudio_bg.gif">
+<sidebar width=110>
+<table cellspacing=0 cellpadding=0 BGCOLOR="30364D">
+<tr>
+<td colspan=3 abswidth=104 absheight=4>
+<td rowspan=99 width=6 absheight=580 valign=top align=left>
+<img src="/ROMCache/Shadow.gif" width=6 height=580>
+<tr>
+<td abswidth=6>
+<td abswidth=92 absheight=76>
+<table href="wtv-home:/home" absheight=76 cellspacing=0 cellpadding=0>
+<tr>
+<td align=right>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
+</table>
+<td abswidth=6>
+<tr><td absheight=5 colspan=3>
+<table cellspacing=0 cellpadding=0>
+<tr><td abswidth=104 absheight=2 valign=middle align=center bgcolor="1C1E28">
+<img src="/ROMCache/Spacer.gif" width=1 height=1>
+<tr><td abswidth=104 absheight=1 valign=top align=left>
+<tr><td abswidth=104 absheight=2 valign=top align=left bgcolor="4D5573">
+<img src="/ROMCache/Spacer.gif" width=1 height=1>
+</table>
+
+<tr><td absheight=26 align=right colspan=3>
+<table href="${(request_headers.query.debugUDP) ? "?" : "?debugUDP=1"}" width="100%" cellspacing="0" cellpadding="0">
+<tr><td>
+<table cellspacing="0" cellpadding="0">
+<tr><td><shadow><font size="-1" color="E7CE4A">
+&nbsp;${(request_headers.query.debugUDP) ? "Use TCP" : "Debug UDP"}
+</table>
+</td></tr></table>
+
+
+<tr><td absheight=5 colspan=3>
+<table cellspacing=0 cellpadding=0>
+<tr><td abswidth=104 absheight=2 valign=middle align=center bgcolor="1C1E28">
+<img src="/ROMCache/Spacer.gif" width=1 height=1>
+<tr><td abswidth=104 absheight=1 valign=top align=left>
+<tr><td abswidth=104 absheight=2 valign=top align=left bgcolor="4D5573">
+<img src="/ROMCache/Spacer.gif" width=1 height=1>
+</table>
+
+<tr><td absheight=433 align=right colspan=3>
+<img src="/ROMCache/winmed.gif" width=96 height=80>&nbsp;
+<tr><td absheight=150>
+</table>
 </sidebar>
 <br>
 <br>
-<h1>Windows Media on this Service</h1><ul>${(directory === "") ? "" : `<li><a href="../">../</a></li>\n`}${allFiles.map(f => `<li><a href="${(directory === "") ? f : `${strippedSubDir}${directory}/${f}`}">${f}</a></li>`).join("\n")}</ul></body></html>`;
+<h1>Windows Media on this Service</h1><ul>${(directory === "") ? "" : `<li><a href="../">../</a></li>\n`}${allFiles.map(f => `<li><a href="${(directory === "") ? f : `${strippedSubDir}${directory}/${f}`}${(request_headers.query.debugUDP) ? "?debugUDP=1" : ""}">${f}</a></li>`).join("\n")}</ul></body></html>`;
     } else {
         headers = `404 Not Found
 Content-type: text/html`;
@@ -126,7 +168,11 @@ Content-type: text/html`;
 Content-type: text/html`;
     } else {
         const filePath = path.join(directory || '/', filename + path.extname(resolvedPath));
-        const mmsURL = `mms://${minisrv_config.config.service_ip}:${minisrv_config.services['mms'].port}${filePath.replace(/\\/g, '/')}`;
+        let proto = "mmst://";
+        if (request_headers.query.debugUDP) {
+            proto = "mms://"
+        }
+        const mmsURL = `${proto}${minisrv_config.config.service_ip}:${minisrv_config.services['mms'].port}${filePath.replace(/\\/g, '/')}`;
 		const title = (request_headers.query['wtv-title']) ? request_headers.query['wtv-title'] : minisrv_config.config.service_name+" media";
         headers = `200 OK
 Content-type: video/x-ms-asf`

@@ -45,7 +45,7 @@ Favorite folders
 <table href="wtv-home:/home" absheight="79" width="100%" cellspacing="0" cellpadding="0">
 <tr>
 <td width="100%" align="center">
-<img src="wtv-home:/ROMCache/WebTVLogoJewel.gif" width="87" height="67">
+<img src="${minisrv_config.config.service_logo}" width="87" height="67">
 </td></tr></table>
 </td><td abswidth="5">
 </td></tr><tr><td colspan="3" absheight="2" width="100%" bgcolor="1f3136">
