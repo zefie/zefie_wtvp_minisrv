@@ -157,8 +157,8 @@ function configureService(service_name, service_obj, initial = false) {
         else ports.push(service_obj.port);
     }
 
-    // Exclude PNM and MMS services (they manage their own TCP sockets)
-    if (service_obj.protocol_handler === 'pnm' || service_obj.protocol_handler === 'mms') {
+    // Exclude protocols that handle their own ports
+    if (service_obj.handler_handles_port) {
         return true;
     }
 
@@ -2296,7 +2296,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
             }
         }
         const using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
-        const protocol = (minisrv_config.services[k].protocol_handler) ? minisrv_config.services[k].protocol_handler.toUpperCase() : (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP";
+        const protocol = (minisrv_config.services[k].protocol) ? minisrv_config.services[k].protocol.toUpperCase() : (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP";
         console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Protocol:", protocol, (loadedModule) ? "- Handler Module: " + minisrv_config.services[k].handler_module : "");
 
         if (minisrv_config.services[k].local_nntp_enabled && minisrv_config.services[k].local_nntp_port) {
@@ -2384,20 +2384,12 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     if (typeof (minisrv_config.services[service_name]) === 'function') return;
     const service = minisrv_config.services[service_name];
     if (!service || service.disabled || !service.port) return;
-    if (service.protocol_handler === 'pnm') {
+    if (service.handler_handles_port && service.protocol && service.handler_module) {
         try {
-            handlerModules['wtvpnm'].listen(service.port, minisrv_config.config.bind_ip);
-            protocolServers.push(handlerModules['wtvpnm']);
+            handlerModules[service.handler_module.toLowerCase()].listen(service.port, minisrv_config.config.bind_ip);
+            protocolServers.push(handlerModules[service.handler_module.toLowerCase()]);
         } catch (e) {
-            throw ("Could not bind PNM protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
-        }
-    }
-    if (service.protocol_handler === 'mms') {
-        try {
-            handlerModules['wtvmms'].listen(service.port, minisrv_config.config.bind_ip);
-            protocolServers.push(handlerModules['wtvmms']);
-        } catch (e) {
-            throw ("Could not bind MMS protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
+            throw ("Could not bind port for protocol " + service.protocol + " to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
         }
     }
 });
@@ -2407,14 +2399,9 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     if (typeof (minisrv_config.services[service_name]) === 'function') return;
     const service = minisrv_config.services[service_name];
     if (!service || service.disabled || !service.port) return;
-    if (service.protocol_handler === 'pnm') {
-        protocolHandledPorts.add([service_name, service.protocol_handler, parseInt(service.port)]);
+    if (service.protocol) {
+        protocolHandledPorts.add([service_name, service.protocol, parseInt(service.port)]);
     }
-    if (service.protocol_handler === 'mms') {
-        protocolHandledPorts.add([service_name, service.protocol_handler, parseInt(service.port)]);
-    }
-    // Any other future special protocols would go here, and should be added to the `protocolHandledPorts` set to avoid conflicts with the main socket listener
-    // We ignore unknown protocols and treat it like the flag doesn't exist.
 });
 
 // de-duplicate ports in case user configured multiple services on same port

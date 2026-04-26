@@ -446,25 +446,27 @@
       "port": 1755,
       "udp_port": 1755,
       "enable_udp": true,
-      "protocol_handler": "mms",
+      "protocol": "mms",
       "pacing_multiplier": 0.9,
       "enable_burst": true,
       "burst_multiplier": 4.0,
       "burst_prestart_ms": 15000,
       "allow_indexing": true,
       "debug": false, 
-      "handler_module": "WTVMMS"
+      "handler_module": "WTVMMS",
+      "handler_handles_port": true
     },
     "pnm": {
       "port": 7070,
-      "protocol_handler": "pnm",
+      "protocol": "pnm",
       "udp_bind_port_min": 57361,
       "udp_bind_port_max": 57391,
       "descriptor_after_hello_ms": 85,
       "burst_prestart_ms": 5000,
       "allow_indexing": true,
       "debug": false,
-      "handler_module": "WTVPNM"
+      "handler_module": "WTVPNM",
+      "handler_handles_port": true
     }    
   },
   "favorites": {
