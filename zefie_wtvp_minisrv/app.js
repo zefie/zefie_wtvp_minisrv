@@ -26,6 +26,7 @@ const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
+const WTVPNG = require(classPath + "/WTVPNG.js");
 const vm = require('vm');
 const debug = require('debug')('app');
 const express = require('express');
@@ -1337,6 +1338,22 @@ async function sendToClient(socket, headers_obj, data = null) {
         delete headers_obj['minisrv-no-last-modified'];
     }
 
+    if (minisrv_config.config.decode_png) {
+        const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
+        if (contype_key) {
+            if (headers_obj[contype_key].toLowerCase() === "image/png") {
+                const convertOpts = {
+                    jpegQuality: minisrv_config.config.decode_png_jpeg_quality,
+                    type: 'ALF'
+                };
+                const sourceData = Buffer.isBuffer(data) ? data : Buffer.from(data);
+                const converted = await WTVPNG.pngToWebTV(sourceData, convertOpts);
+                data = converted.data;
+                content_length = data.length;
+                headers_obj[contype_key] = (converted.mime === 'image/jpeg') ? 'image/jpeg' : 'image/gif';
+            }
+        }
+    }
 
 
     // if client can do compression, see if its worth enabling
@@ -2314,6 +2331,12 @@ if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
 // shenanigans
 if (minisrv_config.config.shenanigans) console.log(" * WARNING: Shenanigans level", minisrv_config.config.shenanigans, "enabled");
 else console.log(" * Shenanigans disabled");
+
+// PNG
+if (minisrv_config.config.decode_png) console.log(" * PNG will be processed for WebTV clients");
+else console.log(" * PNG will not be processed, and sent to client as-is");
+
+
 
 process.on('uncaughtException', function (err) {
     console.error((err && err.stack) ? err.stack : err);
