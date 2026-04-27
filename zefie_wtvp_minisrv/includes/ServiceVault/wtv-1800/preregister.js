@@ -84,14 +84,17 @@ if (session_data.data_store.wtvsec_login) {
 				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
 				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
 				*/
-				//if (wtvshared.isMiniBrowser(session_data)) {
-				//	if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
-				//	else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
-				//} else {
+				if (wtvshared.isMiniBrowser(session_data)) {
+					// I think we need an older template
+					//template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+					//if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
+					//else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
+					send_tellyscript = false;
+				} else {
 					template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
 					if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
 					else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
-				//}
+				}
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
