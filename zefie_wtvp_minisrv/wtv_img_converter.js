@@ -117,6 +117,11 @@ async function cmdConvert(inputFile, outputFile, opts) {
         jpegQuality: opts.quality   || 85,
         maxWidth:    opts.maxWidth,
         maxHeight:   opts.maxHeight
+    }, {
+        "quality": 80,
+        "compressionLevel": 9,
+        "palette": true,
+        "effort": 10
     });
 
     const ext  = mime === 'image/gif' ? '.gif' : '.jpg';

@@ -377,12 +377,56 @@ class WTVImage {
     buildArtemisAlphaTable(type, alphaTable) {
         if (type !== 'ALP') return Buffer.from(alphaTable);
 
-        // Drop the phantom transparent index 0, then trim trailing opaque values
-        // since ALP app payloads are typically truncated like ALF.
-        const table = alphaTable.slice(1);
-        let trimEnd = table.length - 1;
-        while (trimEnd >= 0 && table[trimEnd] === 0xFF) trimEnd--;
-        return Buffer.from(table.slice(0, trimEnd + 1));
+        // Drop the phantom transparent index 0.
+        // ALP output should preserve the full remaining alpha table so WebTV
+        // does not default missing ALP entries to transparent.
+        return Buffer.from(alphaTable.slice(1));
+    }
+
+    isSimplePaletteTransparency(alphaTable) {
+        let transparentIndex = -1;
+        for (let i = 0; i < alphaTable.length; i++) {
+            const a = alphaTable[i];
+            if (a !== 0 && a !== 0xFF) return false;
+            if (a === 0) {
+                if (transparentIndex !== -1) return false;
+                transparentIndex = i;
+            }
+        }
+        return transparentIndex >= 0;
+    }
+
+    encodePalettePNGAsStandardGIF(pngInfo) {
+        const { palette, indices, width, height, colors, alphaTable } = pngInfo;
+        const transparentIdx = alphaTable.findIndex((a) => a === 0);
+        if (transparentIdx < 0) throw new Error('No transparent palette entry found');
+
+        const finalIndices = Buffer.from(indices);
+        const finalPalette = Buffer.from(palette);
+        const minCodeSize = Math.max(2, Math.ceil(Math.log2(colors)));
+        const lzwEncoded  = this.lzwEncode(finalIndices, minCodeSize);
+        const lzwBlocks   = this.wrapSubBlocks(lzwEncoded);
+
+        const imgDesc = Buffer.alloc(10);
+        imgDesc[0] = 0x2C;
+        imgDesc.writeUInt16LE(0, 1);
+        imgDesc.writeUInt16LE(0, 3);
+        imgDesc.writeUInt16LE(width,  5);
+        imgDesc.writeUInt16LE(height, 7);
+        imgDesc[9] = 0x00;
+
+        const gceBlock = this.buildGCE(transparentIdx, true);
+        const gifHeader = this.buildGIFHeader(width, height, colors, 0);
+
+        return Buffer.concat([
+            gifHeader,
+            finalPalette,
+            gceBlock,
+            imgDesc,
+            Buffer.from([minCodeSize]),
+            lzwBlocks,
+            Buffer.from([0x3B])
+        ]);
     }
 
     // ---------------------------------------------------------------------------
@@ -970,7 +1014,7 @@ class WTVImage {
      * @param {string|Buffer} input  - file path or raw PNG Buffer
      * @param {object} [opts]
      * @param {number} [opts.colors=256]         - palette size for full-color quantization
-     * @param {'ALP'|'ALF'} [opts.type='ALF']   - Artemis variant
+     * @param {'ALP'|'ALF'} [opts.type='ALP']   - Artemis variant
      * @param {number} [opts.jpegQuality=85]     - JPEG quality (0-100) when no alpha
      * @param {number} [opts.maxWidth]           - maximum width to scale to before encoding
      * @param {number} [opts.maxHeight]          - maximum height to scale to before encoding
@@ -980,16 +1024,25 @@ class WTVImage {
         let pngBuf = Buffer.isBuffer(input) ? input : require('fs').readFileSync(input);
         const maxWidth  = Number(opts.maxWidth)  > 0 ? Number(opts.maxWidth)  : null;
         const maxHeight = Number(opts.maxHeight) > 0 ? Number(opts.maxHeight) : null;
-        if (maxWidth || maxHeight) {
+        const originalIsPalettePNG = this.isPalettePNG(pngBuf);
+        const inputMeta = await sharp(pngBuf).metadata();
+        const willResize = (maxWidth && inputMeta.width > maxWidth) || (maxHeight && inputMeta.height > maxHeight);
+        if (willResize) {
             const resizeOpts = { fit: 'inside', withoutEnlargement: true };
             if (maxWidth)  resizeOpts.width  = maxWidth;
             if (maxHeight) resizeOpts.height = maxHeight;
+            const outputPngOpts = Object.assign({}, pngopts);
+            if (originalIsPalettePNG && outputPngOpts.palette) {
+                // Avoid an extra palette quantization step on an already-indexed PNG.
+                outputPngOpts.palette = false;
+                delete outputPngOpts.colors;
+            }
             pngBuf = await sharp(pngBuf)
                 .resize(resizeOpts)
-                .png(pngopts)
+                .png(outputPngOpts)
                 .toBuffer();
         }
-        const meta   = await sharp(pngBuf).metadata();
+        const meta   = willResize ? await sharp(pngBuf).metadata() : inputMeta;
         let usesAlpha = false;
 
         if (meta.hasAlpha) {
@@ -1018,7 +1071,12 @@ class WTVImage {
             // Palette/indexed PNGs should preserve palette + tRNS alpha exactly by default.
             // If resizing was applied, the palette is no longer preserved and we must
             // re-quantize the image before producing an Artemis GIF.
-            const forceRequantize = opts.forceRequantizePalette || maxWidth || maxHeight;
+            const forceRequantize = opts.forceRequantizePalette || willResize;
+            const pngInfo = this.extractPalettePNG(pngBuf);
+            if (!forceRequantize && this.isSimplePaletteTransparency(pngInfo.alphaTable)) {
+                const data = this.encodePalettePNGAsStandardGIF(pngInfo);
+                return { data, mime: 'image/gif' };
+            }
             const data = forceRequantize
                 ? await this.encodeArtemisGIF(pngBuf, opts)
                 : await this.paletteImageToArtemisGIF(pngBuf, opts);
