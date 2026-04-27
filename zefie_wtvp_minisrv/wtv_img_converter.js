@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * wtv_png_converter.js - WebTV PNG/GIF conversion CLI
+ * wtV_img_converter.js - WebTV PNG/GIF conversion CLI
  *
  * Usage:
- *   node wtv_png_converter.js <command> [options] <input> [output]
+ *   node wtV_img_converter.js <command> [options] <input> [output]
  *
  * Commands:
  *   convert   Convert a PNG to the best WebTV format (auto: JPEG or Artemis GIF)
@@ -86,11 +86,11 @@ Options:
   --help, -h           Show this help
 
 Examples:
-  node wtv_png_converter.js convert logo.png
-  node wtv_png_converter.js convert logo.png logo_wtv.gif --type ALF --colors 128
-  node wtv_png_converter.js encode icon.png icon.gif --type ALP
-  node wtv_png_converter.js decode artemis.gif result.png
-  node wtv_png_converter.js detect artemis.gif
+  node wtV_img_converter.js convert logo.png
+  node wtV_img_converter.js convert logo.png logo_wtv.gif --type ALF --colors 128
+  node wtV_img_converter.js encode icon.png icon.gif --type ALP
+  node wtV_img_converter.js decode artemis.gif result.png
+  node wtV_img_converter.js detect artemis.gif
 `.trim());
 }
 

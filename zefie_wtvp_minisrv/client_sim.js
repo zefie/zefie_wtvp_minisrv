@@ -2821,7 +2821,7 @@ function parseArgs() {
                 console.log(`
 WebTV Client Simulator
 
-Usage: node client_emu.js [options]
+Usage: node client_sim.js [options]
 
 Options:
   --host <ip>             Target server IP address (default: 127.0.0.1)
@@ -2848,11 +2848,11 @@ Options:
   --help                  Show this help message
 
 Example:
-  node client_emu.js --host 192.168.1.100 --port 1615 --ssid 8100000000000001 --url wtv-home:/home --file output.html
-  node client_emu.js --host 127.0.0.1 --url wtv-home:/home --file archive.zip --follow --debug
-  node client_emu.js --host 127.0.0.1 --url wtv-home:/home --file complete.zip --follow-all --depth 2 --debug
-  node client_emu.js --host 127.0.0.1 --url wtv-mail:/sendmail --post --data "to=user@example.com&subject=test&body=Hello" --file response.html
-  node client_emu.js --host 127.0.0.1 --url wtv-mail:/sendmail --post --data "to=user@example.com&subject=test&body=Hello" --tricks
+  node client_sim.js --host 192.168.1.100 --port 1615 --ssid 8100000000000001 --url wtv-home:/home --file output.html
+  node client_sim.js --host 127.0.0.1 --url wtv-home:/home --file archive.zip --follow --debug
+  node client_sim.js --host 127.0.0.1 --url wtv-home:/home --file complete.zip --follow-all --depth 2 --debug
+  node client_sim.js --host 127.0.0.1 --url wtv-mail:/sendmail --post --data "to=user@example.com&subject=test&body=Hello" --file response.html
+  node client_sim.js --host 127.0.0.1 --url wtv-mail:/sendmail --post --data "to=user@example.com&subject=test&body=Hello" --tricks
                 `);
                 process.exit(0);
         }
