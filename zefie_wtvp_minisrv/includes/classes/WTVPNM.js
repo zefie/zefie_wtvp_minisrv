@@ -24,6 +24,7 @@ class WTVPNM {
     server = null;
     wtvshared = null;
     sessions = new Map();
+    crypto = null;
 
     constructor(...[minisrv_config, service_name, wtvshared, sendToClient, net, crypto]) {
         this.minisrv_config = minisrv_config;
@@ -31,7 +32,7 @@ class WTVPNM {
         this.service_config = minisrv_config.services[service_name] || {};
         this.wtvshared = wtvshared;
         this.server = net.createServer((socket) => this.handleConnection(socket));
-
+        this.crypto = crypto;
         // Descriptor server-id mapping uses full 16-bit source UDP port:
         // serverId = 0x0007pppp where pppp is the reserved UDP source port.
         this.serverIdPort16Base = 0x00070000;
@@ -857,7 +858,7 @@ class WTVPNM {
         // is used, server-id mapping can follow the full source port.
         const range = this.getUdpBindRange();
         const span = Math.max(1, (range.max - range.min) + 1);
-        const startOffset = crypto.randomInt(0, span);
+        const startOffset = this.crypto.randomInt(0, span);
         let udpSocket = null;
         let boundPort = null;
 
@@ -1381,7 +1382,7 @@ class WTVPNM {
                 if (frameIdx < 5) {
                     const frameHex = media.slice(o, Math.min(o + 32, end)).toString('hex');
                     const audioHex = audio.slice(0, Math.min(16, audio.length)).toString('hex');
-                    const audioHash = crypto.createHash('sha1').update(audio).digest('hex').slice(0, 12);
+                    const audioHash = this.crypto.createHash('sha1').update(audio).digest('hex').slice(0, 12);
                     const prevAudio = frameIdx > 0 ? frames[frameIdx - 1]?.audio : null;
                     const sameAsPrev = !!prevAudio && prevAudio.length === audio.length && prevAudio.equals(audio);
                     this.debugLog('prepareMediaData: frame', session.id,
@@ -1788,7 +1789,7 @@ class WTVPNM {
             challengeSource = 'client-tag0';
         } else if (isWebTV || forceNarrow) {
             const base = this.service_config.server_challenge_base
-                ?? (crypto.randomInt(0x0100, 0x0200) & 0xFFFF);
+                ?? (this.crypto.randomInt(0x0100, 0x0200) & 0xFFFF);
             const nextSession = this.sessionCounter + 1;
             challengeValue = (base + nextSession) & 0xFFFF;
             challengeSource = 'narrow-fallback';
@@ -2368,7 +2369,7 @@ class WTVPNM {
             const xorLen = this.pnmStrlen(xorBuf);
             for (let i = 0; i < xorLen; i++) key[8 + i] ^= xorBuf[i];
         }
-        return crypto.createHash('md5').update(key).digest();
+        return this.crypto.createHash('md5').update(key).digest();
     }
 
     // Challenge::response1 / response2(this, src, a3, a4, a5)
@@ -2386,7 +2387,7 @@ class WTVPNM {
             const xorLen = this.pnmStrlen(xorBuf);
             for (let i = 0; i < xorLen; i++) key[8 + i] ^= xorBuf[i];
         }
-        return crypto.createHash('md5').update(key).digest();
+        return this.crypto.createHash('md5').update(key).digest();
     }
 
     buildSessionToken(session = null) {
