@@ -17,7 +17,6 @@
  *
  *   ALP – the alpha table is prefixed with a black (0,0,0) phantom entry so
  *          that palette index 0 is always fully-transparent black.
- *          ALP encoding does not yet work correctly.
  *   ALF – the alpha table is suffixed with a black (0,0,0) phantom entry
  *          (last palette slot is fully-transparent black).
  *
@@ -367,6 +366,25 @@ class WTVImage {
         return { data: Buffer.concat(chunks), endOffset: offset };
     }
 
+    /**
+     * Build the Artemis alpha lookup table payload for ALP/ALF.
+     *
+     * ALP stores its alpha table with a phantom transparent palette entry
+     * at index 0, so the payload omits that slot and encodes only the
+     * remaining indices.
+     * ALF stores its alpha table directly and may be left full-length.
+     */
+    buildArtemisAlphaTable(type, alphaTable) {
+        if (type !== 'ALP') return Buffer.from(alphaTable);
+
+        // Drop the phantom transparent index 0, then trim trailing opaque values
+        // since ALP app payloads are typically truncated like ALF.
+        const table = alphaTable.slice(1);
+        let trimEnd = table.length - 1;
+        while (trimEnd >= 0 && table[trimEnd] === 0xFF) trimEnd--;
+        return Buffer.from(table.slice(0, trimEnd + 1));
+    }
+
     // ---------------------------------------------------------------------------
     // Artemis alpha extension codec
     // ---------------------------------------------------------------------------
@@ -461,7 +479,11 @@ class WTVImage {
         const rgba = Buffer.from(origData);
         for (let i = 0; i < pixelCount; i++) {
             const idx = indices[i];
-            rgba[i * 4 + 3] = (idx < alphaTable.length) ? alphaTable[idx] : 0xFF;
+            if (type === 'ALP') {
+                rgba[i * 4 + 3] = (idx === 0) ? 0x00 : ((idx - 1 < alphaTable.length) ? alphaTable[idx - 1] : 0xFF);
+            } else {
+                rgba[i * 4 + 3] = (idx < alphaTable.length) ? alphaTable[idx] : 0xFF;
+            }
         }
 
         return { rgba, width, height, type };
@@ -697,7 +719,7 @@ class WTVImage {
             realPalette[transparentIdx * 3 + 2] = 0;
         }
 
-        const emitAlphaTable = fullAlpha;
+        const emitAlphaTable = this.buildArtemisAlphaTable(type, fullAlpha);
         const hasTransparent = bestZeroIdx >= 0;
 
         // Re-encode the LZW image stream from our (possibly swapped) indices.
@@ -917,7 +939,7 @@ class WTVImage {
 
         // Emit full alphaTable (no truncation; WebTV may default missing
         // entries to 0x00 transparent rather than 0xFF opaque).
-        const emitAlphaTable = finalAlpha;
+        const emitAlphaTable = this.buildArtemisAlphaTable(type, finalAlpha);
 
         const minCodeSize = Math.max(2, Math.ceil(Math.log2(colors)));
         const appExtBlock = this.buildAppExtension('Artemis ', type, emitAlphaTable);

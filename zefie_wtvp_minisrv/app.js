@@ -1314,9 +1314,15 @@ async function sendToClient(socket, headers_obj, data = null) {
     }
    
 
+    let imageArtemisType = 'ALP'
     // Add last modified if not a dynamic script
     if (socket_sessions[socket.id]) {
         if (socket_sessions[socket.id].request_headers) {
+            if (socket_sessions[socket.id].request_headers.query) {
+                    if (socket_sessions[socket.id].request_headers.query.forceALF) {
+                        imageArtemisType = 'ALF';
+                    }
+            }
             if (socket_sessions[socket.id].request_headers.service_file_path) {
                 // Don't change Last-modified header if provided already
                 if (!headers['Last-Modified'] && !headers['minisrv-no-last-modified']) {
@@ -1354,7 +1360,7 @@ async function sendToClient(socket, headers_obj, data = null) {
             if (minisrv_config.config.image_decoder.image_formats && minisrv_config.config.image_decoder.image_formats.includes(headers_obj[contype_key].toLowerCase())) {            
                 const convertOpts = {
                     jpegQuality: minisrv_config.config.image_decoder.jpg_quality,
-                    type: 'ALF'
+                    type: imageArtemisType
                 };
 
                 if (minisrv_config.config.image_decoder.max_height > 0) convertOpts.maxHeight = minisrv_config.config.image_decoder.max_height;
