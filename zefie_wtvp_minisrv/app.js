@@ -1369,6 +1369,7 @@ async function sendToClient(socket, headers_obj, data = null) {
 
     if (minisrv_config.config.image_decoder && minisrv_config.config.image_decoder.enabled) {
         const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
+        let pngOpts = {};
         if (contype_key) {
             if (minisrv_config.config.image_decoder.image_formats && minisrv_config.config.image_decoder.image_formats.includes(headers_obj[contype_key].toLowerCase())) {            
                 const convertOpts = {
