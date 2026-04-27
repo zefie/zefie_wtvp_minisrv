@@ -490,6 +490,156 @@ class WTVImage {
     }
 
     /**
+     * Quantize an RGBA image into a GIF palette and extract the real palette
+     * and alpha table using gifski-style heuristics.
+     *
+     * This function uses sharp to produce a color-indexed GIF, then rebuilds
+     * the true RGB palette and per-index alpha values from the original pixels.
+     * It is intentionally dependency-light and avoids requiring native imagequant
+     * bindings or experimental Node flags.
+     */
+    async quantizeArtemisRGBA(rgbaData, width, height, targetColors) {
+        const pixelCount = width * height;
+        const quantizeData = Buffer.alloc(pixelCount * 4);
+
+        for (let i = 0; i < pixelCount; i++) {
+            const p = i * 4;
+            const a = rgbaData[p + 3];
+            let tier;
+            if (a === 0) tier = 0;
+            else if (a >= 224) tier = 7;
+            else tier = 1 + ((a - 1) >> 5);
+            quantizeData[p]     = ((tier & 0x07) << 5) | (rgbaData[p] >> 3);
+            quantizeData[p + 1] = rgbaData[p + 1];
+            quantizeData[p + 2] = rgbaData[p + 2];
+            quantizeData[p + 3] = 255; // sharp's GIF encoder needs alpha=255 to keep all pixels distinct
+        }
+
+        const quantizedGIFBuf = await sharp(quantizeData, { raw: { width, height, channels: 4 } })
+            .gif({ colors: targetColors, effort: 10, dither: 0 })
+            .toBuffer();
+
+        const qHdr = this.parseGIFHeader(quantizedGIFBuf);
+        if (!qHdr.hasGCT) throw new Error('Quantized GIF has no global color table');
+
+        const colors = qHdr.gctSize;
+
+        let scanPos = 13 + qHdr.gctBytes;
+        while (scanPos < quantizedGIFBuf.length) {
+            const b = quantizedGIFBuf[scanPos];
+            if (b === 0x2C) break;
+            if (b === 0x3B) throw new Error('No image found in quantized GIF');
+            if (b === 0x21) {
+                scanPos += 2;
+                const label = quantizedGIFBuf[scanPos - 1];
+                if (label === 0xF9) {
+                    const gceBlockSize = quantizedGIFBuf[scanPos];
+                    scanPos += 1 + gceBlockSize + 1;
+                } else if (label === 0xFF) {
+                    const appBlockSize = quantizedGIFBuf[scanPos];
+                    scanPos += 1 + appBlockSize;
+                    while (scanPos < quantizedGIFBuf.length && quantizedGIFBuf[scanPos] !== 0) {
+                        scanPos += quantizedGIFBuf[scanPos] + 1;
+                    }
+                    scanPos++;
+                } else {
+                    while (scanPos < quantizedGIFBuf.length && quantizedGIFBuf[scanPos] !== 0) {
+                        scanPos += quantizedGIFBuf[scanPos] + 1;
+                    }
+                    scanPos++;
+                }
+                continue;
+            }
+            scanPos++;
+        }
+
+        if (scanPos >= quantizedGIFBuf.length) throw new Error('Could not find image descriptor');
+
+        const imgDescStart = scanPos;
+        const imgDescPacked = quantizedGIFBuf[imgDescStart + 9];
+        const hasLCT = (imgDescPacked & 0x80) !== 0;
+        const lctSize = hasLCT ? (1 << ((imgDescPacked & 0x07) + 1)) : 0;
+        const lzwStart = imgDescStart + 10 + lctSize * 3;
+        const minCodeSize = quantizedGIFBuf[lzwStart];
+
+        const { data: rawLZWData } = this.readSubBlocks(quantizedGIFBuf, lzwStart + 1);
+        const indices = this.lzwDecode(rawLZWData, minCodeSize, pixelCount);
+
+        const rSums = new Float64Array(colors);
+        const gSums = new Float64Array(colors);
+        const bSums = new Float64Array(colors);
+        const wSums = new Float64Array(colors);
+        const alphaHists = Array.from({ length: colors }, () => new Uint32Array(256));
+        const counts = new Uint32Array(colors);
+
+        for (let i = 0; i < pixelCount; i++) {
+            const idx = indices[i];
+            if (idx >= colors) continue;
+            const p = i * 4;
+            const a = rgbaData[p + 3];
+            const w = a / 255;
+            rSums[idx] += rgbaData[p]     * w;
+            gSums[idx] += rgbaData[p + 1] * w;
+            bSums[idx] += rgbaData[p + 2] * w;
+            wSums[idx] += w;
+            alphaHists[idx][a] += 1;
+            counts[idx]++;
+        }
+
+        const realPalette = Buffer.alloc(colors * 3, 0);
+        const alphaTable = Buffer.alloc(colors, 0xFF);
+        for (let i = 0; i < colors; i++) {
+            if (counts[i] === 0) continue;
+            if (wSums[i] > 0) {
+                realPalette[i * 3]     = Math.round(rSums[i] / wSums[i]);
+                realPalette[i * 3 + 1] = Math.round(gSums[i] / wSums[i]);
+                realPalette[i * 3 + 2] = Math.round(bSums[i] / wSums[i]);
+            }
+
+            const hist = alphaHists[i];
+            const total = counts[i];
+
+            let modeAlpha = 0;
+            let modeCount = -1;
+            for (let a = 0; a <= 255; a++) {
+                const c = hist[a];
+                if (c > modeCount || (c === modeCount && a === 255)) {
+                    modeCount = c;
+                    modeAlpha = a;
+                }
+            }
+
+            let opaqueCount = 0;
+            for (let a = 240; a <= 255; a++) opaqueCount += hist[a];
+            if (total > 0 && (opaqueCount / total) >= 0.50) {
+                alphaTable[i] = 255;
+                continue;
+            }
+
+            if (total > 0 && (hist[0] / total) >= 0.50) {
+                alphaTable[i] = 0;
+                continue;
+            }
+
+            let chosen = modeAlpha;
+            if (chosen >= 252) chosen = 255;
+            else chosen = chosen & 0xF8;
+            alphaTable[i] = chosen;
+        }
+
+        let bestZeroIdx = -1;
+        let bestZeroCount = 0;
+        for (let i = 0; i < colors; i++) {
+            if (alphaTable[i] === 0 && counts[i] > bestZeroCount) {
+                bestZeroIdx = i;
+                bestZeroCount = counts[i];
+            }
+        }
+
+        return { colors, indices, realPalette, alphaTable, bestZeroIdx };
+    }
+
+    /**
      * Encode an RGBA image (raw Buffer or sharp-compatible input) into a WebTV
      * Artemis ALF GIF.
      *
@@ -525,173 +675,13 @@ class WTVImage {
             .toBuffer({ resolveWithObject: true });
 
         const { width, height } = info;
-        const pixelCount = width * height;
 
+        const { colors, indices, realPalette, alphaTable, bestZeroIdx } = await this.quantizeArtemisRGBA(rgbaData, width, height, targetColors);
 
-        const quantizeData = Buffer.alloc(pixelCount * 4);
-        for (let i = 0; i < pixelCount; i++) {
-            const p = i * 4;
-            const a = rgbaData[p + 3];
-            let tier;
-            if (a === 0) tier = 0;
-            else if (a >= 224) tier = 7;
-            else tier = 1 + ((a - 1) >> 5);
-            quantizeData[p]     = ((tier & 0x07) << 5) | (rgbaData[p] >> 3);
-            quantizeData[p + 1] = rgbaData[p + 1];
-            quantizeData[p + 2] = rgbaData[p + 2];
-            quantizeData[p + 3] = 255; // sharp's GIF encoder needs alpha=255 to keep all pixels distinct
-        }
-
-        // No dithering: dithering would scatter alpha-encoded virtual colors across
-        // entries, corrupting the alpha-per-index mapping.
-        const quantizedGIFBuf = await sharp(quantizeData, { raw: { width, height, channels: 4 } })
-            .gif({ colors: targetColors, effort: 10, dither: 0 })
-            .toBuffer();
-
-        const qHdr = this.parseGIFHeader(quantizedGIFBuf);
-        if (!qHdr.hasGCT) throw new Error('Quantized GIF has no global color table');
-
-        const colors = qHdr.gctSize;
-
-        // Find image descriptor, skipping any extensions
-        let scanPos = 13 + qHdr.gctBytes;
-        while (scanPos < quantizedGIFBuf.length) {
-            const b = quantizedGIFBuf[scanPos];
-            if (b === 0x2C) break;
-            if (b === 0x3B) throw new Error('No image found in quantized GIF');
-            if (b === 0x21) {
-                scanPos += 2;
-                const label = quantizedGIFBuf[scanPos - 1];
-                if (label === 0xF9) {
-                    const gceBlockSize = quantizedGIFBuf[scanPos];
-                    scanPos += 1 + gceBlockSize + 1;
-                } else if (label === 0xFF) {
-                    const appBlockSize = quantizedGIFBuf[scanPos];
-                    scanPos += 1 + appBlockSize;
-                    while (scanPos < quantizedGIFBuf.length && quantizedGIFBuf[scanPos] !== 0) {
-                        scanPos += quantizedGIFBuf[scanPos] + 1;
-                    }
-                    scanPos++;
-                } else {
-                    while (scanPos < quantizedGIFBuf.length && quantizedGIFBuf[scanPos] !== 0) {
-                        scanPos += quantizedGIFBuf[scanPos] + 1;
-                    }
-                    scanPos++;
-                }
-                continue;
-            }
-            scanPos++;
-        }
-
-        if (scanPos >= quantizedGIFBuf.length) throw new Error('Could not find image descriptor');
-
-        const preImageExt   = quantizedGIFBuf.slice(13 + qHdr.gctBytes, scanPos);
-        const imgDescStart  = scanPos;
-        const imgDescPacked = quantizedGIFBuf[imgDescStart + 9];
-        const hasLCT        = (imgDescPacked & 0x80) !== 0;
-        const lctSize       = hasLCT ? (1 << ((imgDescPacked & 0x07) + 1)) : 0;
-        const lzwStart      = imgDescStart + 10 + lctSize * 3;
-        const minCodeSize   = quantizedGIFBuf[lzwStart];
-
-        const { data: rawLZWData } = this.readSubBlocks(quantizedGIFBuf, lzwStart + 1);
-        const indices = this.lzwDecode(rawLZWData, minCodeSize, pixelCount);
-
-        // Rebuild the real palette and alpha table from original source pixels.
-        // RGB uses alpha-weighted averaging so transparent pixels (often undefined RGB)
-        // do not skew color. Alpha uses robust histogram quantiles to reduce halos.
-        const rSums = new Float64Array(colors);
-        const gSums = new Float64Array(colors);
-        const bSums = new Float64Array(colors);
-        const wSums = new Float64Array(colors); // alpha-weight sums for RGB
-        const alphaHists = Array.from({ length: colors }, () => new Uint32Array(256));
-        const counts = new Uint32Array(colors);
-
-        for (let i = 0; i < pixelCount; i++) {
-            const idx = indices[i];
-            if (idx >= colors) continue;
-            const p = i * 4;
-            const a = rgbaData[p + 3];
-            const w = a / 255; // weight by alpha
-            rSums[idx] += rgbaData[p]     * w;
-            gSums[idx] += rgbaData[p + 1] * w;
-            bSums[idx] += rgbaData[p + 2] * w;
-            wSums[idx] += w;
-            alphaHists[idx][a] += 1;
-            counts[idx]++;
-        }
-
-        const realPalette = Buffer.alloc(colors * 3, 0);
-        const alphaTable  = Buffer.alloc(colors, 0xFF);
-        for (let i = 0; i < colors; i++) {
-            if (counts[i] === 0) continue;
-            // For RGB: use alpha-weighted average so transparent pixels don't skew colors.
-            // For fully-transparent entries (wSums[i]≈0) color doesn't matter, leave black.
-            if (wSums[i] > 0) {
-                realPalette[i * 3]     = Math.round(rSums[i] / wSums[i]);
-                realPalette[i * 3 + 1] = Math.round(gSums[i] / wSums[i]);
-                realPalette[i * 3 + 2] = Math.round(bSums[i] / wSums[i]);
-            }
-
-            const hist = alphaHists[i];
-            const total = counts[i];
-
-
-            let modeAlpha = 0;
-            let modeCount = -1;
-            for (let a = 0; a <= 255; a++) {
-                const c = hist[a];
-                if (c > modeCount || (c === modeCount && a === 255)) {
-                    modeCount = c;
-                    modeAlpha = a;
-                }
-            }
-
-            // If the cluster is mostly opaque (>=50% α≥240), snap to 255.
-            // Protects dialog/text content from anti-aliased edge bleed without
-            // collapsing genuinely-translucent dialog body content.
-            let opaqueCount = 0;
-            for (let a = 240; a <= 255; a++) opaqueCount += hist[a];
-            if (total > 0 && (opaqueCount / total) >= 0.50) {
-                alphaTable[i] = 255;
-                continue;
-            }
-
-            // If the cluster is mostly fully-transparent (>=50% α=0), snap to 0.
-            if (total > 0 && (hist[0] / total) >= 0.50) {
-                alphaTable[i] = 0;
-                continue;
-            }
-
-            let chosen = modeAlpha;
-            if (chosen >= 252) chosen = 255;
-            else chosen = chosen & 0xF8;
-            alphaTable[i] = chosen;
-        }
-
-        // Emit the full alphaTable (no truncation). While reference WebTV ROM
-        // Artemis GIFs do truncate trailing 0xFF entries, the WebTV renderer
-        // appears to default missing entries to 0x00 (transparent), not 0xFF
-        // (opaque), so any opaque palette entry past the truncation point
-        // would render invisible. Always emit all `colors` entries.
-        let alphaLen = alphaTable.length;
-        const trimmedAlphaTable = alphaTable.slice(0, alphaLen);
-
-        // Find palette index whose alphaTable[idx]===0 with the most pixels.
-        // Use the correct transparent palette slot for ALF vs ALP.
         const transparentIdx = (type === 'ALF') ? colors - 1 : 0;
-        let bestZeroIdx = -1;
-        let bestZeroCount = 0;
-        for (let i = 0; i < colors; i++) {
-            if (alphaTable[i] === 0 && counts[i] > bestZeroCount) {
-                bestZeroIdx = i;
-                bestZeroCount = counts[i];
-            }
-        }
-
         const finalIndices = Buffer.from(indices);
         const fullAlpha = Buffer.from(alphaTable);
         if (bestZeroIdx >= 0 && bestZeroIdx !== transparentIdx) {
-            // Swap the transparent palette entry into the expected slot.
             const tmpR = realPalette[transparentIdx * 3];
             const tmpG = realPalette[transparentIdx * 3 + 1];
             const tmpB = realPalette[transparentIdx * 3 + 2];
@@ -986,7 +976,7 @@ class WTVImage {
      * @param {number} [opts.maxHeight]          - maximum height to scale to before encoding
      * @returns {Promise<{ data: Buffer, mime: string }>}
      */
-    async ImageToWebTV(input, opts = {}) {
+    async ImageToWebTV(input, opts = {}, pngopts = {}) {
         let pngBuf = Buffer.isBuffer(input) ? input : require('fs').readFileSync(input);
         const maxWidth  = Number(opts.maxWidth)  > 0 ? Number(opts.maxWidth)  : null;
         const maxHeight = Number(opts.maxHeight) > 0 ? Number(opts.maxHeight) : null;
@@ -996,7 +986,7 @@ class WTVImage {
             if (maxHeight) resizeOpts.height = maxHeight;
             pngBuf = await sharp(pngBuf)
                 .resize(resizeOpts)
-                .png()
+                .png(pngopts)
                 .toBuffer();
         }
         const meta   = await sharp(pngBuf).metadata();

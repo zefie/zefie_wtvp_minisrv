@@ -1001,7 +1001,17 @@ async function processURL(socket, request_headers, pc_services = false) {
     request_headers.query = {};
 
     if (request_headers.request_url) {
-        service_name = socket.service_name || verifyServicePort(decodeURIComponent(request_headers.request_url).split(':')[0], socket);
+        try {
+            // wtv-log handling
+            request_headers.request_url = request_headers.request_url.replaceAll(/\%\+/g, "%20"); // sanitize parentheses for logging
+            service_name = socket.service_name || verifyServicePort(decodeURIComponent(request_headers.request_url).split(':')[0], socket);
+        } catch (err) {
+            console.log(" * Invalid URI: %s", request_headers.request_url);
+            console.error((err && err.stack) ? err.stack : err);
+            const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+            sendToClient(socket, errpage[0], errpage[1]);
+            return;
+        }
         if (minisrv_config.services[service_name]) {
             allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
             enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
@@ -1314,13 +1324,16 @@ async function sendToClient(socket, headers_obj, data = null) {
     }
    
 
-    let imageArtemisType = 'ALP'
+    let imageArtemisType = minisrv_config.config.image_decoder.gif_type || 'ALP';
     // Add last modified if not a dynamic script
     if (socket_sessions[socket.id]) {
         if (socket_sessions[socket.id].request_headers) {
             if (socket_sessions[socket.id].request_headers.query) {
-                    if (socket_sessions[socket.id].request_headers.query.forceALF) {
-                        imageArtemisType = 'ALF';
+                    if (socket_sessions[socket.id].request_headers.query.type === "ALF" ||
+                        socket_sessions[socket.id].request_headers.query.type === "ALP"
+                       )
+                    {
+                        imageArtemisType = socket_sessions[socket.id].request_headers.query.type;
                     }
             }
             if (socket_sessions[socket.id].request_headers.service_file_path) {
@@ -1365,10 +1378,12 @@ async function sendToClient(socket, headers_obj, data = null) {
 
                 if (minisrv_config.config.image_decoder.max_height > 0) convertOpts.maxHeight = minisrv_config.config.image_decoder.max_height;
                 if (minisrv_config.config.image_decoder.max_width > 0) convertOpts.maxWidth = minisrv_config.config.image_decoder.max_width;
-
+                if (minisrv_config.config.image_decoder.png_opts) {
+                    pngOpts = minisrv_config.config.image_decoder.png_opts;
+                }
                 const sourceData = Buffer.isBuffer(data) ? data : Buffer.from(data);
                 try {
-                    const converted = await WTVImage.ImageToWebTV(sourceData, convertOpts);
+                    const converted = await WTVImage.ImageToWebTV(sourceData, convertOpts, pngOpts);
                     data = converted.data;
                     content_length = data.length;
                     var i=0;

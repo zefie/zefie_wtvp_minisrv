@@ -117,6 +117,7 @@
     "shenanigans": false,
     "image_decoder": {
       "enabled": true,
+      "gif_type": "ALP", // "ALP" or "ALF", see WTVImage.js for details.
       "jpg_quality": 75,
       "image_formats": [
         "image/png",
@@ -125,6 +126,12 @@
         "image/tiff",
         "image/webp"
       ],
+      "png_opts": {
+        "quality": 80,
+        "compressionLevel": 9,
+        "palette": true,
+        "effort": 10
+      },
       "max_height": 2048,
       "max_width": 640,
       "max_file_size": 524288,

@@ -112,7 +112,7 @@ function resolveOutput(inputFile, suggestedExt, override) {
 async function cmdConvert(inputFile, outputFile, opts) {
     const ImageBuf = fs.readFileSync(inputFile);
     const { data, mime } = await WTVImage.ImageToWebTV(ImageBuf, {
-        type:        opts.type      || 'ALF',
+        type:        opts.type      || 'ALP',
         colors:      opts.colors    || 256,
         jpegQuality: opts.quality   || 85,
         maxWidth:    opts.maxWidth,
