@@ -22,8 +22,6 @@
  *
  * Decoder reverse-engineered from:
  *   https://gist.github.com/PajamaFrix/399c0785c5bb3b1d80757e84a0c1d6ab
- * 
- * TODO: Fix ALP Generation (decoding works but encoding does not yet produce correct ALP files)
  */
 
 const sharp = require('sharp');
