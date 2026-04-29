@@ -126,10 +126,11 @@
         "image/tiff",
         "image/webp"
       ],
-      "png_opts": {
-        "quality": 80,
-        "compressionLevel": 9,
-        "palette": true,
+      "image_options": {
+        "compressionLevel": 0,
+        "adaptiveFiltering": true,
+        "dither": 1,
+        "colors": 256,
         "effort": 10
       },
       "max_height": 2048,

@@ -1369,22 +1369,20 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
 
     if (minisrv_config.config.image_decoder && minisrv_config.config.image_decoder.enabled) {
         const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
-        let pngOpts = {};
         if (contype_key) {
             if (minisrv_config.config.image_decoder.image_formats && minisrv_config.config.image_decoder.image_formats.includes(headers_obj[contype_key].toLowerCase())) {            
                 const convertOpts = {
                     jpegQuality: minisrv_config.config.image_decoder.jpg_quality,
-                    type: imageArtemisType
+                    type: imageArtemisType,
+                    imgopts: minisrv_config.config.image_decoder.image_options || null
                 };
 
                 if (minisrv_config.config.image_decoder.max_height > 0) convertOpts.maxHeight = minisrv_config.config.image_decoder.max_height;
                 if (minisrv_config.config.image_decoder.max_width > 0) convertOpts.maxWidth = minisrv_config.config.image_decoder.max_width;
-                if (minisrv_config.config.image_decoder.png_opts) {
-                    pngOpts = minisrv_config.config.image_decoder.png_opts;
-                }
+
                 const sourceData = Buffer.isBuffer(data) ? data : Buffer.from(data);
                 try {
-                    const converted = await WTVImage.ImageToWebTV(sourceData, convertOpts, pngOpts);
+                    const converted = await WTVImage.ImageToWebTV(sourceData, convertOpts);
                     data = converted.data;
                     content_length = data.length;
                     var i=0;
@@ -1392,7 +1390,7 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
                         // Image is too big, try to reduce quality
                         if (i < minisrv_config.config.image_decoder.max_quality_tries) {
                             convertOpts.jpegQuality -= minisrv_config.config.image_decoder.jpeg_interval;
-                            var converted2 = await WTVImage.ImageToWebTV(sourceData, convertOpts);
+                            var converted2 = await WTVImage.ImageToWebTV(sourceData, convertOpts, pngOpts);
                             data = converted2.data;
                             content_length = data.length;
                             i++;

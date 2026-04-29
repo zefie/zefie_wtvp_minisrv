@@ -540,72 +540,30 @@ class WTVImage {
      * It is intentionally dependency-light and avoids requiring native imagequant
      * bindings or experimental Node flags.
      */
-    async quantizeArtemisRGBA(rgbaData, width, height, targetColors) {
+    async quantizeArtemisRGBA(rgbaData, width, height, opts) {
         const pixelCount = width * height;
-        const quantizeData = Buffer.alloc(pixelCount * 4);
 
-        for (let i = 0; i < pixelCount; i++) {
-            const p = i * 4;
-            const a = rgbaData[p + 3];
-            let tier;
-            if (a === 0) tier = 0;
-            else if (a >= 224) tier = 7;
-            else tier = 1 + ((a - 1) >> 5);
-            quantizeData[p]     = ((tier & 0x07) << 5) | (rgbaData[p] >> 3);
-            quantizeData[p + 1] = rgbaData[p + 1];
-            quantizeData[p + 2] = rgbaData[p + 2];
-            quantizeData[p + 3] = 255; // sharp's GIF encoder needs alpha=255 to keep all pixels distinct
-        }
+        // Use sharp's PNG palette mode (libimagequant) instead of its GIF
+        // encoder.  GIF only supports 1-bit alpha so its quantizer collapses
+        // partial-alpha pixels to fully-opaque or fully-transparent before
+        // clustering, destroying the per-pixel alpha we need to reconstruct.
+        // libimagequant under the PNG path clusters in true 4D RGBA space
+        // and gives us per-pixel palette indices we can hand to our own
+        // alpha-histogram pass.
+        const pngOpts = {
+            palette: true,
+            colors: Math.max(2, Math.min(256, opts.colors || 256)),
+            // Carry through dither / effort if the caller specified them.
+            dither: (opts.imgopts && typeof opts.imgopts.dither === 'number') ? opts.imgopts.dither : 1.0,
+            effort: (opts.imgopts && typeof opts.imgopts.effort === 'number') ? opts.imgopts.effort : 7,
+            compressionLevel: 0,
+        };
 
-        const quantizedGIFBuf = await sharp(quantizeData, { raw: { width, height, channels: 4 } })
-            .gif({ colors: targetColors, effort: 10, dither: 0 })
+        const quantizedPNGBuf = await sharp(rgbaData, { raw: { width, height, channels: 4 } })
+            .png(pngOpts)
             .toBuffer();
 
-        const qHdr = this.parseGIFHeader(quantizedGIFBuf);
-        if (!qHdr.hasGCT) throw new Error('Quantized GIF has no global color table');
-
-        const colors = qHdr.gctSize;
-
-        let scanPos = 13 + qHdr.gctBytes;
-        while (scanPos < quantizedGIFBuf.length) {
-            const b = quantizedGIFBuf[scanPos];
-            if (b === 0x2C) break;
-            if (b === 0x3B) throw new Error('No image found in quantized GIF');
-            if (b === 0x21) {
-                scanPos += 2;
-                const label = quantizedGIFBuf[scanPos - 1];
-                if (label === 0xF9) {
-                    const gceBlockSize = quantizedGIFBuf[scanPos];
-                    scanPos += 1 + gceBlockSize + 1;
-                } else if (label === 0xFF) {
-                    const appBlockSize = quantizedGIFBuf[scanPos];
-                    scanPos += 1 + appBlockSize;
-                    while (scanPos < quantizedGIFBuf.length && quantizedGIFBuf[scanPos] !== 0) {
-                        scanPos += quantizedGIFBuf[scanPos] + 1;
-                    }
-                    scanPos++;
-                } else {
-                    while (scanPos < quantizedGIFBuf.length && quantizedGIFBuf[scanPos] !== 0) {
-                        scanPos += quantizedGIFBuf[scanPos] + 1;
-                    }
-                    scanPos++;
-                }
-                continue;
-            }
-            scanPos++;
-        }
-
-        if (scanPos >= quantizedGIFBuf.length) throw new Error('Could not find image descriptor');
-
-        const imgDescStart = scanPos;
-        const imgDescPacked = quantizedGIFBuf[imgDescStart + 9];
-        const hasLCT = (imgDescPacked & 0x80) !== 0;
-        const lctSize = hasLCT ? (1 << ((imgDescPacked & 0x07) + 1)) : 0;
-        const lzwStart = imgDescStart + 10 + lctSize * 3;
-        const minCodeSize = quantizedGIFBuf[lzwStart];
-
-        const { data: rawLZWData } = this.readSubBlocks(quantizedGIFBuf, lzwStart + 1);
-        const indices = this.lzwDecode(rawLZWData, minCodeSize, pixelCount);
+        const { palette: rawPalette, indices, colors } = this.extractPalettePNG(quantizedPNGBuf);
 
         const rSums = new Float64Array(colors);
         const gSums = new Float64Array(colors);
@@ -701,12 +659,6 @@ class WTVImage {
         const paletteSize = opts.colors || 256;
         const type        = opts.type || 'ALF';
 
-        // Clamp palette size to valid GIF power-of-two values
-        const validSizes = [2, 4, 8, 16, 32, 64, 128, 256];
-        const targetColors = validSizes.reduce((prev, cur) =>
-            Math.abs(cur - paletteSize) < Math.abs(prev - paletteSize) ? cur : prev
-        );
-
         const sharpSrc = (typeof input === 'string' || Buffer.isBuffer(input))
             ? sharp(input)
             : input;
@@ -718,7 +670,7 @@ class WTVImage {
 
         const { width, height } = info;
 
-        const { colors, indices, realPalette, alphaTable, bestZeroIdx } = await this.quantizeArtemisRGBA(rgbaData, width, height, targetColors);
+        const { colors, indices, realPalette, alphaTable, bestZeroIdx } = await this.quantizeArtemisRGBA(rgbaData, width, height, opts);
 
         const transparentIdx = (type === 'ALF') ? colors - 1 : 0;
         const finalIndices = Buffer.from(indices);
@@ -1018,7 +970,7 @@ class WTVImage {
      * @param {number} [opts.maxHeight]          - maximum height to scale to before encoding
      * @returns {Promise<{ data: Buffer, mime: string }>}
      */
-    async ImageToWebTV(input, opts = {}, pngopts = {}) {
+    async ImageToWebTV(input, opts = {}) {
         let pngBuf = Buffer.isBuffer(input) ? input : require('fs').readFileSync(input);
         const maxWidth  = Number(opts.maxWidth)  > 0 ? Number(opts.maxWidth)  : null;
         const maxHeight = Number(opts.maxHeight) > 0 ? Number(opts.maxHeight) : null;
@@ -1029,15 +981,9 @@ class WTVImage {
             const resizeOpts = { fit: 'inside', withoutEnlargement: true };
             if (maxWidth)  resizeOpts.width  = maxWidth;
             if (maxHeight) resizeOpts.height = maxHeight;
-            const outputPngOpts = Object.assign({}, pngopts);
-            if (originalIsPalettePNG && outputPngOpts.palette) {
-                // Avoid an extra palette quantization step on an already-indexed PNG.
-                outputPngOpts.palette = false;
-                delete outputPngOpts.colors;
-            }
             pngBuf = await sharp(pngBuf)
                 .resize(resizeOpts)
-                .png(outputPngOpts)
+                .png()
                 .toBuffer();
         }
         const meta   = willResize ? await sharp(pngBuf).metadata() : inputMeta;
