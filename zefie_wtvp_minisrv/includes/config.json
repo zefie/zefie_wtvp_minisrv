@@ -127,7 +127,7 @@
         "image/webp"
       ],
       "image_options": {
-        "compressionLevel": 0,
+        "compressionLevel": 0, // for png, anything higher than 0 is just wasting CPU time for minisrv's use case
         "adaptiveFiltering": true,
         "dither": 1,
         "colors": 256,
@@ -138,6 +138,27 @@
       "max_file_size": 524288,
       "jpeg_interval": 5, // lower quality by this amount to try to lower filesize
       "max_quality_tries": 5 // try to decode up to this many times, reducing quality each time, until the file is under the max_file_size. After this many tries, it will error out rather than sending an oversized file to the client.
+    },
+    "audio_proxy": {
+      "enabled": false,
+      "types": [
+        "audio/mpeg",
+        "audio/mp3",
+        "audio/wav",
+        "audio/ogg",
+        "audio/x-wav",
+        "audio/flac",
+        "audio/x-flac",
+        "audio/aac",
+        "audio/mp4",
+        "audio/x-m4a",
+        "audio/x-ms-wma"
+      ],
+      "bitrate": "32k",
+      "sampleRate": 22050,
+      "channels": 1,
+      "maxDurationSeconds": 480,
+      "ffmpegPath": "ffmpeg"
     }
   },
   "services": {

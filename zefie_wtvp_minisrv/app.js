@@ -11,7 +11,7 @@ const process = wtvshared.process;
 const util = wtvshared.util;
 const nunjucks = require('nunjucks');
 const {serialize, unserialize} = require('php-serialize');
-const {spawn} = require('child_process');
+const {spawn, spawnSync} = require('child_process');
 const http = require('follow-redirects').http;
 const httpx = require(classPath + "/HTTPX.js");
 const { URL } = require('url');
@@ -27,6 +27,7 @@ const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
 const WTVImage = require(classPath + "/WTVImage.js");
+const WTVAudioProxy = require(classPath + "/WTVAudioProxy.js");
 const vm = require('vm');
 const debug = require('debug')('app');
 const express = require('express');
@@ -37,6 +38,32 @@ const protocolServers = [];
 
 const minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
 const wtvmime = new WTVMime(minisrv_config);
+const wtvAudioProxy = new WTVAudioProxy(minisrv_config);
+
+function validateAudioProxy() {
+    if (!wtvAudioProxy || !wtvAudioProxy.isEnabled()) return;
+
+    try {
+        const check = spawnSync(wtvAudioProxy.config.ffmpegPath, ['-hide_banner', '-version'], {
+            stdio: ['ignore', 'ignore', 'ignore'],
+            timeout: 5000
+        });
+
+        if (check.error || check.status !== 0) {
+            console.warn(`AudioProxy disabled: ffmpeg not found or failed to execute at '${wtvAudioProxy.config.ffmpegPath}'.`);
+            if (check.error) console.warn(`AudioProxy ffmpeg error: ${check.error.message}`);
+            wtvAudioProxy.config.enabled = false;
+            return;
+        }
+
+        console.log(`AudioProxy enabled: transcoding audio to ${wtvAudioProxy.config.bitrate} ${wtvAudioProxy.config.sampleRate}Hz mono MP3.`);
+    } catch (error) {
+        console.warn(`AudioProxy disabled: ffmpeg validation failed: ${error.message}`);
+        wtvAudioProxy.config.enabled = false;
+    }
+}
+
+validateAudioProxy();
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -1415,6 +1442,27 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
                     }
                     data = "";
                 }
+            }
+        }
+    }
+
+    if (wtvAudioProxy && wtvAudioProxy.isEnabled()) {
+        const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
+        if (contype_key && wtvAudioProxy.shouldProxy(headers_obj[contype_key])) {
+            try {
+                const transformResult = await wtvAudioProxy.transformIfNeeded(headers_obj, data);
+                headers_obj = transformResult.headers;
+                data = transformResult.data;
+                content_length = Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data || '');
+            } catch (e) {
+                console.error('Audio proxy error:', e.message);
+                headers_obj = {
+                    "Status": "413 Audio Too Long",
+                    "Content-type": "text/plain"
+                };
+                data = (e.code === 'AUDIO_TOO_LONG') ?
+                    `Audio exceeds maximum allowed duration of ${wtvAudioProxy.config.maxDurationSeconds} seconds.` :
+                    `Audio proxy failure: ${e.message}`;
             }
         }
     }

@@ -1,5 +1,5 @@
 class WTVHTTP {
-    constructor(...[minisrv_config, service_name, wtvshared, sendToClient, http]) {
+    constructor(...[minisrv_config, service_name, wtvshared, sendToClient, net, http]) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         this.wtvshared = wtvshared;
