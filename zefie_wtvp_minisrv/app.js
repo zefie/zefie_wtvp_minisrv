@@ -1299,6 +1299,7 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
         if (socket.destroy) socket.destroy();
         return;
     }
+    const isWebTVClient = Boolean(socket.ssid && ssid_sessions[socket.ssid]);
     if (!socket.res) {
         wtv_connection_close = (headers_obj["wtv-connection-close"]) ? true : false;
         if (typeof (headers_obj["wtv-connection-close"]) !== 'undefined') delete headers_obj["wtv-connection-close"];
@@ -1394,7 +1395,7 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
         delete headers_obj['minisrv-no-last-modified'];
     }
 
-    if (minisrv_config.config.image_decoder && minisrv_config.config.image_decoder.enabled) {
+    if (isWebTVClient && minisrv_config.config.image_decoder && minisrv_config.config.image_decoder.enabled) {
         const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
         if (contype_key) {
             if (minisrv_config.config.image_decoder.image_formats && minisrv_config.config.image_decoder.image_formats.includes(headers_obj[contype_key].toLowerCase())) {            
@@ -1446,7 +1447,7 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
         }
     }
 
-    if (wtvAudioProxy && wtvAudioProxy.isEnabled()) {
+    if (isWebTVClient && wtvAudioProxy && wtvAudioProxy.isEnabled()) {
         const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
         if (contype_key && wtvAudioProxy.shouldProxy(headers_obj[contype_key])) {
             try {
