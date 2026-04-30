@@ -495,7 +495,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     env.SERVER_PORT = request_data.port;
     env.SERVER_ADDR = request_data.host;
     env.SERVER_NAME = request_data.host;
-    if ((minisrv_config.services[socket.service_name] && minisrv_config.services[socket.service_name].hide_minisrv_version) || minisrv_config.config.hide_server_version) {
+    if (minisrv_config.config.hide_minisrv_version) {
         env.SERVER_SOFTWARE = "NodeJS; minisrv";
     } else {
         // Full version
@@ -1592,7 +1592,7 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
     if (!xpower && socket.service_name) {
         // add X-Powered-By header if not WebTV and not already set
         xpower = 'X-Powered-By';
-        if (minisrv_config.services[socket.service_name].hide_minisrv_version) {   
+        if (minisrv_config.config.hide_minisrv_version) {   
             // Don't report version         
             if (!socket.ssid) headers_obj[xpower] = "NodeJS; minisrv";
         } else {
@@ -1603,7 +1603,7 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
         // delete if webtv
         if (socket.ssid) delete headers_obj[xpower];
         if (socket.service_name) {
-            if (minisrv_config.services[socket.service_name].hide_minisrv_version) {   
+            if (minisrv_config.config.hide_minisrv_version) {   
                 // Don't report version         
                 if (!socket.ssid) headers_obj[xpower] = headers_obj[xpower] + "; NodeJS; minisrv";
             } else {
