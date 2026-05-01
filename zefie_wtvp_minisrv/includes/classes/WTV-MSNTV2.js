@@ -11,7 +11,7 @@ const { http, https } = require('follow-redirects');
 const { raw } = require('express');
 
 class WTVMSNTV2 {
-    constructor(minisrv_config, service_name, wtvshared, sendToClient, net, runScriptInVM, handlePHP, handleCGI, ssid_sessions, WTVClientSessionData) {
+    constructor(minisrv_config, service_name, wtvshared, sendToClient, net, runScriptInVM, handlePHP, handleCGI, ssid_sessions, WTVClientSessionData, socket_sessions) {
         this.minisrv_config = minisrv_config;
         this.service_name = service_name;
         this.service_config = minisrv_config.services[service_name] || {};
@@ -22,6 +22,7 @@ class WTVMSNTV2 {
         this.handlePHP = handlePHP || null;
         this.handleCGI = handleCGI || null;
         this.ssid_sessions = ssid_sessions || [];
+        this.socket_sessions = socket_sessions || [];
         this.WTVClientSessionData = WTVClientSessionData || null;
         this.tlsContext = this.loadTlsContext();
         this.forgeTlsCredentials = this.loadForgeTlsCredentials();
@@ -132,7 +133,6 @@ class WTVMSNTV2 {
         const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
         if (verbose) {
             console.log('[WTV-MSNTV2] incoming request:', requestLine);
-            console.log('[WTV-MSNTV2] request headers:\n' + rawHeaders.join('\r\n'));
             if (body.length) {
                 console.log('[WTV-MSNTV2] request body length:', body.length);
                 console.log('[WTV-MSNTV2] request body (first 1024 bytes):', body.slice(0, 1024).toString('utf8'));
@@ -1499,7 +1499,7 @@ class WTVMSNTV2 {
                         // Convenience UUID generator (replaces uuidv4() from C# artifacts)
                         uuidv4() { return crypto.randomUUID(); }
                     };
-                    const vmResult = this.runScriptInVM(scriptData, contextObj, false, filepath);
+                    const vmResult = this.runScriptInVM(scriptData, contextObj, true, filepath);
                     // Write session_data back to ssid_sessions (mirrors app.js updateFromVM for non-privileged scripts;
                     // use socket.ssid as set by the script itself via BoxID or header).
                     if (socket.ssid && this.ssid_sessions && vmResult.session_data !== undefined) {

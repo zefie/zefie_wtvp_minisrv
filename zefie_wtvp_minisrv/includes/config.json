@@ -515,7 +515,7 @@
           "local_dir": "sg1"
         }
       ],
-      "handler_extra_vars": ["runScriptInVM", "handlePHP", "handleCGI", "ssid_sessions", "WTVClientSessionData"],
+      "handler_extra_vars": ["runScriptInVM", "handlePHP", "handleCGI", "ssid_sessions", "WTVClientSessionData", "socket_sessions"],
       "show_verbose_errors": false,
       "modules": [
         "WTVRegister"

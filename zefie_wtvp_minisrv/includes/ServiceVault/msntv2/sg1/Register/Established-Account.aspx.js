@@ -26,7 +26,7 @@ if (request_headers.cookie) {
     if (pm) register_password = decodeURIComponent(pm[1]);
 }
 
-if (session_data && !session_data.isRegistered) {
+if (session_data && !session_data.isRegistered()) {
     const user_name = register_email ? register_email.split('@')[0] : username;
     const user_password = register_password;
 
@@ -43,7 +43,7 @@ if (session_data && !session_data.isRegistered) {
         data = errpage[1];
         console.error("Failed to save session data for user %s", username);
     }
-} else if (session_data && session_data.isRegistered) {
+} else if (session_data && session_data.isRegistered()) {
     console.warn("Session for BoxID %s is already registered", BoxId);
 } else if (!session_data) {
     console.warn("No session_data for BoxID %s — skipping registration", BoxId);
