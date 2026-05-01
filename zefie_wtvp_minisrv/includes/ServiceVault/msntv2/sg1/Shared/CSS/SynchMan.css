@@ -1,0 +1,137 @@
+@import url(msntv:/CSS/Base.css);
+
+body
+{
+	background-color: #3D6CA6;
+	overflow: hidden;
+	margin: 0px;
+}
+
+a:visited
+{
+	color:#F2F2F2;
+	text-decoration: none;
+}
+
+a:link
+{
+	color:#F2F2F2;
+	text-decoration: none;
+}
+
+em
+{
+	font-weight: bold;
+	font-style: normal;
+}
+
+#header
+{
+	position: absolute;
+	background: url(msntv:/Shared/Images/SynchManagerHeaderBG.jpg) no-repeat;
+	background-color: #1C5798;
+	top: 0px;
+	left: 0px;
+	height: 56px;
+	width: 100%;
+}
+
+#mainHeading
+{
+	color: #F2F2F2;
+	font: bold 21px;
+	margin-left: 15px;
+	margin-right: 15px;
+}
+
+
+#title
+{
+	position: relative;
+	top: 23px;
+	margin-left: 15px;
+	margin-right: 8px;
+	color: #F2F2F2;
+	font: bold 21px;
+}
+
+#title2
+{
+	position: relative;
+	top: 23px;
+	color: #F2F2F2;
+	font-size: 21px;
+	white-space: nowrap;
+}
+
+#buttonBar
+{
+	position: absolute;
+	right: 20px;
+	bottom: 10px;
+	text-align: right;
+}
+
+.buttonBarButton, #buttonBar msntv\:CustomButton
+{
+	margin-left: 15px;
+	margin-right:0px;
+}
+
+#nonScrollArea
+{
+	position: absolute;
+	top: 71px;
+	left: 0px;
+	width: 100%;
+	bottom: 51px;
+	padding-left: 15px;
+	padding-right: 20px;
+}
+
+
+table.controlTable
+{
+	border-collapse:collapse;
+}
+table.controlTable td
+{
+	padding: 10px 5px 0px 0px;
+	vertical-align: top;
+	/* see also below under .control */
+}
+
+.control, table.controlTable td
+{
+	font-weight: bold;
+}
+
+.topic
+{
+	margin-top: 4px;
+	font: bold 18px;
+	color: #F2F2F2;
+	display: inline-block;
+}
+
+.description, .description td
+{
+	font-size: 18px;
+	color: #F2F2F2;
+	font-weight: normal;
+	margin-bottom: 7px;
+}
+.description
+{
+	width: 100%;
+}
+
+hr
+{
+	height:2px;
+	width: 100%;
+	border:#5981B3 solid 2px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+

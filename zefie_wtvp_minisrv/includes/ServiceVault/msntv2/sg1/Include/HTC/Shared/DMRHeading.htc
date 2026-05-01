@@ -1,0 +1,95 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         DMRHeading.htc
+//
+//  Description:  The DMRHeading behavior creates the standard heading
+//				  element for Music & Video pages.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="DMRHeading" lightweight=true>
+
+<PUBLIC:PROPERTY NAME="mainTitle" value="Title" />
+<PUBLIC:PROPERTY NAME="subTitle" value="SubTitle" />
+<PUBLIC:PROPERTY NAME="helpTopicURL" value="" />
+<PUBLIC:PROPERTY NAME="settingsURL" value="" />
+<PUBLIC:PROPERTY NAME="imageURL" value="msntv:/HTC/images/DMRHeader.jpg" />
+<PUBLIC:PROPERTY NAME="showscrolltop" value="true"/>
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="doPropChange" />
+
+<PUBLIC:DEFAULTS style="{color:#C4C0B1; font-family: Segoe TV;}" />
+
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	var helpURL;
+	if(typeof(PH_topicTOC)=="undefined")
+    	helpURL = "";
+	else if (helpTopicURL != "")
+		helpURL = GetDMRHelpURL(helpTopicURL);
+
+	var output =
+		"<DIV id=header>" +
+			"<TABLE cellspacing=0 cellpadding=0 width=100%>" +
+			"<TR>" +
+				"<TD><IMG src=\"" + imageURL + "\" width=100% height=56 align=top>";
+				
+	if (showscrolltop == "true") {
+		output +=
+			"<TR>" +
+				"<TD style='background-color:#F2F2F2;width:100%;height=1px'></TD>" +
+			"</TR>";
+	}
+	
+	output += 
+			"</TABLE>" +
+			"<DIV id=headerTitle>" + mainTitle + "</DIV>" +
+			"<DIV id=headerSubTitle class=ellipsis>" + subTitle + "</DIV>";
+
+	if (settingsURL != "") {
+		output += "<A href=\"" + settingsURL + "\" id=\"settings\">Settings</A>";
+	}
+
+	output += "<A id=\"help\" href=\"" + helpURL + "\">Help<SPAN id=\"helpIcon\"></SPAN></A>";
+	output +=
+		"</DIV>";
+
+	innerHTML = output;
+}
+
+function doPropChange()
+{
+	if (event.propertyName == "mainTitle") {
+		element.all["headerTitle"].innerText = mainTitle;
+	}
+	if (event.propertyName == "subTitle") {
+		element.all["headerSubTitle"].innerText = subTitle;
+	}
+}
+</SCRIPT>
+
+</PUBLIC:COMPONENT>

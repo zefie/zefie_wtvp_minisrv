@@ -1,0 +1,161 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2004 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:		ScrollDelegate.htc
+//
+//  Description:	The ScrollDelegate HTML behavior grabs the
+//	  document page-up/page-down keys and passes them onto to the element.
+//	  Use the AttachScrollHandler() to grab the keydown events from other 
+//	  elements. This is necessary if the behavior is attached to an element
+//	  in an iframe, as the 'document' for the element is not the document
+//    for the enclosing page.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT lightweight="true">
+<PUBLIC:PROPERTY NAME="delegate" />
+<PUBLIC:ATTACH EVENT="onkeydown" HANDLER="KeydownForPageHandler" />
+<PUBLIC:METHOD NAME="SetDelegate" />
+</PUBLIC:COMPONENT>
+
+<SCRIPT>
+
+// Some useful sounds for scrolling
+function PlayBoundarySound()
+{
+	TVShell.DeviceControl.PlaySound("Page_Boundary");
+}
+
+function PlayJumpTopSound()
+{
+	TVShell.DeviceControl.PlaySound("Jump_Top");
+}
+
+function PlayJumpEndSound()
+{
+	TVShell.DeviceControl.PlaySound("Jump_End");
+}
+
+function SetDelegate(elem)
+{
+	//TVShell.Message( "new delegate is " + elem );
+	delegate = elem;
+}
+
+function MyDoScroll(scrollAction)
+{
+	//TVShell.Message( "Scrolling " + scrollAction );
+
+	if (delegate)
+	{
+		if ( scrollAction == 'scrollToStart' )
+		{
+			delegate.scrollTop = 0;
+		}
+		else if ( scrollAction == 'scrollToEnd' )
+		{
+			delegate.scrollTop = delegate.offsetHeight - delegate.clientHeight;
+		}
+		else
+		{
+			delegate.doScroll(scrollAction);
+		}
+	}
+}
+
+function KeydownForPageHandler()
+{
+	var handled = false;
+
+	var srcElem = event.srcElement;
+	var selnRange = null;
+	var txtAreaRange = null;
+
+	// If the selection is editable text, only handle keys when the caret
+	// is at the appropriate edge
+	if (srcElem && srcElem.isContentEditable)
+	{
+	 	selnRange = element.document.selection.createRange();
+		txtAreaRange = srcElem.createTextRange();
+	}
+	//TVShell.Message( 'KeydownForPageHandler: delegate=' + delegate );
+	if ( delegate )
+	{
+		var startTop = delegate.scrollTop;
+	
+		switch (event.keyCode)
+		{
+		case 33:	// page-up
+			if (!event.ctrlKey)
+			{
+				MyDoScroll("scrollbarPageUp");
+				handled = ( delegate.scrollTop != startTop );
+			}
+			else
+			{
+				PlayJumpTopSound();
+				MyDoScroll("scrollToStart");
+				handled = true;
+			}
+			break;
+
+		case 34:	// page-down
+			if (!event.ctrlKey)
+			{
+				MyDoScroll("scrollbarPageDown");
+				handled = ( delegate.scrollTop != startTop );
+			}
+			else
+			{
+				PlayJumpEndSound();
+				MyDoScroll("scrollToEnd");
+				handled = true;
+			}
+			break;
+
+		case 35:	// End
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the end
+				txtAreaRange.collapse(false);	// move to the end
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop)
+					break;
+			}
+			
+			PlayJumpEndSound();
+			MyDoScroll("scrollToEnd");
+			handled = true;
+			break;
+
+		case 36:	// Home
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the beginning
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop)
+					break;
+			}
+			
+			PlayJumpTopSound();
+			MyDoScroll("scrollToStart");
+			handled = true;
+			break;
+		}
+	}	
+
+	if (handled)
+	{
+		event.returnValue=false;
+		event.cancelBubble=true;
+	}
+
+	//pass on to next handler only if handled == false
+	return handled == false; 
+}
+
+</SCRIPT>
+
+
+

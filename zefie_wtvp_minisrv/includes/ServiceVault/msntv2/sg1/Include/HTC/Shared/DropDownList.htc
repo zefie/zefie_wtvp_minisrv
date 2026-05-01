@@ -1,0 +1,581 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         DoprDownList.htc
+//
+//  Description:  The DropDownList behavior implements a drop-down list as a 
+//				  reusable DHTML component. This allows web authors to easily 
+//				  add a drop down list with scroll arrows to their content. 
+//
+//				  For usage details, take a look at :
+//				  private/msntv_core/help/DropDownList/DropDownList.htm	
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="dropDownList" lightweight=true>
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="OnPropertyChange" />
+<PUBLIC:ATTACH EVENT="ondeactivate" HANDLER="OnDeactivate" />
+<PUBLIC:ATTACH EVENT="onresize" HANDLER="OnResize" />
+<PUBLIC:ATTACH EVENT="onmove" HANDLER="OnMove" />
+
+<PUBLIC:METHOD NAME="AppendItem" />
+<PUBLIC:METHOD NAME="RemoveItems" />
+<PUBLIC:METHOD NAME="Open" />
+<PUBLIC:METHOD NAME="Close" />
+<PUBLIC:METHOD NAME="focus" />
+
+<PUBLIC:PROPERTY NAME="size" value=1 />
+<PUBLIC:PROPERTY NAME="selectedIndex" value=0 />
+<PUBLIC:PROPERTY NAME="autoClose" value="true" />
+<PUBLIC:PROPERTY NAME="openDirection" value="down" />
+<PUBLIC:PROPERTY NAME="drawButton" value="true" />
+<PUBLIC:PROPERTY NAME="length" value=0 GET="get_length" />
+
+<PUBLIC:EVENT ID="onSelectID" NAME="onSelect" />
+
+<PUBLIC:DEFAULTS style="{font-family:Segoe TV; font-size:16px;}" />
+
+// Private methods (must still declare public)
+<PUBLIC:METHOD NAME="OnKeyDown" />
+<PUBLIC:METHOD NAME="OnClick" />
+
+<SCRIPT LANGUAGE="JScript" SRC="msntv:/Javascript/VKCodes.js"></SCRIPT>
+<SCRIPT LANGUAGE="JScript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+var _items;
+var _topIndex = 0;
+var _opened = false;
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	_items = new Array();
+	selectedIndex = 0;
+
+	BuildTable();
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnPropertyChange()
+//
+//  Description:    Handle propery changes on the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function OnPropertyChange()
+{
+	if (event.propertyName == "size") {
+		BuildTable();
+	}
+	else if (event.propertyName == "selectedIndex" && !_opened) {
+		BuildTable();
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       AppendItem
+//
+//  Description:    Appends an item to the end of Dropdown list
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function AppendItem(string)
+{
+	_items[_items.length] = string;
+	ShowItems(_opened ?  _topIndex : selectedIndex);
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       RemoveItems
+//
+//  Description:    Removes all items fomr the Dropdown list
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function RemoveItems()
+{
+	_items.length = 0;
+	ShowItems(0);
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Open
+//
+//  Description:    Drop it down
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function Open()
+{
+	_opened = true;
+	BuildTable();
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Close
+//
+//  Description:    Close it up
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function Close()
+{
+	_opened = false;
+	BuildTable();
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       focus
+//
+//  Description:    focus to this control
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function focus()
+{
+	var anchors = all.tags("a");
+
+	if (_opened) {
+		anchors[selectedIndex - _topIndex].focus();
+	}
+	else {
+		anchors[0].focus();
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       length
+//
+//  Description:    Handles length property.
+//
+//  Arguments:      none
+//
+//  Returns:        The length of the dropdownlist array
+//
+//-----------------------------------------------------------------------------
+
+function get_length()
+{
+	return _items.length;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       BuildTable
+//
+//  Description:    Builds the table that contains the visible entries.
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function BuildTable()
+{
+	BuildButtonTable();
+
+	if (_opened) {
+		BuildOpenTable();
+	}
+
+	ShowItems(selectedIndex);
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       BuildOpenTable
+//
+//  Description:    Builds the table that show the visible items.
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function BuildOpenTable()
+{
+	var html =	"<table id=\"itemTable\" cellspacing=0 cellpadding=0 " +
+				 "style=\"width:100%; position:absolute; visibility:hidden;" +
+				 (openDirection == "up" ? "border-top:1px solid #423F3F;" : "") + "\">";
+
+	for (var i = 0; i < size; i++) {
+		html +=	"<tr><td>" + 
+		 		"<a tabindex=0 onClick=\"" + uniqueID + ".OnClick(" + i + ");\" onKeyDown=\"" + uniqueID + ".OnKeyDown(" + i + ");\">" +
+					"<table cellspacing=0 cellpadding=0 style=\"width:100%;\">" +
+						"<tr>" +
+							"<td style=\"width:4px; height:26px; behavior:url(#default#alphaImageLoader); src:";
+		if (i == size - 1) {
+			html +=			  "url(msntv:/Shared/Images/DropDownCustomBottomLeftEdge.png);\">";
+		}
+		else {
+			html +=			  "url(msntv:/Shared/Images/DropDownCustomMiddleLeftEdge.png);\">";
+		}
+		html +=				"</td><td style=\"behavior:url(#default#alphaImageLoader); src:";
+		if (i == size - 1) {
+			html +=			  "url(msntv:/Shared/Images/DropDownCustomBottomCenterStretch.png);\">";
+		}
+		else {
+			html +=			  "url(msntv:/Shared/Images/DropDownCustomMiddleCenterStretch.png);\">";
+		}
+		html +=					"<span style=\"font-size:16px; color:#002157; margin-left:3px; " + 
+								 "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\"></span>" +
+							"</td><td style=\"width:20px; text-align:center; vertical-align:center; behavior:url(#default#alphaImageLoader); src:"; 
+		if (i == size - 1) {
+			html +=				"url(msntv:/Shared/Images/DropDownCustomBottomRightEdge.png);\">";
+		}
+		else {
+			html +=				"url(msntv:/Shared/Images/DropDownCustomMiddleRightEdge.png);\">";
+		}
+		if (i == 0) {
+			html +=				"<div id=\"arrowUp\" style=\"width:18px; height:18px; line-height:18px; behavior:url(#default#alphaImageLoader); src:url(msntv:/Shared/images/ScrollIndicatorUpGlobal.png); visibility:hidden;\"></div>";
+		}
+		else if (i == size - 1) {
+			html +=				"<div id=\"arrowDown\" style=\"width:18px; height:18px; line-height:18px; behavior:url(#default#alphaImageLoader); src:url(msntv:/Shared/images/ScrollIndicatorDownGlobal.png); visibility:hidden;\"></div>";
+		}
+		html += 			"</td>" + 
+						"</tr>" +
+					"</table>" +
+				"</a>" +
+				"</td></tr>";
+	}
+
+	html += "</table>";
+
+	innerHTML += html;
+
+	// We now need to calculate the elements position relative to the table's offset parent.
+	// to set the table's position.
+	var finalOffsetParent = all.itemTable.offsetParent;
+	var offsetTop = 0;
+	var offsetLeft = 0;
+
+	for (var current = element; current != finalOffsetParent; current = current.offsetParent) {
+		offsetTop += current.offsetTop;
+		offsetLeft += current.offsetLeft;
+	}
+
+	all.itemTable.style.pixelLeft = offsetLeft;
+	if (openDirection == "up") {
+		offsetTop -= all.itemTable.offsetHeight - 1;
+		if (drawButton != "true") {
+			offsetTop += element.offsetHeight - 1;
+		}
+	}
+	else {
+		if (drawButton == "true") {
+			offsetTop += element.offsetHeight;
+		}
+	}
+	all.itemTable.style.pixelTop = offsetTop;
+	all.itemTable.style.visibility = "visible"
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       BuildButtonTable
+//
+//  Description:    Builds the button table showing the selected item.
+//
+//  Arguments:      None.
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function BuildButtonTable()
+{
+	var html =	"<table id=\"buttonTable\" cellspacing=0 cellpadding=0 style=\"width:100%;\">";
+
+	if (drawButton == "true") {
+		html +=		"<tr><td>" + 
+		 				(_opened ? "" : "<a tabindex=0 onClick=\"" + uniqueID + ".OnClick(" + selectedIndex + ");\">") +
+							"<table cellspacing=0 cellpadding=0 style=\"width:100%;\">" +
+								"<tr>" +
+									"<td style=\"width:4px; height:26px; behavior:url(#default#alphaImageLoader); src:url(msntv:/Shared/Images/CommandButtonGlobalLeftEdge.png);\">" +
+									"</td>" +
+									"<td  style=\"behavior:url(#default#alphaImageLoader); src:url(msntv:/Shared/Images/CommandButtonGlobalMiddleStretch.png);\">" +
+										"<span style=\"width:" + (clientWidth - 27) + "px; font-size:16px; color:#002157; margin-left:2;" +
+										 "overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\"></span>" +
+									"</td>" +
+									"<td style=\"width:20px; height:26px; behavior:url(#default#alphaImageLoader); src:url(msntv:/Shared/Images/DropDownCustomTopRightEdge.png);\">" +
+										"<div id=\"arrow\" style=\"width:20px; height:26px; behavior:url(#default#alphaImageLoader); src:url(msntv:/Shared/Images/DropDownCustom" + (openDirection == "up" ? "Up" : "Down") + "Arrow.png);\"> </div>" +
+									"</td>" +
+								"</tr>" +
+							"</table>" +
+						(_opened ? "" : "</a>") +
+					"</td></tr>";
+	}
+
+	html +=		"</table>";
+
+	innerHTML = html;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       ShowItems
+//
+//  Description:    Shows the items beginning with index.
+//
+//  Arguments:      index of top item
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function ShowItems(index)
+{
+	if (_opened) {
+		var spans = all.itemTable.all.tags("span");
+		var maxTopIndex = Math.max(_items.length - size, 0);
+
+		if (index > maxTopIndex) {
+			index = maxTopIndex;
+		}
+
+		_topIndex = index;
+
+		var visibleItemsLength = _items.length - index;
+		
+		for (var i = 0; i < size; i++) {  
+			if (i < visibleItemsLength) {
+				spans[i].style.pixelWidth = element.offsetWidth - 27;
+				spans[i].innerText = _items[index + i];
+			}
+			else {
+				spans[i].innerText = "";
+			}
+		}
+
+		if (size >= 2) {
+			all.arrowUp.style.visibility = index > 0 ? "visible" : "hidden";
+			all.arrowDown.style.visibility = visibleItemsLength > size ? "visible" : "hidden";
+		}
+	}
+
+	if (drawButton == "true" && selectedIndex < _items.length) {
+		var spans = all.buttonTable.all.tags("span");
+		spans[0].style.pixelWidth = element.offsetWidth - 27;
+		spans[0].innerText = _items[selectedIndex];
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnKeyDown
+//
+//  Description:    Handle navigation keys
+//
+//  Arguments:      index - list index of calling item.
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnKeyDown(index)
+{
+	var e = window.event;
+
+	if (e.altKey || e.ctrlKey || e.shiftKey) {
+		return;
+	}
+
+	var anchors = all.itemTable.all.tags("a");
+	var maxIndex = Math.min(size, _items.length) - 1;
+	var maxTopIndex = Math.max(_items.length - size, 0);
+
+	switch (e.keyCode) {
+		case VK_UP:
+			if (index > 0) {
+				anchors[index - 1].focus();
+				e.returnValue = false;
+				e.cancelBubble=true;
+			}
+			else if (_topIndex > 0) {
+				ShowItems(_topIndex - 1);
+				e.returnValue = false;
+				e.cancelBubble=true;
+			}
+			else if (autoClose == "true") {
+				e.returnValue = false;
+				e.cancelBubble=true;
+			}
+			break;
+
+		case VK_DOWN:
+			if (index < (size - 1)) {
+				anchors[index + 1].focus();
+				e.returnValue = false;
+				e.cancelBubble=true;
+			}				
+			else if (_topIndex  < maxTopIndex) {
+				ShowItems(_topIndex + 1);
+				e.returnValue = false;
+				e.cancelBubble=true;
+			}
+			else if (autoClose == "true") {
+				e.returnValue = false;
+				e.cancelBubble=true;
+			}
+			break;
+
+		case VK_LEFT:
+			if (autoClose == "true") {
+				Close();
+				focus();
+			}
+			break;
+
+		case VK_RIGHT:
+			if (autoClose == "true") {
+				Close();
+				focus();
+			}
+			break;
+
+		case VK_PRIOR:
+			if (index > 0) {
+				anchors[0].focus();
+			}
+			else if (_topIndex > 0) {
+				ShowItems(_topIndex - size + 1 < 0 ? 0 : _topIndex - size + 1);
+			}
+			e.returnValue = false;
+			e.cancelBubble=true;
+			break;
+			
+		case VK_NEXT:
+			if (index < maxIndex) {
+				anchors[maxIndex].focus();
+			}
+			else if (_topIndex  < maxTopIndex) {
+				ShowItems((_topIndex + size - 1) < maxTopIndex ? _topIndex + size - 1 : maxTopIndex);
+				anchors[size - 1].focus();
+			}
+			e.returnValue = false;
+			e.cancelBubble=true;
+			break;
+
+		case VK_END:
+			if (_topIndex  < maxTopIndex) {
+				ShowItems(maxTopIndex);
+			}
+			anchors[maxIndex].focus();
+			e.returnValue = false;
+			e.cancelBubble=true;
+			break;
+
+		case VK_HOME:
+			if (_topIndex > 0) {
+				ShowItems(0);
+			}
+			anchors[0].focus();
+			e.returnValue = false;
+			e.cancelBubble=true;
+			break;
+
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnClick
+//
+//  Description:    Called when user clicks an item..
+//
+//  Arguments:      index - index of row clicked..
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnClick(index)
+{
+	if (!_opened) {
+		Open();
+		focus();
+	}
+	else {
+		selectedIndex = _topIndex + index;
+		oEvent = createEventObject();
+		oEvent.result = selectedIndex;
+		onSelectID.fire(oEvent);
+		if (autoClose == "true") {
+			Close();
+			focus();
+		}
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnDeactivate
+//
+//  Description:    Called when any child element loses focus..
+//
+//  Arguments:      None
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnDeactivate()
+{
+	if (_opened && autoClose == "true" && !element.contains(event.toElement))
+		setTimeout(Close, 50);
+}
+
+</SCRIPT>
+</PUBLIC:COMPONENT>

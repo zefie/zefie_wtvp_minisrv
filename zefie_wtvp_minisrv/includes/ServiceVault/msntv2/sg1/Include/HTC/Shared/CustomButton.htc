@@ -1,0 +1,317 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         CustomButton.htc
+//
+//  Description:  The CustomButton behavior creates variable-sized
+//				  graphical buttons with client-specified text.  It attempts
+//				  to duplicate the functionality of the WebTV .bif feature.
+//
+//				NOTE: If you specify the "width" of the element (to force the
+//				button to a specific width rather than allow it to size around the
+//				text) AND you use non-default graphic elements, you also must
+//				specify "endcapwidthleft" and "endcapwidthright."
+//
+//				If all you want to do is tweak the padding to the left and right
+//				of the text a little, then change style.padding rather than
+//				specify the button width.  If you want to change the spacing
+//				around the button (not within it), using margin.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="CustomButton" lightweight=true>
+
+<PUBLIC:PROPERTY NAME="left" value="msntv:/Shared/Images/CommandButtonGlobalLeftEdge.png" /> 	<!-- equivalent to style.leftImage -->
+<PUBLIC:PROPERTY NAME="middle" value="msntv:/Shared/Images/CommandButtonGlobalMiddleStretch.png" /> 	<!-- equivalent to style.middleImage -->
+<PUBLIC:PROPERTY NAME="right" value="msntv:/Shared/Images/CommandButtonGlobalRightEdge.png" /> 	<!-- equivalent to style.rightImage -->
+<PUBLIC:PROPERTY NAME="label" /> 
+<PUBLIC:PROPERTY NAME="hasFocus" />
+<PUBLIC:PROPERTY NAME="hideFocus" />
+<PUBLIC:PROPERTY NAME="nextleft" />
+<PUBLIC:PROPERTY NAME="nextright" />
+<PUBLIC:PROPERTY NAME="nextup" />
+<PUBLIC:PROPERTY NAME="nextdown" />
+<PUBLIC:PROPERTY NAME="submitformname" />
+<PUBLIC:PROPERTY NAME="endcapwidthleft" value=4 />	<!-- only used if style.width is set; equivalent to style.endCapWidthLeft -->
+<PUBLIC:PROPERTY NAME="endcapwidthright" value=4 />	<!-- only used if style.width is set; equivalent to style.endCapWidthRight -->
+<PUBLIC:PROPERTY NAME="endcapheight" value=26 />	<!-- only used if style.width is set; equivalent to style.endCapHeight -->
+
+<PUBLIC:PROPERTY NAME="usepngtransparency" value=true />					<!-- equivalent to style.usePNGTransparency -->
+<PUBLIC:PROPERTY NAME="href" />
+
+<PUBLIC:METHOD NAME="focus" />
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="ondocumentready" HANDLER="Init2" />
+<PUBLIC:ATTACH EVENT="onclick" HANDLER="doAction" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="doPropChange" />
+
+<PUBLIC:DEFAULTS style="{color:#07214D; font-size: 16px; text-align:center; margin: 0 6px; padding: 0px 10px 0px 10px; cursor:hand;display:inline-block}" />
+
+
+<SCRIPT LANGUAGE="JScript" SRC="msntv:/Javascript/TVShell.js"></SCRIPT>
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	if (UNDER_NT)
+		usepngtransparency="false";
+	var endCapWidthLeftStr = "";
+	var endCapWidthRightStr = "";
+	var tabIndexStr = "";
+	var midSpanWidth = "100%;";
+	var anchor = element.document.createElement("A");
+
+	anchor.tabIndex = 0;
+	anchor.id = uniqueID + "_a";
+	anchor.style.cursor = "hand";
+	
+	anchor.onblur = doBlur;
+	anchor.onfocus = doFocus;
+	if (currentStyle.usePNGTransparency)
+		usepngtransparency = currentStyle.usePNGTransparency;
+	if (currentStyle.leftImage)
+		left = currentStyle.leftImage;
+	if (currentStyle.middleImage)
+		middle = currentStyle.middleImage;
+	if (currentStyle.rightImage)
+		right = currentStyle.rightImage;
+	if (currentStyle.endCapWidthLeft)
+		endcapwidthleft = currentStyle.endCapWidthLeft;
+	if (currentStyle.endCapWidthRight)
+		endcapwidthright = currentStyle.endCapWidthRight;
+	if (currentStyle.endCapHeight)
+		endcapheight = currentStyle.endCapHeight;
+	if (element.tabIndex)
+	{
+		anchor.tabIndex = element.tabIndex;
+		element.removeAttribute("tabIndex");
+	}
+	else
+	{
+		// Workaround a 'double-tabbing' problem as reported in BUG 27506 v1.2
+		anchor.tabIndex = -1; 
+	}
+	
+	if (element.nextleft)
+		anchor.nextleft = element.nextleft;
+	if (element.nextright)
+		anchor.nextright = element.nextright;
+	if (element.nextup)
+		anchor.nextup = element.nextup;
+	if (element.nextdown)
+		anchor.nextdown = element.nextdown;
+				
+	endCapWidthLeftStr = "width:" + endcapwidthleft + "px;height:" + endcapheight + "px;";
+	endCapWidthRightStr = "width:" + endcapwidthright + "px;height:" + endcapheight + "px;";
+	if (currentStyle.width != "auto")
+	{
+		if (style.pixelWidth > 0 || element.clientWidth > 0)
+			midSpanWidth = (element.clientWidth > 0 ? element.clientWidth : style.pixelWidth) - endcapwidthleft - endcapwidthright + "px;";
+	}
+		
+    var output = "<table cellspacing=0 cellpadding=0 style=width:" + currentStyle.width + ">" +
+    				"<tr>" +
+	  					"<td align=right style='padding:0px;" + endCapWidthLeftStr;
+	output += "'>";
+	  					
+	if (usepngtransparency == "true" && left.search(/\.PNG/i) >= 0)
+		output += "<SPAN STYLE='behavior: url(#default#alphaImageLoader); src:" + left + ";" + endCapWidthLeftStr + "' ></SPAN></td>";
+	else
+		output += "<IMG src='" + left + "' style='" + endCapWidthLeftStr + "'></td>";
+
+	if (usepngtransparency == "true" && middle.search(/\.PNG/i) >= 0)
+		output += "<td style='behavior: url(#default#alphaImageLoader); src:" + middle + ";'>";
+	else
+		output += "<td background='" + middle + "'>";
+
+	var tempLabel;
+	if (label)
+		tempLabel = label;
+	else
+		tempLabel = innerHTML;
+		
+	output +=	"<span id=" + uniqueID + "_td style='padding:0px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;width:" + midSpanWidth + 
+				getCurrentStyleAsString() + "'>" + tempLabel + "</span></td>" +
+    			"<td style='padding:0px;" + endCapWidthRightStr + "'>";
+
+	if (usepngtransparency == "true" && right.search(/\.PNG/i) >= 0)
+		output += "<SPAN STYLE='behavior: url(#default#alphaImageLoader); src:" + right + ";" + endCapWidthRightStr + "' ></SPAN></td>";
+	else
+		output += "<IMG src='" + right + "' style='" + endCapWidthRightStr + "'></td>";
+
+	output +=	"</tr>" +
+    			"</table>";
+
+
+
+	
+	
+	anchor.innerHTML = output;
+
+	// Clear out any existing content.  Not only is this necessary when the client uses the contents instead of the label
+	// to define the button; it's also necessary when printing because IE actually clones the element before re-calling oncontentready.
+	for (var i = element.childNodes.length -1; i >= 0; --i)
+		element.removeChild(element.childNodes[i]);
+
+	
+	element.appendChild(anchor);
+	
+	if ( hasFocus == null )
+		hasFocus = false;
+	if ( hasFocus ) {
+		focus();
+	}
+	
+	
+}
+
+function Init2()
+{
+	// If we need to set the width absolutely, but we weren't able to before and can now, do it.
+	if (currentStyle.width != "auto" && element.document.all[uniqueID + "_td"].style.width == "100%")
+	{
+		if (style.pixelWidth > 0 || element.clientWidth > 0)
+		{
+			var midSpanWidth = (element.clientWidth > 0 ? element.clientWidth : style.pixelWidth) - endcapwidthleft - endcapwidthright;
+			element.document.all[uniqueID + "_td"].runtimeStyle.pixelWidth = midSpanWidth;
+		}
+	}
+}
+
+function doAction()
+{	
+
+	
+	if (submitformname)
+	{
+		var theForm = element.document.forms[submitformname];
+		if (!theForm.onsubmit || theForm.onsubmit())
+			theForm.submit();
+	}
+
+	if (href) {
+		element.document.all[uniqueID + "_a"].href = href;
+		element.document.all[uniqueID + "_a"].click();
+	}
+}
+
+function getCurrentStyleAsString()
+{
+	var result = "";
+
+	if (currentStyle.color)
+		result += "color:" + currentStyle.color + ";";
+	if (currentStyle.fontFamily)
+		result += "font-family:" + currentStyle.fontFamily + ";";
+	if (currentStyle.fontSize)
+		result += "font-size:" + currentStyle.fontSize + ";";
+	if (currentStyle.fontStyle)
+		result += "font-style:" + currentStyle.fontStyle + ";";
+	if (currentStyle.fontVariant)
+		result += "font-variant:" + currentStyle.fontVariant + ";";
+	if (currentStyle.fontWeight)
+		result += "font-weight:" + currentStyle.fontWeight + ";";
+	if (currentStyle.letterSpacing)
+		result += "letter-spacing:" + currentStyle.letterSpacing + ";";
+//	if (currentStyle.lineHeight)
+//		result += "line-height:" + currentStyle.lineHeight + ";";
+//	if (currentStyle.margin)	-- doesn't seem to do anything
+//		result += "margin:" + currentStyle.margin + ";";
+	if (currentStyle.textAlign)
+	{
+		result += "text-align:" + currentStyle.textAlign + ";";
+		if (currentStyle.textAlign == "left")	// for left-align, hard-code padding
+		{
+			style.paddingLeft = "2px";
+			style.paddingRight = "2px";
+		}
+	}
+	if (currentStyle.padding)
+	{
+		result += "padding:" + currentStyle.padding + ";";
+		style.padding = "0px";
+	}
+	if (currentStyle.textDecoration)
+		result += "text-decoration:" + currentStyle.textDecoration + ";";
+	if (currentStyle.wordSpacing)
+		result += "word-spacing:" + currentStyle.wordSpacing + ";";
+//	if (currentStyle.width)
+//		result += "width:" + currentStyle.width + ";";
+	if (currentStyle.cursor)
+		result += "cursor:" + currentStyle.cursor + ";";
+
+	return result;
+}
+
+function focus()
+{	
+	try
+	{
+		element.document.all[uniqueID + "_a"].focus();
+		if (element.onfocus)
+			element.onfocus();
+	}
+	catch (ex)
+	{
+	}
+}
+
+
+function doFocus()
+{
+	hasFocus = true;
+}
+
+function doBlur()
+{
+	hasFocus = false;
+}
+
+function doPropChange()
+{
+	if (event.propertyName == "label")
+		element.document.all[uniqueID + "_td"].innerHTML = label;
+		
+	if (event.propertyName == "hideFocus")
+		element.document.all[uniqueID + "_a"].hideFocus = hideFocus;
+		
+	if (event.propertyName == "nextleft")
+		element.document.all[uniqueID + "_a"].nextleft = nextleft;	
+	
+	if (event.propertyName == "nextright")
+		element.document.all[uniqueID + "_a"].nextright = nextright;	
+			
+	if (event.propertyName == "nextup")
+		element.document.all[uniqueID + "_a"].nextup = nextup;		
+	
+	if (event.propertyName == "nextdown")
+		element.document.all[uniqueID + "_a"].nextdown = nextdown;		
+		
+	if (event.propertyName == "style.display")
+		Init2();
+		
+}
+</SCRIPT>
+
+</PUBLIC:COMPONENT>

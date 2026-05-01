@@ -1,0 +1,638 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         LMenu.htc
+//
+//  Description:  The LMenu behavior implements a 2 dimensional L menu. Top
+//				  level menu is displayed in the vertical segment and sub-menus
+//				  in the horizontal segment. 
+//
+//				  For usage details, take a look at :
+//				  private/msntv_core/help/LMenu/LMenu.htm	
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="lMenu" lightweight=true>
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="ondocumentready" HANDLER="Init2" />
+<PUBLIC:ATTACH EVENT="onunload" FOR="window" HANDLER="Cleanup" />
+<PUBLIC:ATTACH EVENT="onactivate" HANDLER="OnActivate" />
+<PUBLIC:ATTACH EVENT="ondeactivate" HANDLER="OnDeactivate" />
+<PUBLIC:ATTACH EVENT="onkeydown" HANDLER="OnKeyDown" />
+
+<PUBLIC:METHOD NAME="addMenu" />
+<PUBLIC:METHOD NAME="removeMenu" />
+<PUBLIC:METHOD NAME="open" />
+<PUBLIC:METHOD NAME="close" />
+<PUBLIC:METHOD NAME="focus" />
+
+<PUBLIC:PROPERTY NAME="topIndex" GET="get_topIndex" PUT="put_topIndex">
+
+<PUBLIC:EVENT ID="onSelectID" NAME="onSelect" />
+
+<PUBLIC:DEFAULTS style="{font-family:Segoe TV; font-size:16px;}" />
+
+// Private methods (must still declare public)
+<PUBLIC:METHOD NAME="OnClick" />
+<PUBLIC:METHOD NAME="OnServiceListKeyDown" />
+
+<SCRIPT LANGUAGE="JScript" SRC="msntv:/Javascript/TVShell.js"></SCRIPT>
+<SCRIPT LANGUAGE="JScript" SRC="msntv:/Javascript/VKCodes.js"></SCRIPT>
+<SCRIPT LANGUAGE="JScript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+var _items;
+var _topIndex;
+var _subIndex;
+var _opened;
+var _savedFocus;
+var _sink;
+
+// Image urls
+var _scrollBottomArrow;
+var _scrollRightArrow;
+var _scrollTopArrow;
+var _menuLeft;
+var _menuRight;
+var _divider;
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the element.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	_items = new Array();
+	_topIndex = 0;
+	_subIndex = -1;
+	_opened = false;
+	_savedFocus = null;
+	this.style.visibility = "hidden";
+
+	var baseURL = "msntv:/Shared/images/";
+	var baseM = baseURL;
+	if (element.document.URL.indexOf("msntv:") != 0) {
+		// Server base url here.
+		baseURL = "/mail/Home/";
+		baseM = "/mail/Mail/";
+	}
+	_scrollBottomArrow = baseURL + "ScrollBottomArrow.png";
+	_scrollRightArrow = baseURL + "ScrollRightArrow.png";
+	_scrollTopArrow = baseURL + "ScrollTopArrow.png";
+	_menuLeft = baseM + "MenuLeft.png";
+	_menuRight = baseM + "MenuRight.png";
+	_divider = baseM + "Divider.png";
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init2()
+//
+//  Description:    Called during after initialization of the document.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init2()
+{
+	_sink = new ActiveXObject("MSNTV.MultipleEventSink");
+	_sink.AttachEvent(TVShell, "OnServiceListKeyDown", OnServiceListKeyDown);
+
+	var entry = TVShell.ServiceList.Add("HTC::LMenu");
+	entry.Panel = "LMenu";
+	entry.KeyCode = VK_F7;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Cleanup()
+//
+//  Description:    Called during the cleanup of the element.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Cleanup()
+{
+	TVShell.ServiceList.Remove("HTC::LMenu");
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Menu()
+//
+//  Description:    Menu object constructor.
+//
+//  Arguments:      text	- menu display text
+//					image	- menu image (optional)
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Menu(text, image, caption)
+{
+	this.text = text;
+	this.image = image;
+	this.caption = caption;
+	this.items = new Array();
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       addMenu
+//
+//  Description:    Adds a menu item
+//
+//  Arguments:      text		- display text
+//					image		- image url (optional)
+//					index		- top menu index
+//					subIndex	- sub menu index (-1 for top level menu item)
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function addMenu(index, subIndex, text, image, caption)
+{
+	var menu = new Menu(text, image, caption);
+
+	if (subIndex < 0) {
+		_items[index] = menu;
+	}
+	else {
+		var parent = _items[index];
+		if (parent) {
+			parent.items[subIndex] = menu;
+		}
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       removeMenu
+//
+//  Description:    remove a menu
+//
+//	Arguments:		index		- top menu index
+//					subIndex	- sub menu index (-1 for top level menu item)
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function removeMenu(index, subIndex)
+{
+	if (subIndex < 0) {
+		_items[index] = null;
+	}
+	else {
+		var parent = _items[index];
+		if (parent) {
+			parent.items[subIndex] = null;
+		}
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       open
+//
+//  Description:    display the menu
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function open()
+{
+	_opened = true;
+	BuildMenuHTML();
+	BuildSubmenuHTML();
+	PositionItems();
+	style.visibility = "visible";
+	focus();
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       close
+//
+//  Description:    hide the menu
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function close()
+{
+	_opened = false;
+	style.visibility = "hidden";
+	innerHTML = "";
+	if (_savedFocus) {
+		try {
+			_savedFocus.focus();
+		}
+		catch(exception) {
+		}
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       focus
+//
+//  Description:    focus to this control
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function focus()
+{
+	if (all.anchor) {
+		all.anchor.focus();
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Property:       topIndex
+//
+//  Description:    index of selected top level menu
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function get_topIndex()
+{
+	return _topIndex;
+}
+
+function put_topIndex(value)
+{
+	_topIndex = parseInt(value);
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       BuildMenuHTML
+//
+//  Description:    Builds the html content that contains the visible entries.
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function BuildMenuHTML()
+{
+	var i	 = 0;
+	var html = new Array();
+
+	html[i++] = "<div id=\"leftDiv\" style=\"width:139px; height:100%; position:absolute; z-index:1000; top:0px; left:0px;\
+					behavior:url(#default#alphaImageLoader); src:url(" + _menuLeft + ");\">";
+
+	for (var j = 0; j < _items.length; j++) {
+		var menu = _items[j];
+		if (menu) {
+			html[i++] = "<table cellspacing=0 cellpadding=0 style=\"position:absolute; left:7px; top:0px; width:117px; height:75px;\">\
+							<tr>\
+								<td	style=\" padding-top:3px; text-align:center; vertical-align:" + (menu.image?"top":"center") + "; font-size:16px;\">";
+			if (menu.image) {
+				html[i++] =			"<div style=\"position:absolute; top:0px; left:29px; width:60px; height:75px; z-index:-1;\
+										behavior:url(#default#alphaImageLoader); src:url(" + menu.image + ");\"></div>";
+			}
+			html[i++] =				"<span>" + menu.text + "</span>";
+			html[i++] = "</td></tr></table>";
+		}
+	}
+	
+	html[i++] = "</div>";
+	html[i++] = "<div style=\"width:421px; height:108px; position:absolute; z-index:1000; left:139px; top:312px;\
+					behavior:url(#default#alphaImageLoader); src:url(" + _menuRight + ");\"></div>";
+	html[i++] = "<div id=\"rightDiv\" style=\"width:560px; height:108px; position:absolute; z-index:1000; left:0px; top:312px; overflow:hidden;\"></div>";
+
+	html[i++] = "<a id=\"anchor\" onClick=\"" + uniqueID + ".OnClick();\" style=\"width:124; height:80px; position:absolute; z-index:1000; left:7px; top:325px; text-align:center;\"></a>";
+
+	if (_items.length > 4) {
+		html[i++] = "<div style=\"width:36px; height:25px; position:absolute; z-index:1001; left:48px; top:" + (5 - style.pixelTop) + "px;\
+						behavior:url(#default#alphaImageLoader); src:url(" + _scrollTopArrow + ");\"></div>";
+	}
+	if (_items.length > 1) {
+		html[i++] = "<div style=\"width:36px; height:25px; position:absolute; z-index:1001; left:48px; top:390px;\
+						behavior:url(#default#alphaImageLoader); src:url(" + _scrollBottomArrow + ");\"></div>";
+	}
+	html[i++] = "<div id=\"rightArrow\" style=\"width:25px; height:36px; position:absolute; z-index:1001; left:530px; top:348px; visibility:hidden;\
+					behavior:url(#default#alphaImageLoader); src:url(" + _scrollRightArrow + ");\"></div>";
+
+
+	innerHTML = html.join("");
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       BuildSubmenuHTML
+//
+//  Description:    Builds the html content that contains the visible submenu entries.
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function BuildSubmenuHTML()
+{
+	var i	 = 0;
+	var html = new Array();
+	var div  = all.rightDiv;
+	var topMenu = _items[_topIndex];
+
+	all.rightArrow.style.visibility = "hidden";
+
+	if (topMenu) {
+		for (var j = 0; j < topMenu.items.length; j++) {
+			var menu = topMenu.items[j];
+			if (menu) {
+				html[i++] = "<table id=\"subItem\" cellspacing=0 cellpadding=0 style=\"position:absolute; left:0px; top:13px; width:110px; height:80px;\">\
+								<tr>\
+									<td	style=\"text-align:center; vertical-align:" + (menu.image ? "bottom" : "center") + "; padding:4px 5px; font-size:16px;\">";
+				if (menu.image) {
+					html[i++] =			"<div style=\"position:absolute; top:0px; left:25px; width:60px; height:75px; z-index:-1;\
+											behavior:url(#default#alphaImageLoader); src:url(" + menu.image + ");\"></div>";
+				}
+				html[i++] =				menu.text;
+				html[i++] =			"<td style=\"width:2px; vertical-align:center;\"><img src=\"" + _divider + "\">";
+				html[i++] = "</tr></table>";
+			}
+		}
+
+		if (topMenu.items.length > 3) {
+			all.rightArrow.style.visibility = "visible";
+		}
+
+		if (topMenu.caption && topMenu.items.length == 0) {
+			html[i++] = "<table cellspacing=0 cellpadding=0 style=\"position:absolute; top:0px; left:145px; width:400px; height:100%;\">" +
+							"<tr><td style=\"font-size:16px; color:#1150AC; vertical-align:center;\">" +
+								topMenu.caption +
+						"</td</tr></table>";
+		}
+	}
+	
+	div.innerHTML = html.join("");
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Position Items
+//
+//  Description:    Positions the menu items based on current selected indices.
+//
+//  Arguments:      none
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function PositionItems()
+{
+	var tables = all.leftDiv.all.tags("table");
+
+	for (var i = 0; i < tables.length; i++) {
+		var top = clientHeight - 95;
+
+		if (i < _topIndex) {
+			top = top - 13 - ((_topIndex - i) * 75);
+		}
+		else if (i > _topIndex) {
+			top = top - 13 - ((tables.length - i + _topIndex) * 75);
+		}
+
+		tables[i].style.pixelTop = top;
+
+		var div = tables[i].all.tags("div")[0];
+		var span = tables[i].all.tags("span")[0];
+
+		span.style.color = (i == _topIndex) ? "white" : "black";
+		if (div) {
+			div.style.visibility = (i == _topIndex && _subIndex >= 0) ? "hidden" : "visible";
+		}
+	}
+
+	var items = all.rightDiv.all.namedItem("subItem");
+	if ( items == null ) {
+		tables = new Array();
+	}
+	else if (items.length == null ) {
+		tables = new Array();
+		tables[0] = items;
+	}
+	else {
+		tables = items;
+	}
+
+	for (var i = 0; i < tables.length; i++) {
+		var left = 14;
+
+		if (i > _subIndex) {
+			left = 139 + ((i - _subIndex - 1) * 110);
+		}
+		else if (i < _subIndex) {
+			left = 139 + ((tables.length + i - _subIndex) * 110);
+		}
+
+		tables[i].style.pixelLeft = left;
+		tables[i].all.tags("img")[0].style.visibility = (i == _subIndex ? "hidden" : "visible");
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnKeyDown
+//
+//  Description:    Handle navigation keys
+//
+//  Arguments:      None
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnKeyDown()
+{
+	var e = window.event;
+	var topIndexOld = _topIndex;
+	var subIndexOld = _subIndex;
+	var submenuLength = _items[_topIndex] ? _items[_topIndex].items.length : 0;
+
+
+	if (e.altKey || e.ctrlKey || e.shiftKey) {
+		return;
+	}
+
+	switch (e.keyCode) {
+		case VK_UP:
+			if (--_topIndex < 0) {
+				_topIndex = _items.length - 1;
+			}
+			_subIndex = -1;
+			break;
+
+		case VK_DOWN:
+			if (++_topIndex >= _items.length) {
+				_topIndex = 0;
+			}
+			_subIndex = -1;
+			break;
+
+		case VK_LEFT:
+			if (--_subIndex < -1) {
+				_subIndex = submenuLength - 1;
+			}
+			break;
+
+		case VK_RIGHT:
+			if (++_subIndex >= submenuLength) {
+				_subIndex = -1;
+			}
+			break;
+
+		case VK_PRIOR:
+			break;
+			
+		case VK_NEXT:
+			break;
+	}
+
+	if (topIndexOld != _topIndex || subIndexOld != _subIndex) {
+		e.returnValue = false;
+		e.cancelBubble = true;
+		if (topIndexOld != _topIndex) {
+			BuildSubmenuHTML();
+		}
+		PositionItems();
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnClick
+//
+//  Description:    Called when user clicks an item..
+//
+//  Arguments:      None
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnClick()
+{
+	if (_opened) {
+		close();
+
+		oEvent = createEventObject();
+		oEvent.topIndex = _topIndex;
+		oEvent.subIndex = _subIndex;
+		onSelectID.fire(oEvent);
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnServiceListKeyDown
+//
+//  Description:    Handle Menu key
+//
+//  Arguments:      None
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnServiceListKeyDown(ServiceEntry)
+{
+	if (ServiceEntry.Name == "HTC::LMenu") {
+		if (_opened) {
+			close();
+		}
+		else {
+			open();
+		}
+	}
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnDeactivate
+//
+//  Description:    Called when any child element loses focus..
+//
+//  Arguments:      None
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnDeactivate()
+{
+	if (_opened) {
+		close();
+	}
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       OnActivate
+//
+//  Description:    Called when any child element gains focus..
+//
+//  Arguments:      None
+//
+//  Returns:        None
+//
+//-----------------------------------------------------------------------------
+
+function OnActivate()
+{
+	_savedFocus = event.fromElement;
+}
+
+
+</SCRIPT>
+</PUBLIC:COMPONENT>

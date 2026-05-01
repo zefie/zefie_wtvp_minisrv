@@ -495,7 +495,32 @@
       "handler_module": "WTVPNM",
       "handler_handles_port": true,
       "handler_extra_vars": ["crypto"]
-    }    
+    },
+    "msntv2": {
+      "port": 1694,
+      "connections": 3,
+      "flags": "0x00000001",
+      "protocol": "HTTP",
+      "privileged": true,
+      "handler_module": "WTV-MSNTV2",
+      "handler_handles_port": true,
+      "servicevault_dir": "msntv2",
+      "intercept_urls": [
+        {
+          "match": "headwaiter.trusted.msntv.msn.com",
+          "local_dir": "headwaiter"
+        },
+        {
+          "match": "sg1.trusted.msntv.msn.com",
+          "local_dir": "sg1"
+        }
+      ],
+      "handler_extra_vars": ["runScriptInVM", "handlePHP", "handleCGI", "ssid_sessions", "WTVClientSessionData"],
+      "show_verbose_errors": false,
+      "modules": [
+        "WTVRegister"
+       ]
+    }        
   },
   "favorites": {
     "folder_templates": {

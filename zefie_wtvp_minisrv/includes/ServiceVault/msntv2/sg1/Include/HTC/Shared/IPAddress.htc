@@ -1,0 +1,162 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         IPAddress.htc
+//
+//  Description:  The IPAddress control consists of four fields into which the
+//				  user can enter 3-digit numbers and which auto-advance the
+//				  focus once either the maximum number of digits have been
+//				  entered or the user types a period.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="IPAddress" lightweight=true>
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onkeydown" HANDLER="keyDown" />
+<PUBLIC:ATTACH EVENT="onkeypress" HANDLER="keyPress" />
+<PUBLIC:ATTACH EVENT="onkeyup" HANDLER="keyUp" />
+
+<PUBLIC:PROPERTY ID="valueID" NAME="value" GET="get_value" PUT="put_value" /> 
+<PUBLIC:PROPERTY ID="intValueID" NAME="intValue" GET="get_intValue" PUT="put_intValue" /> 
+
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+var tempValue = [0,0,0,0];
+var selectedText = true;	// true when first navigating to a text field
+var lastKeyUni = 0;	// This is necessary because the event.keyCode is a Unicode character
+						// for onkeypress but is a scan code for onkeydown and onkeyup
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	var outputStr = newField(0,1) + " . " + newField(1,2) + " . " + newField(2,3) + " . " + newField(3,-1);
+	innerHTML = outputStr;
+}
+
+function newField(id, next)
+{
+	var newField = "<INPUT type=text maxLength=3 size=3 class=inputText id=" + uniqueID + id +
+			" value=" + tempValue[id];
+	if (next >= 0)
+		newField += " nextRight=" + uniqueID + (id+1);
+	newField += ">";
+	return newField;	
+}
+
+function keyDown()
+{ 
+	lastKeyUni = 0;
+	if ((event.keyCode == 190 || event.keyCode == 110) && element.document.selection.type == "None" && event.srcElement.value != "")	// turn "." into TAB
+	{
+		event.keyCode = "\t".charCodeAt(0);
+	}
+	return true;
+}
+
+function keyPress()
+{
+	selectedText = ( event.srcElement.document.selection.createRange().boundingWidth > 0 );
+
+	lastKeyUni = event.keyCode;
+	var currentValue = event.srcElement.value;
+	var numKey = ( lastKeyUni >= "0".charCodeAt(0) && lastKeyUni <= "9".charCodeAt(0) );
+
+	if ( numKey )
+	{
+		var keyValue =  lastKeyUni - "0".charCodeAt(0);
+		var newValue = currentValue * 10 + keyValue;
+		if ( selectedText || ( newValue <= 255 ) )	return true;
+	}
+
+	if (TVShell)
+		TVShell.DeviceControl.PlaySound("Page_Boundary");
+
+	event.cancelBubble = true;
+	event.returnValue = false;
+	return false;
+}
+
+function keyUp()
+{	// Skip to the next field, if the maximum number of possible characters have been entered
+	if (!event.srcElement.nextRight)
+		return true;
+	
+	if (lastKeyUni >= "0".charCodeAt(0) && lastKeyUni <= "9".charCodeAt(0))
+	{
+		if (!selectedText && ( event.srcElement.value * 10  > 255 ) )
+		{
+			var nextOne = element.document.all[event.srcElement.nextRight];
+			nextOne.focus();
+			nextOne.select();
+			selectedText = true;
+			event.cancelBubble = true;
+			event.returnValue = false;
+			lastKeyUni = 0;
+			return false;
+		}
+	}
+	lastKeyUni = 0;
+	return true;
+}
+
+function get_value()
+{
+	return element.document.all[uniqueID + "0"].value + "." + element.document.all[uniqueID + "1"].value + "." + element.document.all[uniqueID + "2"].value + "." + element.document.all[uniqueID + "3"].value;
+}
+
+function put_value(ipAddr)
+{
+	var numArray = ipAddr.split(".");
+	if (numArray.length != 4)
+		return;
+
+	if (element.document.all[uniqueID + "0"] == null)	// not yet ready
+	{
+		tempValue = numArray;
+		return;
+	}
+	
+	for (var i = 0; i < 4; i++)
+		element.document.all[uniqueID + i].value = numArray[i];
+
+	valueID.fireChange();
+}
+
+function get_intValue()
+{
+	return ((element.document.all[uniqueID + "0"].value & 0xFF) << 24) +
+			((element.document.all[uniqueID + "1"].value & 0xFF)<< 16) +
+			((element.document.all[uniqueID + "2"].value & 0xFF) << 8) +
+			(element.document.all[uniqueID + "3"].value & 0xFF);
+}
+
+function put_intValue(ipAddr)
+{
+	ipAddr = parseInt(ipAddr);
+	put_value(((ipAddr >> 24) & 0xFF) + "." + ((ipAddr >> 16) & 0xFF) + "." +
+			((ipAddr >> 8) & 0xFF) + "." + (ipAddr & 0xFF));
+}
+
+
+</SCRIPT>
+
+</PUBLIC:COMPONENT>
+

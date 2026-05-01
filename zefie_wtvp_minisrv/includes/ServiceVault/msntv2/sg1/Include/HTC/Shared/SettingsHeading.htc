@@ -1,0 +1,83 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         SettingsHeading.htc
+//
+//  Description:  The SettingsHeading behavior creates the standard heading
+//				  element for settings pages.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="SettingsHeading" lightweight=true>
+
+<PUBLIC:PROPERTY NAME="label" />	<!-- main title on settings pages -->
+<PUBLIC:PROPERTY NAME="label2" />	<!-- subtitle on settings pages -->
+<PUBLIC:PROPERTY NAME="helpURL" />	<!-- helpURL; if none specified, link is hidden -->
+<PUBLIC:PROPERTY NAME="showscrolltop" />	<!-- show a gradient background behind the scrolling area -->
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="doPropChange" />
+
+<PUBLIC:DEFAULTS style="{position:absolute;top:0;left:0;width:100%;height:100%;color:#07214D; font-family: highway;}" />
+
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+
+	var ew = element.clientWidth;
+ 	var output = "<TABLE cellspacing=0 cellpadding=0 height=100% width=100%><TR><TD height=71>";
+ 	output += "<DIV id=header style='width:" + ew + "px' class=ellipsis>";
+
+ 	if (label)
+		output += "<SPAN id=title>" + label + "</SPAN>";
+
+	if (label2)
+		output += "<SPAN id=title2>" + label2 + "</SPAN>";
+
+	if (helpURL)
+		output += "<A href='" + helpURL + "' id=help>Help<SPAN id=helpIcon></SPAN></A>";
+
+	output += "</DIV></TD></TR>";
+
+	if (showscrolltop == "" || showscrolltop == "true")
+		output += "<TR><TD><DIV id=gradient></DIV></TD></TR>";
+
+	output += "</TABLE>";
+
+	innerHTML = output;
+}
+
+
+function doPropChange()
+{
+	if (event.propertyName == "label") {
+		element.all["title"].innerText = label;
+	}
+	else if (event.propertyName == "helpURL") {
+		element.all["help"].href = helpURL;
+	}
+}
+</SCRIPT>
+
+</PUBLIC:COMPONENT>

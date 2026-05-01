@@ -50,20 +50,18 @@ function validateAudioProxy() {
         });
 
         if (check.error || check.status !== 0) {
-            console.warn(`AudioProxy disabled: ffmpeg not found or failed to execute at '${wtvAudioProxy.config.ffmpegPath}'.`);
-            if (check.error) console.warn(`AudioProxy ffmpeg error: ${check.error.message}`);
+            console.warn(` # AudioProxy disabled: ffmpeg not found or failed to execute at '${wtvAudioProxy.config.ffmpegPath}'.`);
+            if (check.error) console.warn(` # AudioProxy ffmpeg error: ${check.error.message}`);
             wtvAudioProxy.config.enabled = false;
             return;
         }
 
-        console.log(`AudioProxy enabled: transcoding audio to ${wtvAudioProxy.config.bitrate} ${wtvAudioProxy.config.sampleRate}Hz mono MP3.`);
+        console.log(` * AudioProxy enabled: transcoding audio to ${wtvAudioProxy.config.bitrate} ${wtvAudioProxy.config.sampleRate}Hz mono MP3.`);
     } catch (error) {
-        console.warn(`AudioProxy disabled: ffmpeg validation failed: ${error.message}`);
+        console.warn(` # AudioProxy disabled: ffmpeg validation failed: ${error.message}`);
         wtvAudioProxy.config.enabled = false;
     }
 }
-
-validateAudioProxy();
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
@@ -2486,6 +2484,8 @@ else console.log(" * Shenanigans disabled");
 // WTVImage
 if (minisrv_config.config.image_decoder.enabled) console.log(" * WebTV Unsupported images will be processed and converted for WebTV clients");
 else console.log(" * WebTV Unsupported images will not be processed, and sent to client as-is");
+
+validateAudioProxy();
 
 ports.sort();
 pc_ports.sort();

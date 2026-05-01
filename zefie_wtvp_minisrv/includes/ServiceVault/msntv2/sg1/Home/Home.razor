@@ -1,0 +1,629 @@
+﻿@page "/Pages/Home/Home.aspx"
+@using MSNTV2MainServer.Components.Layout
+@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Components
+@using MSNTV2MainServer.Components.APIs
+@inject IHttpContextAccessor httpContextAccessor
+
+@layout EmptyLayout
+
+@if (IsTV2)
+{
+
+    MarkupString htmlContent = new MarkupString($@"
+    <html xmlns:msntv>
+<?import namespace=""msntv"" implementation=""Shared/Anduril/HTC/en-us/TruncatedHtml.htc""?>
+
+<head><title>Home</title>
+		<?import namespace=""msntv"" implementation=""HTC/Shared/CustomButton.htc""?>
+		<?import namespace=""msntv"" implementation=""/Pages/Home/Shared/BaseClient/HTCTransforms/en-us/LoopingDIV.htc""?>
+
+		<script src=""/Include/2.0.261.900/localhost-1700/Shared/BaseClient/JsTransforms/en-us/PaneHelp.js"" language=""javascript"" defer=""true""></script>
+		<link href=""/Include/2.0.261.778/localhost-1700/Home/Anduril/CssTransforms/en-us/Home.css"" type=""text/css"" rel=""StyleSheet"">
+		<script src=""/Include/2.0.261.778/localhost-1700/Home/Anduril/JsTransforms/en-us/Home.js"" language=""javascript""></script>
+
+		<script>
+			var forceReload = false;
+			var l = 'd:' + new Date().valueOf() + '|';
+			function setCookie(name, value) {{
+				{{
+					var now = new Date();
+					var expires = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+					document.cookie = escape(name) + '=' + escape(value) + ';expires=' + expires.toGMTString() + ';path=/';
+				}}
+			}}
+			function getCookie(name) {{
+				{{
+					var str = document.cookie;
+					var arr = str.split('; ');
+					for (var i = arr.length - 1; i >= 0; i--) {{
+						{{
+							var c = arr[i].split('=');
+							if (c.length != 2)
+								continue;
+							if (unescape(c[0]) == name)
+								return unescape(c[1]);
+						}}
+					}}
+					return null;
+				}}
+			}}
+			function syncCookie(cookieName, propValue) {{
+				{{
+					var c = getCookie(cookieName);
+					l += 'g:' + cookieName + ':' + c + '|';
+					if (c != propValue) {{
+						{{
+							setCookie(cookieName, propValue);
+							l += 's:' + cookieName + ':' + propValue + '|';
+							var check = getCookie(cookieName);
+							if (check == propValue)
+								forceReload = true;
+						}}
+					}}
+				}}
+			}}
+			var d = new Date();
+			var utcOffset = d.getTimezoneOffset();
+			syncCookie('UserUtcOffset', utcOffset);
+			var connSpeed;
+			try {{ {{ connSpeed = window.external.ClientCaps.connectionType; }} }}
+			catch (e) {{
+				{{
+					connSpeed = ""undetected"";
+				}}
+			}}
+			syncCookie('UserConnectionSpeed', connSpeed);
+			try {{
+				{{
+					top.log(l);
+				}}
+			}}
+			catch (e) {{
+				{{
+				}}
+			}}
+			if (forceReload)
+				location.replace(location.href);
+		</script></head>
+
+<body>
+
+	<body onload=""initPage();"" scroll=""no"" tabindex=""-1"">
+
+		<div id=""focdiv"" style=""position:absolute;top:314px;left:27px;width:70px;height:70px;"" onclick=""goToMail();"">
+
+		</div>
+		<script>
+			document.all[""focdiv""].focus();
+
+			// when looping div is ready, you can hide the invisible rectangle used for holding Mail's
+			function handleLoopingDivReady()
+			{{
+				document.all[""focdiv""].style.display = ""none"";
+			}}
+		</script>
+
+
+		<div class=""topdiv"">
+
+
+		<div class=""textMenu"">
+			<script xmlns:msntvuxp=""msntvuxp.microsoft.com"">
+			function goToService(serviceName) {{window.location = window.external.SafeGetServiceURL(serviceName);}}
+			function goToCenter(URL) {{window.location = URL;}}
+			</script>
+
+		<div style=""position:absolute; left:0px; top:0px"" xmlns:msntvuxp=""msntvuxp.microsoft.com"">
+		<table border=""0"" class=""TextMenuTbl"">
+		<tr height=""34"" style=""background-color: transparent;"">
+		<td class=""leftGradientTD""></td><td class=""rightGradientTD"">
+		</td>
+		</tr>
+		</table>
+		</div>
+
+		<div style=""position:absolute; left:0px; top:0px"" xmlns:msntvuxp=""msntvuxp.microsoft.com"">
+		<table border=""0"" class=""TextMenuTbl"">
+		<tr>
+		<td style=""background-color: transparent;"" width=""8"">
+		<img height=""1"" src=""/Images/Shared/s.gif"" width=""8"">
+		</td>
+		<td style=""background-color: transparent;"" align=""left"" width=""162"">
+		<a class=""TextMenuLink"" href=""javascript:goToCenter('/Pages/UsingMSNTV/Main');"" id=""UsingMSNTVLinkID"" onblur=""umtvHasFocus=false"">Using MSN TV</a>
+		</td>
+
+		<div>
+		<span style=""position:absolute;left:0;top:35px;width:100%;height:2px;background-color:#8fc3d6;"">
+		</span>
+		</div>
+
+		<td style=""background-color: transparent;"" align=""left"" width=""115"">
+		<a class=""TextMenuLink"" href=""javascript:void(window.open(' ', 'signout', 'msntv:panel'));"" id=""SignoutLinkID"">Sign Out</a>
+		</td>
+
+		<div>
+		<span style=""position:absolute;left:0;top:35px;width:100%;height:2px;background-color:#8fc3d6;""></span>
+		</div>
+		<td style=""background-color: transparent;"" align=""left"" width=""106"">
+		<a class=""TextMenuLink"" href=""javascript:goToService('UAM::UAMbase');"" id=""AccountLinkID"">Account</a>
+		</td>
+		<div>
+		<span style=""position:absolute;left:0;top:35px;width:100%;height:2px;background-color:#8fc3d6;"">
+		</span>
+		</div>
+		<td style=""background-color: transparent;"" align=""left"" width=""109"">
+		<a class=""TextMenuLink"" href=""javascript:goToService('settings::mainindex');"" id=""SettingsLinkID"">Settings</a>
+		</td>
+		<div><span style=""position:absolute;left:0;top:35px;width:100%;height:2px;background-color:#8fc3d6;"">
+		</span>
+		</div>
+		<td style=""background-color: transparent;"" align=""left"" width=""78"">
+		<a href='javascript:CallPaneHelp(PH_TOC);' id=""HelpLinkID"">
+
+		<table><tr>
+		<td valign=""middle"" class=""TextMenuLinkSimulation"">Help</td>
+		<td valign=""middle"" width=""30"" height=""20"">
+		<span id=""helpIcon""  style='src:url(msntv:/Shared/Images/Icon_Help_RelatedLink.png);'></span>
+		</td>
+		</tr>
+		</table>
+
+		</a>
+		</td>
+		<div>
+		<span style=""position:absolute;left:0;top:35px;width:100%;height:2px;background-color:#8fc3d6;"">
+		</span>
+		</div>
+		</tr>
+		</table>
+		</div>
+		</div>
+
+
+		<div class=""infoPaneDiv"">
+
+
+        <div class=""promoImgDiv"">
+            <div style=""position:absolute; left:0px; top:0px"">
+			<img id=""PromoImageID"" width=""178"" height=""135"" border=""0"" hspace=""0"" alt=""Promotional Image"" src=""/Pages/Home/ads/webtv3.gif"">
+			</div>
+			<div style=""position:absolute; left:5px; top:0px""><a id=""PromoImageLinkID"" href="""">
+			<table width=""173"" height=""135""><tr><td></td></tr></table></a>
+			</div>
+        </div>
+
+
+
+<div id=""timerRotatorDiv"" class=""personalPanelDiv"" onclick=""ClickRotator()"">
+    <div>
+        <div style=""top:0px; left:0px; width:176px; height:105px;"" xmlns:msntvuxp=""msntvuxp.microsoft.com"">
+            <div class=""PNGImage"" style=""width:176px;height:105px;src:/images/Home/HomeRotatorBGWeather.png;""></div>
+        </div>
+        <div style=""position:absolute; top:0px; left:0px; width:178px; height:107px;"" xmlns:msntvuxp=""msntvuxp.microsoft.com"">
+            <table class=""wthrTbl"" border=""0"" cellpadding=""1"" cellspacing=""0"">
+                <tr>
+                    <td height=""4"" width=""4"" rowspan=""4""><img src=""images/Shared/s.gif"" height=""4"" width=""4""></td>
+                    <td height=""4"" width=""45""><img src=""images/Shared/s.gif"" height=""4"" width=""45""></td>
+                    <td height=""4"" width=""10""><img src=""images/Shared/s.gif"" height=""4"" width=""10""></td>
+                    <td height=""4"" width=""65""><img src=""images/Shared/s.gif"" height=""4"" width=""65""></td>
+                </tr>
+                <tr>
+                    <td id=""CityCellID"" class=""wthrCityCell"" colspan=""3"" valign=""top"">
+                        <span class=""wthrCityText"">{@Weather.City}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td id=""TRCID"" class=""wthrTempCond"">
+                        <table>
+                            <tr>
+                                <td id=""TemperatureCellID"" class=""wthrTempCell"">
+                                    <span class=""wthrTempTxt"">{@Weather.Temp}°F</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td id=""ConditionCellID"" class=""wthrCondCell"">
+                                    <span class=""wthrCondTxt"">{Weather?.Description}</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td id=""PaddingID"" width=""10""><img src=""images/Shared/s.gif"" height=""1"" width=""10""></td>
+                    <td id=""ConditionIconID"" class=""wthrCondIcon"">
+                        <img src=""{@Weather?.Icon}"" alt=""Weather icon"" style=""width:65px;height:61px;"">
+                    </td>
+                </tr>
+                <tr>
+                    <td id=""ProviderID"" class=""wthrProvider"" colspan=""3"">
+                        Open-Meteo
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <script xmlns:msntvuxp=""msntvuxp.microsoft.com"">
+            function clickPageRotatePanel() {{
+                location.href = ""/Pages/weather/yourcity"";
+            }}
+        </script>
+    </div>
+</div>
+<script>
+    InitRotator(timerRotatorDiv, 5000, new Array(""/home/MoneyModule.aspx"",""/Pages/weather/WeatherModule""));
+</script>
+
+
+			<div ID=""clockID"" class=""clockDiv"">
+			</div>
+			<script>clockID.innerHTML = formClockLink();</script>
+
+
+			<div class=""newsHdlnDiv"">
+				<div class=""newsHdlnTitleDiv""><span class=""newsHdlnTitleText"">Today on TV2</span></div><table style=""top:0px;left:0px;width:365px;height:78px;""><tr><td><a class=""newsHdlnLink"" id=""newsHdlnLinkID1"" href=""{@NewsLink1}"">{NewsTitle1}</a></td></tr><tr><td><a class=""newsHdlnLink"" id=""newsHdlnLinkID2"" href=""{@NewsLink2}"">{NewsTitle2}</a></td></tr><tr><td><a class=""newsHdlnLink"" id=""newsHdlnLinkID3"" href=""{@NewsLink3}"">{NewsTitle3}</a></td></tr></table></td></tr></table><div class=""moreNewsDiv""><table><tr><td><img src=""msntv:/Shared/images/BulletCustom.gif"" height=""14"" width=""7""></td><td><img src=""images/Shared/s.gif"" height=""1"" width=""4""></td><td style=""height:37px""><a id=""moreNewsLinkID"" class=""moreNewsLink"" href=""../pages/TopStories"">More MSN news</a></td></tr></table></div>
+			</div>
+
+<div class=""promoPanelDiv"">
+<div style=""position:absolute; width:355px; height:70px;"">
+
+<table style=""width:365px;""><td class=""promoHdlnTitle"" style=""color:#1D704C"">Using MSN TV</td><tr>
+<td class=""promoHdlnCell""><a class=""promoHdlnLink"" id=""promoHdlnLinkID1"" href=""http://msntv.msn.com/pages/usingmsntv/tippage.aspx?id=set15"">Tip: Turn on audible dialing </a></td></tr><tr>
+<td class=""promoHdlnCell""><a class=""promoHdlnLink"" id=""promoHdlnLinkID2"" href=""http://msntv.msn.com/pages/UsingMSNTV/Article.aspx?id=feature3"">Get better printing results</a></td></tr>
+</table>
+</div>
+
+<div style=""position:absolute; left:161px; top:74px; width:200px;"">
+<table class=""MoreUsingLinkTable""><tr><td><img src=""msntv:/Shared/Images/BulletCustom.gif"" height=""14"" width=""7""></td><td><img src=""/Images/Shared/s.gif"" height=""1"" width=""4""></td><td>
+<a id=""MoreUsingLinkID"" class=""MoreNewsLink"" href=""http://headwaiter.trusted.msntv.msn.com/Pages/UsingMSNTV/Main"">Go to Using MSN TV</a>
+</td></tr>
+</table>
+</div>
+
+</div>
+</div>
+
+
+			<div id=""searchID"" class=""searchDiv"">
+
+				<div class=""searchCenterDiv"">
+					<script>
+					function doSearch(country){{
+					if (searchFormID.searchFieldID.value == """")
+					{{
+						window.location = window.external.SafeGetServiceURL('search::search'); + ""?FORM=WEBTV&cfg=MSTVXML&v=1&c=""+country+""&x=26&y=14"";
+					}}
+					else
+					{{
+						window.location = window.external.SafeGetServiceURL('search::search') + ""?FORM=WEBTV&cfg=MSTVXML&v=1&c=""+country+""&x=26&y=14&q="" + escape(searchFormID.searchFieldID.value);
+					}}
+					}}
+					</script>
+
+<div style=""position:absolute;  z-index:1; left:0; top:0px; width:100%; height:2px; background-color:#0c7faa;"">
+<table style="" width:100%; height:2px;"">
+<tr>
+<td height=""2"">
+</td>
+</tr>
+</table>
+</div>
+<table class=""searchTbl"">
+<form id=""searchFormID"" action=""javascript:doSearch('US')"">
+<tr>
+<td width=""10"">
+</td><td>
+<a class=""searchLink"" href=""
+javascript:doSearch('US');
+"">Search</a><span class=""searchLabelText""> or type www</span>
+</td><td></td><td><span class=""searchFieldText""><input id=""searchFieldID"" name=""searchFieldName"" class=""searchField"" type=""text"" size=""28""></span></td><td></td>
+<td valign=""center""><msntv:custombutton id=""GoButtonID"" onClick=""doSearch('US');"" label=""Go"" /></td></tr></form></table><div style=""position:absolute; left:0; top:33px; width:100%; height:2px; background-color:#1c4373;""><table style="" width:100%; height:2px;""><tr><td height=""2""></td></tr></table></div>
+				</div>
+			</div>
+
+
+			<div id=""iconNavBarID"" class=""iconNavBar"">
+			    <table class=""iconNavBarMasterTbl"">
+			        <tr>
+			            <td align=""center"" valign=""middle"">
+			                <table class=""iconNavBarTbl"">
+			                    <tr>
+			                        <td class=""iconNavBarTblFrameCell"">
+			                            <table class=""ApolloIcons"" xmlns:msntv=""http://tv.msn.com"">
+			                                <tr height=""70"">
+			                                    <td>
+			                                        <msntv:loopingDIV id=""navbar"" hasInitialFocus=""true"" divWidthPX=""554"" onLoopingDivReady=""handleLoopingDivReady()"" />
+			                                    </td>
+			                                </tr>
+			                                <script>
+			                                    var nIcons;
+			                                    var ImgURL = new Array();
+			                                    var ImgWidth = new Array();
+			                                    var ImgOverURL = new Array();
+			                                    var URL = new Array();
+
+			                                    function goToFavorites() {{
+			                                        window.open("" "", ""favoritespanel"", ""msntv:panel"");
+			                                    }}
+
+			                                    function goToMessenger() {{
+			                                        if (window.external.SafeGetServiceURL('messenger::root') != null && window.external.SafeGetServiceURL('messenger::root') != """") window.open("" "", ""impanel"", ""msntv:panel"");
+			                                        else
+			                                            window.location = ""msntv:/OLTK/IMBlock.html"";
+			                                    }}
+
+			                                    function goToMail() {{
+			                                        if (window.external.SafeGetServiceURL('mail::listmail') != null && window.external.SafeGetServiceURL('mail::listmail') != """") window.location = window.external.SafeGetServiceURL('mail::listmail');
+			                                        else
+			                                            window.location = ""msntv:/OLTK/EmailBlock.html"";
+			                                    }}
+
+			                                    function goToChat() {{
+			                                        if (window.external.SafeGetServiceURL('chat::home') != null && window.external.SafeGetServiceURL('chat::home') != """") window.location = window.external.SafeGetServiceURL('chat::home');
+			                                        else
+			                                            window.location = ""msntv:/OLTK/chatBlock.html"";
+			                                    }}
+
+			                                    function goToSearch() {{
+			                                        window.location = window.external.SafeGetServiceURL('search::main');
+			                                    }}
+
+			                                    function goToMaps() {{
+			                                        window.location = window.external.SafeGetServiceURL('maps::main');
+			                                    }}
+
+			                                    function goToMusicHome() {{
+			                                        window.location = window.external.SafeGetServiceURL('Music::Home');
+			                                    }}
+
+			                                    function goToVideoHome() {{
+			                                        window.location = window.external.SafeGetServiceURL('Video::Home');
+			                                    }}
+
+			                                    function goToNetwork() {{
+			                                        window.location = window.external.SafeGetServiceURL('Settings::HomeNetwork');
+			                                    }}
+
+			                                    function goToAccount() {{
+			                                        window.location = window.external.SafeGetServiceURL('UAM::UAMbase');
+			                                    }}
+
+			                                    function goToSettings() {{
+			                                        window.location = window.external.SafeGetServiceURL('settings::mainindex');
+			                                    }}
+
+			                                    function goToCenter(URL) {{
+			                                        window.location = URL;
+			                                    }}
+
+			                                    function goToPhotosApp() {{
+			                                        window.location = window.external.SafeGetServiceURL('Photos');
+			                                    }}
+
+			                                    function goToPhotosHome() {{
+			                                        window.location = window.external.SafeGetServiceURL('Photo::Home');
+			                                    }}
+
+			                                    function initIcons() {{
+			                                        for (index = 0; index < nIcons; index++) {{
+			                                            var realIndex = (index + nIcons - 1) % nIcons;
+			                                            var cellHTML = ""<span"" + "" onFocus=\""ImgObjs"" + realIndex + "".src='"" + ImgOverURL[realIndex] + ""'\"""" + "" onBlur=\""ImgObjs"" + realIndex + "".src='"" + ImgURL[realIndex] + ""'\"""";
+			                                            cellHTML += "" onClick=\"""" + URL[realIndex] + ""\"""";
+			                                            cellHTML += "">"" + ""<img"" + "" id='ImgObjs"" + realIndex + ""'"" + "" src='"" + ImgURL[realIndex] + ""' width="" + ImgWidth[realIndex] + "" height=61 border=0>"" + ""</span>"";
+			                                            navbar.AddCellHTML(cellHTML, ImgWidth[realIndex]);
+			                                        }}
+			                                    }}
+
+			                                    ImgURL[0] = ""/Images/Home/HomeIconFav.jpg"";
+			                                    ImgOverURL[0] = ""/Images/Home/HomeIconFavOver.jpg"";
+			                                    ImgWidth[0] = 87;
+			                                    URL[0] = ""javascript:goToFavorites();"";
+
+			                                    ImgURL[1] = ""/Images/Home/HomeIconMail.jpg"";
+			                                    ImgOverURL[1] = ""/Images/Home/HomeIconMailOver.jpg"";
+			                                    ImgWidth[1] = 70;
+			                                    URL[1] = ""javascript:goToMail();"";
+
+			                                    ImgURL[2] = ""/Images/Home/HomeIconMsgr.jpg"";
+			                                    ImgOverURL[2] = ""/Images/Home/HomeIconMsgrOver.jpg"";
+			                                    ImgWidth[2] = 99;
+			                                    URL[2] = ""javascript:goToMessenger();"";
+
+			                                    ImgURL[3] = ""/Images/Home/HomeIconMaps.jpg"";
+			                                    ImgOverURL[3] = ""/Images/Home/HomeIconMapsOver.jpg"";
+			                                    ImgWidth[3] = 60;
+			                                    URL[3] = ""javascript:goToMaps();"";
+
+			                                    ImgURL[4] = ""/Images/Home/HomeIconPhoto.jpg"";
+			                                    ImgOverURL[4] = ""/Images/Home/HomeIconPhotoOver.jpg"";
+			                                    ImgWidth[4] = 70;
+			                                    URL[4] = ""javascript:goToPhotosApp();"";
+
+			                                    ImgURL[5] = ""/Images/Home/HomeIconVideos.jpg"";
+			                                    ImgOverURL[5] = ""/Images/Home/HomeIconVideosOver.jpg"";
+			                                    ImgWidth[5] = 70;
+			                                    URL[5] = ""javascript:goToVideoHome();"";
+
+			                                    ImgURL[6] = ""/Images/Home/HomeIconMusic.jpg"";
+			                                    ImgOverURL[6] = ""/Images/Home/HomeIconMusicOver.jpg"";
+			                                    ImgWidth[6] = 66;
+			                                    URL[6] = ""javascript:goToMusicHome();"";
+
+			                                    ImgURL[7] = ""/Images/Home/HomeIconDiscuss.jpg"";
+			                                    ImgOverURL[7] = ""/Images/Home/HomeIconDiscussOver.jpg"";
+			                                    ImgWidth[7] = 72;
+			                                    URL[7] = ""javascript:goToCenter('/Pages/Discuss/Home.aspx');"";
+
+			                                    ImgURL[8] = ""/Images/Home/HomeIconMSNBC.jpg"";
+			                                    ImgOverURL[8] = ""/Images/Home/HomeIconMSNBCOver.jpg"";
+			                                    ImgWidth[8] = 68;
+			                                    URL[8] = ""javascript:goToCenter('/Pages/News/TopStories.aspx');"";
+
+			                                    ImgURL[9] = ""/Images/Home/HomeIconTWC.jpg"";
+			                                    ImgOverURL[9] = ""/Images/Home/HomeIconTWCOver.jpg"";
+			                                    ImgWidth[9] = 81;
+			                                    URL[9] = ""javascript:goToCenter('/Pages/Weather/MyCity.aspx');"";
+
+			                                    ImgURL[10] = ""/Images/Home/HomeIconEnt.jpg"";
+			                                    ImgOverURL[10] = ""/Images/Home/HomeIconEntOver.jpg"";
+			                                    ImgWidth[10] = 125;
+			                                    URL[10] = ""javascript:goToCenter('/Pages/Entertainment/Home.aspx');"";
+
+			                                    ImgURL[11] = ""/Images/Home/HomeIconTVListings.jpg"";
+			                                    ImgOverURL[11] = ""/Images/Home/HomeIconTVListingsOver.jpg"";
+			                                    ImgWidth[11] = 96;
+			                                    URL[11] = ""javascript:goToCenter('http://tv.msn.com/tv/guide');"";
+
+			                                    ImgURL[12] = ""/Images/Home/HomeIconSports.jpg"";
+			                                    ImgOverURL[12] = ""/Images/Home/HomeIconSportsOver.jpg"";
+			                                    ImgWidth[12] = 82;
+			                                    URL[12] = ""javascript:goToCenter('/Pages/Sports/Main.aspx');"";
+
+			                                    ImgURL[13] = ""/Images/Home/HomeIconMoney.jpg"";
+			                                    ImgOverURL[13] = ""/Images/Home/HomeIconMoneyOver.jpg"";
+			                                    ImgWidth[13] = 68;
+			                                    URL[13] = ""javascript:goToCenter('/Pages/Money/Home.aspx');"";
+
+			                                    ImgURL[14] = ""/Images/Home/HomeIconShopping.jpg"";
+			                                    ImgOverURL[14] = ""/Images/Home/HomeIconShoppingOver.jpg"";
+			                                    ImgWidth[14] = 62;
+			                                    URL[14] = ""javascript:goToCenter('/Pages/Shopping/Main.aspx');"";
+
+			                                    ImgURL[15] = ""/Images/Home/HomeIconGames.jpg"";
+			                                    ImgOverURL[15] = ""/Images/Home/HomeIconGamesOver.jpg"";
+			                                    ImgWidth[15] = 70;
+			                                    URL[15] = ""javascript:goToCenter('/Pages/Games/Home.aspx');"";
+
+			                                    ImgURL[16] = ""/Images/Home/HomeIconEncarta.jpg"";
+			                                    ImgOverURL[16] = ""/Images/Home/HomeIconEncartaOver.jpg"";
+			                                    ImgWidth[16] = 74;
+			                                    URL[16] = ""javascript:goToCenter('http://g.msn.com/5TVANDURIL/1505')"";
+
+			                                    ImgURL[17] = ""/Images/Home/HomeIconChat.jpg"";
+			                                    ImgOverURL[17] = ""/Images/Home/HomeIconChatOver.jpg"";
+			                                    ImgWidth[17] = 55;
+			                                    URL[17] = ""javascript:goToChat();"";
+
+			                                    ImgURL[18] = ""/Images/Home/HomeIconUsingMSN.jpg"";
+			                                    ImgOverURL[18] = ""/Images/Home/HomeIconUsingMSNOver.jpg"";
+			                                    ImgWidth[18] = 127;
+			                                    URL[18] = ""javascript:goToCenter('/Pages/UsingMSNTV/Main');"";
+
+			                                    ImgURL[19] = ""/Images/Home/HomeIconTTT.jpg"";
+			                                    ImgOverURL[19] = ""/Images/Home/HomeIconTTTOver.jpg"";
+			                                    ImgWidth[19] = 116;
+			                                    URL[19] = ""javascript:goToCenter('/Pages/UsingMSNTV/ThingstoTry');"";
+
+			                                    ImgURL[20] = ""/Images/Home/HomeIconSearch.jpg"";
+			                                    ImgOverURL[20] = ""/Images/Home/HomeIconSearchOver.jpg"";
+			                                    ImgWidth[20] = 84;
+			                                    URL[20] = ""javascript:goToSearch();"";
+
+			                                    ImgObjs = new Array();
+			                                    ImgOverObjs = new Array();
+			                                    nIcons = ImgURL.length;
+			                                    ImgOverObjs[0] = new Image();
+			                                    ImgOverObjs[0].src = ImgOverURL[0];
+			                                    for (var i = 0; i < nIcons; i++) {{
+			                                        ImgObjs[i] = new Image();
+			                                        ImgObjs[i].src = ImgURL[i];
+			                                    }}
+			                                    for (var i = 1; i < nIcons; i++) {{
+			                                        ImgOverObjs[i] = new Image();
+			                                        ImgOverObjs[i].src = ImgOverURL[i];
+			                                    }}
+			                                    initIcons();
+			                                </script>
+			                            </table>
+			                        </td>
+			                    </tr>
+			                </table>
+			            </td>
+			        </tr>
+			    </table>
+			</div>
+
+<script>
+			function callCGif()
+			{{
+				var i = new Image();
+				i.src = ""http://c.msn.com/c.gif?DI=1455&PI=68206&PS=45577&TP=http://msntv.msn.com/HomePage.htm&RF="";
+			}}
+			window.attachEvent(""onload"", callCGif);
+		</script>
+
+		</div>
+
+
+        </body></html>
+    ");
+
+    @((MarkupString)htmlContent)
+}
+else
+{
+    <PageTitle>Home</PageTitle>
+    <h1>Hello, world!</h1>
+    <footer>
+        <div style="position:fixed; left: 0px; bottom: 20px; width: 100vw;">
+            <TV2PCHomeNavBar />
+        </div>
+        <div style="position:fixed; left: 0px; bottom: 0; width: 100vw; height: 40px;">
+            <table cellpadding="0" cellspacing="0" width="100%" height="100%">
+                <tr>
+                    <td width="560">
+                        <img src="/Images/TV2PC/StatusBarBG.jpg" style="width: 100vw; height: 40px; object-fit: fill;"/>
+                        <img src="/Images/TV2PC/Logo_MSNTVStatusBar.png" alt="Overlay Logo" class="overlay-logo" style="position: absolute; right: 0.1vw; bottom: 5px; max-width: 150%; z-index: 1001;" />
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </footer>
+}
+
+@code {
+	string userAgent { get; set; }
+	bool IsTV2 = false;
+
+	// News
+	string NewsLink1 = "http://sg1.trusted.msntv.msn.com/Pages/Tricks/he.mp3";
+	string NewsLink2 = "http://sg1.trusted.msntv.msn.com/Pages/Tricks/pokemon-black-2.mp3";
+	string NewsLink3 = "http://sg1.trusted.msntv.msn.com/Pages/Tricks/he.mp3";
+	string NewsTitle1 = "Ryder Smells";
+	string NewsTitle2 = "Ryder Smells";
+	string NewsTitle3 = "Ryder Smells";
+
+	// Weather mock
+	WeatherData Weather = new WeatherData
+	{
+		City = "San Jose",
+		Temp = "72",
+		Description = "Sunny",
+		Icon = "/Pages/Home/Weather/26.gif"
+	};
+
+	// Date data
+	DateData date = new DateData();
+
+	protected override void OnInitialized()
+	{
+		var request = httpContextAccessor.HttpContext?.Request;
+		IsTV2 = request != null && SecurityHandler.IsMsnTvClient(request) && SecurityHandler.IsTrustedDomain(request);
+	}
+
+
+	class WeatherData
+	{
+		public string City { get; set; }
+		public string Temp { get; set; }
+		public string Description { get; set; }
+		public string Icon { get; set; }
+	}
+
+	class DateData
+	{
+		public string date { get; }
+
+		public DateData()
+		{
+			date = DateTime.Now.ToString("dddd, MMMM d");
+		}
+	}
+}

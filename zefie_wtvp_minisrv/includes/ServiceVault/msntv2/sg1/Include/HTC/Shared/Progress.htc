@@ -1,0 +1,170 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         ProgressElement.htc
+//
+//  Description:  The ProgressElement behavior allows web authors to easily add 
+//                a progress bar to their content. 
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="progressbar" lightweight=true>
+
+<PUBLIC:PROPERTY ID="percentCompleteID" NAME="percentComplete" GET="get_percentComplete" PUT="put_percentComplete" /> 
+
+<PUBLIC:METHOD NAME="Animate" />
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+
+<PUBLIC:DEFAULTS style="{image-animation-offset-x:21;}" />
+
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+var _percentComplete;
+var	innerDiv;
+var	innerDivStyle;
+var animationOffset;
+var animationOffsetMax;
+var leftEndCapSize = "width:4px;height:16px;line-height:16px;";
+var rightEndCapSize = "width:4px;height:16px;line-height:16px";
+var interval = 0;
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	var temp = "<table cellpadding=0 cellspacing=0 width=100%>" +
+				"<tr>" +
+				"	<td align=right style='padding:0px;" + leftEndCapSize +"'><span style='" + leftEndCapSize + ";behavior:url(#default#alphaImageLoader);src:url(../Images/ProgressBarLeftEdge.png)'></span></td>" +
+				"	<td style='width:100%;behavior: url(#default#alphaImageLoader); src:url(../Images/ProgressBarCustomMiddleStretch.png);' id=innerTD>" +
+				"		<div style='width:0;height:12px;overflow:hidden;background-image:url(msntv:/Shared/Images/ProgressBarCustomFill.png);position: relative;margin-left:-2px;margin-right:-2px;' id=innerDIV></div></td>" +
+				"	<td align=right style='padding:0px;" + rightEndCapSize +"'><span style='" + rightEndCapSize + ";behavior:url(#default#alphaImageLoader);src:url(../Images/ProgressBarRightEdge.png)'></span></td>" +
+				"</tr></table>";
+/*
+	if (currentStyle.image != null)
+	{	// first, eliminate "url()" as in "url(http://foo.com/blah)"
+		var theImage = currentStyle.image.replace(/url\((.*)\)/, "$1");
+		temp += "<img src='" + theImage + "'>";
+	}
+	temp += "</div>";
+*/
+
+	innerHTML = temp;
+	innerDiv = all["innerDIV"];
+	innerDivStyle = innerDiv.runtimeStyle;
+	
+	if (currentStyle.color != null)
+	{
+		innerDivStyle.backgroundColor = currentStyle.color;
+	}
+	if (currentStyle.image != null)
+	{
+		innerDivStyle.backgroundImage = currentStyle.image;
+	}
+	if (currentStyle["image-animation-offset-x"] != null)
+	{
+		animationOffsetMax = parseInt(currentStyle["image-animation-offset-x"]);
+		if (animationOffsetMax > 0)
+		{	
+			animationOffset = -animationOffsetMax;
+			//innerDiv.scrollLeft = animationOffsetMax;
+			innerDivStyle.backgroundPositionX = 0;
+		}
+	}
+/*	
+	innerDivStyle.height = currentStyle.height;
+*/
+	Sink.AttachEvent(TVShell.PanelManager, "OnAfterHide", OnAfterHide);
+}
+
+function OnAfterHide(name)
+{
+	if (name == window.name) {
+		put_percentComplete(0);
+//		TVShell.Message("OnAfterHide: Setting percentComplete to 0 and stopping animation");
+	}
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       percentComplete
+//
+//  Description:    Handles percentComplete property.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function get_percentComplete()
+{
+	return _percentComplete;
+}
+
+function put_percentComplete(value)
+{
+	if (_percentComplete != value) {
+		_percentComplete = value;
+		if (_percentComplete > 0) {
+			innerDivStyle.pixelWidth = _percentComplete * (offsetWidth-4) / 100;
+			innerDivStyle.visibility = "visible";
+			if (animationOffsetMax > 0 && interval == 0)
+				interval = window.setInterval(uniqueID + ".Animate();", 50);
+		}
+		else {
+			innerDivStyle.visibility = "hidden";
+			if (interval != 0) {
+				window.clearInterval(interval);
+				interval = 0;
+			}
+		}
+		percentCompleteID.fireChange();
+	}
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Animate
+//
+//  Description:    Animates the X offset of the progress bar image.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Animate()
+{
+	if (animationOffset++ >= 0)
+	{
+		animationOffset = -animationOffsetMax;
+		//innerDiv.scrollLeft = animationOffsetMax;
+		innerDivStyle.backgroundPositionX = 0;
+	}
+	//innerDiv.scrollLeft--;
+	innerDivStyle.backgroundPositionX = (parseInt(innerDivStyle.backgroundPositionX) + 1) + "px";
+}
+
+</SCRIPT>
+
+</PUBLIC:COMPONENT>
