@@ -4,11 +4,27 @@ let BoxId = request_headers.query.BoxId;
 if (Array.isArray(BoxId)) BoxId = BoxId[0];
 let clientIp = socket.remoteAddress;
 let banned = false;
+let sessionId = null;
 
-if (!BoxId || BoxId.length != 20 || !/^\d+$/.test(BoxId))
-{
-	console.warn("Invalid BoxId format "+BoxId+" from "+clientIp);
-	banned = true;
+// Use the shared MSNTV2 helper injected by WTV-MSNTV2 VM context.
+if (BoxId) {
+  if (!BoxId || BoxId.length != 20 || !/^\d+$/.test(BoxId))
+  {
+	  console.warn("Invalid BoxId format "+BoxId+" from "+clientIp);
+ 	  banned = true;
+  } else {
+    sessionId = encodeSessionID(BoxId);
+  }
+} else if (request_headers.cookie.SessionID) {
+  BoxID = decodeSessionID(request_headers.cookie.SessionID);
+  sessionId = request_headers.cookie.SessionID;
+} else {
+  console.warn("No BoxId provided by client "+clientIp);
+  banned = true;
+}
+
+if (!sessionId && !banned) {
+  banned = true;
 }
 
 // Current UTC time
@@ -41,8 +57,6 @@ const {
     daylightName,
     daylightOffset
 } = timezoneMap["UTC"];
-
-const sessionId = crypto.randomUUID();
 
 ssid_sessions[socket.ssid] = new WTVClientSessionData(minisrv_config, socket.ssid);
 ssid_sessions[socket.ssid].set('SessionID', sessionId);

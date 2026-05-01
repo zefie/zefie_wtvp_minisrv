@@ -55,6 +55,52 @@ class WTVMSNTV2 {
         return this.server;
     }
 
+    // Encode a BoxID into a reversible UUID v8 (custom layout shared with MSNTV2 scripts).
+    static encodeSessionID(boxID) {
+        const source = String(boxID || '').trim();
+        if (!/^\d{1,20}$/.test(source)) return null;
+
+        let value = BigInt(source);
+        const data = new Uint8Array(9);
+        for (let i = 8; i >= 0; i--) {
+            data[i] = Number(value & 0xffn);
+            value >>= 8n;
+        }
+        if (value !== 0n) return null; // would not fit in 9 bytes
+
+        const uuid = new Uint8Array(16);
+        uuid[0] = data[0];
+        uuid[1] = data[1];
+        uuid[2] = data[2];
+        uuid[3] = data[3];
+        uuid[4] = data[4];
+        uuid[5] = data[5];
+        uuid[6] = 0x80; // version 8 (custom)
+        uuid[7] = data[6];
+        uuid[8] = 0x80; // variant
+        uuid[9] = data[7];
+        uuid[10] = data[8];
+        // uuid[11..15] remain zero padding
+
+        const h = Buffer.from(uuid).toString('hex');
+        return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
+    }
+
+    // Decode a reversible UUID v8 back to a 20-digit BoxID string.
+    // Returns null if the UUID does not match our custom layout.
+    static decodeSessionID(sessionID) {
+        const h = String(sessionID || '').replace(/-/g, '').toLowerCase();
+        if (!/^[0-9a-f]{32}$/.test(h)) return null;
+
+        const b = Buffer.from(h, 'hex');
+        if (b[6] !== 0x80 || b[8] !== 0x80) return null;
+
+        const data = [b[0], b[1], b[2], b[3], b[4], b[5], b[7], b[9], b[10]];
+        let big = 0n;
+        for (const byte of data) big = (big << 8n) | BigInt(byte);
+        return big.toString().padStart(20, '0');
+    }
+
     // Set sslv2_debug: true in the service config to enable SSL/TLS protocol-level
     // debug logging (handshake stages, cipher setup, record enc/dec, write previews).
     // Defaults to false so normal operation is not flooded with crypto noise.
@@ -1425,11 +1471,17 @@ class WTVMSNTV2 {
                         if (boxId) {
                             socket.ssid = this.wtvshared.makeSafeSSID(boxId);
                         } else if (sessionId) {
-                            // Find the ssid whose session_data has a matching stored session_id
-                            const match = Object.keys(this.ssid_sessions).find(
-                                k => this.ssid_sessions[k] && this.ssid_sessions[k].get && this.ssid_sessions[k].get('session_id') === sessionId
-                            );
-                            if (match) socket.ssid = match;
+                            // Try direct decode first (reversible UUID v8 encodes BoxID directly)
+                            const decoded = WTVMSNTV2.decodeSessionID(sessionId);
+                            if (decoded) {
+                                socket.ssid = this.wtvshared.makeSafeSSID(decoded);
+                            } else {
+                                // Fallback: search ssid_sessions for a matching stored session_id
+                                const match = Object.keys(this.ssid_sessions).find(
+                                    k => this.ssid_sessions[k] && this.ssid_sessions[k].get && this.ssid_sessions[k].get('session_id') === sessionId
+                                );
+                                if (match) socket.ssid = match;
+                            }
                         }
                         if (socket.ssid && !this.ssid_sessions[socket.ssid]) {
                             this.ssid_sessions[socket.ssid] = new this.WTVClientSessionData(this.minisrv_config, socket.ssid);
@@ -1454,6 +1506,12 @@ class WTVMSNTV2 {
                         sendToClient: (sock, hdrs, dat) => self._sendScriptResult(sock, request_headers, hdrs, dat),
                         minisrv_config: this.minisrv_config,
                         wtvshared: this.wtvshared,
+                        encodeSessionID(boxID) {
+                            return WTVMSNTV2.encodeSessionID(boxID);
+                        },
+                        decodeSessionID(sessionID) {
+                            return WTVMSNTV2.decodeSessionID(sessionID);
+                        },
                         cwd: path.dirname(filepath),
                         // Cookie helpers available to scripts
                         response_cookies: responseCookies,
