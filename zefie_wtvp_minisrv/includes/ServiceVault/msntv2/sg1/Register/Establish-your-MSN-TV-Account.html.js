@@ -82,7 +82,12 @@ data = `<HTML xmlns:msntv>
                     <td style="margin: 0; padding: 0; vertical-align: middle; top: 2px; position: relative;"><img src="msntv:/Shared/Images/BulletCustom.gif" height="14" width="7" alt="Bullet"></td>
                     <td style="margin: 0; padding: 0; width: 4px;"></td>
                     <td style="margin: 0; padding: 0; font:bold 18; line-height: 20px;"><a class="shrLnk2" onclick="handleGuest()" style="display: inline-block; line-height: 20px;">I want to sign in as a guest</a></td>
-                </tr>                              
+                </tr>        
+                <tr style="margin: 0; padding: 0; top: 2px; position: relative;">
+                    <td style="margin: 0; padding: 0; vertical-align: middle; top: 2px; position: relative;"><img src="msntv:/Shared/Images/BulletCustom.gif" height="14" width="7" alt="Bullet"></td>
+                    <td style="margin: 0; padding: 0; width: 4px;"></td>
+                    <td style="margin: 0; padding: 0; font:bold 18; line-height: 20px;"><a class="shrLnk2" href="https://headwaiter.trusted.msntv.msn.com/connection/boxcheck.html" style="display: inline-block; line-height: 20px;">I want to start over</a></td>
+                </tr>                                              
             </table>
         </div>
     </DIV>

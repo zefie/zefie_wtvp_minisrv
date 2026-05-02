@@ -2,13 +2,14 @@ const minisrv_service_file = true;
 let promoCode = request_headers.query.promo_code || '';
 if (Array.isArray(promoCode)) promoCode = promoCode[0];
 if (promoCode) {
-    if (minisrv_config.services['msntv2'] && minisrv_config.services['msntv2'].validPromoCodes && minisrv_config.services['msntv2'].validPromoCodes.includes(promoCode)) {
+    if (minisrv_config.services[service_name] && minisrv_config.services[service_name].validPromoCodes && minisrv_config.services[service_name].validPromoCodes.includes(promoCode)) {
         console.log('Valid promo code entered: %s', promoCode);
     } else {
         console.warn('Invalid promo code entered: %s', promoCode);
         promoCode = '';
     }
     setCookie('promo_code', promoCode, { path: '/' });
+    session_data.set('promo_code', promoCode);
 }
 
 headers = `Status: 200 OK

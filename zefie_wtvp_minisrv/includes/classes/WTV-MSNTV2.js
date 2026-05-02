@@ -1447,6 +1447,9 @@ class WTVMSNTV2 {
 
     sendLocalFile(socket, filepath, request_headers) {
         this._populateQuery(request_headers);
+        if (!request_headers.service_file_path) {
+            request_headers.service_file_path = filepath;
+        }
         try {
             const ext = path.extname(filepath).slice(1).toLowerCase();
             const serviceVaultDir = this.service_config.servicevault_dir || this.service_name;
@@ -1466,8 +1469,8 @@ class WTVMSNTV2 {
                     // Resolve socket.ssid from query params before running the script.
                     // Priority: BoxID (direct SSID) > SessionID (looked up in ssid_sessions).
                     if (socket.ssid === null && this.ssid_sessions) {
-                        const boxId = request_headers.query.BoxID || request_headers.query.boxid || null;
-                        const sessionId = request_headers.query.SessionID || request_headers.query.sessionid || null;
+                        const boxId = request_headers.query[this.wtvshared.getCaseInsensitiveKey('boxid', request_headers.query)] || null;
+                        const sessionId =  request_headers.query[this.wtvshared.getCaseInsensitiveKey('sessionid', request_headers.query)] || null;
                         if (boxId) {
                             socket.ssid = this.wtvshared.makeSafeSSID(boxId);
                         } else if (sessionId) {
@@ -1485,7 +1488,8 @@ class WTVMSNTV2 {
                         }
                         if (socket.ssid && !this.ssid_sessions[socket.ssid]) {
                             this.ssid_sessions[socket.ssid] = new this.WTVClientSessionData(this.minisrv_config, socket.ssid);
-                            this.ssid_sessions[socket.ssid].SaveIfRegistered();
+                            this.ssid_sessions[socket.ssid].switchUserID(0);
+                            this.ssid_sessions[socket.ssid].loadSessionData();
                         }
                     }
 
@@ -1500,7 +1504,6 @@ class WTVMSNTV2 {
                         request_is_async: false,
                         session_data: (socket.ssid && this.ssid_sessions) ? this.ssid_sessions[socket.ssid] : null,
                         ssid_sessions: this.ssid_sessions,
-                        WTVClientSessionData: this.WTVClientSessionData,
                         // Scripts may call sendToClient directly for async mode;
                         // wrap it so the response goes through SSLv2 encryption.
                         sendToClient: (sock, hdrs, dat) => self._sendScriptResult(sock, request_headers, hdrs, dat),
@@ -1588,6 +1591,10 @@ class WTVMSNTV2 {
             const responseHeaders = [];
             responseHeaders.push('HTTP/1.1 200 OK');
             responseHeaders.push(`Content-Type: ${contentType}`);
+            const lastModified = this.wtvshared.getFileLastModifiedUTCString(filepath);
+            if (lastModified) {
+                responseHeaders.push(`Last-Modified: ${lastModified}`);
+            }
             responseHeaders.push(`Content-Length: ${fileContents.length}`);
             const closeClientConnection = this._shouldCloseClientConnection(request_headers);
             responseHeaders.push(`Connection: ${closeClientConnection ? 'close' : 'Keep-Alive'}`);
@@ -1663,6 +1670,14 @@ class WTVMSNTV2 {
         if (!headerLines.some(l => l.toLowerCase().startsWith('content-length'))) {
             headerLines.push(`Content-Length: ${body.length}`);
         }
+
+        if (!headerLines.some(l => l.toLowerCase().startsWith('last-modified')) && !headerLines.some(l => l.toLowerCase().startsWith('minisrv-no-last-modified')) && request_headers.service_file_path) {
+            const lastModified = this.wtvshared.getFileLastModifiedUTCString(request_headers.service_file_path);
+            if (lastModified) {
+                headerLines.push(`Last-Modified: ${lastModified}`);
+            }
+        }
+
         const closeClientConnection = this._shouldCloseClientConnection(request_headers, headerLines);
         if (!headerLines.some(l => l.toLowerCase().startsWith('connection:'))) {
             headerLines.push(`Connection: ${closeClientConnection ? 'close' : 'Keep-Alive'}`);

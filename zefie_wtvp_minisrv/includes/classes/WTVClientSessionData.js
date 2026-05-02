@@ -798,7 +798,7 @@ class WTVClientSessionData {
 
     isRegistered(session_mode = true) {
         if (session_mode)
-            return (this.getSessionData("registered") && this.fs.existsSync(this.getUserStoreDirectory()));
+            return Boolean(this.getSessionData("registered") && this.fs.existsSync(this.getUserStoreDirectory()));
         else
             return this.fs.existsSync(this.getUserStoreDirectory());
     }
