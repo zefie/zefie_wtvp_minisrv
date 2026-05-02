@@ -9,7 +9,7 @@ This open source server is in beta status. Use at your own risk.
 ### Note:
 - This has nothing to do with streaming video.
 - This is a server for the MSNTV (formerly WebTV) set-top box, and its various emulators.
-- This does not support MSNTV2.
+- This does not yet fully support MSNTV2.
 
 ### Current status:
 - DB-less flat file client session store and registration system
