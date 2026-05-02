@@ -119,6 +119,7 @@ data = `<html>
           TVShell.AddSecretCode(6145539); // Force Crash
           var entry = TVShell.ServiceList.Add("connection::login");
           entry.URL = "https://headwaiter.trusted.msntv.msn.com/connection/login.aspx?BoxId=${BoxId}";
+          TVShell.ServiceList.Save();
       }
 
       function CheckForUser(usernameToCheck) {

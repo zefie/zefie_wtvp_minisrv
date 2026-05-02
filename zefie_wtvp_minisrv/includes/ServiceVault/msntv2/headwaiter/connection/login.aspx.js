@@ -4,19 +4,6 @@ const minisrv_service_file = true;
 
 headers = `Content-type: text/html`;
 
-if ( session_data && session_data.isRegistered() ) {
-data = `<html>
-<head>
-  <title id="title"></title>
-</head>
-<body>
-  <iframe id="checkmail" style="display:none"></iframe>
-  <script language="javascript">
-
-  </script>
-</body>
-</html>`;
-} else {
  data = `<html>
 <head>
   <title id="title"></title>
@@ -43,4 +30,3 @@ data = `<html>
   </script>
 </body>
 </html>`;
-} 

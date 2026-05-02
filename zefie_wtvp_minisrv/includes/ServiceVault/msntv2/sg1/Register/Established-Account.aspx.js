@@ -97,6 +97,7 @@ data = `<html xmlns:msntv>
         }
 
         AddUser();
+        tvShell.UserManager.Save();
     </script>
 </head>
 
