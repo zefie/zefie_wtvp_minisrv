@@ -517,7 +517,7 @@
         {
           "match": "login.live.com",
           "local_dir": "passport"
-        },		
+        }		
       ],
       "handler_extra_vars": ["runScriptInVM", "handlePHP", "handleCGI", "ssid_sessions", "WTVClientSessionData", "socket_sessions"],
       "show_verbose_errors": false,
