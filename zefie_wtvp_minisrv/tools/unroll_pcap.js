@@ -7,9 +7,9 @@ const pcap = require('pcap-parser');
 const zlib = require('zlib');
 
 // Import our WebTV classes
-const WTVSec = require('./includes/classes/WTVSec.js');
-const WTVShared = require('./includes/classes/WTVShared.js')['WTVShared'];
-const LZPF = require('./includes/classes/LZPF.js');
+const WTVSec = require('../includes/classes/WTVSec.js');
+const WTVShared = require('../includes/classes/WTVShared.js')['WTVShared'];
+const LZPF = require('../includes/classes/LZPF.js');
 
 /**
  * PCAP Packet Parser for WebTV/WTVP Protocol

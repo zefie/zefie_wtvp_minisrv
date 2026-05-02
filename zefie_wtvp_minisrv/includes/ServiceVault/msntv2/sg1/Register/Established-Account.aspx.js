@@ -76,17 +76,16 @@ data = `<html xmlns:msntv>
 
     <script>
         var tvShell = new ActiveXObject("MSNTV.TVShell");
-        tvShell.UserManager.SetCurrentUserIsAuthorized(true);
-        tvShell.ConnectionManager.ServiceState = 'Authorized';
+        tvShell.UserManager.SetCurrentUserIsAuthorized(false);
 
         function AddUser() {
             var user = tvShell.UserManager.AddNew("${username}");
 
             if (user) {
-                user.IsPersistent = false;
+                user.IsPersistent = true;
             } else {
                 user = tvShell.UserManager.Item("${username}");
-                if (user && user.IsPersistent) {
+                if (user && !user.IsPersistent) {
                     user.IsPersistent = true;
                 }
             }

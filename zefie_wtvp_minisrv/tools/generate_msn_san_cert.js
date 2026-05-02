@@ -5,8 +5,8 @@ const path = require('path');
 const forge = require('node-forge');
 
 const workspaceRoot = __dirname;
-const httpsDir = path.join(workspaceRoot, 'includes', 'ServiceDeps', 'https');
-const msnDir = path.join(workspaceRoot, 'includes', 'ServiceDeps', 'msntv2');
+const httpsDir = path.join(workspaceRoot, '..', 'includes', 'ServiceDeps', 'https');
+const msnDir = path.join(workspaceRoot, '..', 'includes', 'ServiceDeps', 'msntv2');
 const domainsFile = path.join(msnDir, 'msn_domains.txt');
 
 const defaultCaCertPath = path.join(msnDir, 'msntv2.crt');

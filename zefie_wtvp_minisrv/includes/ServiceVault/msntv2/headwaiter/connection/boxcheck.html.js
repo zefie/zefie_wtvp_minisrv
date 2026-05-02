@@ -15,7 +15,7 @@ if (BoxId) {
   } else {
     sessionId = encodeSessionID(BoxId);
   }
-} else if (request_headers.cookie.SessionID) {
+} else if (request_headers.cookie && request_headers.cookie.SessionID) {
   BoxID = decodeSessionID(request_headers.cookie.SessionID);
   sessionId = request_headers.cookie.SessionID;
 } else {
@@ -77,6 +77,7 @@ data = `<html>
     try {
       var tvShell = new ActiveXObject("MSNTV.TVShell");
       var sink = new ActiveXObject("MSNTV.MultipleEventSink");
+
       function getIDCRLCode(value) {
         return value & 0xFFFF;
       }
@@ -88,6 +89,12 @@ data = `<html>
       var wanProvider = tvShell.ConnectionManager.WANProvider;
 
       var banned = ${banned}; // JavaScript boolean value
+
+      if (!banned) {
+          var BuiltinServiceList = tvShell.BuiltinServiceList;
+	        var entry = BuiltinServiceList.Add("connection::login");
+          entry.URL = "https://headwaiter.trusted.msntv.msn.com/connection/boxcheck.html?BoxId=${BoxId}";
+      }
 
       function DoLogin() {
         var currentUser = tvShell.UserManager.CurrentUser;
@@ -184,7 +191,7 @@ data = `<html>
       }
 
       function GoToUserCheck() {
-        var url = banned ? 'https://sg1.trusted.msntv.msn.com/connection/banned.html' : 'https://sg1.trusted.msntv.msn.com/connection/usercheck.aspx';
+        var url = banned ? 'https://headwaiter.trusted.msntv.msn.com/connection/banned.html' : 'https://headwaiter.trusted.msntv.msn.com/connection/login.aspx';
         var myPanel = tvShell.PanelManager.Item('service');
         if (myPanel) myPanel.GotoURL(url);
       }

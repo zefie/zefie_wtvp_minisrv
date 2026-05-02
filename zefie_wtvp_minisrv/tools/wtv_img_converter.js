@@ -24,7 +24,7 @@
 const fs   = require('fs');
 const path = require('path');
 
-const WTVImage = require('./includes/classes/WTVImage');
+const WTVImage = require('../includes/classes/WTVImage');
 
 // ---------------------------------------------------------------------------
 // Argument parser

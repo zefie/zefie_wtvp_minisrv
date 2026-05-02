@@ -32,17 +32,20 @@ data = `<HTML xmlns:msntv>
 <BODY width="520" height="388">
     <DIV id="title">Logging into your account</DIV>
     <DIV id="main">
-        <p>When using MSN TV, you will be using your webtv.net account
-to sign in. If you already have a email to WebTV, you can
-use it with MSN TV. If not, you will have to use a Hotmail or MSN address.</p>
+        <p>When using MSNTV2, you can access the same minisrv account as your WebTV.</p>
         <br>
-        <p>Type your WebTV e-mail in the box below:</p>
+        <p>Type your existing primary username in the box below:</p>
         <div class="input-container">
-            <textarea name="textarea1" id="textarea1" rows="1" cols="15"></textarea>
-            <p style="display: inline;">@webtv.net</p>
+            <textarea name="username" id="username" rows="1" cols="15"></textarea>
+            <p style="display: inline;">@${minisrv_config.config.service_name}</p>
         </div>
         <br>
-        <a>If you don't have a WebTV account, select the <EM>Back</EM> Button.</a>
+        <div class="input-container">
+            <textarea name="password" id="password" rows="1" cols="15"></textarea>
+        </div>
+        <br>
+        If you don't have an existing minisrv account, select the <EM>Back</EM> Button.
+        If you do not have a password set on your primary user account, you will need to set one up on your WebTV before you can log in here. After entering your username and password, select the <EM>Continue</EM> Button.
     </DIV>
     <div id="footer">
         <msntv:CustomButton id="continue" label="Continue" href="/Register/ConnectionType.aspx"/>

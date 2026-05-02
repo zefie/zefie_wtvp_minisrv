@@ -500,7 +500,7 @@
       "port": 1694,
       "connections": 3,
       "flags": "0x00000001",
-      "protocol": "HTTP",
+      "protocol": "HTTPS",
       "privileged": true,
       "handler_module": "WTV-MSNTV2",
       "handler_handles_port": true,

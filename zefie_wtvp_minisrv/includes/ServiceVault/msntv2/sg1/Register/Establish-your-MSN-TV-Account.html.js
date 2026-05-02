@@ -11,13 +11,43 @@ headers = `Status: 200 OK
 Content-type: text/html`;
 
 data = `<HTML xmlns:msntv>
-<?import namespace="msntv" implementation="https://sg1.trusted.msntv.msn.com/HTC/CustomButton.htc">
+<?import namespace="msntv" implementation="https://sg1.trusted.msntv.msn.com/Include/HTC/Shared/CustomButton.htc">
 <HEAD>
     <title id="title">Login to Passport</title>
     <meta name="vs_targetSchema" content="http://schemas.microsoft.com/intellisense/ie5">
     <link rel="stylesheet" type="text/css" href="msntv:/Registration/css/Registration.css">
     <script src="/Include/2.0.261.778/localhost-1700/Shared/BaseClient/JsTransforms/en-us/PaneHelp.js" language="javascript" defer="true"></script>
     <script src="/Include/2.0.261.778/localhost-1700/Shared/Anduril/JsTransforms/en-us/Scripts.js" language="javascript"></script>
+    <script src="msntv:/Javascript/TVShell.js" language="javascript"></script>
+    <script src="msntv:/Javascript/GuestUser.js" language="javascript"></script>
+    <script src="msntv:/Javascript/ServiceList.js" language="javascript"></script>
+    <script language="javascript">
+        function handleGuest() {
+            if (!GuestUserExists()) {
+                InitializeGuestMode();
+            	var PersistentProperties = TVShell.Property("Persistent/");
+
+                if (!PersistentProperties) {
+                    return;
+                }
+
+                PersistentProperties.Add("GuestMode", "Guest");
+                PersistentProperties.Save();
+                
+                AddGuestUser();
+		        var signon = TVShell.BuiltinServiceList.Item("SignOn");
+        		var panel = TVShell.PanelManager.FocusedPanel;
+        		var atLogin = false;
+        		if ( signon && panel && panel.Name == "main" )
+        		{
+			        if ( IsMainPanelOnPage( signon.URL ) ) atLogin = true;
+		        }
+            }
+            if (!atLogin) {
+                 GotoSignOn();
+            }
+        }
+    </script>
     <STYLE>
         body {
             background-image: url(msntv:/Registration/images/bgimage.jpg);
@@ -46,8 +76,13 @@ data = `<HTML xmlns:msntv>
                 <tr style="margin: 0; padding: 0; top: 2px; position: relative;">
                     <td style="margin: 0; padding: 0; vertical-align: middle; top: 2px; position: relative;"><img src="msntv:/Shared/Images/BulletCustom.gif" height="14" width="7" alt="Bullet"></td>
                     <td style="margin: 0; padding: 0; width: 4px;"></td>
-                    <td style="margin: 0; padding: 0; font:bold 18; line-height: 20px;"><a class="shrLnk2" href="/Register/minisrv-import.asx" style="display: inline-block; line-height: 20px;">I want to use my existing minisrv account</a> (TODO)</td>
+                    <td style="margin: 0; padding: 0; font:bold 18; line-height: 20px;"><a class="shrLnk2" href="/Register/Login-to-WebTV.aspx" style="display: inline-block; line-height: 20px;">I want to use my existing minisrv account</a> (TODO)</td>
                 </tr>
+                <tr style="margin: 0; padding: 0; top: 2px; position: relative;">
+                    <td style="margin: 0; padding: 0; vertical-align: middle; top: 2px; position: relative;"><img src="msntv:/Shared/Images/BulletCustom.gif" height="14" width="7" alt="Bullet"></td>
+                    <td style="margin: 0; padding: 0; width: 4px;"></td>
+                    <td style="margin: 0; padding: 0; font:bold 18; line-height: 20px;"><a class="shrLnk2" onclick="handleGuest()" style="display: inline-block; line-height: 20px;">I want to sign in as a guest</a></td>
+                </tr>                              
             </table>
         </div>
     </DIV>
