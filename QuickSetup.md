@@ -57,3 +57,31 @@ To generate a random key:
 ```
 openssl rand -base64 32
 ```
+
+## Disabling a standard service
+
+You can disable a configured service by setting the `disabled: true` flag for that service. For example, to disable `wtv-admin`:
+
+```
+node tools/configurator.js services.wtv-admin.disabled true
+```
+
+
+## Enabling a disabled service
+
+You can disable a configured service by setting the `disabled: false` flag for that service. For example, to enable `pc_services`:
+
+```
+node tools/configurator.js services.pc_services.disabled false
+```
+
+## Custom service pages
+
+You can place your custom pages in `UserServiceVault/servicename/page.js`. For example, to override `wtv-home:/home`, you would create 
+`UserServiceVault/wtv-home/home.js`, and the server will automatically prioritize your page. You can mix and match service vaults, accessing 
+resources in the standard service vault within your custom pages.
+
+## Updating minisrv
+
+You can `git pull`, or extract a new archive over the existing folder. If you followed the directions and kept your changes in `user_config.json` and `UserServiceVault`, 
+then you can update minisrv without worrying about breakage or losing data. Do pay attention to the console, and if any deprecreations appear, fix them before updating to the version listed in the notice.
