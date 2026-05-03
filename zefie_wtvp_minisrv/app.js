@@ -228,24 +228,43 @@ function getServiceString(service_name, overrides = {}) {
 }
 
 
+const DEPRECIATED_CONFIG_PATH = path.join(__dirname, 'includes', 'depreciated.json');
+
+function loadDepreciatedPatterns() {
+    try {
+        if (!fs.existsSync(DEPRECIATED_CONFIG_PATH)) {
+            return {};
+        }
+
+        const raw = fs.readFileSync(DEPRECIATED_CONFIG_PATH, 'utf8');
+        const parsed = JSON.parse(raw);
+
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+            return {};
+        }
+
+        const mapped = parsed
+            .filter((entry) => entry && typeof entry.pattern === 'string')
+            .map((entry) => ({
+                id: entry.id || entry.pattern,
+                pattern: new RegExp(entry.pattern, entry.flags || 'g'),
+                message: entry.message || 'Deprecated API usage found',
+                removeVersion: entry.removeVersion || 'unknown',
+                replacement: entry.replacement || null
+            }));
+
+        return mapped.length > 0 ? mapped : {};
+    } catch (error) {
+        console.warn('Failed to load includes/depreciated.json, using fallback deprecation patterns:', error.message);
+        return {};
+    }
+}
+
+
 // Deprecation warnings configuration
 const deprecationWarnings = {
     // Array of deprecated patterns with their details
-    patterns: [
-        {
-            // Example deprecations - you can modify these as needed
-            pattern: /session\_data\.hasCap\s*\(/g,
-            message: "session_data.hasCap() is deprecated and will be removed",
-            removeVersion: "0.9.80",
-            replacement: "Use session_data.capabilities.get() instead"
-        },
-        {
-            pattern: /(?<!wtvshared\.)getServiceString\s*\(/g,
-            message: "getServiceString() is deprecated and will be removed",
-            removeVersion: "0.9.80",
-            replacement: "Use wtvshared.getServiceString() instead"
-        }
-    ],
+    patterns: loadDepreciatedPatterns(),
     
     // Enable/disable deprecation warnings globally
     enabled: true,

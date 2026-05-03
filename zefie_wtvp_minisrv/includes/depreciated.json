@@ -1,0 +1,18 @@
+[
+  {
+    "id": "session_data.hasCap",
+    "pattern": "session\\_data\\.hasCap\\s*\\(",
+    "flags": "g",
+    "message": "session_data.hasCap() is deprecated and will be removed",
+    "removeVersion": "0.9.80",
+    "replacement": "Use session_data.capabilities.get() instead"
+  },
+  {
+    "id": "getServiceString",
+    "pattern": "(?<!wtvshared\\.)getServiceString\\s*\\(",
+    "flags": "g",
+    "message": "getServiceString() is deprecated and will be removed",
+    "removeVersion": "0.9.80",
+    "replacement": "Use wtvshared.getServiceString() instead"
+  }
+]

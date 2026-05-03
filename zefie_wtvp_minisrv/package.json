@@ -9,7 +9,8 @@
     "start": "node app.js",
     "test": "node test.js",
     "debug": "cross-env DEBUG=* node app.js",
-    "modem-proxy": "node modem_proxy.js"
+    "modem-proxy": "node modem_proxy.js",
+    "scan-service-deprecations": "node tools/scan_service_vault_deprecations.js"
   },
   "author": {
     "name": "zefie",
