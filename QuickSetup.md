@@ -35,7 +35,7 @@ node tools/configurator.js <dot.path.key> --delete [--overwrite]
 
 ## Setting service_ip
 
-`service_ip` tells the box where to connect, this CANNOT be `0.0.0.0`, and must be an address reachable by your box when it connects via your setup. Can be `127.0.0.1` if you are running MAME/Viewer on the same machine as minisrv.
+`service_ip` tells the box where to connect, this CANNOT be `0.0.0.0`, and must be an address reachable by your box when it connects via your setup. Can be `127.0.0.1` if you are running TouchPPP or WebTV Viewer on the same machine as minisrv.
 
 ```
 node tools/configurator.js config.service_ip 192.168.1.x --overwrite
