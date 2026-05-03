@@ -135,7 +135,8 @@ class WTVMSNTV2 {
 
     handleData(socket, chunk) {
         socket.buffer = Buffer.concat([socket.buffer, chunk]);
-        if (socket.buffer.length > parseFloat(this.minisrv_config.services[service_name].max_response_size || 128) * 1024 * 1024) {
+        const maxRequestBytes = this.maxProxyResponseBytes;
+        if (socket.buffer.length > maxRequestBytes) {
             this.writeError(socket, 413, 'Request Entity Too Large');
             socket.destroy();
             return;
@@ -169,6 +170,11 @@ class WTVMSNTV2 {
         });
 
         const contentLength = parseInt(headers['content-length'] || '0', 10) || 0;
+        if (contentLength > 0 && contentLength > maxRequestBytes) {
+            this.writeError(socket, 413, 'Request Entity Too Large');
+            socket.destroy();
+            return;
+        }
         const requestLength = headerEnd + 4 + contentLength;
         if (socket.buffer.length < requestLength) return;
 
@@ -376,6 +382,11 @@ class WTVMSNTV2 {
                     }
                 });
                 const contentLength = parseInt(headers['content-length'] || '0', 10) || 0;
+                const maxRequestBytes = this.maxProxyResponseBytes;
+                if (contentLength > 0 && contentLength > maxRequestBytes) {
+                    this.writeError(socket, 413, 'Request Entity Too Large');
+                    return;
+                }
                 const requestLength = headerEnd + 4 + contentLength;
                 if (connection.buffer.length < requestLength) break;
                 const body = connection.buffer.slice(headerEnd + 4, requestLength);
@@ -1115,6 +1126,12 @@ class WTVMSNTV2 {
                 }
             });
             const contentLength = parseInt(headers['content-length'] || '0', 10) || 0;
+            const maxRequestBytes = this.maxProxyResponseBytes;
+            if (contentLength > 0 && contentLength > maxRequestBytes) {
+                this.writeError(socket, 413, 'Request Entity Too Large');
+                socket.destroy();
+                return;
+            }
             const requestLength = headerEnd + 4 + contentLength;
             if (socket.sslv2AppBuffer.length < requestLength) return;
             const body = socket.sslv2AppBuffer.slice(headerEnd + 4, requestLength);
@@ -1242,6 +1259,12 @@ class WTVMSNTV2 {
         });
 
         const contentLength = parseInt(headers['content-length'] || '0', 10) || 0;
+        const maxRequestBytes = this.maxProxyResponseBytes;
+        if (contentLength > 0 && contentLength > maxRequestBytes) {
+            this.writeError(tlsSocket, 413, 'Request Entity Too Large');
+            tlsSocket.destroy();
+            return;
+        }
         const requestLength = headerEnd + 4 + contentLength;
         if (tlsSocket.buffer.length < requestLength) return;
 

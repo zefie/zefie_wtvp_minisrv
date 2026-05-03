@@ -111,11 +111,24 @@ class WTVHTTP {
             }            
             const req = this.proxy_agent.request(options, (res) => {
                 let total_data = 0;
+                let abortedBySize = false;
+                const maxBytes = 1024 * 1024 * parseFloat(this.minisrv_config.services[request_type].max_response_size || 16);
+                const responseContentLength = parseInt(res.headers['content-length'] || res.headers['Content-Length'] || '0', 10) || 0;
+                if (responseContentLength > 0 && responseContentLength > maxBytes) {
+                    console.warn(` * Proxy response contains Content-Length ${responseContentLength} bytes > limit ${maxBytes} bytes, destroying...`);
+                    abortedBySize = true;
+                    res.destroy();
+                    const errpage = this.wtvshared.doErrorPage(400, "The item chosen is too large to be used.");
+                    this.sendToClient(socket, errpage[0], errpage[1]);
+                    return;
+                }
 
                 res.on('data', d => {
+                    if (abortedBySize) return;
                     data.push(d);
                     total_data += d.length;
-                    if (total_data > 1024 * 1024 * parseFloat(this.minisrv_config.services[request_type].max_response_size || 16)) {
+                    if (total_data > maxBytes) {
+                        abortedBySize = true;
                         console.warn(` * Response data exceeded ${this.minisrv_config.services[request_type].max_response_size || 16}MB limit, destroying...`);
                         res.destroy();
                         const errpage = this.wtvshared.doErrorPage(400, "The item chosen is too large to be used.");
@@ -133,6 +146,7 @@ class WTVHTTP {
                 });
 
                 res.on('end', () => {
+                    if (abortedBySize) return;
                     // For when http proxies behave correctly
                     if (!this.minisrv_config.services[request_type].external_proxy_is_http1 || data.length > 0) {
                         this.handleProxy(socket, request_type, request_headers, res, data);
