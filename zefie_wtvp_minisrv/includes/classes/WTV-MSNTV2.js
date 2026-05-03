@@ -49,9 +49,21 @@ class WTVMSNTV2 {
         };
     }
 
+    get maxProxyResponseBytes() {
+        const defaultMb = 16;
+        const configuredMb = parseFloat(this.service_config.max_response_size || defaultMb);
+        const mb = Number.isFinite(configuredMb) && configuredMb > 0 ? configuredMb : defaultMb;
+        return Math.max(1, mb) * 1024 * 1024;
+    }
+
+    isAllowedUserAgent(userAgent) {
+        if (!userAgent || typeof userAgent !== 'string') return false;
+        return /MSNTV|WebTV/i.test(userAgent);
+    }
+
     listen(port, host = '0.0.0.0') {
         this.server.listen(port, host);
-        console.log(` * MSNTV2 Proxy listening on ${host}:${port}`);
+        console.log(` * Started MSNTV2 Proxy on port ${port}`);
         return this.server;
     }
 
@@ -123,6 +135,12 @@ class WTVMSNTV2 {
 
     handleData(socket, chunk) {
         socket.buffer = Buffer.concat([socket.buffer, chunk]);
+        if (socket.buffer.length > parseFloat(this.minisrv_config.services[service_name].max_response_size || 128) * 1024 * 1024) {
+            this.writeError(socket, 413, 'Request Entity Too Large');
+            socket.destroy();
+            return;
+        }
+
         const headerEnd = socket.buffer.indexOf('\r\n\r\n');
         if (headerEnd < 0) return;
 
@@ -175,6 +193,15 @@ class WTVMSNTV2 {
         };
 
         Object.assign(request_headers, headers);
+
+        const userAgent = request_headers['User-Agent'] || request_headers['user-agent'] || '';
+        if (!this.isAllowedUserAgent(userAgent)) {
+            if (this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3) {
+                console.warn('[WTV-MSNTV2] unsupported User-Agent rejected:', userAgent || '<none>');
+            }
+            this.writeError(socket, 403, 'Forbidden', request_headers);
+            return;
+        }
 
         const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
         if (verbose) {
@@ -1741,12 +1768,22 @@ class WTVMSNTV2 {
             maxBodyLength: 1024 * 1024 * 64
         };
 
+        const maxResponseBytes = this.maxProxyResponseBytes;
         const proxyReq = agent.request(options, (res) => {
             const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
             if (verbose) {
                 console.log('[WTV-MSNTV2] upstream response:', res.statusCode, res.statusMessage);
                 console.log('[WTV-MSNTV2] upstream response headers:', JSON.stringify(res.headers));
             }
+
+            const contentLength = parseInt(res.headers['content-length'] || res.headers['Content-Length'] || '0', 10) || 0;
+            if (contentLength > 0 && contentLength > maxResponseBytes) {
+                console.warn(` * MSNTV2 upstream response exceeds configured max_response_size (${contentLength} bytes > ${maxResponseBytes} bytes), aborting`);
+                res.destroy();
+                this.writeError(socket, 413, 'Payload Too Large', request_headers);
+                return;
+            }
+
             const responseHeaders = [];
             const closeClientConnection = this._shouldCloseClientConnection(request_headers);
             responseHeaders.push(`HTTP/1.1 ${res.statusCode} ${res.statusMessage}`);
@@ -1759,7 +1796,19 @@ class WTVMSNTV2 {
             responseHeaders.push('');
             responseHeaders.push('');
             this.writeToSocket(socket, responseHeaders.join('\r\n'));
-            res.on('data', (chunk) => this.writeToSocket(socket, chunk));
+
+            let totalResponseBytes = 0;
+            res.on('data', (chunk) => {
+                totalResponseBytes += chunk.length;
+                if (totalResponseBytes > maxResponseBytes) {
+                    console.warn(` * MSNTV2 proxy response exceeded ${maxResponseBytes} bytes, cutting off connection.`);
+                    res.destroy();
+                    socket.destroy();
+                    return;
+                }
+                this.writeToSocket(socket, chunk);
+            });
+
             res.on('end', () => {
                 if (!socket.destroyed && closeClientConnection) this.endSocket(socket);
             });

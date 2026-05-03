@@ -505,6 +505,7 @@
       "handler_module": "WTV-MSNTV2",
       "handler_handles_port": true,
       "servicevault_dir": "msntv2",
+      "max_response_size": 64, // Megabytes
       "intercept_urls": [
         {
           "match": "headwaiter.trusted.msntv.msn.com",
