@@ -2,7 +2,7 @@
 
 ## user_config.json
 
-`user_config.json` (in the project root) is where you put your local configuration overrides. It merges on top of `includes/config.json` — **do not edit `includes/config.json` directly**.
+`user_config.json` (in the same folder as `app.js`) is where you put your local configuration overrides. It merges on top of `includes/config.json` — **do not edit `includes/config.json` directly**.
 
 You only need to include keys you want to override. Copy `user_config.example.json` as a starting point, or start with a minimal file:
 
@@ -47,7 +47,7 @@ node tools/configurator.js config.bind_ip 192.168.1.x --overwrite
 
 `user_data_key` is used to encrypt user data. It should be a random secret string and **must be set before registering any users**. 
 Changing it after users have registered will require updating the userdata with `tools/update_user_data_key.js`. Making a backup 
-is recommended before running `tools/update_user_data_key.js`, it is pretty resilent against corruption, but just in case.
+ of `SessionStore/accounts` is recommended before running `tools/update_user_data_key.js`, it is pretty resilent against corruption, but just in case.
 
 ```
 node tools/configurator.js config.keys.user_data_key YOUR_RANDOM_SECRET --overwrite
