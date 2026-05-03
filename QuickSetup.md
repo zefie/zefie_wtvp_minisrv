@@ -45,7 +45,9 @@ node tools/configurator.js config.bind_ip 192.168.1.x --overwrite
 
 ## Setting user_data_key
 
-`user_data_key` is used to encrypt user data. It should be a random secret string and **must be set before registering any users**. Changing it after users have registered will break existing accounts.
+`user_data_key` is used to encrypt user data. It should be a random secret string and **must be set before registering any users**. 
+Changing it after users have registered will require updating the userdata with `tools/update_user_data_key.js`. Making a backup 
+is recommended before running `tools/update_user_data_key.js`, it is pretty resilent against corruption, but just in case.
 
 ```
 node tools/configurator.js config.keys.user_data_key YOUR_RANDOM_SECRET --overwrite
