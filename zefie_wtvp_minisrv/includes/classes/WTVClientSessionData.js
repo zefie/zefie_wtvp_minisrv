@@ -219,13 +219,63 @@ class WTVClientSessionData {
         );
     }
 
+    /**
+     * Returns the absolute path to the account store directory
+     * @returns {string} Absolute path to the account store directory
+     */
     getAccountStoreDirectory() {
         return this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + this.path.sep + "accounts");
     }
 
     /**
+     * Finds an account's SSID and User ID from just the username
+     * @param {string} username The username to search for
+     * @returns {Array} [found {boolean}, account_dir {string|null}, user_id {number|null}]
+     */
+    findAccountByUsername(username) {
+        const accounts_dir = this.getAccountStoreDirectory();
+        if (this.fs.existsSync(accounts_dir)) {
+            const account_dirs = this.fs.readdirSync(accounts_dir);
+            for (let i = 0; i < account_dirs.length; i++) {
+                const account_dir = accounts_dir + this.path.sep + account_dirs[i];
+                if (this.fs.lstatSync(account_dir).isDirectory()) {
+                    const user_dirs = this.fs.readdirSync(account_dir);
+                    for (let j = 0; j < user_dirs.length; j++) {
+                        const user_file = account_dir + this.path.sep + user_dirs[j] + this.path.sep + `user${j}.json`;
+                        if (this.fs.existsSync(user_file)) {
+                            const user_data = JSON.parse(this.fs.readFileSync(user_file));
+                            if (user_data.subscriber_username.toLowerCase() === username.toLowerCase()) {
+                                return [true, account_dirs[i], j];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return [false, null, null];
+    }
+
+    /**
+     * Switch the SSID for this session, and load a new user's session data, but only if the session
+     * was initialized with a null SSID. This is primarily used for MSNTV2/Passport services
+     * where the SSID is not known at the time of session initialization.
+     * @param {string} ssid The new SSID to set
+     * @param {number} userID The user ID to switch to after setting the SSID, defaults to 0 (primary account)
+     * @param {boolean} forceSwitch If true, allows switching SSID even if one is already set (use with caution, can cause data corruption if used improperly)
+     * @return {boolean} True if the SSID was set and session data loaded successfully, false otherwise
+     */
+    setSSID(ssid, userID = 0, forceSwitch = false) {
+        if (this.ssid !== null && !forceSwitch) return false; // SSID already set, cannot switch
+        this.ssid = ssid;
+        this.clearUserSessionMemory();
+        this.switchUserID(userID);
+        return true;
+    }
+
+    /**
      * Returns the absolute path to the user's file store, or false if unregistered
-     * @param subscriber {boolean} Returns the parent subscriber directory instead of the user's directory
+     * @param {boolean} subscriber Returns the parent subscriber directory instead of the user's directory
+     * @param {number|null} user_id The user ID to get the store for, or null for the current user
      * @returns {string|boolean} Absolute path to the user's file store, or false if unregistered
      */
     getUserStoreDirectory(subscriber = false, user_id = null) {
@@ -236,6 +286,11 @@ class WTVClientSessionData {
         return userstore + this.path.sep;
     }
 
+    /**
+     * Removes a user from the account store
+     * @param {number} user_id The ID of the user to remove
+     * @returns {boolean} True if the user was successfully removed, false otherwise
+     */
     removeUser(user_id) {
         if (!this.isRegistered()) return false; // not registered
         if (parseInt(this.user_id) !== 0) return false; // not primary account
@@ -692,14 +747,13 @@ class WTVClientSessionData {
         return CryptoJS.AES.decrypt(crypt, this.cryptoKey).toString(CryptoJS.enc.Utf8);
     }
 
-
     oldDecodePassword(passwd) {
         return CryptoJS.SHA512(passwd).toString(CryptoJS.enc.Base64);
     }
 
     encodePassword(passwd) {
-        //return CryptoJS.SHA512(passwd).toString(CryptoJS.enc.Base64);
-        return this.encryptPassword(passwd);
+        // SHA512 the user's password, then encrypt the hash with AES using the server's user_data_key.
+        return this.encryptPassword(CryptoJS.SHA512(passwd).toString(CryptoJS.enc.Hex));
     }
 
     setUserPassword(passwd) {
@@ -729,8 +783,12 @@ class WTVClientSessionData {
 
     validateUserPassword(passwd) {
         if (!this.getUserPasswordEnabled()) return true; // no password is set so always validate
-        if (passwd === this.decryptPassword(this.getSessionData("subscriber_password"))) return true; // check against current encryption
-        else if (this.oldDecodePassword(passwd) === this.getSessionData("subscriber_password")) {
+        if (CryptoJS.SHA512(passwd).toString(CryptoJS.enc.Hex) === this.decryptPassword(this.getSessionData("subscriber_password"))) return true; // check against current encryption
+        else if (passwd === this.decryptPassword(this.getSessionData("subscriber_password"))) {
+            // check against the short-lived new encryption, if it matches then update to new encryption
+            this.setUserPassword(passwd);
+            return true; 
+        } else if (this.oldDecodePassword(passwd) === this.getSessionData("subscriber_password")) {
             // if password matches old hash, update to new encryption
             this.setUserPassword(passwd);
             return true;
