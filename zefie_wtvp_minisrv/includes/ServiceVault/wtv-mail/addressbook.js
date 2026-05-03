@@ -176,7 +176,7 @@ E-mail addresses for ${session_data.getSessionData("subscriber_username")}
 <tr absheight=26>
 <td rowspan=1000 abswidth=8>
 <td colspan=3>
-Your address is ${session_data.getSessionData("subscriber_username")}@${minisrv_config.config.service_name}
+Your address is ${session_data.getSessionData("subscriber_username")}@${minisrv_config.config.domain_name}
 <tr absheight=8>
 <td colspan=3>
 <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=8>
@@ -702,7 +702,7 @@ ${(!newaddress) ? `<input type=hidden name="id" value="${request_headers.query.i
 			let addrExists = false;
 			// dumbass protection for making addresses look proper in the list
 			let address = request_headers.query.address.split("@")[0];
-			address += `@${minisrv_config.config.service_name}`;
+			address += `@${minisrv_config.config.domain_name}`;
 			// sanity checks to make sure the user doesn't have duplicate names/addresses
 			address_book.forEach(user => {
 				if (user.name.includes(request_headers.query.nickname)) {
@@ -745,7 +745,7 @@ Location: wtv-mail:/addressbook`;
 			}
 			// dumbass protection for making addresses look proper in the list
 			address = address.split("@")[0];
-			address += `@${minisrv_config.config.service_name}`;
+			address += `@${minisrv_config.config.domain_name}`;
 			nameExists = false;
 			addrExists = false;
 			if (address_book.length > 1) {
