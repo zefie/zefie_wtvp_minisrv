@@ -382,7 +382,7 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
         "service_vaults": service_vaults,
         "service_deps": service_deps,
         "ssid_sessions": ssid_sessions,
-        "moveArrayKey": wtvshared.moveArrayKey,
+        "moveArrayKey": wtvshared.moveArrayKey, // deprecated - use wtvshared.moveArrayKey() instead
         "cwd": (filename) ? path.dirname(filename) : __dirname, // current working directory        
 
         // Our prototype overrides

@@ -262,7 +262,7 @@ function main() {
     process.exit(0);
   }
 
-  const configuredVaults = getConfiguredVaults(options.configPath, options.baseConfigPath);
+    const configuredVaults = getConfiguredVaults(options.configPath, options.baseConfigPath);
   const explicitVaults = options.vaults.map((vault) => (
     path.isAbsolute(vault) ? path.resolve(vault) : path.resolve(process.cwd(), vault)
   ));
@@ -307,6 +307,7 @@ function main() {
     console.log(JSON.stringify(payload, null, 2));
   } else {
     console.log('ServiceVault deprecation scan');
+    console.log('- Deprecation count: ' + deprecationPatterns.length);
     console.log(`- Vault roots: ${vaultsToScan.length}`);
     console.log(`- Missing vault roots: ${missingVaults.length}`);
     console.log(`- Files scanned: ${filesToScan.length}`);

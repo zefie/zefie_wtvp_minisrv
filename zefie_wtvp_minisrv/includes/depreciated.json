@@ -14,5 +14,13 @@
     "message": "getServiceString() is deprecated and will be removed",
     "removeVersion": "0.9.80",
     "replacement": "Use wtvshared.getServiceString() instead"
-  }
+  },
+  {
+    "id": "moveArrayKey",
+    "pattern": "(?<!wtvshared\\.)moveArrayKey\\s*\\(",
+    "flags": "g",
+    "message": "moveArrayKey() is deprecated and will be removed",
+    "removeVersion": "0.9.80",
+    "replacement": "Use wtvshared.moveArrayKey() instead"
+  }  
 ]
