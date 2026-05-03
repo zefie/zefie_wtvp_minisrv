@@ -129,7 +129,7 @@ class WTVMSNTV2 {
         socket.rawDataListener = (chunk) => this.handleData(socket, chunk);
         socket.on('data', socket.rawDataListener);
         socket.on('error', (err) => {
-            if (this.service_config.show_verbose_errors) console.error('[WTV-MSNTV2] socket error:', err.message);
+            if (this.service_config.debug) console.error('[WTV-MSNTV2] socket error:', err.message);
         });
     }
 
@@ -202,14 +202,14 @@ class WTVMSNTV2 {
 
         const userAgent = request_headers['User-Agent'] || request_headers['user-agent'] || '';
         if (!this.isAllowedUserAgent(userAgent)) {
-            if (this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3) {
+            if (this.service_config.debug || this.minisrv_config.config.verbosity >= 3) {
                 console.warn('[WTV-MSNTV2] unsupported User-Agent rejected:', userAgent || '<none>');
             }
             this.writeError(socket, 403, 'Forbidden', request_headers);
             return;
         }
 
-        const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+        const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
         if (verbose) {
             console.log('[WTV-MSNTV2] incoming request:', requestLine);
             if (body.length) {
@@ -250,7 +250,7 @@ class WTVMSNTV2 {
     handleConnect(socket, requestUrl) {
         const [host, portString] = requestUrl.split(':');
         const port = parseInt(portString, 10) || 443;
-        const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+        const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
         const connectIntercept = this.getConnectIntercept(host);
         if (verbose) console.log('[WTV-MSNTV2] CONNECT request:', requestUrl, 'intercept:', !!connectIntercept);
 
@@ -276,13 +276,13 @@ class WTVMSNTV2 {
         });
 
         remote.on('error', (err) => {
-            if (this.service_config.show_verbose_errors) console.error('[WTV-MSNTV2] CONNECT error:', err.message);
+            if (this.service_config.debug) console.error('[WTV-MSNTV2] CONNECT error:', err.message);
             this.writeError(socket, 502, 'Bad Gateway');
         });
     }
 
     setupTlsSocket(tlsSocket) {
-        const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+        const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
         const sslDebug = this.sslv2Debug;
         tlsSocket.on('secureConnect', () => {
             if (sslDebug) console.log('[WTV-MSNTV2] TLS handshake complete for intercepted CONNECT', tlsSocket.connectIntercept.match);
@@ -302,7 +302,7 @@ class WTVMSNTV2 {
     }
 
     setupForgeTls(socket, connectIntercept) {
-        const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+        const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
         const sslDebug = this.sslv2Debug;
         const creds = this.forgeTlsCredentials;
         if (!creds) {
@@ -1234,7 +1234,7 @@ class WTVMSNTV2 {
         const requestLine = headerLines.shift();
         const requestParts = requestLine.split(' ');
         if (requestParts.length < 3) {
-            const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+            const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
             if (verbose) {
                 console.warn('[WTV-MSNTV2] TLS invalid request line:', requestLine);
                 console.warn('[WTV-MSNTV2] TLS raw header block:', headerBlock);
@@ -1280,7 +1280,7 @@ class WTVMSNTV2 {
         };
         Object.assign(request_headers, headers);
 
-        const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+        const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
         if (verbose) {
             console.log('[WTV-MSNTV2] decrypted request:', requestLine);
             console.log('[WTV-MSNTV2] decrypted headers:\n' + rawHeaders.join('\r\n'));
@@ -1440,14 +1440,14 @@ class WTVMSNTV2 {
             const candidate = this.wtvshared.makeSafePath(base, '');
             // Exact match first
             if (candidate && fs.existsSync(candidate) && fs.lstatSync(candidate).isFile()) {
-                if (this.service_config.show_verbose_errors) console.log('[WTV-MSNTV2] local intercept:', candidate);
+                if (this.service_config.debug) console.log('[WTV-MSNTV2] local intercept:', candidate);
                 return candidate;
             }
             // Dynamic suffixes: e.g. kickstart.aspx -> kickstart.aspx.js
             for (const suffix of dynSuffixes) {
                 const dynCandidate = this.wtvshared.makeSafePath(base + suffix, '');
                 if (dynCandidate && fs.existsSync(dynCandidate) && fs.lstatSync(dynCandidate).isFile()) {
-                    if (this.service_config.show_verbose_errors) console.log('[WTV-MSNTV2] local intercept (dynamic):', dynCandidate);
+                    if (this.service_config.debug) console.log('[WTV-MSNTV2] local intercept (dynamic):', dynCandidate);
                     return dynCandidate;
                 }
             }
@@ -1753,14 +1753,14 @@ class WTVMSNTV2 {
                 target = new url.URL(requestUrl);
             }
         } catch (err) {
-            if (this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3) {
+            if (this.service_config.debug || this.minisrv_config.config.verbosity >= 3) {
                 console.error('[WTV-MSNTV2] invalid URL:', requestUrl, err.message);
             }
             this.writeError(socket, 400, 'Bad Request', request_headers);
             return;
         }
 
-        const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+        const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
         const isHttps = target.protocol === 'https:';
         const agent = isHttps ? https : http;
         const requestPath = target.pathname + (target.search || '');
@@ -1793,7 +1793,7 @@ class WTVMSNTV2 {
 
         const maxResponseBytes = this.maxProxyResponseBytes;
         const proxyReq = agent.request(options, (res) => {
-            const verbose = this.service_config.show_verbose_errors || this.minisrv_config.config.verbosity >= 3;
+            const verbose = this.service_config.debug || this.minisrv_config.config.verbosity >= 3;
             if (verbose) {
                 console.log('[WTV-MSNTV2] upstream response:', res.statusCode, res.statusMessage);
                 console.log('[WTV-MSNTV2] upstream response headers:', JSON.stringify(res.headers));

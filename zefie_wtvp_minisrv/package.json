@@ -1,13 +1,12 @@
 {
   "name": "zefie_wtvp_minisrv",
-  "version": "0.9.73",
+  "version": "0.9.74",
   "description": "WebTV Service (WTVP) Emulation Server",
   "main": "app.js",
   "homepage": "https://github.com/zefie/zefie_wtvp_minisrv",
   "license": "GPL3",
   "scripts": {
     "start": "node app.js",
-    "irc": "node irconly.js",
     "test": "node test.js",
     "debug": "cross-env DEBUG=* node app.js",
     "modem-proxy": "node modem_proxy.js"

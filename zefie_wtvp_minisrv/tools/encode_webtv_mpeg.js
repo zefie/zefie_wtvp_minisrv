@@ -4,6 +4,8 @@
 /**
  * WebTV MPEG-1 PS Encoder
  *
+ * This tool is incomplete, and may not generate correct WebTV MPEG yet
+ * 
  * Two-pass pipeline:
  *   1. ffmpeg encodes input to MPEG-1 PS (codec settings only)
  *   2. ES extracted via structure-aware pack walk (never naive payload scan)
