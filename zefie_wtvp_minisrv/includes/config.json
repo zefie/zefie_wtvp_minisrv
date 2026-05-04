@@ -522,6 +522,10 @@
       ],
       "handler_extra_vars": ["runScriptInVM", "handlePHP", "handleCGI", "ssid_sessions", "WTVClientSessionData", "socket_sessions"],
       "show_verbose_errors": false,
+      "ssl": {
+        "cert": "%ServiceDeps%/msntv2/minisrv.crt",
+        "key": "%ServiceDeps%/msntv2/minisrv.key"
+      },
       "modules": [
         "WTVRegister"
        ]

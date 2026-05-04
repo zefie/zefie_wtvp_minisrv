@@ -7,12 +7,28 @@ const forge = require('node-forge');
 const workspaceRoot = __dirname;
 const httpsDir = path.join(workspaceRoot, '..', 'includes', 'ServiceDeps', 'https');
 const msnDir = path.join(workspaceRoot, '..', 'includes', 'ServiceDeps', 'msntv2');
-const domainsFile = path.join(msnDir, 'msn_domains.txt');
 
-const defaultCaCertPath = path.join(msnDir, 'msntv2.crt');
-const defaultCaKeyPath = path.join(msnDir, 'msntv2.key');
-const defaultOutCertPath = path.join(msnDir, 'msn_domains.crt');
-const defaultOutKeyPath = path.join(msnDir, 'msn_domains.key');
+const domains = [
+    "headwaiter.trusted.msntv.msn.com",
+    "*.trusted.msntv.msn.com",
+    "msntv.msn.com",
+    "mail.services.live.com",
+    "login.live.com",
+    "poptimize.msn.com",
+    "favorites.msn.com",
+    "messenger.msn.com",
+    "livefilestore.com",
+    "users.storage.live.com",
+    "g.msn.com",
+    "msnialogin.passport.com",
+    "minisrv.local",
+    "*.minisrv.local"
+]
+
+const defaultCaCertPath = path.join(msnDir, 'emac.crt');
+const defaultCaKeyPath = path.join(msnDir, 'emac.key');
+const defaultOutCertPath = path.join(msnDir, 'minisrv.crt');
+const defaultOutKeyPath = path.join(msnDir, 'minisrv.key');
 
 function parseArgs(argv) {
     const out = {};
@@ -31,42 +47,6 @@ function parseArgs(argv) {
     return out;
 }
 
-function extractDomainsFromRedirectMap(text) {
-    const found = [];
-    const seen = new Set();
-    const re = /"([A-Za-z0-9.-]+\.)"\s*:\s*self\.redirect_ip/g;
-    let match;
-    while ((match = re.exec(text))) {
-        const clean = match[1].replace(/\.$/, '').toLowerCase();
-        if (!seen.has(clean)) {
-            seen.add(clean);
-            found.push(clean);
-        }
-    }
-    return found;
-}
-
-function loadDomains(args) {
-    if (args['from-map-file']) {
-        const mapText = fs.readFileSync(path.resolve(workspaceRoot, args['from-map-file']), 'utf8');
-        const domains = extractDomainsFromRedirectMap(mapText);
-        if (!domains.length) {
-            throw new Error('No domains were extracted from --from-map-file.');
-        }
-        return domains;
-    }
-
-    if (!fs.existsSync(domainsFile)) {
-        throw new Error('Domain file not found: ' + domainsFile);
-    }
-
-    const domains = fs.readFileSync(domainsFile, 'utf8')
-        .split(/\r?\n/)
-        .map((s) => s.trim().toLowerCase())
-        .filter((s) => s && !s.startsWith('#'));
-
-    return Array.from(new Set(domains));
-}
 
 function loadPemOrThrow(filePath, label) {
     if (!fs.existsSync(filePath)) {
@@ -99,9 +79,8 @@ function generateCert({ domains, caCertPem, caKeyPem, outCertPath, outKeyPath, y
     cert.publicKey = keys.publicKey;
     cert.serialNumber = forge.util.bytesToHex(forge.random.getBytesSync(16));
 
-    const now = new Date();
-    cert.validity.notBefore = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    cert.validity.notAfter = new Date(now.getTime() + years * 365 * 24 * 60 * 60 * 1000);
+    cert.validity.notBefore = new Date('2000-01-01T12:00:00Z');
+    cert.validity.notAfter = new Date('2099-12-31T23:59:59Z');
 
     const cn = domains[0] || 'headwaiter.trusted.msntv.msn.com';
     cert.setSubject([
@@ -141,7 +120,6 @@ function main() {
     const years = Number(args.years || 15);
     const sig = String(args.sig || 'sha1');
 
-    const domains = loadDomains(args);
     const caCertPem = loadPemOrThrow(caCertPath, 'CA cert');
     const caKeyPem = loadPemOrThrow(caKeyPath, 'CA key');
 

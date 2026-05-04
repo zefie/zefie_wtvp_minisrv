@@ -1163,23 +1163,11 @@ class WTVMSNTV2 {
 
     loadTlsContext() {
         try {
-            const certCandidates = [
-                ['msntv2/msn_domains.crt', 'msntv2/msn_domains.key']
-            ];
-            let certFile = null;
-            let keyFile = null;
-            for (const [certPath, keyPath] of certCandidates) {
-                const candidateCert = this.wtvshared.getServiceDep(certPath, true);
-                const candidateKey = this.wtvshared.getServiceDep(keyPath, true);
-                if (candidateCert && candidateKey) {
-                    certFile = candidateCert;
-                    keyFile = candidateKey;
-                    break;
-                }
-            }
-            if (!certFile || !keyFile) return null;
-            const certPem = fs.readFileSync(certFile);
-            const keyPem = fs.readFileSync(keyFile);
+            const candidateCert = (this.service_config.ssl) ? this.wtvshared.parseConfigVars(this.service_config.ssl.cert) : null;
+            const candidateKey = (this.service_config.ssl) ? this.wtvshared.parseConfigVars(this.service_config.ssl.key) : null;
+            if (!candidateCert || !candidateKey) return null;
+            const certPem = fs.readFileSync(candidateCert);
+            const keyPem = fs.readFileSync(candidateKey);
             return tls.createSecureContext({
                 cert: certPem,
                 key: keyPem,
@@ -1195,23 +1183,12 @@ class WTVMSNTV2 {
 
     loadForgeTlsCredentials() {
         try {
-            const certCandidates = [
-                ['msntv2/msn_domains.crt', 'msntv2/msn_domains.key']
-            ];
-            let certFile = null;
-            let keyFile = null;
-            for (const [certPath, keyPath] of certCandidates) {
-                const candidateCert = this.wtvshared.getServiceDep(certPath, true);
-                const candidateKey = this.wtvshared.getServiceDep(keyPath, true);
-                if (candidateCert && candidateKey) {
-                    certFile = candidateCert;
-                    keyFile = candidateKey;
-                    break;
-                }
-            }
-            if (!certFile || !keyFile) return null;
-            const certPem = fs.readFileSync(certFile, 'utf8');
-            const keyPem = fs.readFileSync(keyFile, 'utf8');
+            const candidateCert = (this.service_config.ssl) ? this.wtvshared.parseConfigVars(this.service_config.ssl.cert) : null;
+            const candidateKey = (this.service_config.ssl) ? this.wtvshared.parseConfigVars(this.service_config.ssl.key) : null;
+
+            if (!candidateCert || !candidateKey) return null;
+            const certPem = fs.readFileSync(candidateCert, 'utf8');
+            const keyPem = fs.readFileSync(candidateKey, 'utf8');
             return {
                 certPem,
                 keyPem,
