@@ -225,45 +225,33 @@ function buildWebTVPS(videoES, audioES, outputPath, audioIntervalOverride, baHea
         return false;
     }
 
-    // Match known-working WebTV cadence (attract.mpg is ~1 audio per 7 video packs)
-    const inferredInterval = Math.max(1, Math.round(vChunks.length / aChunks.length));
+    // Use natural A/V ratio — matches actual bitrate split in the encoded file.
+    // attract.mpg uses 7 because its video bitrate is ~7x its audio bitrate.
+    // Our encoded video is lower bitrate so the natural ratio is ~3.
+    const naturalInterval = Math.max(1, Math.round(vChunks.length / aChunks.length));
     const audioInterval = Number.isFinite(audioIntervalOverride) && audioIntervalOverride > 0
         ? Math.floor(audioIntervalOverride)
-        : Math.max(1, Math.round((inferredInterval + 7) / 2));
+        : naturalInterval;
     console.log(`[*] ${vChunks.length} video chunks, ${aChunks.length} audio chunks, ` +
                 `1 audio per ~${audioInterval} video`);
 
     const packs = [];
     let aIdx = 0;
 
-    // Pre-fill: 3 audio packs to prime the WebTV audio buffer
+    // Pre-fill: 3 audio packs to prime the WebTV audio buffer (matches attract.mpg)
     const preFill = Math.min(3, aChunks.length);
     for (let k = 0; k < preFill; k++, aIdx++) {
         packs.push(makePack(0xC0, aChunks[aIdx]));
     }
 
+    // Simple fixed-interval interleave: emit audioInterval video packs, then 1 audio pack
     let vIdx = 0;
-
-    // Spread audio over the full video timeline to avoid starving early playback
-    // and dumping remaining audio at EOF.
     while (vIdx < vChunks.length || aIdx < aChunks.length) {
-        if (vIdx >= vChunks.length) {
-            packs.push(makePack(0xC0, aChunks[aIdx++]));
-            continue;
-        }
-        if (aIdx >= aChunks.length) {
+        for (let k = 0; k < audioInterval && vIdx < vChunks.length; k++) {
             packs.push(makePack(0xE0, vChunks[vIdx++]));
-            continue;
         }
-
-        const videoProgress = vIdx / vChunks.length;
-        const audioProgress = aIdx / aChunks.length;
-
-        // Prefer video until audio falls behind target cadence.
-        if (audioProgress + (1 / Math.max(1, audioInterval * aChunks.length)) < videoProgress) {
+        if (aIdx < aChunks.length) {
             packs.push(makePack(0xC0, aChunks[aIdx++]));
-        } else {
-            packs.push(makePack(0xE0, vChunks[vIdx++]));
         }
     }
 

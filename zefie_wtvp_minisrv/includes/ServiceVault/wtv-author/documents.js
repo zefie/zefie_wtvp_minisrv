@@ -197,10 +197,12 @@ if (minisrv_config.services["wtv-author"].max_pages) {
 </table>
 <p>A maximum of <b>${minisrv_config.services["wtv-author"].max_pages}</b> pages can be created, regardless of publish status.
 <br><br>
-Your published pages are available at<br>
+`
+if (numofpages > 0) {
+`Your published pages are available at<br>
 <a href="http://${site}/${session_data.getSessionData("subscriber_username")}/">http://${site}/${session_data.getSessionData("subscriber_username")}/</a>
 </table>`
-
+}
 }
 data += `
 <SCRIPT language=JavaScript>

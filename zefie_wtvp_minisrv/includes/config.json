@@ -351,6 +351,7 @@
     "ftp": {
       "port": 1650,
       "connections": 3,
+      "max_response_size": 8, // Megabytes      
       "handler_module": "WTVFTP",
       "handler_extra_vars": ["wtvmime"]
     },

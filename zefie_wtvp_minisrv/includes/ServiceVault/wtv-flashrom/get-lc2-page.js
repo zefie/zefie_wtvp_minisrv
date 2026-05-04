@@ -72,6 +72,8 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 			downloadTime = elapsedMinutes * remainingParts;
 		}
 		session.lastDownloadTime = now;
+
+		if (isNaN(downloadTime) || downloadTime < 1) downloadTime = 1;
 		
 
 		headers = `200 OK
@@ -127,7 +129,7 @@ Updating now
 <font size=+1>
 Your ${session_data.getBoxName()} is being<br>updated automatically.
 <p> <font size=+1>
-This will take about ${downloadTime} minutes and<br>then you can use your ${session_data.getBoxName()} again.
+This will take about ${downloadTime} minute${downloadTime !== 1 ? "s" : ""} and<br>then you can use your ${session_data.getBoxName()} again.
 `;
 		if (flashrom_info.is_bootrom && flashrom_info.part_number === (flashrom_info.part_count - 1)) {
 			data += `<p>
