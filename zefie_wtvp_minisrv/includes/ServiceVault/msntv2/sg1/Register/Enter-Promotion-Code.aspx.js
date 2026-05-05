@@ -53,6 +53,8 @@ data = `<HTML xmlns:msntv>
         </p>
         <p style="display: inline; left: 76px; position: relative;">Example:</p>
         <p style="display: inline; left: 110px; position: relative;">ABCEAZ82KDKA</p>
+        <p>&nbsp;</p>
+        <p>One day, certain promotion codes will unlock special features or content on minisrv. But for now, this is just a placeholder page.</p>
     </DIV>
     <div id="footer">
         <msntv:CustomButton id="continue" label="Continue" href="javascript:SubmitForm()" />

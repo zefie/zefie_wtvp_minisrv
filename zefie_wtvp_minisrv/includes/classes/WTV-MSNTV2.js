@@ -129,7 +129,13 @@ class WTVMSNTV2 {
         socket.rawDataListener = (chunk) => this.handleData(socket, chunk);
         socket.on('data', socket.rawDataListener);
         socket.on('error', (err) => {
-            if (this.service_config.debug) console.error('[WTV-MSNTV2] socket error:', err.message);
+            if (this.service_config.debug) {
+                if (err.message == 'read ECONNRESET') {
+                    console.warn('[WTV-MSNTV2] Client disconnected');
+                } else { 
+                    console.error('[WTV-MSNTV2] socket error:', err.message);
+                }
+            }
         });
     }
 

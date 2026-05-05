@@ -1,5 +1,3 @@
-const WTVClientSessionData = require("../../../classes/WTVClientSessionData");
-
 const minisrv_service_file = true;
 
 if (!session_data) {

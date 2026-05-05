@@ -6,7 +6,7 @@ Content-type: text/html`;
 data = `<HTML xmlns:msntv>
 <?import namespace="msntv" implementation="/Include/HTC/Shared/CustomButton.htc">
 <HEAD>
-    <title id="title">Login to Passport</title>
+    <title id="title">Username Not Available</title>
     <meta name="vs_targetSchema" content="http://schemas.microsoft.com/intellisense/ie5">
     <link rel="stylesheet" type="text/css" href="msntv:/Registration/css/Registration.css">
     <STYLE>

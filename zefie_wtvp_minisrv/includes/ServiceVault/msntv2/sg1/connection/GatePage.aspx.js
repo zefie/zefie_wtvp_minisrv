@@ -285,21 +285,34 @@ switch (phase) {
                 }
             }
 
+            var hasIDCRL = false;
+
+            try {
+                hasIDCRL = (typeof TVShell.LoginManager.IDCRLInitialize === "unknown" ||
+                            typeof TVShell.LoginManager.IDCRLInitialize === "function");
+            } catch (e) {
+                hasIDCRL = false;
+            }
+
             if (currentUser != null) {
                 // Check if We can do IDCRL if not fall back to Legacy XMLlogin
-                if (TVShell.LoginManager.IDCRLInitialize) {
-                    DoIDCRLLogin();
-                } else {
-                    // Non IDCRL Auth Code (Pre 5.x)
-                    Sink.AttachEvent(TVShell.LoginManager, 'OnLoginResult', OnLoginResult);
-                    TVShell.LoginManager.PassportSiteIDs = '507';
-                    TVShell.LoginManager.LoginURL = "https://login.live.com/ppsecure/clientpost.srf";
-                    TVShell.LoginManager.LogoutURL = "https://login.live.com/ppsecure/logoutxml.srf";
-                    TVShell.LoginManager.ResetPasswordURL = "https://login.live.com/ppsecure/MSRV_ResetPW_ClientPost.srf";
-                    TVShell.LoginManager.ChangePasswordURL = "https://login.live.com/ppsecure/MSRV_ChangePW_ClientPost.srf";
-                    TVShell.LoginManager.RequestProfileURL = "https://login.live.com/ppsecure/ClientProfileRequest.srf";
-                    TVShell.LoginManager.UpdateProfileURL = "https://login.live.com/ClientEditProf.srf";
-                    TVShell.LoginManager.Authenticate(email, "", "https://login.live.com/ppsecure/clientpost.srf");
+                try {
+                    if (hasIDCRL) {
+                        DoIDCRLLogin();
+                    } else {
+                        // Non IDCRL Auth Code (Pre 5.x)
+                        Sink.AttachEvent(TVShell.LoginManager, 'OnLoginResult', OnLoginResult);
+                        TVShell.LoginManager.PassportSiteIDs = '507';
+                        TVShell.LoginManager.LoginURL = "https://login.live.com/ppsecure/clientpost.srf";
+                        TVShell.LoginManager.LogoutURL = "https://login.live.com/ppsecure/logoutxml.srf";
+                        TVShell.LoginManager.ResetPasswordURL = "https://login.live.com/ppsecure/MSRV_ResetPW_ClientPost.srf";
+                        TVShell.LoginManager.ChangePasswordURL = "https://login.live.com/ppsecure/MSRV_ChangePW_ClientPost.srf";
+                        TVShell.LoginManager.RequestProfileURL = "https://login.live.com/ppsecure/ClientProfileRequest.srf";
+                        TVShell.LoginManager.UpdateProfileURL = "https://login.live.com/ClientEditProf.srf";
+                        TVShell.LoginManager.Authenticate(email, "", "https://login.live.com/ppsecure/clientpost.srf");
+                    }
+                } catch (e) {
+                    TVShell.EventLog.Important("Login error: " + e.message);
                 }
             }
         }
