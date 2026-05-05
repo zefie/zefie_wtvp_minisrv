@@ -56,18 +56,32 @@ class WTVClientSessionData {
         this.loginWhitelist.push("wtv-head-waiter:/confirm-transfer");
     }
 
+    /**
+     * Assigns a new WTVMail instance to the session's mailstore property, using the current minisrv_config and session data.
+     */
     assignMailStore() {
         this.mailstore = new WTVMail(this.minisrv_config, this)
     }
 
+    /**
+     * Assigns a new WTVFavorites instance to the session's favstore property, using the current minisrv_config and session data.
+     */
     assignFavoriteStore() {
-        this.mailstore = this.favstore = new WTVFavorites(this.minisrv_config, this)
+       this.favstore = new WTVFavorites(this.minisrv_config, this)
     }
 
+    /**
+     * Creates a new WTVSec session. Used for RC4 SECURE ON requests.
+     * @returns {WTVSec} A new WTVSec session instance
+     */
     createWTVSecSession() {
         return new WTVSec(this.minisrv_config)
     }
 
+    /**
+     * Retrieves the total number of unread messages for the primary account.
+     * @returns {number} Number of unread messages
+     */
     getAccountTotalUnreadMessages() {
         if (!this.isRegistered()) return false; // unregistered
         if (this.user_id > 0) return false; // not primary user or pre-login
@@ -88,6 +102,9 @@ class WTVClientSessionData {
         return total_unread_messages;
     }
 
+    /**
+     * Clears all user session data from memory, including session store and data store, and resets mail and favorite stores.
+     */
     clearUserSessionMemory() {
         this.setUserLoggedIn(false);
         this.data_store = [];
@@ -96,6 +113,13 @@ class WTVClientSessionData {
         this.assignMailStore()
     }
 
+    /**
+     * Switches the current user ID and optionally updates related data stores.
+     * @param {number} user_id The user ID to switch to
+     * @param {boolean} update_mail Whether to update the mail store
+     * @param {boolean} update_ticket Whether to update the ticket data
+     * @param {boolean} update_favorite Whether to update the favorite store
+     */
     switchUserID(user_id, update_mail = true, update_ticket = true, update_favorite = true) {
         this.user_id = parseInt(user_id);
         if (user_id !== null) {
@@ -143,6 +167,11 @@ class WTVClientSessionData {
         return true;
     }
 
+    /**
+     * Checks if a given mail address is in the address book.
+     * @param {string} addr The mail address to check against the address book
+     * @returns {boolean} True if the address is in the address book, false otherwise
+     */
     isAddressInAddressBook(addr) {
         const addresses = this.getSessionData("address_book");
         if (addresses) {
@@ -156,6 +185,11 @@ class WTVClientSessionData {
         return false;
     }
 
+    /**
+     * Finds the first available user slot for a new user.
+     * Can only be used by the primary account (user_id 0).
+     * @returns {number|boolean} The first available user slot index, or false if no slots are available
+     */
     findFreeUserSlot() {
         if (this.user_id !== 0) return false; // subscriber only command
         const master_directory = this.getUserStoreDirectory(true);
@@ -170,16 +204,30 @@ class WTVClientSessionData {
         return false;
     }
 
+    /**
+     * Returns the display name of the current user.
+     * @returns {string} The subscriber's display name if user_id is 0, otherwise the current user's display name.
+     */
     getDisplayName() {
         return (this.user_id === 0) ? this.getSessionData("subscriber_name") : this.getSessionData("display_name");
     }
 
+    /**
+     * Gets the number of users for this SSID.
+     * Can only be used by the primary account (user_id 0).
+     * @returns {number} The number of users this SSID has
+     */
     getNumberOfUserAccounts() {
         if (!this.isRegistered()) return false;
         if (this.user_id !== 0) return false; // subscriber only command
         return Object.keys(this.listPrimaryAccountUsers()).length;
     }
 
+    /**
+     * Lists all primary account users for this SSID.
+     * 
+     * @returns {Array} An array containing the account data of all users for this SSID
+     */
     listPrimaryAccountUsers() {
         if (this.user_id !== 0) return false; // subscriber only command
 
@@ -206,6 +254,10 @@ class WTVClientSessionData {
         return account_data;
     }
 
+    /**
+     * Recursively creates directories for the given path.
+     * @param {string} thedir The directory path to create
+     */
     mkdirRecursive(thedir) {
         thedir.split(this.path.sep).reduce(
             (directories, directory) => {
@@ -307,6 +359,13 @@ class WTVClientSessionData {
         return false;
     }
 
+    /**
+     * A part of the account transfer process, creates a pending transfer file in both the source and target account
+     * store directories with the relevant SSID and transfer type (source or target) for each account.
+     * This allows the transfer process to be completed or cancelled later, and ensures that only accounts 
+     * with a pending transfer can complete the transfer process.
+     * @param {string} ssid 
+     */
     setPendingTransfer(ssid) {
         const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
         let ssidobj = { "ssid": ssid, "type": "source" };
@@ -319,6 +378,10 @@ class WTVClientSessionData {
         this.fs.writeFileSync(dest_pending_file, JSON.stringify(ssidobj));
     }
 
+    /**
+     * Cancels a pending account transfer, if it exists.
+     * @returns {string|null} The SSID of the cancelled transfer if a pending transfer was found and cancelled, or null if no pending transfer was found
+     */
     cancelPendingTransfer() {
         const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
         if (this.fs.existsSync(pending_file)) {
@@ -334,6 +397,10 @@ class WTVClientSessionData {
         return null;
     }
 
+    /**
+     * Finalize the transfer, completely moving all user data from the source account to the target account, and removing the pending transfer files.
+     * @returns {boolean} Success of the transfer
+     */
     finalizePendingTransfer() {
         const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
         const file = this.fs.readFileSync(pending_file)
@@ -353,13 +420,18 @@ class WTVClientSessionData {
         return true;
     }
 
+    /**
+     * Check if there is a pending transfer for this account, and optionally check if the pending transfer type matches the specified dtype.
+     * @param {string} dtype {source|target} If specified, only returns the SSID if the pending transfer type matches the specified dtype. If null, returns the pending transfer object with ssid and type.
+     * @returns {string|object|boolean} The SSID of the pending transfer if dtype matches, the pending transfer object if dtype is null, or false if no pending transfer is found
+     */
     hasPendingTransfer(dtype = null) {
         const pending_file = this.getUserStoreDirectory(true) + this.path.sep + "pending_transfer.json";
         if (this.fs.existsSync(pending_file)) {
             const ssidobj = JSON.parse(this.fs.readFileSync(pending_file));
             console.log(ssidobj)
             if (dtype) {
-                (ssidobj.type === dtype) ? ssidobj.ssid : false;
+                return (ssidobj.type === dtype) ? ssidobj.ssid : false;
             }
             else {
                 return ssidobj;
@@ -402,6 +474,10 @@ class WTVClientSessionData {
         return result !== false;
     }
 
+    /**
+     * Checks if the user has a scrapbook directory.
+     * @returns {boolean} True if the scrapbook directory exists, false otherwise.
+     */
     scrapbookExists() {
         if (this.scrapbook_dir === null) {
             const userstore_dir = this.getUserStoreDirectory();
@@ -411,6 +487,10 @@ class WTVClientSessionData {
 		return this.fs.existsSync(this.scrapbook_dir);
 	}
     
+    /**
+     * Creates a scrapbook directory for the user if it does not already exist.
+     * @returns {boolean} Success of the creation
+     */
     createScrapbook() {
 		if (!this.scrapbookExists()) {
 			try {
@@ -421,6 +501,10 @@ class WTVClientSessionData {
 		return false
 	}
 
+    /**
+     * A wrapper that returns the scrapbook directory, and creates it if it doesn't exist.
+     * @returns {string} The path to the scrapbook directory
+     */
 	scrapbookDir() {
 		if (!this.scrapbookExists()) {
 			this.createScrapbook();
@@ -428,6 +512,10 @@ class WTVClientSessionData {
 		return this.scrapbook_dir;
 	}
 
+    /**
+     * List the files in the user's scrapbook directory, sorted in ascending order, and excluding any .meta files.
+     * @returns {Array} A filelist of the user's scrapbook files
+     */
 	listScrapbook() {
 		if (!this.scrapbookExists()) {
 			this.createScrapbook();
@@ -442,6 +530,10 @@ class WTVClientSessionData {
 		return filteredFiles;
 	}
 
+    /**
+     * Finds the next available ID slot for a new scrapbook entry.
+     * @returns {number} An available ID slot
+     */
 	getFreeScrapbookID() {
 		if (!this.scrapbookExists()) {
 			this.createScrapbook();
@@ -458,6 +550,10 @@ class WTVClientSessionData {
 		return id;
 	}
 
+    /**
+     * Calculates the total size of the user's scrapbook directory.
+     * @returns {number} The total size in bytes
+     */
     getScrapbookUsage() {
         if (!this.scrapbookExists()) {
             this.createScrapbook();
@@ -475,6 +571,10 @@ class WTVClientSessionData {
         return total_size;
     }
 
+    /**
+     * Calculates the percentage of the scrapbook storage space that is in use.
+     * @returns {number} Percentage of the scrapbook storage space that is in use, out of the total allotted.
+     */
     getScrapbookUsagePercent() {
         if (!this.scrapbookExists()) {
             this.createScrapbook();
@@ -486,6 +586,11 @@ class WTVClientSessionData {
         return Math.round(usage_percent, 2);
     }
 
+    /**
+     * Get a scrapbook image by its ID.
+     * @param {number} id 
+     * @returns {Buffer|null} The image data as a Buffer, or null if the image does not exist
+     */
 	getScrapbookImage(id) {
 		if (!this.scrapbookExists()) {
 			this.createScrapbook();
