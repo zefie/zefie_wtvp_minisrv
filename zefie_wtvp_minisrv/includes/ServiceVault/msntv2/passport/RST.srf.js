@@ -142,7 +142,7 @@ function generateErrorResponse(errorCode, errorText) {
     <psf:authstate>0x80048800</psf:authstate>
     <psf:reqstatus>${errorCode}</psf:reqstatus>
     <psf:serverInfo Path="Live1" RollingUpgradeState="ExclusiveNew" LocVersion="0" ServerTime="${now}">
-    NOBELLIUM 16.0.30846.6
+    ${minisrv_config.config.service_name} [minisrv ${minisrv_config.config.hide_minisrv_version ? "beta" : minisrv_version_string.replace("zefie's wtv minisrv ","")}]
     </psf:serverInfo>
     <psf:cookies></psf:cookies>
     <psf:response></psf:response>

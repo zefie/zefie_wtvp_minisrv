@@ -644,6 +644,24 @@ class WTVShared {
         return null;
     }
 
+    /**
+     * Checks if a token is valid (exists and not expired)
+     * @param {string} token The token to check
+     * @returns {boolean} true if valid, false if not
+     */
+    isTokenValid(token) {
+        const session = this.tokens[token];
+        if (session && session.expires > Date.now()) {
+            return true;
+        }
+        this.deleteToken(token);
+        return false;
+    }
+
+    /**
+     * Deletes a token from the token store.
+     * @param {string} token The token to delete
+     */
     deleteToken(token) {
         delete this.tokens[token];
         this.saveTokens();
