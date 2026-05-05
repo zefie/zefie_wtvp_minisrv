@@ -37,6 +37,8 @@ if (session_data) {
   registered = session_data.isRegistered();
   if (registered) {
     username = session_data.getSessionData("subscriber_username") || '';
+    Profile_Picture = session_data.getSessionData('ProfilePicture') || '';
+
   }
 }
 
@@ -103,23 +105,23 @@ data = `<html>
       var email = TVShell.UserManager.EMail;
       var wanProvider = TVShell.ConnectionManager.WANProvider;
 
-      var banned = ${banned}; // JavaScript boolean value
-      var registered = ${registered}; // JavaScript boolean value
-      var username = "${username}"; // JavaScript string value
+      var banned = ${banned};
+      var registered = ${registered};
+      var username = "${username}";
+      var picture = "${Profile_Picture}";
 
-      InitializeGuestMode();          
-      RemoveGuestUsers();    
+      InitializeGuestMode();
+      RemoveGuestUsers();
 
       if (!banned) {
-          TVShell.AddSecretCode(10000); // sync shit
-          TVShell.AddSecretCode(10001); // sync shit
-          TVShell.AddSecretCode(10002); // sync shit
-          TVShell.AddSecretCode(93288); // Service Select
-          TVShell.AddSecretCode(77437); // Spooky Options
-          TVShell.AddSecretCode(6145539); // Force Crash
-          var entry = TVShell.ServiceList.Add("connection::login");
-          entry.URL = "https://headwaiter.trusted.msntv.msn.com/connection/login.aspx?BoxId=${BoxId}";
-          TVShell.ServiceList.Save();
+          // DEBUG ONLY! USE WITH CAUTION!
+          TVShell.AddSecretCode(10000);   // Power-on for nightly update
+          TVShell.AddSecretCode(10001);   // Power-on for nightly email check at anchor time
+          TVShell.AddSecretCode(10002);   // Power-on for nightly email check at non-anchor time
+          TVShell.AddSecretCode(77437);   // spooky dialing options
+          TVShell.AddSecretCode(93288);   // Service Selection Page
+          TVShell.AddSecretCode(6145539); // crash the system
+          TVShell.AddSecretCode(3932397); // update loop test
       }
 
       function CheckForUser(usernameToCheck) {
@@ -129,11 +131,11 @@ data = `<html>
       		if (user == usernameToCheck) {
       			return true;
 		      }
-        }      
+        }
         return false;
       }
 
-      function DoLogin() {  
+      function DoLogin() {
         var currentUser = TVShell.UserManager.CurrentUser;
         if (currentUser == null) {
           if (banned === true) {
@@ -146,15 +148,30 @@ data = `<html>
                 var user = TVShell.UserManager.AddNew(username);
                 if (user) {
                   user.IsPersistent = true;
+                  user.setAttribute("GuestUser", false);
+                  var dt = new Date();
+
+                  TVShell.UserManager.LastLoginTime = dt.getTime() / 1000 + dt.getTimezoneOffset() * 60;
+
+                  TVShell.UserManager.OfflineAppMaxAccessDays = 20;
+                  TVShell.UserManager.OfflineAppMaxAccessTimes = 20;
+                  TVShell.UserManager.CurrentUser = user;
+                  user.LargeIcon = "msntv:/SignInPics/big/"+ picture + ".png";
+                  user.SmallIcon = "msntv:/SignInPics/small/"+ picture + ".gif";
+                  TVShell.UserManager.Save();
+                  entry = TVShell.ServiceList.Add('connection::login');
+                  entry.URL = 'https://headwaiter.trusted.msntv.msn.com/connection/GatePage.aspx?phase=Bootstrap&purpose=Authorize';
+                  entry.Description = '${minisrv_config.config.service_name}/sg1 [${minisrv_config.config.hide_minisrv_version ? "beta" : minisrv_version_string.replace("zefie's wtv minisrv ","")}]';
+                  TVShell.ServiceList.Save();
                 }
               }
             }
-            SetProgress('Welcome, New User!', 100);
             var myPanel = TVShell.PanelManager.Item('main')
             if (registered === true) {
 		          var signon = TVShell.BuiltinServiceList.Item("SignOn");
         		  var panel = TVShell.PanelManager.FocusedPanel;
         		  var atLogin = false;
+                  TVShell.ConnectionManager.ServiceState = 'ReSignIn';
           		if ( signon && panel && panel.Name == "main" )
         		  {
   			        if ( IsMainPanelOnPage( signon.URL ) ) atLogin = true;
@@ -165,7 +182,7 @@ data = `<html>
                   GotoSignOn();
               }
             } else {
-              if (myPanel) myPanel.GotoURL('https://sg1.trusted.msntv.msn.com/register/Establish-your-MSN-TV-Account.html');
+              if (myPanel) myPanel.GotoURL('https://sg1.trusted.msntv.msn.com/Register/Establish-your-MSN-TV-Account.html');
             }
             if (myPanel) {
               myPanel.ClearTravelLog();
@@ -180,27 +197,23 @@ data = `<html>
           }
         }
 
-        if (currentUser != null) { 
+        if (currentUser != null) {
           var serviceArgs = new Array();
-          var ProductionArgs = new Array("msntv.msn.com", "MBI",  0,  0,  
+          var ProductionArgs = new Array("msntv.msn.com", "MBI",  0,  0,
                              "mail.services.live.com", "MBI",  0,  0,
                              "livefilestore.com", "MBI",  0,  0,
                              "messenger.msn.com", "?id=507",  0,  0,
                              "spaces.live.com", "MBI",  0,  0
                               );
-          var PPEArgs = new Array();
-          var INTArgs = new Array();
           serviceArgs[0] = ProductionArgs;
-          serviceArgs[1] = PPEArgs;
-          serviceArgs[2] = INTArgs;
           try {
             TVShell.LoginManager.IDCRLInitialize(0);
             TVShell.LoginManager.IDCRLLogonAndAuthToServices(serviceArgs[0]);
           } catch (e) {
             if (window.console) console.log("IDCRL error: " + e.message);
           }
-          
-          GoToUserCheck(); 
+
+          GoToUserCheck();
         }
       }
 
@@ -236,20 +249,18 @@ data = `<html>
         return null;
       }
 
-      function CheckBoxID() {
-        SetProgress("${minisrv_config.config.service_name} [${minisrv_config.config.hide_minisrv_version ? "beta" : minisrv_version_string.replace("zefie's wtv minisrv ","")}] Welcome, ${username != '' ? username : 'Guest'}!", 20);
-      }
-
       function GoToUserCheck() {
         if (banned === true) {
-          var url = 'https://headwaiter.trusted.msntv.msn.com/connection/banned.html';
+          var url = 'https://sg1.trusted.msntv.msn.com/connection/banned.html';
           var myPanel = TVShell.PanelManager.Item('service');
           if (myPanel) myPanel.GotoURL(url);
         } else if (registered) {
-          GotoSignOn();
+          var url = 'https://sg1.trusted.msntv.msn.com/connection/usercheck.html';
+          var myPanel = tvShell.PanelManager.Item('service');
+          if (myPanel) myPanel.GotoURL(url);
         }
       }
-    
+
       function SetProgress(text, percent) {
         if (progressPanel) {
           progressPanel.Document.SetProgressText(text);
@@ -278,7 +289,6 @@ data = `<html>
       if (!IsServicePanel()) {
         DontContinue();
       } else {
-        CheckBoxID();
         DoPoptimization();
         DoLogin();
       
@@ -287,20 +297,20 @@ data = `<html>
         } catch (e) {
           if (window.console) console.log("SetTimeZone error: " + e.message);
         }
-    
+
         try {
           TVShell.DeviceControl.SetClock(${timeData.hh}, ${timeData.mm}, ${timeData.ss}, ${timeData.mo}, ${timeData.dd}, ${timeData.yyyy});
           TVShell.DeviceControl.ClockSet = true;
         } catch (e) {
           if (window.console) console.log("SetClock error: " + e.message);
         }
-       
+
       }
     } catch (e) {
       if (window.console) console.log("Error in boxcheck: " + e.message);
-      
+
       var myPanel = TVShell ? TVShell.PanelManager.Item('main') : null;
-      if (myPanel) myPanel.GotoURL('https://headwaiter.trusted.msntv.msn.com/connection/error.html');
+      if (myPanel) myPanel.GotoURL('https://sg1.trusted.msntv.msn.com/connection/error.html');
     }
   </script>
 </body>

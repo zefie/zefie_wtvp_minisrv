@@ -75,29 +75,42 @@ data = `<html xmlns:msntv>
     </STYLE>
 
     <script>
-        var tvShell = new ActiveXObject("MSNTV.TVShell");
-        tvShell.UserManager.SetCurrentUserIsAuthorized(false);
+        var TVShell = new ActiveXObject("MSNTV.TVShell");
+        TVShell.UserManager.SetCurrentUserIsAuthorized(false);
 
         function AddUser() {
-            var user = tvShell.UserManager.AddNew("${username}");
+            var user = TVShell.UserManager.AddNew("${username}");
 
             if (user) {
                 user.IsPersistent = true;
+                user.setAttribute("GuestUser", false);
+                var dt = new Date();
+
+                TVShell.UserManager.LastLoginTime = dt.getTime() / 1000 + dt.getTimezoneOffset() * 60;
+
+                TVShell.UserManager.OfflineAppMaxAccessDays = 20;
+                TVShell.UserManager.OfflineAppMaxAccessTimes = 20;
+                TVShell.UserManager.CurrentUser = user;
+                user.LargeIcon = "msntv:/SignInPics/big/${picture}.png";
+                user.SmallIcon = "msntv:/SignInPics/small/${picture}.gif";
+                TVShell.UserManager.Save();
             } else {
-                user = tvShell.UserManager.Item("${username}");
+                user = TVShell.UserManager.Item("${username}");
                 if (user && !user.IsPersistent) {
                     user.IsPersistent = true;
                 }
             }
+        }
 
-            if (user) {
-                user.LargeIcon = "msntv:/tvshell/images/${picture}.png";
-                user.SmallIcon = "msntv:/tvshell/images/${picture}.gif";
-            }
+        function GobacktoSignon() {
+            entry = TVShell.ServiceList.Add('connection::login');
+            entry.URL = 'https://sg1.trusted.msntv.msn.com/connection/GatePage.aspx?phase=Bootstrap&purpose=Authorize';
+            entry.Description = '${minisrv_config.config.service_name}/sg1 [${minisrv_config.config.hide_minisrv_version ? "beta" : minisrv_version_string.replace("zefie's wtv minisrv ","")}]';
+            TVShell.ServiceList.Save();
+            TVShell.ConnectionManager.ServiceState = 'ReSignIn';
         }
 
         AddUser();
-        tvShell.UserManager.Save();
     </script>
 </head>
 
@@ -116,7 +129,7 @@ data = `<html xmlns:msntv>
                                     <table class="ApolloIcons" tabindex="-1">
                                         <tr height="70">
                                             <td tabindex="-1">
-                                                <span style='display:inline-block; width:142px; height:158px; behavior:url(#default#alphaImageLoader); src:url(msntv:/SignInPics/Big/${picture}.png);'></span>
+                                                <span style='display:inline-block; width:142px; height:158px; behavior:url(#default#alphaImageLoader); src:url(msntv:/SignInPics/big/${picture}.png);'></span>
                                             </td>
                                         </tr>
                                     </table>
@@ -139,7 +152,7 @@ data = `<html xmlns:msntv>
         </p>
 
         <div id="footer">
-            <msntv:CustomButton id="continue" label="Continue" href="/Home/Home.aspx" />
+            <msntv:CustomButton id="continue" label="Continue" onclick="GobacktoSignon()" />
         </div>
     </div>
 </body>

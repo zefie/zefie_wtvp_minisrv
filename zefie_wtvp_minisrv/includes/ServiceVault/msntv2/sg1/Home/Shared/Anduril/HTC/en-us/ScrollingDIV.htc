@@ -1,0 +1,1095 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:		ScrollingDIV.htc
+//
+//  Description:	The ScrollingDIV HTML behavior allows web authors to easily add
+//				scrolling functionality to any DIV.  This attached behavior properly
+//				handles the arrow keys, page-up/down, and adds visible scroll arrows
+//				as needed.  It further adds optional features, such as pre-emptive
+//				scrolling and custom arrow-key handling.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="ScrollingDiv" lightweight="true">
+<PUBLIC:PROPERTY NAME="usealphaimageloader" value=true />					<!-- equivalent to style.useAlphaImageLoader -->
+<PUBLIC:PROPERTY NAME="scrollincrement" value=0 />
+<PUBLIC:PROPERTY NAME="preemptivescroll" value="true" />
+<PUBLIC:PROPERTY NAME="scrollbarrightoffset" value=2 />
+<PUBLIC:PROPERTY NAME="leavespaceforscrollbar" value="true" />
+<PUBLIC:PROPERTY NAME="uparrowsrc" value="msntv:/Shared/Images/ScrollIndicatorUpGlobal.png" />	<!-- equivalent to style.upArrowSrc -->
+<PUBLIC:PROPERTY NAME="downarrowsrc" value="msntv:/Shared/Images/ScrollIndicatorDownGlobal.png" />	<!-- equivalent to style.downArrowSrc -->
+<PUBLIC:PROPERTY NAME="arrowwidth" value=18 />						<!-- equivalent to style.arrowWidth -->
+<PUBLIC:PROPERTY NAME="typeToScroll" value="false" />
+<PUBLIC:PROPERTY NAME="assumeEverythingsVisible" value="false" />
+
+<PUBLIC:METHOD NAME="MyDoScroll" />									<!-- used in place of the built-in DIV.doScroll() -->
+<PUBLIC:METHOD NAME="ScrollHandler" />
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onkeydown" HANDLER="KeydownHandler" />
+<PUBLIC:ATTACH EVENT="onkeydown" FOR="document" HANDLER="KeydownForPageHandler" />
+<PUBLIC:ATTACH EVENT="onscroll" HANDLER="ScrollHandler" />
+<PUBLIC:ATTACH EVENT="ondocumentready" HANDLER="DocReady" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="PropertyChangeHandler" />
+<PUBLIC:ATTACH EVENT="onresize" HANDLER="ResizeHandler" />
+<PUBLIC:ATTACH EVENT="onactivate" HANDLER="ActivateHandler" />
+</PUBLIC:COMPONENT>
+
+
+<SCRIPT LANGUAGE="Javascript" SRC="msntv:/Javascript/TVShell.js"></SCRIPT>
+<SCRIPT>
+
+// the following is necessary to make IE respect the "bottom" attribute set in CSS
+if (element.currentStyle.bottom != "auto")
+{
+	var theTop = parseInt(element.currentStyle.top);
+	if (theTop == 0) theTop = element.offsetTop;
+
+	var tempHeight = element.offsetParent.clientHeight - theTop - parseInt(element.currentStyle.bottom);
+	if (tempHeight > 0)
+		element.style.pixelHeight = tempHeight;
+	else
+		element.style.pixelHeight = element.scrollHeight;	// if printing, the body has 0 height; so size to content
+}
+//+----------------------------------------------------------------------------
+//
+//  Global Variables
+//
+//+----------------------------------------------------------------------------
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init
+//  Description:    Create the scroll arrows
+//  Arguments:      none
+//  Returns:        nothing
+//
+//+----------------------------------------------------------------------------
+function Init()
+{
+	scrollincrement = parseInt(scrollincrement);	// otherwise, JS thinks it's a string!
+	
+	if (currentStyle.useAlphaImageLoader)
+		usealphaimageloader = currentStyle.useAlphaImageLoader;
+	if (currentStyle.upArrowSrc)
+		uparrowsrc = currentStyle.upArrowSrc;
+	if (currentStyle.downArrowSrc)
+		downarrowsrc = currentStyle.downArrowSrc;
+	if (currentStyle.arrowWidth)
+		arrowwidth = currentStyle.arrowWidth;
+
+	var ARROW_WIDTH	= parseInt(arrowwidth) + 2 + parseInt(scrollbarrightoffset);	// 2 pixels padding on left of arrows
+
+	AddArrows();
+	
+	// Make sure there's enough room for the scroll arrows
+	if (leavespaceforscrollbar == "true" && element.scrollHeight > element.clientHeight && 
+		element.offsetWidth - (element.clientLeft + element.clientWidth) < ARROW_WIDTH)
+	{
+		element.style.paddingRight = ARROW_WIDTH + "px";
+	}
+
+	// (When printing, the "activeElement" has a type of "unknown" -?!?!)
+	if (typeof(element.document.activeElement) == "object" && element.document.activeElement == element)
+		MoveDown(element, scrollTop, scrollTop + offsetHeight);
+}
+
+//+----------------------------------------------------------------------------
+//+----------------------------------------------------------------------------
+function AddArrows()
+{
+	var UpArrow;
+	var DownArrow;
+
+	if (usealphaimageloader == "true")
+	{
+		UpArrow = element.document.createElement("DIV");
+		DownArrow = element.document.createElement("DIV");
+		UpArrow.style.src = uparrowsrc;
+		DownArrow.style.src = downarrowsrc;
+	}
+	else
+	{
+		UpArrow = element.document.createElement("IMG");
+		DownArrow = element.document.createElement("IMG");
+		UpArrow.src = uparrowsrc;
+		DownArrow.src = downarrowsrc;
+
+	}
+	
+	UpArrow.tabIndex = -10001;
+	UpArrow.onclick = PageUp;
+	DownArrow.tabIndex = -10001;
+	DownArrow.onclick = PageDown;
+
+	UpArrow.id = "uparrow";
+	DownArrow.id = "downarrow";
+	UpArrow.style.position = DownArrow.style.position = "absolute";
+	UpArrow.style.visibility = DownArrow.style.visibility = "hidden";
+	UpArrow.style.pixelRight = DownArrow.style.pixelRight = scrollbarrightoffset;
+	UpArrow.style.pixelTop = DownArrow.style.pixelTop = 0;
+	UpArrow.style.lineHeight = DownArrow.style.lineHeight = "18px";
+	UpArrow.style.zIndex = DownArrow.style.zIndex = 100;
+	
+	element.appendChild(UpArrow);
+	element.appendChild(DownArrow);
+
+	if (usealphaimageloader == "true")	// for layout reasons, it's necessary to attach the behavior AFTER the elements are in the doc tree
+		UpArrow.style.behavior = DownArrow.style.behavior = "url(#default#alphaImageLoader)";
+}
+
+function PageUp()
+{
+	MyDoScroll("pageUp");
+}
+
+function PageDown()
+{
+	MyDoScroll("pageDown");
+}
+
+//+----------------------------------------------------------------------------
+//+----------------------------------------------------------------------------
+function DocReady()
+{
+	if (!element.tabIndex && scrollHeight > offsetHeight)
+		element.tabIndex = 0;
+
+	if (typeof(element.document.activeElement) == "object")
+	{ 
+		var selectedItem = element.document.activeElement;
+		ScrollHandler();
+		if (selectedItem != null && element.contains(selectedItem))
+		{	// Scroll the selection into view, if it isn't in view already
+			var selectionTop = TranslateTopTo(selectedItem, this);
+			if (selectionTop >= offsetHeight && (scrollHeight - selectionTop) <= offsetHeight)	// on the last page?
+				MyDoScroll("scrollToEnd");
+			else if (selectionTop >= offsetHeight )				// not on the first page?
+				selectedItem.scrollIntoView();
+			scrollincrement = parseInt(scrollincrement);
+			if (scrollincrement > 0)
+				scrollTop = Math.ceil( scrollTop / scrollincrement ) * scrollincrement;
+		}
+	 }
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       TranslateTopTo, TranslateLeftTo
+//  Description:    Determine the given element's Top/Left relative to the Top/Left
+//						of the given parent
+//  Arguments:      the HTML child element and the parent element used as the reference
+//  Returns:        the distance between the parent's Top/Left and the child's Top/Left.
+//
+//+----------------------------------------------------------------------------
+function TranslateTopTo(child, parent)
+{
+	var distance = 0;
+	var offTop = 0;
+	var finalOffsetParent = parent.offsetParent;
+
+	do
+	{
+		offTop = child.offsetTop;
+		//if ( child.currentStyle.position == "relative" && !child.currentStyle.hasLayout ) offTop = Math.ceil( offTop / 2 );
+		distance += offTop;
+		child = child.offsetParent;
+	} while (child != finalOffsetParent);
+
+	return distance - parent.offsetTop;
+}
+
+function TranslateLeftTo(child, parent)
+{
+	var distance = 0;
+	var finalOffsetParent = parent.offsetParent;
+
+	do
+	{
+		distance += child.offsetLeft;
+		child = child.offsetParent;
+	} while (child != finalOffsetParent);
+
+	return distance - parent.offsetLeft;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       IsSelectable
+//  Description:    Determine whether the given HTML element is targetable by arrowing
+//  Arguments:      the HTML element
+//  Returns:        true to indicate the item can be targeted by arrowing
+//
+//+----------------------------------------------------------------------------
+function IsSelectable(item)
+{
+	if (item.tabIndex && item.tabIndex < 0)
+		return false;
+
+	var tagName = item.tagName;
+	if ((tagName == "A" && item.href!="")|| 
+		(tagName == "INPUT" && item.type != "hidden") || 
+		tagName == "SELECT" || 
+		tagName == "BUTTON" ||
+		tagName == "TEXTAREA" ||
+		item.onclick != null)
+	{	// make sure this (and no parent) is disabled or invisible
+		if (assumeEverythingsVisible == "true")
+			return !item.isDisabled;
+
+		var itemV = item;
+		while (itemV.currentStyle.visibility == "inherit" && itemV.parentElement != element) {
+			itemV = itemV.parentElement;
+		}
+
+		var itemD = item;
+		while (itemD.currentStyle.display != "none" && itemD.parentElement != element) {
+			itemD = itemD.parentElement;
+		}
+			
+		return !item.isDisabled &&
+			   itemV.currentStyle.visibility != "hidden" &&
+			   itemD.currentStyle.display != "none";
+	}
+	return false;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       ItemToLocalIndex
+//  Description:    Determine where the element is in the this.all collection. 
+//						(For document.all, it's easy; just use this.sourceIndex.)
+//  Arguments:      the HTML element
+//  Returns:        0-based index of this item, or -1 if it can't be found
+//
+//+----------------------------------------------------------------------------
+function ItemToLocalIndex(item)
+{
+	//var i;
+	//for (i = this.all.length-1; i >= 0 && this.all[i] != item; --i)
+	//	;
+	var i = item.sourceIndex - this.sourceIndex - 1;
+	if ( item != this.all[i] )
+		TVShell.Message( "Scrolling DIV CALCULATED WRONG INDEX!!" );
+	return i;
+}
+
+
+//+----------------------------------------------------------------------------
+//	From IE6
+//+----------------------------------------------------------------------------
+//         l1p1x                      l1p2x
+//    l1y    +--------------------------+
+//
+//                     l2p1x                       l2p2x
+//    l2y                +---------------------------+
+//
+//                       |- overlap    -|
+//
+var WEIGHT_X = 1;
+var WEIGHT_Y = 2;
+function Distance(
+    l2p1x,     //  coordinates of the two lines
+    l2p2x,
+    l2y,
+    l1p1x,
+    l1p2x,
+    l1y)
+{
+    var     dx, dy;
+
+    dy = Math.abs(l2y - l1y);
+
+    // Compute dx as non-overlap portion of the shorter line, where overlap
+	// is negative for non-overlapping objects.
+    //
+	dx = Math.min(l2p2x - Math.max(l1p1x, l2p1x), l1p2x - Math.max(l2p1x, l1p1x));
+	dx = Math.min(l1p2x - l1p1x, l2p2x - l2p1x) - dx;
+
+    return (dy * WEIGHT_Y) + (dx * WEIGHT_X);
+}
+//+----------------------------------------------------------------------------
+//	End from IE6
+//+----------------------------------------------------------------------------
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       MoveDown
+//  Description:    Look for the next item within the current DIV (or whatever we are),
+//						whose top position is greater than a certain value, and whose
+//						left is within the width of the current item, and then select that item.
+//  Arguments:      curItem - the HTML element to start from
+//					newPos - the vertical position (relative to the container) after which
+//						the next item must be
+//					maxPos - the pixel position before which the next item must be
+//  Returns:        the newly selected item, or null if the selection hasn't been changed
+//
+//	Notes:			This only looks AFTER the current item within the HTML source.
+//+----------------------------------------------------------------------------
+function MoveDown(curItem, newPos, maxPos)
+{
+	var curIndex;
+	var curItemLeft;
+	var minPos;
+	var minDistance = 99999;
+
+	if (curItem == element)	// the entire DIV is the current selection
+	{
+		curIndex = 0;
+		curItemLeft = 0;
+		minPos = element.scrollTop;
+	}
+	else
+	{
+		curIndex = ItemToLocalIndex(curItem) + 1;
+		curItemLeft = TranslateLeftTo(curItem, this);
+		minPos = Math.max(TranslateTopTo(curItem, this) + curItem.offsetHeight/2, scrollTop);
+	}
+
+	var curItemRight = curItemLeft + curItem.offsetWidth;
+	var lastSelectable = curItem;
+	var sibling = this.all[curIndex];
+	var stop = false;
+	
+	do
+	{
+		while (sibling && !IsSelectable(sibling))
+			sibling = this.all[++curIndex];
+			
+		if (sibling)
+		{
+			var itemTop = TranslateTopTo(sibling, this);
+			if (itemTop > maxPos)
+				stop = true;
+			else if (itemTop >= minPos)
+			{
+				var itemLeft = TranslateLeftTo(sibling, this);
+				var dist = Distance(itemLeft, itemLeft+sibling.offsetWidth, itemTop, curItemLeft, curItemRight, newPos);
+				if (dist < minDistance)
+				{
+					minDistance = dist;
+					lastSelectable = sibling;
+				}
+			}
+
+			sibling = this.all[++curIndex];
+		}
+	} while (sibling && !stop);
+
+	if (lastSelectable && lastSelectable != curItem) 
+	{
+		var itemTop = TranslateTopTo(lastSelectable, this);
+		if (itemTop >= scrollTop)
+		{
+			lastSelectable.focus();
+			
+			// Make sure the top is a multiple of scrollincrement
+			scrollincrement = parseInt(scrollincrement);
+			if (scrollincrement > 0)
+				scrollTop = Math.ceil( scrollTop / scrollincrement ) * scrollincrement;
+			return lastSelectable;
+		}
+	}
+
+	return null;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       MoveUp
+//  Description:    Look for an earlier item within the current DIV (or whatever we are),
+//						whose top position is less than a certain value, and whose
+//						left is within the width of the current item, and then select that item.
+//  Arguments:      curItem - the HTML element to start from
+//					newPos - the pixel position (relative to the container) before which
+//						the next item must be
+//					minPos - the pixel position after which the next item must be
+//  Returns:        the newly selected item, or null if the selection hasn't been changed
+//
+//	Notes:			This only looks BEFORE the current item within the HTML source.
+//+----------------------------------------------------------------------------
+function MoveUp(curItem, newPos, minPos)
+{
+	var curIndex;
+	var curItemLeft;
+	var maxPos;
+	var minDistance = 99999;
+
+	if (curItem == element)	// the entire DIV is the current selection
+	{
+		curIndex = element.all.length-3;	// take scroll arrows into account
+		curItemLeft = 0;
+		maxPos = element.scrollTop + element.offsetHeight;
+	}
+	else
+	{
+		curIndex = ItemToLocalIndex(curItem) - 1;
+		curItemLeft = TranslateLeftTo(curItem, this);
+		maxPos = Math.min(TranslateTopTo(curItem, this), scrollTop + offsetHeight + offsetTop );
+	}
+
+	var curItemRight = curItemLeft + curItem.offsetWidth;
+	var lastSelectable = curItem;
+	var sibling = this.all[curIndex];
+	var stop = false;
+	
+	do
+	{
+		while (sibling && !IsSelectable(sibling))
+			sibling = this.all[--curIndex];
+			
+		if (sibling)
+		{
+			var itemTop = TranslateTopTo(sibling, this);
+			if (itemTop < minPos)
+				stop = true;
+			else if ((itemTop + sibling.offsetHeight/2) < maxPos)
+			{
+				var itemLeft = TranslateLeftTo(sibling, this);
+				var dist = Distance(itemLeft, itemLeft+sibling.offsetWidth, itemTop+sibling.offsetHeight, curItemLeft, curItemRight, newPos);
+				if (dist < minDistance)
+				{
+					minDistance = dist;
+					lastSelectable = sibling;
+				}
+			}
+
+			sibling = this.all[--curIndex];
+		}
+	} while (sibling && !stop);
+
+	if (lastSelectable && lastSelectable != curItem) 
+	{
+		var itemTop = TranslateTopTo(lastSelectable, this);
+		if (itemTop < (scrollTop + offsetHeight))
+		{
+			lastSelectable.focus();
+
+			// Make sure the top is a multiple of scrollincrement
+			if (scrollincrement > 0)
+				scrollTop = Math.floor( scrollTop / scrollincrement ) * scrollincrement;
+			return lastSelectable;
+		}
+	}
+
+	return null;
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       MoveToLetter
+//  Description:    Look for the next item within the current DIV (or whatever we are),
+//						whose innerText starts with the given letter.
+//  Arguments:      curItem - the HTML element to start from (can be element to start at top)
+//					letter - the character we should search for
+//					stopAt - the element we shouldn't search past or null if don't care
+//  Returns:        the newly selected item, or null if the selection hasn't been changed
+//
+//	Notes:			This only looks AFTER the current item within the HTML source.
+//+----------------------------------------------------------------------------
+function MoveToLetter(curItem, letter, stopAt)
+{
+	var curIndex;
+	var maxPos;
+	var charCodeLower = letter.toLowerCase().charCodeAt(0);
+	var charCodeUpper = letter.toUpperCase().charCodeAt(0);
+
+	if (curItem == element)	// the entire DIV is the current selection
+	{
+		curIndex = 0;
+	}
+	else
+	{
+		curIndex = ItemToLocalIndex(curItem) + 1;
+		if (IsSelectable(curItem))	// don't look inside of selectable items
+			curIndex += curItem.all.length;
+	}
+
+	maxPos = (stopAt == null) ?  element.all.length-1 : ItemToLocalIndex(stopAt);
+	var lastSelectable = curItem;
+	var sibling = this.all[curIndex];
+	
+	do
+	{
+		while (sibling && !IsSelectable(sibling))
+		{
+			if (curIndex < maxPos)
+				sibling = this.all[++curIndex];
+			else
+				sibling = null;
+		}
+			
+		if (sibling)
+		{
+			var charCode = sibling.innerText.charCodeAt(0);
+			
+			if (charCode == charCodeLower || charCode == charCodeUpper)
+			{
+				lastSelectable = sibling;
+				break;
+			}
+
+			curIndex += sibling.all.length + 1;	// don't look inside of selectable items
+			sibling = this.all[curIndex];
+		}
+	} while (sibling);
+
+	if (lastSelectable && lastSelectable != curItem) 
+	{
+		lastSelectable.focus();
+		
+		// Make sure the top is a multiple of scrollincrement
+		scrollincrement = parseInt(scrollincrement);
+		if (scrollincrement > 0)
+			scrollTop = Math.ceil( scrollTop / scrollincrement ) * scrollincrement;
+		return lastSelectable;
+	}
+
+	return null;
+}
+
+// A couple useful sounds for scrolling
+function PlayBoundarySound()
+{
+	TVShell.DeviceControl.PlaySound("Page_Boundary");
+}
+
+function PlayJumpTopSound()
+{
+	TVShell.DeviceControl.PlaySound("Jump_Top");
+}
+
+function PlayJumpEndSound()
+{
+	TVShell.DeviceControl.PlaySound("Jump_End");
+}
+
+//+----------------------------------------------------------------------------
+//  Function:       MyDoScroll
+//  Description:    Scrolls the DIV in the direction and by the amount specified in the
+//					argument. Call this instead of the built-in function doScroll; the
+//					parameters are the same, with a few additions, described below.
+//
+//					MyDoScroll ensures that the SCROLLINCREMENT, if any, is obeyed. 
+//
+//  Arguments:      scrollAction - string, one of:
+//						"up"	- scroll up one line
+//						"down"	- scroll down one line
+//						"pageUp"	- scroll up one "page"
+//						"pageDown"	- scroll down one "page"
+//						"scrollToStart"	- scroll to the top 	(this is non-standard)
+//						"scrollToEnd"	- scroll to the bottom  (this is non-standard)
+//						
+//  Returns:        nothing
+//+----------------------------------------------------------------------------
+function MyDoScroll(scrollAction)
+{
+
+	if ( offsetHeight >= scrollHeight )
+	{
+		scrollTop = 0;
+		ScrollHandler();
+		return;
+	}
+	
+	// first, handle our additions to the standard params:
+	if (scrollAction == "scrollToEnd")
+	{
+		scrollTop = scrollHeight - offsetHeight;
+	}
+	else if (scrollAction == "scrollToStart") {
+		scrollTop = 0;
+		ScrollHandler();
+	}
+			
+	else if (scrollincrement == 0)
+	{
+		this.doScroll(scrollAction);
+		if (scrollTop + offsetHeight > scrollHeight)
+			scrollTop = scrollHeight - offsetHeight;
+		if ( scrollTop < 0 ) scrollTop = 0;
+		}
+	else
+	{
+		switch (scrollAction)
+		{
+			case "up":
+				scrollTop -= scrollincrement;
+				if (scrollTop < 0)
+					scrollTop = 0;
+				break;
+
+			case "down":
+				scrollTop += scrollincrement;
+				if (scrollTop + offsetHeight > scrollHeight)
+					scrollTop = scrollHeight - offsetHeight;
+				break;
+
+			case "pageUp":
+			case "scrollbarPageUp":
+				scrollTop -= Math.floor( offsetHeight / scrollincrement ) * scrollincrement;
+				if (scrollTop < 0)
+					scrollTop = 0;
+				else 
+					scrollTop = Math.ceil( scrollTop / scrollincrement ) * scrollincrement;
+				break;
+
+			case "pageDown":
+			case "scrollbarPageDown":
+				scrollTop += Math.floor( offsetHeight / scrollincrement ) * scrollincrement;
+				if (scrollTop + offsetHeight > scrollHeight) {
+					scrollTop = scrollHeight - offsetHeight;
+				}
+				break;
+		}
+	}
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       KeydownHandler
+//  Description:    Handle the up and down arrows and the page-up and page-down buttons.
+//						Also handle the nextLeft/nextRight/nextUp/nextDown HTML attributes.
+//  Arguments:      none
+//  Returns:        nothing
+//
+//	Note:			Holding down the control key with page-up/down causes the DIV
+//						to scroll to the end/beginning.
+//+----------------------------------------------------------------------------
+var bOptionsVisible = false;
+var sPreviousSelectName = null;
+function KeydownHandler()
+{
+	var handled = false;
+	var srcElem = event.srcElement;
+	var selnRange = null;
+	var txtAreaRange = null;
+	
+	// Special hadling for <SELECT> and it's options
+	if (srcElem.tagName == "SELECT")
+	{
+		if (srcElem.name == sPreviousSelectName)
+		{
+			if (event.keyCode == 13 || event.keyCode == 38 || event.keyCode == 40) 
+			{	// default the standard key events.
+				return;
+			}
+		} else 
+		{	// a new select has focus, do custom scroll below
+			sPreviousSelectName = srcElem.name;
+		}
+	}
+	else
+		sPreviousSelectName = null;
+		
+	// If the selection is editable text, only handle keys when the caret
+	// is at the appropriate edge
+	if (srcElem.isContentEditable)
+	{
+	 	selnRange = element.document.selection.createRange();
+		txtAreaRange = srcElem.createTextRange();
+	}
+
+	var tempKeyCode = event.keyCode;
+	if (event.altKey && (tempKeyCode == 33 /*page-up*/ || tempKeyCode == 34 /*page-down*/))
+		tempKeyCode += 10000;
+	switch (tempKeyCode)
+	{
+		case 38:	// up
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the top or this is a repeat
+				if (txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextUp = srcElem.attributes.getNamedItem("nextup");
+			if (nextUp)
+			{
+				element.document.all[nextUp.value].focus();
+				handled = true;
+			}
+			else
+			{
+				var newFocus = null;
+				if (srcElem != element)
+					newFocus = MoveUp(srcElem, TranslateTopTo(srcElem, this)-10, scrollTop - Math.max(offsetHeight/4, scrollincrement));
+				else
+					newFocus = MoveUp(srcElem, scrollTop, scrollTop - Math.max(offsetHeight/4, scrollincrement));
+
+				if (newFocus)
+				{
+					// if we're close to the top, pre-emptively scroll up
+					if (preemptivescroll == "true" && (TranslateTopTo(newFocus, this) - scrollTop)*100 / offsetHeight < 10)
+						MyDoScroll("up");
+					handled = true;
+				}
+				else if (scrollTop > 0)	// nothing to select; scroll up a little
+				{
+					scrollTop -= offsetHeight/4;
+					if (TranslateTopTo(srcElem, this) > (scrollTop+offsetHeight))	// if selected item is off-screen, select entire DIV
+						element.focus();
+					handled = true;
+				}
+			}
+			break;
+
+		case 40:	// down
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the bottom or this is a repeat
+				txtAreaRange.collapse(false);	// move to the end
+				if (txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextDown = srcElem.attributes.getNamedItem("nextdown");
+			if (nextDown)
+			{
+				element.document.all[nextDown.value].focus();
+				handled = true;
+			}
+			else
+			{
+				var newFocus = null;
+				if (srcElem != element)
+					newFocus = MoveDown(srcElem, TranslateTopTo(srcElem, this) + srcElem.offsetHeight, scrollTop + offsetHeight*5/4);
+				else
+					newFocus = MoveDown(srcElem, scrollTop + offsetHeight, scrollTop + offsetHeight*5/4);
+				
+				if (newFocus)
+				{
+					// if we're close to the bottom, pre-emptively scroll down
+					if (preemptivescroll == "true" && (TranslateTopTo(newFocus, this) - scrollTop)*100 / offsetHeight > 90)
+						MyDoScroll("down");
+					handled = true;
+				}
+				else if (scrollTop < scrollHeight - offsetHeight)	//nothing else to select; scroll down a little, if possible
+				{
+					scrollTop += offsetHeight/4;
+					if (TranslateTopTo(srcElem, this) < scrollTop)	// if selected item is off-screen, select entire DIV
+						element.focus();
+					handled = true;
+				}
+			}
+			break;
+			
+		case 33:	// page-up
+			if (scrollTop > 0)
+			{	
+				MyDoScroll("scrollbarPageUp");
+				var newFocus = MoveUp(srcElem, scrollTop + 20, scrollTop);
+				if (!newFocus && TranslateTopTo(srcElem, this) > (scrollTop+offsetHeight))
+					element.focus();
+
+				handled = true;
+			}
+			else	// if we're at the top, use the page-up key to mean "move to the first item"
+			{
+				if ((newFocus = MoveUp(srcElem, 0, 0)) || scrollTop > 0)
+				{
+					handled = ( ( scrollTop > 0 ) || newFocus );
+					scrollTop = 0;
+					if (TranslateTopTo(newFocus ? newFocus : srcElem, this) > offsetHeight)	// if selected item is off-screen, select entire DIV
+						element.focus();
+				}
+			}
+			break;
+			
+		case 34:	// page-down
+			if (scrollTop + offsetHeight < scrollHeight)
+			{
+				MyDoScroll("scrollbarPageDown");
+				var newFocus = MoveDown(srcElem, scrollTop, scrollTop + offsetHeight);
+				if (!newFocus && TranslateTopTo(srcElem, this) < scrollTop)
+					element.focus();
+				
+				handled = true;
+			}
+			else	// if we're scrolled all the way to the end (or ctrl key is down), then move the selection to the last item
+			{
+				if ((newFocus = MoveDown(srcElem, scrollHeight, scrollHeight)) || (scrollTop + offsetHeight) < scrollHeight)
+				{
+					handled = ( ( scrollTop > 0 ) || ( scrollTop < ( scrollHeight - offsetHeight )));
+					scrollTop = scrollHeight - offsetHeight;
+					if (TranslateTopTo(newFocus ? newFocus : srcElem, this) < scrollTop)	// if selected item is off-screen, select entire DIV
+						element.focus();
+				}
+			}
+			break;
+
+		case 10034:	// alt-page-down
+		case 35:	// End
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the end
+				txtAreaRange.collapse(false);	// move to the end
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop)
+					break;
+			}
+			
+			PlayJumpEndSound();
+			scrollTop = scrollHeight - offsetHeight;
+			if ((newFocus = MoveUp(element, scrollHeight, scrollTop)))
+			{
+				if (TranslateTopTo(newFocus ? newFocus : srcElem, this) < scrollTop)	// if selected item is off-screen, select entire DIV
+					element.focus();
+				handled = true;
+			}
+			break;
+
+		case 10033:	// alt-page-up
+		case 36:	// Home
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the beginning
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop)
+					break;
+			}
+			
+			PlayJumpTopSound();
+			scrollTop = 0;
+			if ((newFocus = MoveDown(element, 0, offsetHeight)))
+			{
+				if (TranslateTopTo(newFocus ? newFocus : srcElem, this) > offsetHeight)	// if selected item is off-screen, select entire DIV
+					element.focus();
+				handled = true;
+			}
+			break;
+
+		case 37:	// left
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the beginning or this is a repeat
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextLeft = srcElem.attributes.getNamedItem("nextleft");
+			if (nextLeft)
+			{
+				element.document.all[nextLeft.value].focus();
+				handled = true;
+			}
+			break;
+
+		case 39:	// right
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the end or this is a repeat
+				txtAreaRange.collapse(false);	// move to the end
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextRight = srcElem.attributes.getNamedItem("nextright");
+			if (nextRight)
+			{
+				element.document.all[nextRight.value].focus();
+				handled = true;
+			}
+			break;
+		default:
+			if (typeToScroll == "true" && !(selnRange && txtAreaRange) && event.keyCode >= 48 /*0*/ && event.keyCode <= 90 /*Z*/ && !event.altKey)
+			{
+				// First look starting from where we are, and then start from the top
+				if (MoveToLetter(srcElem, String.fromCharCode(event.keyCode), null) ||
+					MoveToLetter(this.all[0], String.fromCharCode(event.keyCode), srcElem))
+						handled = true;
+			}
+	}
+
+	if (handled)
+	{
+		event.returnValue=false;
+		event.cancelBubble=true;
+//		RoundScrollPos();
+		return false;
+	}
+
+	return true;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       ScrollHandler
+//  Description:    Responds to scroll events by hiding or showing the scroll arrows
+//  Arguments:      none
+//  Returns:        nothing
+//
+//+----------------------------------------------------------------------------
+function ScrollHandler()
+{
+	var UpArrow = element.all.uparrow;
+	var DownArrow = element.all.downarrow;
+
+	UpArrow.style.pixelTop = scrollTop + 3;
+	if (scrollTop > 0)
+		UpArrow.style.visibility = "visible";
+	else
+		UpArrow.style.visibility = "hidden";
+
+	DownArrow.style.pixelTop = scrollTop + offsetHeight - DownArrow.offsetHeight - 3;
+	if ((scrollTop + offsetHeight) < scrollHeight)
+	{
+		DownArrow.style.visibility = "visible";
+//		DownArrow.style.pixelBottom = scrollTop + offsetHeight - 30;
+	}
+	else
+		DownArrow.style.visibility = "hidden";
+}
+
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       KeydownForPageHandler
+//  Description:    Responds to page-up/down keys for the page as a whole by scrolling
+//						this DIV.
+//  Arguments:      none
+//  Returns:        nothing
+//
+//+----------------------------------------------------------------------------
+function KeydownForPageHandler()
+{
+	var handled = false;
+
+	var srcElem = event.srcElement;
+	var selnRange = null;
+	var txtAreaRange = null;
+
+	// If the selection is editable text, only handle keys when the caret
+	// is at the appropriate edge
+	if (srcElem.isContentEditable)
+	{
+	 	selnRange = element.document.selection.createRange();
+		txtAreaRange = srcElem.createTextRange();
+	}
+
+	var startTop = scrollTop;
+	
+	var tempKeyCode = event.keyCode;
+	if (event.altKey && (tempKeyCode == 33 /*page-up*/ || tempKeyCode == 34 /*page-down*/))
+		tempKeyCode += 10000;
+	switch (tempKeyCode)
+	{
+		case 33:	// page-up
+			MyDoScroll("scrollbarPageUp");
+			handled = ( scrollTop != startTop );
+			break;
+
+		case 34:	// page-down
+			MyDoScroll("scrollbarPageDown");
+			handled = ( scrollTop != startTop );
+			break;
+
+		case 10034:	// alt-page-down
+		case 35:	// End
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the end
+				txtAreaRange.collapse(false);	// move to the end
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop)
+					break;
+			}
+			
+			PlayJumpEndSound();
+			MyDoScroll("scrollToEnd");
+			handled = true;
+			break;
+
+		case 10033:	// alt-page-up
+		case 36:	// Home
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the beginning
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop)
+					break;
+			}
+			
+			PlayJumpTopSound();
+			MyDoScroll("scrollToStart");
+			handled = true;
+			break;
+
+	}
+	
+	if (handled)
+	{
+		event.returnValue=false;
+		event.cancelBubble=true;
+		return false;
+	}
+	
+	return true;
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       PropertyChangeHandler
+//  Description:    Notice when the content of the DIV has been overridden and add
+//					back the scroll arrows.
+//  Arguments:      none
+//  Returns:        nothing
+//
+//+----------------------------------------------------------------------------
+function PropertyChangeHandler()
+{
+	if (event.propertyName == "innerHTML" || event.propertyName == "innerText")
+	{
+		if (element.all.uparrow == null)
+			AddArrows();
+
+		ScrollHandler()
+	}
+}
+
+function ResizeHandler()
+{
+	if (element.all.uparrow == null)
+		AddArrows();
+
+	ScrollHandler()
+}
+
+function ActivateHandler()
+{
+	if (event.srcElement == element && (!event.fromElement || !element.contains(event.fromElement)))
+	{	// If coming from outside the DIV, see if there's something close to the source element to select within us;
+		// if nothing's visible, then allow the focus to remain around the entire DIV.
+		var offset;
+		if (event.fromElement)
+			offset = TranslateTopTo(event.fromElement, element.document.body) - TranslateTopTo(element, element.document.body) + scrollTop -10;
+		else
+			offset = scrollTop;
+		
+		if (offset > scrollTop + offsetHeight)
+			MoveUp(element, scrollTop + offsetHeight, scrollTop);
+		else
+		{
+			if (offset < scrollTop)
+				offset = scrollTop;
+			MoveDown(element, offset, scrollTop + offsetHeight);
+		}
+	}
+}
+
+
+</SCRIPT>
+

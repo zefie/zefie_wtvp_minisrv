@@ -15,7 +15,7 @@ if (!password && request_headers.cookie) {
     if (pm) password = decodeURIComponent(pm[1]);
 }
 
-if (email && email.indexOf('@') < 0) email += "@"+minisrv_config.config.service_name;
+if (email && email.indexOf('@') < 0) email += "@"+minisrv_config.config.domain_name;
 let userAvail = false;
 
 if (email) {

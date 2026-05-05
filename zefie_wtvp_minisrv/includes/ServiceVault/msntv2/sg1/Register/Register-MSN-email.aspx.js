@@ -51,7 +51,7 @@ data = `<HTML xmlns:msntv>
         <p>Type your minisrv username:</p>
         <div class="input-container">
             <td><input type="text" id="email" class="inputText" name="email" maxlength="32" size="25"> </td>
-            <p style="display: inline; bottom: 4px; position: relative;">@${minisrv_config.config.service_name}</p>
+            <p style="display: inline; bottom: 4px; position: relative;">@${minisrv_config.config.domain_name}</p>
         </div>
         <br>
         <p>Next, enter a password:</p>
