@@ -208,6 +208,7 @@ function generateSuccessResponse(requestBody, userId, email, firstName, lastName
         const needsProofToken = policy === "MBI_KEY_OLD";
 
         const token = generateRandomToken(userId, appliesTo, isLegacy);
+        wtvshared.storeToken(token, socket.ssid, userId, expiresTime);
         const tokenId = isLegacy ? `BinaryDAToken${rstIndex}` : `Compact${rstIndex}`;
         const binarySecret = crypto.randomBytes(32).toString('base64');
 
@@ -270,6 +271,7 @@ function generateSuccessResponse(requestBody, userId, email, firstName, lastName
 
     if (!foundRst) {
         const defaultToken = generateRandomToken(userId, "urn:passport:compact", false);
+        wtvshared.storeToken(defaultToken, socket.ssid, userId, expiresTime);
         responses.push(`
         <wst:RequestSecurityTokenResponse>
         <wst:TokenType>urn:passport:compact</wst:TokenType>

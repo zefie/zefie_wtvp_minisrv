@@ -21,6 +21,7 @@ class WTVShared {
     process = require('process');
     shenanigans = null;
     appdir = this.path.resolve(__dirname + this.path.sep + ".." + this.path.sep + "..");
+    tokens = {};
 
     minisrv_config = [];
     
@@ -628,6 +629,79 @@ class WTVShared {
         // Use the fixPathSlashes method to normalize the slashes
         return this.fixPathSlashes(check_path);
     }
+
+    /**
+     * Get the session data (BoxID, UserID, creation time, expiry) associated with a given token, also deletes the token if expired.
+     * @param {string} token
+     * @return {object|null} { boxID, userId, created, expires } for the token, or null if token is invalid/expired
+     */
+    getTokenData(token) {
+        const session = this.tokens[token];
+        if (session && session.expires > Date.now()) {
+            return { boxID: session.boxID, userId: session.userId, created: session.timestamp, expires: session.expires };
+        }
+        this.deleteToken(token);
+        return null;
+    }
+
+    deleteToken(token) {
+        delete this.tokens[token];
+        this.saveTokens();
+    }
+
+    mkdirRecursive(dirPath) {
+        if (!this.path.isAbsolute(dirPath)) {
+            dirPath = this.getAbsolutePath(this.parentDirectory + this.path.sep + dirPath);
+        }
+        const parts = dirPath.split(this.path.sep);
+        let currentPath = '';
+        for (const part of parts) {
+            if (part) {
+                if (currentPath === '') {
+                    currentPath = part;
+                } else {
+                    currentPath += this.path.sep + part;
+                }
+                if (!this.fs.existsSync(currentPath)) {
+                    try {
+                        this.fs.mkdirSync(currentPath);
+                    } catch (e) {
+                        if (e.code !== 'EEXIST') {
+                            throw e;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    saveTokens() {
+        const session_store = this.minisrv_config.config.SessionStore + this.path.sep + "msntv2";
+        if (!this.fs.existsSync(session_store)) {
+            this.mkdirRecursive(session_store);
+        }
+        const tokenFile = this.getAbsolutePath(this.path.join(session_store, `tokens.json`));
+        this.fs.writeFile(tokenFile, JSON.stringify(this.tokens), (err) => {
+            if (err) {
+                console.error('[WTV-MSNTV2] Error writing token file:', err);
+            }
+        });
+    }
+
+    /**
+     * Store a token with its associated BoxID and UserID.
+     * @param {string} token 
+     * @param {string} boxID 
+     * @param {number} userId 
+     * @param {string|null} expiresTime - Optional expiration time for the token, otherwise uses server config defaults
+     */
+    storeToken(token, boxID, userId, expiresTime = null) {
+        delete this.tokens[token]; // ensure any existing token with the same value is removed before storing new data
+        this.tokens[token] = { boxID, userId, timestamp: Date.now(), expires: expiresTime ? new Date(expiresTime).getTime() : Date.now() + (this.minisrv_config.services[this.service_name]?.token_expiry || 3600) * 1000 }; // 1 hour expiry
+        this.saveTokens();
+        this.debug(" * MSNTV2 stored token for BoxID %s (UserID: %s), token expires in %d seconds", boxID, userId, (this.tokens[token].expires - Date.now()) / 1000);
+    }
+
 
     /**
      * Detects if the client is in MiniBrowser mode

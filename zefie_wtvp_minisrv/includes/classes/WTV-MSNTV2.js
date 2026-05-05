@@ -27,6 +27,7 @@ class WTVMSNTV2 {
         this.tlsContext = this.loadTlsContext();
         this.forgeTlsCredentials = this.loadForgeTlsCredentials();
         this.server = net.createServer((socket) => this.handleConnection(socket));
+        this.tokens = {};
         this.mimeTypes = {
             html: 'text/html',
             htm: 'text/html',

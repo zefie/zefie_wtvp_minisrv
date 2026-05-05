@@ -527,8 +527,10 @@
         "key": "%ServiceDeps%/msntv2/minisrv.key"
       },
       "modules": [
-        "WTVRegister"
-       ]
+        "WTVRegister",
+        "WTVNews"
+       ],
+       "usenet_service": "wtv-news"
     }        
   },
   "favorites": {
