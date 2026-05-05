@@ -4,15 +4,15 @@ const minisrv_service_file = true;
 const WeatherCity = 'Your City';
 const WeatherTemp = '72';
 const WeatherDescription = 'Sunny';
-const WeatherIcon = '/Pages/Home/Weather/26.gif';
+const WeatherIcon = '/Home/Weather/26.gif';
 
 // News headlines
-const NewsLink1 = 'http://sg1.trusted.msntv.msn.com/Pages/Tricks/he.mp3';
-const NewsLink2 = 'http://sg1.trusted.msntv.msn.com/Pages/Tricks/pokemon-black-2.mp3';
-const NewsLink3 = 'http://sg1.trusted.msntv.msn.com/Pages/Tricks/he.mp3';
-const NewsTitle1 = 'Ryder Smells';
-const NewsTitle2 = 'Ryder Smells';
-const NewsTitle3 = 'Ryder Smells';
+const NewsLink1 = '';
+const NewsLink2 = '';
+const NewsLink3 = '';
+const NewsTitle1 = '...';
+const NewsTitle2 = '...';
+const NewsTitle3 = '...';
 
 headers = `200 OK
 Content-type: text/html`;
@@ -22,7 +22,7 @@ data = `<html xmlns:msntv>
 
 <head><title>Home</title>
     <?import namespace="msntv" implementation="HTC/Shared/CustomButton.htc"?>
-    <?import namespace="msntv" implementation="/Pages/Home/Shared/BaseClient/HTCTransforms/en-us/LoopingDIV.htc"?>
+    <?import namespace="msntv" implementation="/Home/Shared/BaseClient/HTCTransforms/en-us/LoopingDIV.htc"?>
 
     <script src="/Include/2.0.261.900/localhost-1700/Shared/BaseClient/JsTransforms/en-us/PaneHelp.js" language="javascript" defer="true"></script>
     <link href="/Include/2.0.261.778/localhost-1700/Home/Anduril/CssTransforms/en-us/Home.css" type="text/css" rel="StyleSheet">
@@ -187,7 +187,7 @@ data = `<html xmlns:msntv>
 
             <div class="promoImgDiv">
                 <div style="position:absolute; left:0px; top:0px">
-                <img id="PromoImageID" width="178" height="135" border="0" hspace="0" alt="Promotional Image" src="/Pages/Home/ads/webtv3.gif">
+                <img id="PromoImageID" width="178" height="135" border="0" hspace="0" alt="Promotional Image" src="/Home/ads/webtv3.gif">
                 </div>
                 <div style="position:absolute; left:5px; top:0px"><a id="PromoImageLinkID" href="">
                 <table width="173" height="135"><tr><td></td></tr></table></a>

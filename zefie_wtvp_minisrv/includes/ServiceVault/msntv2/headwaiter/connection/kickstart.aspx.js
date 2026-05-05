@@ -27,7 +27,7 @@ data = `<HTML>
      }
  }
  function GotoBoxCheck() {
-     var url = 'https://headwaiter.trusted.msntv.msn.com/connection/boxcheck.html';
+     var url = 'https://sg1.trusted.msntv.msn.com/connection/GatePage.aspx?phase=BoxCheck&purpose=Authorize';
      var parms='';
      parms += 'BoxId=' + tvShell.SystemInfo.BoxIDService + '&';
      parms += 'WANProvider=' + tvShell.ConnectionManager.WANProvider + '&';
