@@ -10,7 +10,10 @@ const msnDir = path.join(workspaceRoot, '..', 'includes', 'ServiceDeps', 'msntv2
 
 const domains = [
     "headwaiter.trusted.msntv.msn.com",
-    "*.trusted.msntv.msn.com",
+    "sg1.trusted.msntv.msn.com",
+    "sg2.trusted.msntv.msn.com",
+    "sg3.trusted.msntv.msn.com",
+    "sg4.trusted.msntv.msn.com",
     "msntv.msn.com",
     "mail.services.live.com",
     "login.live.com",
@@ -21,8 +24,7 @@ const domains = [
     "users.storage.live.com",
     "g.msn.com",
     "msnialogin.passport.com",
-    "minisrv.local",
-    "*.minisrv.local"
+    "minisrv.local"
 ]
 
 const defaultCaCertPath = path.join(msnDir, 'emac.crt');

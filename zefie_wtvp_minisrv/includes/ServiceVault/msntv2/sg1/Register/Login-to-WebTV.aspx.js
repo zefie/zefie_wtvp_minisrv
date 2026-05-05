@@ -32,12 +32,12 @@ data = `<HTML xmlns:msntv>
 <BODY width="520" height="388">
     <DIV id="title">Logging into your account</DIV>
     <DIV id="main">
-        <p>When using MSNTV2, you can access the same minisrv account as your WebTV.</p>
+        <p>When using MSNTV2, you can use an existing minisrv account.</p>
         <br>
         <p>Type your existing primary username in the box below:</p>
         <div class="input-container">
             <textarea name="username" id="username" rows="1" cols="15"></textarea>
-            <p style="display: inline;">@${minisrv_config.config.service_name}</p>
+            <p style="display: inline;">@${minisrv_config.config.domain_name}</p>
         </div>
         <br>
         <div class="input-container">
@@ -45,13 +45,15 @@ data = `<HTML xmlns:msntv>
         </div>
         <br>
         If you don't have an existing minisrv account, select the <EM>Back</EM> Button.
+        If you reset your box, you can recover your existing account by entering the username and password.
+        If you intend to use an account that is already established on your WebTV, type in the username and password for that account.
         If you do not have a password set on your primary user account, you will need to set one up on your WebTV before you can log in here. After entering your username and password, select the <EM>Continue</EM> Button.
     </DIV>
     <div id="footer">
-        <msntv:CustomButton id="continue" label="Continue" href="/Register/ConnectionType.aspx"/>
+        <msntv:CustomButton id="continue" label="Continue" href="/Register/Validate-account.aspx"/>
     </div>
     <div id="Back">
-        <msntv:CustomButton id="continue2" label="Back" href="/Register/ConnectionType.aspx"/>
+        <msntv:CustomButton id="continue2" label="Back" href="/Register/Register-MSN-email.aspx"/>
     </div>
 </BODY>
 </HTML>`;

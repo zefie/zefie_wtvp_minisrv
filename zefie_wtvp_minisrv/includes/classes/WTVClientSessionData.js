@@ -282,7 +282,7 @@ class WTVClientSessionData {
     /**
      * Finds an account's SSID and User ID from just the username
      * @param {string} username The username to search for
-     * @returns {Array} [found {boolean}, account_dir {string|null}, user_id {number|null}]
+     * @returns {Array} [found {boolean}, ssid {string|null}, user_id {number|null}]
      */
     findAccountByUsername(username) {
         const accounts_dir = this.getAccountStoreDirectory();

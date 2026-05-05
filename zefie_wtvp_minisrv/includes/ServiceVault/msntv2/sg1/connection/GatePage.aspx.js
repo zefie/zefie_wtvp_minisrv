@@ -38,7 +38,7 @@ if (!session_data && BoxId) {
 
 let registered = false;
 let username = '';
-let Profile_Picture
+let Profile_Picture = '';
 if (session_data) {
     registered = session_data.isRegistered();
     if (registered) {

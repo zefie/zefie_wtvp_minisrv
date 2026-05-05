@@ -1522,6 +1522,16 @@ class WTVMSNTV2 {
 
                     const self = this;
                     const responseCookies = [];
+                    // try to make the debug name
+                    let debug_name = (filepath) ? filepath.split(path.sep) : null;
+                    if (debug_name) {
+                        if (this.wtvshared.isConfiguredService(debug_name[debug_name.length - 2]))
+                            // service:/filename
+                            debug_name = debug_name[debug_name.length - 2] + ":/" + debug_name[debug_name.length - 1];
+                        else
+                            // filename
+                            debug_name = debug_name[debug_name.length - 1];
+                    }
                     const contextObj = {
                         socket,
                         request_headers,
@@ -1545,6 +1555,7 @@ class WTVMSNTV2 {
                         cwd: path.dirname(filepath),
                         // Cookie helpers available to scripts
                         response_cookies: responseCookies,
+                        debug: require('debug')((debug_name) ? debug_name : 'service_script'),
                         setCookie(name, value, opts) {
                             opts = opts || {};
                             let s = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
@@ -1592,6 +1603,9 @@ class WTVMSNTV2 {
                     // use socket.ssid as set by the script itself via BoxID or header).
                     if (socket.ssid && this.ssid_sessions && vmResult.session_data !== undefined) {
                         this.ssid_sessions[socket.ssid] = vmResult.session_data;
+                    }
+                    if (vmResult.socket !== socket) {
+                        socket = vmResult.socket;
                     }
                     if (!vmResult.request_is_async) {
                         this._sendScriptResult(socket, request_headers, vmResult.headers, vmResult.data, responseCookies);

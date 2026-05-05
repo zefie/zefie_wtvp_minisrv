@@ -1,5 +1,10 @@
+const WTVClientSessionData = require("../../../classes/WTVClientSessionData");
+
 const minisrv_service_file = true;
-const crypto = require('crypto');
+
+if (!session_data) {
+    session_data = new WTVClientSessionData(minisrv_config, (socket.ssid || null))
+}
 
 // Sorry Zef :kek
 // https://git.computernewb.com/yellows111/msnp-wiki/src/branch/master/docs/services/rst.md
@@ -93,7 +98,7 @@ function extractTokenFromCipherValue(xml) {
         let cipherValue = match[1].trim();
         if (cipherValue && cipherValue.length > 0) {
             token = cipherValue;
-            console.log("Found CipherValue token:", token.substring(0, 50) + "...");
+            debug("Found CipherValue token:", token.substring(0, 50) + "...");
             break;
         }
     }
@@ -118,7 +123,7 @@ function validateTokenAndGetUser(token) {
             email = `user_${userId.substring(0, 8)}@example.com`;
         }
 
-        console.log(`Token validated - UserId: ${userId}, Email: ${email}`);
+        debug(`Token validated - UserId: ${userId}, Email: ${email}`);
         return { success: true, userId, email };
     } catch (error) {
         console.error("Token validation error:", error);
@@ -350,12 +355,12 @@ function rstHandler() {
                 requestBody = JSON.stringify(request_headers.post_data);
             }
         } else {
-            console.log("No post_data found. Available keys:", Object.keys(request_headers));
+            debug("No post_data found. Available keys:", Object.keys(request_headers));
             return generateErrorResponse("0x80048820", "No POST data received");
         }
 
         if (!requestBody || requestBody.trim() === '') {
-            console.log("Empty request body");
+            debug("Empty request body");
             return generateErrorResponse("0x80048820", "Empty request body");
         }
 
@@ -369,7 +374,7 @@ function rstHandler() {
         let lastName = "User";
 
         if ((!email || !password) && requestBody.includes('CipherValue')) {
-            console.log("No username/password found, trying token authentication...");
+            debug("No username/password found, trying token authentication...");
             const token = extractTokenFromCipherValue(requestBody);
 
             if (token) {
@@ -377,7 +382,7 @@ function rstHandler() {
                 if (tokenValidation.success) {
                     userId = tokenValidation.userId;
                     userEmail = tokenValidation.email;
-                    console.log(`Token authentication successful for: ${userEmail} (${userId})`);
+                    debug(`Token authentication successful for: ${userEmail} (${userId})`);
 
                     if (request_headers.cookie) {
                         const cookieEmail = getCookie(request_headers.cookie, 'RST_Email');
@@ -386,34 +391,40 @@ function rstHandler() {
                         if (cookieUsername) firstName = cookieUsername;
                     }
                 } else {
-                    console.log("Token validation failed");
+                    debug("Token validation failed");
                     return generateErrorResponse("0x80048821", "Invalid token");
                 }
             } else {
-                console.log("No token found in CipherValue");
+                debug("No token found in CipherValue");
                 return generateErrorResponse("0x80048820", "Missing credentials/token");
             }
         }
         else if (email && password) {
-            console.log(`Extracted - Email: ${email}, Password: ${password ? '***' : 'empty'}`);
+            debug(`Extracted - Email: ${email}, Password: ${password ? '***' : 'empty'}`);
 
             if (email && email.indexOf('@') < 0) {
-                const domain = (minisrv_config && minisrv_config.config && minisrv_config.config.domain_name) || 'wtv.zefie.com';
+                const domain = minisrv_config.config.domain_name || 'minisrv.local';
                 email = `${email}@${domain}`;
             }
 
             userEmail = email;
             firstName = email.split('@')[0];
             userId = crypto.createHash('md5').update(email).digest('hex');
-            console.log(`Authentication successful for: ${userEmail} (${userId})`);
+            const validAuth = validateCredentials(email, password);
+            if (!validAuth) {
+                debug("Invalid credentials");
+                return generateErrorResponse("0x80048821", "Invalid credentials");
+            } else {
+                debug(`Authentication successful for: ${userEmail} (${userId})`);
+            }
         }
         else {
-            console.log("Missing both credentials and token");
+            debug("Missing both credentials and token");
             return generateErrorResponse("0x80048820", "Missing credentials/token");
         }
 
         if (!userId || !userEmail) {
-            console.log("Failed to get user identity");
+            debug("Failed to get user identity");
             return generateErrorResponse("0x80048821", "User identity not found");
         }
 
@@ -437,6 +448,21 @@ function rstHandler() {
         return generateErrorResponse("0x80048820", `Internal error: ${error.message}`);
     }
 }
+
+function validateCredentials(email, password) {
+    username = email.split('@')[0];
+    result_ary = session_data.findAccountByUsername(username);
+    if (result_ary[0]) {
+        if (!socket.ssid) {
+            socket.ssid = result_ary[1];
+            // second arg should handle secondary users
+            session_data.setSSID(socket.ssid, result_ary[2]);
+        }
+        return session_data.validateUserPassword(password);
+    }
+    return false;
+}
+    
 
 let result = rstHandler();
 if (result) {
