@@ -1130,6 +1130,7 @@ class WTVShared {
     // DON'T USE THIS
     // Saved for reference until I come up with a better way
     // If used, this will exceed the stack limit over time
+    /*
     unloadModule(moduleName) {
         // Prevent usage
         return;
@@ -1141,7 +1142,8 @@ class WTVShared {
             delete require.cache[resolvedPath];
         }
     }
-
+    */
+   
     /**
     * Returns an absolute path without an trailing path seperator
     * @param {string} path 

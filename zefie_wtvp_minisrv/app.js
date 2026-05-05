@@ -2704,9 +2704,11 @@ if (protocolHandledPorts.size > 0) console.log(` * Started ${protocolHandledPort
 const listening_ip_string = (minisrv_config.config.bind_ip !== "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
 console.log(" * Listening on", listening_ip_string, "~", "Service IP:", service_ip);
 
+// Security warning for default user data encryption key
 if (minisrv_config.config.keys.user_data_key === "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP") {
     console.log(" * WARNING: You are using the default user data encryption key. This is not secure, and you should change it in the configuration file before registering any users.");
     console.log(" * To generate a random key in bash or PowerShell, you can run: node ./tools/configurator.js config.keys.user_data_key $(openssl rand -base64 32)");
-    console.log(" * After changing the key in the user_config, you can run tools/update_user_data_key.js to update existing accounts with the new key.");
+    console.log(" * After changing the key in the user_config, please restart the server.");
+    console.log(" * If you had existing users prior to changing the key, you can run tools/update_user_data_key.js to update existing accounts with the new key.");
     console.log(" * Making a backup of your user accounts before doing this is highly recommended, in case something goes wrong during the update process.");    
 }
