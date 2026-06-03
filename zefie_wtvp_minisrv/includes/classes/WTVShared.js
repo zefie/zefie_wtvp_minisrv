@@ -631,14 +631,14 @@ class WTVShared {
     }
 
     /**
-     * Get the session data (BoxID, UserID, creation time, expiry) associated with a given token, also deletes the token if expired.
-     * @param {string} token
-     * @return {object|null} { boxID, userId, created, expires } for the token, or null if token is invalid/expired
+     * Get the session data (email, creation time, expiry) associated with a given token, also deletes the token if expired.
+     * @param {string} token The token to retrieve data for
+     * @return {object|null} { token, created, expires } for the token, or null if token is invalid/expired
      */
     getTokenData(token) {
         const session = this.tokens[token];
         if (session && session.expires > Date.now()) {
-            return { boxID: session.boxID, userId: session.userId, created: session.timestamp, expires: session.expires };
+            return { email: session.email, token: session.token, created: session.timestamp, expires: session.expires };
         }
         this.deleteToken(token);
         return null;
@@ -663,8 +663,25 @@ class WTVShared {
      * @param {string} token The token to delete
      */
     deleteToken(token) {
-        delete this.tokens[token];
-        this.saveTokens();
+        if (this.tokens[token]) {
+            delete this.tokens[token];
+            this.saveTokens();
+        }
+    }
+
+    /**
+     * Deletes all tokens associated with a given email.
+     * @param {string} email The email to delete tokens for
+     */
+    deleteTokenByEmail(email) {
+        let deleted = false;
+        Object.keys(this.tokens).forEach((k) => {
+            if (this.tokens[k].email === email) {
+                delete this.tokens[k];
+                deleted = true;
+            }
+        });
+        if (deleted) this.saveTokens();
     }
 
     mkdirRecursive(dirPath) {
@@ -707,17 +724,17 @@ class WTVShared {
     }
 
     /**
-     * Store a token with its associated BoxID and UserID.
-     * @param {string} token 
-     * @param {string} boxID 
-     * @param {number} userId 
+     * Store a token with its associated email.
+     * @param {string} userid The user ID associated with the token
+     * @param {string} email The email associated with the token
+     * @param {string} token The token to store
      * @param {string|null} expiresTime - Optional expiration time for the token, otherwise uses server config defaults
      */
-    storeToken(token, boxID, userId, expiresTime = null) {
-        delete this.tokens[token]; // ensure any existing token with the same value is removed before storing new data
-        this.tokens[token] = { boxID, userId, timestamp: Date.now(), expires: expiresTime ? new Date(expiresTime).getTime() : Date.now() + (this.minisrv_config.services[this.service_name]?.token_expiry || 3600) * 1000 }; // 1 hour expiry
+    storeToken(userid, email, token, expiresTime = null) {
+        this.deleteToken(token); // ensure any existing token with the same value is removed before storing new data
+        this.tokens[token] = { userid, email, token, timestamp: Date.now(), expires: expiresTime ? new Date(expiresTime).getTime() : Date.now() + (this.minisrv_config.services[this.service_name]?.token_expiry || 3600) * 1000 }; // 1 hour expiry
         this.saveTokens();
-        this.debug(" * MSNTV2 stored token for BoxID %s (UserID: %s), token expires in %d seconds", boxID, userId, (this.tokens[token].expires - Date.now()) / 1000);
+        this.debug(" * MSNTV2 stored token for account %s, token expires in %d seconds", email, (this.tokens[token].expires - Date.now()) / 1000);
     }
 
 

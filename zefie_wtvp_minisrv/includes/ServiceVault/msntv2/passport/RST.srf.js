@@ -108,19 +108,14 @@ function validateTokenAndGetUser(token) {
     try {
         let userId = null;
         let email = null;
-
-        if (request_headers.cookie) {
-            userId = getCookie(request_headers.cookie, 'RST_Auth');
-            email = getCookie(request_headers.cookie, 'RST_Email');
-            if (!email) email = getCookie(request_headers.cookie, 'rst_email');
-            if (!email) email = getCookie(request_headers.cookie, 'rst_username');
+        const tokenData = wtvshared.getTokenData(token);
+        if (tokenData) {
+            userId = crypto.createHash('md5').update(tokenData.email).digest('hex');
+            email = tokenData.email;
+        } else {
+            debug("Token not found or expired in store");
+            return { success: false, userId: null, email: null };
         }
-
-        if (!userId) {
-            userId = crypto.createHash('md5').update(token).digest('hex');
-            email = `user_${userId.substring(0, 8)}@example.com`;
-        }
-
         debug(`Token validated - UserId: ${userId}, Email: ${email}`);
         return { success: true, userId, email };
     } catch (error) {
@@ -208,7 +203,7 @@ function generateSuccessResponse(requestBody, userId, email, firstName, lastName
         const needsProofToken = policy === "MBI_KEY_OLD";
 
         const token = generateRandomToken(userId, appliesTo, isLegacy);
-        wtvshared.storeToken(token, socket.ssid, userId, expiresTime);
+        wtvshared.storeToken(token, email, expiresTime);
         const tokenId = isLegacy ? `BinaryDAToken${rstIndex}` : `Compact${rstIndex}`;
         const binarySecret = crypto.randomBytes(32).toString('base64');
 
@@ -271,7 +266,7 @@ function generateSuccessResponse(requestBody, userId, email, firstName, lastName
 
     if (!foundRst) {
         const defaultToken = generateRandomToken(userId, "urn:passport:compact", false);
-        wtvshared.storeToken(defaultToken, socket.ssid, userId, expiresTime);
+        wtvshared.storeToken(defaultToken, email, expiresTime);
         responses.push(`
         <wst:RequestSecurityTokenResponse>
         <wst:TokenType>urn:passport:compact</wst:TokenType>
@@ -286,9 +281,7 @@ function generateSuccessResponse(requestBody, userId, email, firstName, lastName
     }
 
     headers = `Status: 200 OK
-    Content-type: text/xml; charset=utf-8
-    Set-Cookie: RST_Auth=${userId}; path=/; HttpOnly
-    Set-Cookie: RST_Email=${email}; path=/`;
+    Content-type: text/xml; charset=utf-8`
 
     return `<?xml version="1.0" encoding="utf-8"?>
     <S:Envelope xmlns:S="${NS.SOAP}">
@@ -302,7 +295,7 @@ function generateSuccessResponse(requestBody, userId, email, firstName, lastName
     <psf:authstate>0x48803</psf:authstate>
     <psf:reqstatus>0x0</psf:reqstatus>
     <psf:serverInfo Path="Live1" RollingUpgradeState="ExclusiveNew" LocVersion="0" ServerTime="${now.toISOString()}">
-    NOBELLIUM 16.0.30846.6
+    ${minisrv_config.config.service_name} [minisrv ${minisrv_config.config.hide_minisrv_version ? "beta" : minisrv_version_string.replace("zefie's wtv minisrv ","")}]
     </psf:serverInfo>
     <psf:cookies></psf:cookies>
     <psf:browserCookies>
@@ -383,13 +376,6 @@ function rstHandler() {
                     userId = tokenValidation.userId;
                     userEmail = tokenValidation.email;
                     debug(`Token authentication successful for: ${userEmail} (${userId})`);
-
-                    if (request_headers.cookie) {
-                        const cookieEmail = getCookie(request_headers.cookie, 'RST_Email');
-                        const cookieUsername = getCookie(request_headers.cookie, 'rst_username');
-                        if (cookieEmail) userEmail = cookieEmail;
-                        if (cookieUsername) firstName = cookieUsername;
-                    }
                 } else {
                     debug("Token validation failed");
                     return generateErrorResponse("0x80048821", "Invalid token");
@@ -415,6 +401,7 @@ function rstHandler() {
                 debug("Invalid credentials");
                 return generateErrorResponse("0x80048821", "Invalid credentials");
             } else {
+                wtvshared.deleteTokenByEmail(email); // Invalidate any existing tokens for this user to prevent reuse
                 debug(`Authentication successful for: ${userEmail} (${userId})`);
             }
         }
@@ -427,12 +414,6 @@ function rstHandler() {
             debug("Failed to get user identity");
             return generateErrorResponse("0x80048821", "User identity not found");
         }
-
-        const cookieHeaders = [
-            setCookie('rst_email', userEmail, { path: '/' }),
-            setCookie('rst_username', firstName, { path: '/' }),
-            setCookie('rst_authenticated', 'true', { path: '/', expires: 'Wed, 30-Dec-2037 16:00:00 GMT' })
-        ];
 
         const response = generateSuccessResponse(requestBody, userId, userEmail, firstName, lastName);
 

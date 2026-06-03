@@ -518,6 +518,10 @@
         {
           "match": "login.live.com",
           "local_dir": "passport"
+        },
+        {
+          "match": "c.msn.com",
+          "local_dir": "cmsn"
         }		
       ],
       "handler_extra_vars": ["runScriptInVM", "handlePHP", "handleCGI", "ssid_sessions", "WTVClientSessionData", "socket_sessions"],

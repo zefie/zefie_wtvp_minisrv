@@ -285,6 +285,7 @@ class WTVClientSessionData {
      * @returns {Array} [found {boolean}, ssid {string|null}, user_id {number|null}]
      */
     findAccountByUsername(username) {
+        if (username.indexOf("@") !== -1) username = username.split("@")[0]; // strip domain if email is provided
         const accounts_dir = this.getAccountStoreDirectory();
         if (this.fs.existsSync(accounts_dir)) {
             const account_dirs = this.fs.readdirSync(accounts_dir);

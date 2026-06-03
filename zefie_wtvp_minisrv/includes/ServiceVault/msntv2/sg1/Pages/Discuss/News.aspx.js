@@ -57,8 +57,7 @@ async function WebTVListGroup(group) {
                         wtvnews.quitUsenet();
                         headers = `200 OK
 Connection: Keep-Alive
-Content-Type: text/html
-wtv-expire: News.aspx?group=${request_headers.query.group}`
+Content-Type: text/html`
                         data = `<HTML>
 <HEAD>
 <script language=javascript>

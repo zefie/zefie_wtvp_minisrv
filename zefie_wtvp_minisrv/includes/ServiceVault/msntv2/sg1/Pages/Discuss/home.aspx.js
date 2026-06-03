@@ -17,7 +17,88 @@ bgcolor="191919" text="42BD52" link="189CD6"
 vlink="189CD6"
 hspace=0
 vspace=0>
+<table>
+<tc width=114>
+<td>
+<table cellspacing=0 cellpadding=0 bgcolor=3d2f3a>
+<tr>
+<td colspan=3 width=104 absheight=4>
+<td rowspan=100 width=10 height=420 valign=top align=left bgcolor=191919>
+<img src="wtv-mail:/ROMCache/Shadow.gif" width=6 height=420>
+<tr>
+<td abswidth=6>
+<td abswidth=93 absheight=76>
+<table href="wtv-home:/home" absheight=76 cellspacing=0 cellpadding=0>
+<tr>
+<td align=right>
+<img src="${minisrv_config.config.service_logo}" width=87 height=67>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=231d22>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=5b4b58>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6 >
+<td abswidth=93 absheight=26 >
+<table href="wtv-news:/news?category=1"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=3d2f3a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1>
+<shadow><font sizerange=medium color="E7CE4A">All groups</font></shadow></table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=231d22>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=5b4b58>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td abswidth=6 >
+<td abswidth=93 absheight=26 >
+<table href="wtv-guide:/help?topic=Discuss&subtopic=Index&appName=Discuss"
+cellspacing=0 cellpadding=0>
+<tr>
+<td abswidth=5>
+<td abswidth=90 valign=middle align=left>
+<table bgcolor=3d2f3a cellspacing=0 cellpadding=0>
+<tr>
+<td absheight=1>
+<tr>
+<td maxlines=1>
+<shadow><font sizerange=medium color="E7CE4A">Help</font></shadow></table>
+</table>
+<td abswidth=5>
+<tr>
+<td colspan=3 absheight=2 valign=middle align=center bgcolor=231d22>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=1 valign=top align=left <img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 absheight=2 valign=top align=left bgcolor=5b4b58>
+<img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
+<tr>
+<td colspan=3 height=237 valign=bottom align=right >
+<img src="wtv-news:/images/BannerDiscuss.gif" width=50 height=165>
+<tr><td colspan=3 absheight=36>
+</table>
+</td></tc><tc><td>
+
 <table cellspacing=0 cellpadding=0>
+
 <tr>
 <td abswidth=10>
 <td colspan=3>
@@ -50,7 +131,6 @@ Object.keys(featuredGroups).forEach((k) => { if (k % 2 !== 0) data += printGroup
 
 
 data += `
-</table>
 <hr>
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -59,14 +139,15 @@ data += `
 <tr>
 <td abswidth=416 valign=top align=left>
 Type a discussion topic<br>
-<img src="/ROMCache/Spacer.gif" width=1 height=4>
 <form action="News.aspx" method="GET">
 <input name="search" bgcolor=#202020 cursor=#cc9933 text="E7CE4A" font=proportional value="" SIZE=28 MAXLENGTH=100>
 &nbsp;
 <font color=E7CE4A><shadow>
-<input type=submit borderimage="file://ROM/Borders/ButtonBorder2.bif" value="Look for" usestyle>
+<input type=submit value="Search" usestyle>
 </shadow></font>
 </form>
+</table>
+</td></tc>
 </table>
 </BODY>
 </HTML>`;
