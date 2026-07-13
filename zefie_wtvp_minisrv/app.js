@@ -2500,9 +2500,9 @@ if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
 if (minisrv_config.config.shenanigans) console.log(" * WARNING: Shenanigans level", minisrv_config.config.shenanigans, "enabled");
 else console.log(" * Shenanigans disabled");
 
-// WTVImage
-if (minisrv_config.config.image_decoder.enabled) console.log(" * WebTV Unsupported images will be processed and converted for WebTV clients");
-else console.log(" * WebTV Unsupported images will not be processed, and sent to client as-is");
+// ImageProxy
+if (minisrv_config.config.image_decoder.enabled) console.log(" * ImageProxy enabled: unsupported images will be processed and converted for WebTV clients");
+else console.log(" * ImageProxy disabled: unsupported images will not be processed, and sent to client as-is");
 
 validateAudioProxy();
 

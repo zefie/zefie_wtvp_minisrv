@@ -35,7 +35,12 @@
     "service_splash_logo": "splash_minisrv.gif", // The logo shown on the splash screen. Can be absolute path or the name of a file in the SharedROMCache.
     "hide_ssid_in_logs": true, // Filter SSIDs with asterisks to prevent accidently leaking user SSIDs when debugging.
     "filter_passwords_in_logs": true, // Filter passwords (form fields containing "pass") to prevent accidently leaking user passwords when debugging.
-    "post_percentages": [ 0, 25, 50, 100 ], // When recieving POST data from the client, we display the progress of the transfer in the console log if the verbosity is high enough. Here you can show more or less updates.
+    "post_percentages": [
+      0,
+      25,
+      50,
+      100
+    ], // When recieving POST data from the client, we display the progress of the transfer in the console log if the verbosity is high enough. Here you can show more or less updates.
     "verbosity": 2, // 0 thru 4, lowest is quietest, higher is more verbose. Best set to 4 if something is going wrong.
     "socket_timeout": 86400, // How long after we last gotten a request from a client before we clean up its data. The client can always restore it with the ticket.
     "post_data_socket_timeout": 30, // How long until we give up waiting for data from the client in a POST transfer. Too little and POSTs will fail when dialup retrains. Too much and the server may stall waiting.
@@ -162,7 +167,6 @@
   },
   "services": {
     // service definitions
-
     "wtv-head-waiter": {
       // wtv-head-waiter handles logins
       "port": 1601,
@@ -236,7 +240,7 @@
     },
     "mailto": {
       "port": 1608
-    },    
+    },
     "wtv-log": {
       // wtv-log
       "port": 1609,
@@ -252,7 +256,7 @@
       "enable_multi_query": true,
       "max_folders": 14,
       "max_favorites_per_folder": 18
-    },    
+    },
     "wtv-home": {
       // wtv-home
       "port": 1612
@@ -309,7 +313,7 @@
       "modules": [
         "WTVGuide"
       ]
-    },    
+    },
     "wtv-chat": {
       // wtv-chat (used for IRC)
       "port": 1630,
@@ -353,7 +357,9 @@
       "connections": 3,
       "max_response_size": 8, // Megabytes      
       "handler_module": "WTVFTP",
-      "handler_extra_vars": ["wtvmime"]
+      "handler_extra_vars": [
+        "wtvmime"
+      ]
     },
     "http": {
       // http upstream
@@ -367,7 +373,9 @@
       "max_response_size": 16, // Megabytes
       "disallow_no_slash": true,
       "handler_module": "WTVHTTP",
-      "handler_extra_vars": ["http"]
+      "handler_extra_vars": [
+        "http"
+      ]
     },
     "https": {
       // https upstream
@@ -381,7 +389,9 @@
       "max_response_size": 16, // Megabytes
       "disallow_no_slash": true,
       "handler_module": "WTVHTTP",
-      "handler_extra_vars": ["http"],
+      "handler_extra_vars": [
+        "http"
+      ],
       "allow_self_signed_ssl": false, // If true, will allow self-signed SSL certificates via the proxy.
       "support_bitdefender_self_signed_proxy": true // If the user has bitdefender installed, it is intercepting SSL connections and re-signing them with its own self-signed certificate. Enabling this will add the Bitdefender certificate to the trusted store for the https service, allowing it to proxy https connections without errors.
     },
@@ -399,7 +409,9 @@
       "max_response_size": 16, // Megabytes
       "disallow_no_slash": true,
       "handler_module": "WTVHTTP",
-      "handler_extra_vars": ["http"]
+      "handler_extra_vars": [
+        "http"
+      ]
     },
     "gopher": {
       // Gopher processor
@@ -411,7 +423,9 @@
       "disallow_no_slash": true,
       "log_raw_gopher": false, // set to true to log raw gopher responses to the console for debugging
       "handler_module": "WTVGopher",
-      "handler_extra_vars": ["wtvmime"]
+      "handler_extra_vars": [
+        "wtvmime"
+      ]
     },
     "wtv-passport": {
       // wtv-passport (for messenger)
@@ -427,7 +441,7 @@
       "disabled": true,
       "port": 1695
       // "searxng_url": "" // replace with your own searxng instance
-    },    
+    },
     "wtv-proxy": {
       "port": 1696
       // "wrp_url": "" // replace with your own tenox9/wrp
@@ -437,7 +451,9 @@
       "port": 1697,
       "pc_services": true, // defines service as a PC service      
       "servicevault_dir": "http_pb", // The service vault dir for the PC Services for PageBuilder
-      "service_vaults": [ "PageBuilderVault" ], // additional service vaults for this service
+      "service_vaults": [
+        "PageBuilderVault"
+      ], // additional service vaults for this service
       "drop_connection_on_wrong_port": true, // If true, resets connection if the PC browser connects to a port that is not PC Services enabled
       "show_verbose_errors": false, // extra debugging
       "allow_https": false, // for future use with LetsEncrypt
@@ -449,7 +465,7 @@
       "enable_multi_query": true,
       "privileged": true,
       "password": "viRak-7" // change to something more unique
-    },    
+    },
     "pc_services": {
       // PC Services
       "port": 1699,
@@ -479,7 +495,7 @@
       "burst_multiplier": 4.0,
       "burst_prestart_ms": 15000,
       "allow_indexing": true,
-      "debug": false, 
+      "debug": false,
       "handler_module": "WTVMMS",
       "handler_handles_port": true
     },
@@ -494,10 +510,13 @@
       "debug": false,
       "handler_module": "WTVPNM",
       "handler_handles_port": true,
-      "handler_extra_vars": ["crypto"]
+      "handler_extra_vars": [
+        "crypto"
+      ]
     },
     "msntv2": {
       "port": 1694,
+      "disabled": true,
       "connections": 3,
       "flags": "0x00000001",
       "protocol": "HTTPS",
@@ -522,9 +541,16 @@
         {
           "match": "c.msn.com",
           "local_dir": "cmsn"
-        }		
+        }
       ],
-      "handler_extra_vars": ["runScriptInVM", "handlePHP", "handleCGI", "ssid_sessions", "WTVClientSessionData", "socket_sessions"],
+      "handler_extra_vars": [
+        "runScriptInVM",
+        "handlePHP",
+        "handleCGI",
+        "ssid_sessions",
+        "WTVClientSessionData",
+        "socket_sessions"
+      ],
       "show_verbose_errors": false,
       "ssl": {
         "cert": "%ServiceDeps%/msntv2/minisrv.crt",
@@ -533,9 +559,62 @@
       "modules": [
         "WTVRegister",
         "WTVNews"
-       ],
-       "usenet_service": "wtv-news"
-    }        
+      ],
+      "usenet_service": "wtv-news"
+    },
+    "ircserver": {
+      "protocol": "IRC",
+      "disabled": true,
+      "handler_module": "WTVIRC",
+      "handler_handles_port": true,
+      "port": 1667,
+      "oper_username": "minisrv",
+      "oper_password": "changeme573",
+      "oper_enabled": false, // Don't enable with default credentials!
+      "channel_limit": 10,
+      "enable_ssl": true,
+      "ssl_cert": {
+          /* self-signed, can be replaced with another cert */
+          "cert": "%ServiceDeps%/irc/selfsigned_cert.pem",
+          "key": "%ServiceDeps%/irc/selfsigned_key.pem"
+      },
+      "channels": [
+        {
+          "name": "#general",
+          "modes": ["n","t"],
+          "topic": "General Chat Channel",
+          "intro": [
+            "Welcome to the general chat channel!"
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        { 
+          "name": "#WebTV",
+          "modes": ["n", "t", "c", "C", "T"],
+          "topic": "Welcome to the WebTV channel",
+          "intro": [
+            "Welcome to the WebTV channel!"
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        {
+          "name": "#secure",
+          "modes": ["n", "t", "S", "Z"],
+          "topic": "SSL only chat",
+          "intro": [
+            "Welcome to zefie's secure hangout",
+            "Here, all traffic is SSL encrypted."
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        }
+      ]
+    }
   },
   "favorites": {
     "folder_templates": {
