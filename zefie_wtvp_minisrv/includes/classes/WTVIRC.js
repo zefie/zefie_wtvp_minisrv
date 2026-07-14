@@ -64,6 +64,7 @@ class WTVIRC {
         this.server_start_time = this.getDate();        
         this.allowed_common_characters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9','_','-'];
         this.allowed_chan_characters = [...this.allowed_common_characters, '.'];
+        this.allowed_user_characters = [...this.allowed_common_characters, '.']; 
         this.allowed_nick_characters = [...this.allowed_common_characters, '[',']','{','}','\\','|','^','-','~'];
         this.irc_config = this.service_config || {};
         this.channelprefixes = this.irc_config.channel_prefixes || ['#'];
@@ -86,6 +87,7 @@ class WTVIRC {
         this.maxinvite = this.irc_config.max_invite || 100;
         this.maxkeylen = this.irc_config.max_keylen || 24;
         this.channellimit = this.irc_config.channel_limit || 10;
+        this.userlen = this.irc_config.user_len || 16;
         this.channellen = this.irc_config.channel_len || 32;
         this.topiclen = this.irc_config.topic_len || 255;
         this.kicklen = this.irc_config.kick_len || 255;
@@ -368,21 +370,32 @@ class WTVIRC {
         input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
         
         switch (type) {
-            case 'nickname':
-                return input.replace(/[^A-Za-z0-9\[\]\\`_^{|}]/g, '').slice(0, this.nicklen);
+            case 'nickname': {
+                const sanitized = [...input]
+                    .filter(char => this.allowed_nick_characters.includes(char))
+                    .join('');
+                return sanitized.slice(0, this.nicklen);
+            }
             
-            case 'channel':
-                if (!input.startsWith('#')) return '';
-                return input.replace(/[^A-Za-z0-9#\-_.]/g, '').slice(0, this.channellen);
+            case 'channel': {
+                const prefix = this.channelprefixes.find(p => input.startsWith(p));
+                if (!prefix) return '';
+                const nameWithoutPrefix = input.slice(prefix.length);
+                const sanitized = [...nameWithoutPrefix]
+                    .filter(char => this.allowed_chan_characters.includes(char))
+                    .join('');
+                return (prefix + sanitized).slice(0, this.channellen);
+            }
             
-            case 'message':
-                return input.slice(0, 512);
-            
-            case 'username':
-                return input.replace(/[^A-Za-z0-9\-_.]/g, '').slice(0, 32);
-            
+            case 'username': {
+                const sanitized = [...input]
+                    .filter(char => this.allowed_user_characters.includes(char))
+                    .join('');
+                return sanitized.slice(0, this.userlen);
+            }
+
             default:
-                return input.slice(0, 512);
+                return input.slice(0, this.max_message_len);
         }
     }
 
