@@ -340,7 +340,7 @@ module.exports = {
                 } else if (mode.startsWith('-c')) {
                     if (!this.isIRCOp(socket.nickname)) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `User ${socket.nickname} attempted to unset +c mode without being an IRC operator`);
+                        this.debugLog('warn', `User ${socket.nickname} attempted to unset -c mode without being an IRC operator`);
                         return;
                     }
                     if (!usermodes.includes('c')) {
