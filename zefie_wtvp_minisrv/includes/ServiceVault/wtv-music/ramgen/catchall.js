@@ -151,7 +151,7 @@ Content-type: text/html`;
         const filePath = path.join(directory || '/', filename + path.extname(resolvedPath));
         const pnmURL = `pnm://${minisrv_config.config.service_ip}:${minisrv_config.services['pnm'].port}${filePath.replace(/\\/g, '/')}`;
         headers = `200 OK
-Content-type: audio/x-pn-realaudio`
+Content-type: audio/x-pn-realaudio`;
         data = pnmURL;
     }
 }

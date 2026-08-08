@@ -1304,7 +1304,7 @@ class WTVMSNTV2 {
 
     getConnectIntercept(host) {
         if (!host) return null;
-        const interceptUrls = this.service_config.intercept_urls || [];
+        const interceptUrls = this.service_config.intercept_domains || [];
         const lowerHost = host.toLowerCase();
 
         for (const entry of interceptUrls) {
@@ -1332,10 +1332,10 @@ class WTVMSNTV2 {
     }
 
     // Returns { domainIntercepted: bool, filePath: string|null }.
-    // domainIntercepted=true means the host is in intercept_urls; filePath may
+    // domainIntercepted=true means the host is in intercept_domains; filePath may
     // still be null if the requested file does not exist locally.
     interceptRequest(requestUrl, connectState = null) {
-        const interceptUrls = this.service_config.intercept_urls || [];
+        const interceptDomains = this.service_config.intercept_domains || [];
         const lowerUrl = requestUrl.toLowerCase();
         let parsedUrl = null;
         const defaultLocalDir = connectState?.localDir || '';

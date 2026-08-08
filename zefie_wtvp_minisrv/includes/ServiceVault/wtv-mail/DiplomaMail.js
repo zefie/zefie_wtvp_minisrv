@@ -55,7 +55,7 @@ Welcome to Mail&nbsp;
 <td>
 <td valign=top>
 In Mail, you can exchange typed messages&#151;called
-<i>m-mail</i>&#151;with anyone who is on ${minisrv_config.config.service_name}, as well as anyone using other compatible MiniSrvs around the world. This is your m-mail address:
+<i>m-mail</i>&#151;with anyone who is on ${minisrv_config.config.service_name}. This is your m-mail address:
 <blockquote>
 <b>${session_data.getSessionData("subscriber_username")}@${minisrv_config.config.domain_name}</b>
 </blockquote>

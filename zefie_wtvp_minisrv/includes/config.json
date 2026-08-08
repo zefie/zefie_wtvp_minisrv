@@ -525,7 +525,7 @@
       "handler_handles_port": true,
       "servicevault_dir": "msntv2",
       "max_response_size": 64, // Megabytes
-      "intercept_urls": [
+      "intercept_domains": [
         {
           "match": "headwaiter.trusted.msntv.msn.com",
           "local_dir": "headwaiter"
