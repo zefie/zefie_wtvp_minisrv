@@ -2712,3 +2712,12 @@ if (minisrv_config.config.keys.user_data_key === "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\
     console.log(" * If you had existing users prior to changing the key, you can run tools/update_user_data_key.js to update existing accounts with the new key.");
     console.log(" * Making a backup of your user accounts before doing this is highly recommended, in case something goes wrong during the update process.");    
 }
+
+// Security warning for default IRC oper password
+const ircService = minisrv_config.services && minisrv_config.services.ircserver;
+if (ircService && !ircService.disabled && ircService.oper_password === "changeme573") {
+    console.log(" * WARNING: ircserver is using the default oper_password. Change services.ircserver.oper_password before enabling oper_enabled.");
+    if (ircService.oper_enabled) {
+        console.log(" * WARNING: oper_enabled is true with the default oper_password. Disable oper_enabled or change the password immediately.");
+    }
+}
