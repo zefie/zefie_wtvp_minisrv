@@ -5,7 +5,7 @@ wtv-noback-all: wtv-
 wtv-expire-all: wtv-
 Content-type: text/html
 wtv-service: reset
-`+getServiceString('wtv-1800');
+`+wtvshared.getServiceString('wtv-1800');
 
 
 // HackTV Homepage is default

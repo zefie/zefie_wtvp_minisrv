@@ -3,8 +3,9 @@ const dns = require('dns');
 const tls = require('tls');
 const fs = require('fs');
 const path = require('path');
-const { get } = require('http');
 const WTVShared = require('./WTVShared.js').WTVShared;
+const clientCommands = require('./WTVIRC_ClientCommands.js');
+const serverCommands = require('./WTVIRC_ServerCommands.js');
 
 class WTVIRC {
     /*
@@ -26,29 +27,28 @@ class WTVIRC {
         * @param {number} [port=6667] - The port to bind the IRC server to.
         * @param {boolean} [debug=false] - Whether to enable debug mode for logging.
     */ 
-    constructor(minisrv_config, host = 'localhost', port = 6667, debug = false) {
+    constructor(minisrv_config, service_name, wtvshared, sendToClient, netArg, cryptoArg) {
         this.minisrv_config = minisrv_config;
-        this.wtvshared = new WTVShared(minisrv_config);
-        this.version = '0.2.7';
-        // Try to get git commit from environment variable or file, fallback to null if not available
+        this.service_name = service_name;
+        this.service_config = minisrv_config.services[service_name] || {};
+        this.wtvshared = wtvshared;
+        this.version = '0.3.0';
         this.git_commit = this.getGitRevision();
         if (this.git_commit) {
             this.version += `-${this.git_commit}`;
         }
-        this.host = host;
-        this.port = port;
-        this.debug = debug;
+        this.debug = this.service_config.debug || false;
         this.server = null;
         this.clients = [];
         this.channelData = new Map();
         this.usernames = new Map(); // nickname -> username
-        this.usertimestamps = new Map(); // nickname -> timestamp since last message
         this.usermodes = new Map(); // nickname -> Array of modes (e.g. ['w', 'i'])
         this.usersignontimestamps = new Map(); // nickname -> timestamp since user signed on
         this.nicknames = new Map(); // socket -> nickname
         this.awaymsgs = new Map(); // nickname -> away message        
         this.servers = new Map(); // socket -> server information
         this.serverusers = new Map(); // server -> Set of users connected to this server
+        this.peerSids = new Map(); // SID -> link socket
         this.reservednicks = [];
         this.klines = [];
         this.accounts = new Map(); // nickname -> account name
@@ -63,14 +63,16 @@ class WTVIRC {
         this.server_start_time = this.getDate();        
         this.allowed_common_characters = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9','_','-'];
         this.allowed_chan_characters = [...this.allowed_common_characters, '.'];
+        this.allowed_user_characters = [...this.allowed_common_characters, '.']; 
         this.allowed_nick_characters = [...this.allowed_common_characters, '[',']','{','}','\\','|','^','-','~'];
-        this.irc_config = minisrv_config.config.irc || {};
+        this.irc_config = this.service_config || {};
         this.channelprefixes = this.irc_config.channel_prefixes || ['#'];
         this.servername = this.irc_config.server_hostname || 'irc.local';
         this.network = this.irc_config.network || 'minisrv';
         this.oper_username = this.irc_config.oper_username || 'minisrv';
-        this.oper_password = this.irc_config.oper_password || 'changeme573_PLEASE_CHANGE_THIS_PASSWORD';
-        this.oper_enabled = this.irc_config.oper_enabled || false; // Default to off for security
+        this.oper_password = this.irc_config.oper_password || '';
+        this.oper_enabled = this.irc_config.oper_enabled || false;
+        this.vhost_suffixes = Array.isArray(this.irc_config.vhost_suffixes) ? this.irc_config.vhost_suffixes : [];
         this.irc_motd = this.irc_config.motd || [
             'Welcome to the zefIRCd IRC server, powered by minisrv.',
             'This server is powered by Node.js, and the minisrv project.',
@@ -85,49 +87,48 @@ class WTVIRC {
         this.maxinvite = this.irc_config.max_invite || 100;
         this.maxkeylen = this.irc_config.max_keylen || 24;
         this.channellimit = this.irc_config.channel_limit || 10;
+        this.userlen = this.irc_config.user_len || 16;
         this.channellen = this.irc_config.channel_len || 32;
         this.topiclen = this.irc_config.topic_len || 255;
         this.kicklen = this.irc_config.kick_len || 255;
         this.awaylen = this.irc_config.away_len || 200;
         this.enable_tls = this.irc_config.enable_ssl || false;
         this.maxtargets = this.irc_config.max_targets || 4;
-        this.socket_timeout = 75; // Default socket timeout to 75 seconds, most clients will send PINGs every 60 seconds, so this should be enough to catch lost connections
+        this.socket_timeout = 75;
         this.server_hello = this.irc_config.server_hello || `zefIRCd v${this.version} IRC server powered by minisrv`;
-        this.serverId = this.irc_config.server_id || '00A'; // Default server ID, can be overridden in config
-        this.allow_public_vhosts = this.irc_config.allow_public_vhosts || false; // Default to false for security
-        this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_users_on_secure || true; // If true, users without SSL connections will be kicked from a channel when +Z is applied
-        this.hide_version = this.irc_config.hide_version || false; // If true, the server will not send its version in the MOTD
+        this.serverId = this.irc_config.server_id || '00A';
+        this.allow_public_vhosts = this.irc_config.allow_public_vhosts || false;
+        this.kick_insecure_users_on_secure = this.irc_config.kick_insecure_users_on_secure !== false;
+        this.hide_version = this.irc_config.hide_version || false;
         this.clientpeak = 0;
         this.globalpeak = 0;
         this.socketpeak = 0;
-        this.modeparamlimit = 5; // Technically we have no limit, but this is a good default for most IRC clients
-        this.max_message_len = 512; // RFC2812 standard maximum message length (including \r\n)
-        this.reject_overlength_messages = this.irc_config.reject_overlength_messages || true; // If true, messages longer than max_message_len will be rejected, if false, they will be truncated to max_message_len
+        this.modeparamlimit = 5;
+        this.max_message_len = 512;
+        this.reject_overlength_messages = this.irc_config.reject_overlength_messages !== false;
         this.totalConnections = 0;
         this.supported_channel_modes = "Ibe,k,l,CNOQRSTVZcimnprt";
         this.supported_user_modes = "BRZciorswxz";
         this.supported_prefixes = ["ohv", "@%+"];
         this.supported_client_caps = ['chghost', 'away-notify', 'echo-message', 'invite-notify', 'multi-prefix', 'userhost-in-names', 'account-notify', 'extended-join'];
-        this.supported_server_caps = ['TBURST', 'EOB', 'IE', 'EX'];
-        this.enable_webtv_command_hacks = this.irc_config.enable_webtv_command_hacks || true;
-        this.supported_webtv_command_hacks = ["MODE", "KICK"]; // You could technically add any command currently supported by the IRCd here, such as OPER, KILL, KLINE, etc.
+        this.supported_server_caps = ['TBURST', 'EOB', 'IE', 'EX', 'QS', 'ENCAP'];
+        this.enable_webtv_command_hacks = this.irc_config.enable_webtv_command_hacks !== false;
+        this.supported_webtv_command_hacks = ["MODE", "KICK"];
+        this._tlsSecureContext = null;
+        this._usedUniqueIds = new Set();
         
-        // Rate limiting configuration
-        this.rate_limit_enabled = this.irc_config.rate_limit_enabled || true;
-        this.max_messages_per_second = this.irc_config.max_messages_per_second || 5;
-        this.message_counts = new Map(); // socket -> {count, resetTime}
+        this.rate_limit_enabled = this.irc_config.rate_limit_enabled !== undefined ? this.irc_config.rate_limit_enabled : true;
+        this.max_messages_per_second = this.irc_config.max_messages_per_second || 20;
+        this.message_counts = new Map();
         
-        // Brute force protection
-        this.failed_auth_attempts = new Map(); // IP -> {count, lockoutUntil}
+        this.failed_auth_attempts = new Map();
         this.max_auth_attempts = this.irc_config.max_auth_attempts || 3;
-        this.auth_lockout_duration = this.irc_config.auth_lockout_duration || 300; // 5 minutes
+        this.auth_lockout_duration = this.irc_config.auth_lockout_duration || 300;
         
-        // Connection limits
-        this.connections_per_ip = new Map(); // IP -> count
+        this.connections_per_ip = new Map();
         this.max_connections_per_ip = this.irc_config.max_connections_per_ip || 3;
         
-        // Security logging
-        this.security_log_enabled = this.irc_config.security_log_enabled || true;
+        this.security_log_enabled = this.irc_config.security_log_enabled !== false;
         this.security_events = [];
         this.session_store_path = this.wtvshared.getAbsolutePath(this.minisrv_config.config.SessionStore + path.sep + 'minisrv_internal_irc');
         this.klines_path = this.session_store_path + path.sep + 'klines.json';
@@ -137,11 +138,66 @@ class WTVIRC {
         ];
     }
 
+    listen(port, host = '0.0.0.0') {
+        this.host = host;
+        this.port = port;
+        this.start();
+        return this.server;
+    }
+
+    getDate() {
+        return Math.floor(Date.now() / 1000);
+    }
+
+    getGitRevision() {
+        try {
+            const headPath = path.join(__dirname, '..', '..', '.git', 'HEAD');
+            if (fs.existsSync(headPath)) {
+                const head = fs.readFileSync(headPath, 'utf8').trim();
+                if (head.startsWith('ref: ')) {
+                    const ref = head.substring(5);
+                    const hashPath = path.join(__dirname, '..', '..', '.git', ref);
+                    if (fs.existsSync(hashPath)) {
+                        const hash = fs.readFileSync(hashPath, 'utf8').trim();
+                        return hash.substring(0, 7);
+                    }
+                } else {
+                    return head.substring(0, 7);
+                }
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    getTlsSecureContext() {
+        if (this._tlsSecureContext) {
+            return this._tlsSecureContext;
+        }
+        if (!this.enable_tls || !this.irc_config.ssl_cert) {
+            return null;
+        }
+        const keyBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.key));
+        const certBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.cert));
+        this._tlsSecureContext = tls.createSecureContext({
+            key: keyBuffer,
+            cert: certBuffer,
+        });
+        return this._tlsSecureContext;
+    }
+
     start() {
         this.loadKLinesFromFile();
 
         if (this.enable_tls) {
             this.supported_client_caps.push('tls');
+            try {
+                this.getTlsSecureContext();
+            } catch (e) {
+                this.debugLog('error', `Failed to load TLS certificates: ${e.message}`);
+                this.enable_tls = false;
+            }
         }
         if (this.irc_config.channels) {
             for (const channel of this.irc_config.channels) {                
@@ -161,80 +217,85 @@ class WTVIRC {
             }
         }
         this.server_start_time = this.getDate();
-        this.server = net.createServer(async socket => {
-            
-            // Detect SSL handshake and wrap socket if needed
+        this.server = net.createServer(socket => {
             socket.once('data', async firstChunk => {
-                this.totalConnections++;
-                
-                // Check connection limits per IP
-                const clientIP = socket.remoteAddress;
-                const currentConnections = this.connections_per_ip.get(clientIP) || 0;
-                if (currentConnections >= this.max_connections_per_ip) {
-                    this.debugLog('warn', `Connection limit exceeded for IP ${clientIP}`);
-                    socket.write(`:${this.servername} ERROR :Too many connections from your IP\r\n`);
-                    socket.end();
-                    return;
-                }
-                this.connections_per_ip.set(clientIP, currentConnections + 1);
-                
-                socket.removeAllListeners('data');
-                socket.pause();
-                socket.on('error', (err) => {
-                    this.debugLog('error', `Socket error: ${err.message}`);
-                    this.terminateSession(socket, true);
-                });
-                socket.on('timeout', () => {
-                    this.debugLog('warn', `Socket timeout for ${socket.remoteAddress}`);
-                    this.terminateSession(socket, true);
-                });
-                // Check if the first byte indicates SSL/TLS handshake (0x16 for TLS Handshake)
-                if (Buffer.isBuffer(firstChunk) ? firstChunk[0] === 0x16 : firstChunk.charCodeAt(0) === 0x16) {
-                    if (!this.enable_tls) {
-                        // If SSL is not enabled, close the socket
-                        await this.safeWriteToSocket(socket, `:${this.servername} 421 * :TLS is not enabled on this server\r\n`);
-                        this.terminateSession(socket, true);
+                try {
+                    this.totalConnections++;
+                    
+                    const clientIP = this.normalizeIp(socket.remoteAddress);
+                    const currentConnections = this.connections_per_ip.get(clientIP) || 0;
+                    if (currentConnections >= this.max_connections_per_ip) {
+                        this.debugLog('warn', `Connection limit exceeded for IP ${clientIP}`);
+                        socket.write(`:${this.servername} ERROR :Too many connections from your IP\r\n`);
+                        socket.end();
                         return;
                     }
-
-                    // SSL detected, upgrade socket to TLS
-                    const keyBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.key));
-                    const certBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.cert));
-                    const secureSocket = new tls.TLSSocket(socket, {
-                        isServer: true,
-                        ALPNProtocols: ['irc'],
-                        secureContext: tls.createSecureContext({
-                            key: keyBuffer,
-                            cert: certBuffer,
-                        }),
-                    });
-                    socket.push(firstChunk);   
-
-                    secureSocket.on('error', (err) => {
-                        this.debugLog('error', `Secure socket error: ${err.message}`);
-                        this.terminateSession(secureSocket, true);
-                    });
+                    this.connections_per_ip.set(clientIP, currentConnections + 1);
                     
-                    secureSocket.on('close', () => {
-                        this.terminateSession(secureSocket, false);
-                    });                    
+                    socket.removeAllListeners('data');
+                    socket.pause();
+                    socket.on('error', (err) => {
+                        this.debugLog('error', `Socket error: ${err.message}`);
+                        this.terminateSession(socket, true);
+                    });
+                    socket.on('timeout', () => {
+                        this.debugLog('warn', `Socket timeout for ${socket.remoteAddress}`);
+                        this.terminateSession(socket, true);
+                    });
+                    if (Buffer.isBuffer(firstChunk) ? firstChunk[0] === 0x16 : firstChunk.charCodeAt(0) === 0x16) {
+                        if (!this.enable_tls) {
+                            this.debugLog('warn', `Client from ${socket.remoteAddress} attempted TLS connection, but TLS is disabled`);
+                            await this.safeWriteToSocket(socket, `:${this.servername} 421 * :TLS is not enabled on this server\r\n`);
+                            this.terminateSession(socket, true);
+                            return;
+                        }
 
-                    // Only start processing after handshake is complete
-                    secureSocket.on('secure', async () => {
-                        this.debugLog('info', 'Secure connection (SSL) established with '+ socket.remoteAddress);
-                        socket.removeAllListeners();
-                        await this.initializeSocket(secureSocket, true);
+                        let secureContext;
+                        try {
+                            secureContext = this.getTlsSecureContext();
+                        } catch (e) {
+                            this.debugLog('error', `TLS context error: ${e.message}`);
+                            this.terminateSession(socket, true);
+                            return;
+                        }
+                        const secureSocket = new tls.TLSSocket(socket, {
+                            isServer: true,
+                            ALPNProtocols: ['irc'],
+                            secureContext,
+                        });
+                        socket.push(firstChunk);   
+
+                        secureSocket.on('error', (err) => {
+                            this.debugLog('error', `Secure socket error: ${err.message}`);
+                            this.terminateSession(secureSocket, true);
+                        });
                         
-                    });                    
-                    secureSocket.resume();              
-                    return;
-                } else {
-                    // Not SSL, re-emit the data event for normal processing       
-                    await this.initializeSocket(socket);
-                    socket.emit('data', firstChunk.toString('ascii'));
-                    socket.resume();
-                    this.clientpeak = Math.max(this.clientpeak, this.clients.length);
-                    return;
+                        secureSocket.on('close', () => {
+                            this.terminateSession(secureSocket, false);
+                        });                    
+
+                        secureSocket.on('secure', async () => {
+                            try {
+                                this.debugLog('info', 'Secure connection (SSL) established with '+ socket.remoteAddress);
+                                socket.removeAllListeners();
+                                await this.initializeSocket(secureSocket, true);
+                            } catch (e) {
+                                this.debugLog('error', `Error initializing secure socket: ${e.message}`);
+                                this.terminateSession(secureSocket, true);
+                            }
+                        });                    
+                        secureSocket.resume();              
+                        return;
+                    } else {
+                        await this.initializeSocket(socket);
+                        socket.emit('data', firstChunk.toString('ascii'));
+                        socket.resume();
+                        this.clientpeak = Math.max(this.clientpeak, this.clients.length);
+                        return;
+                    }
+                } catch (e) {
+                    this.debugLog('error', `Error handling new connection: ${e.message}`);
+                    this.terminateSession(socket, true);
                 }
             });
         });
@@ -255,29 +316,63 @@ class WTVIRC {
             data = data.slice(0, this.max_message_len - 2) + '\r\n';
             this.debugLog('warn', `Data length exceeds max_message_len (${this.max_message_len}), truncating: ${data.length} > ${this.max_message_len}`);
         }
-        
-        // Add timeout to prevent infinite loop
-        let waitCount = 0;
-        const maxWaitIterations = 1000; // 10 seconds max wait
-        while (socket.writable === false && waitCount < maxWaitIterations) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-            waitCount++;
-        }
-        
-        if (socket.writable === false) {
-            this.debugLog('error', 'Socket not writable after timeout, aborting write');
+        if (socket.destroyed || socket._terminated || socket.writable === false) {
+            this.debugLog('error', 'Socket not writable, dropping write');
             return;
         }
-        socket.write(data);
+        if (this.debug) {
+            let logData = data.replace(/\r\n/g, '').replace(/\n/g, '');
+            if (/^PASS\s+/i.test(logData) || / PASS /i.test(logData)) {
+                logData = logData.replace(/(PASS\s+)(\S+)/i, '$1***');
+            }
+            console.log('<', logData);
+        }
+        try {
+            const ok = socket.write(data);
+            if (ok === false) {
+                await new Promise((resolve) => {
+                    let settled = false;
+                    const finish = () => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
+                        socket.removeListener('drain', onDrain);
+                        socket.removeListener('error', onError);
+                        resolve();
+                    };
+                    const onDrain = () => finish();
+                    const onError = () => finish();
+                    const timer = setTimeout(() => {
+                        this.debugLog('warn', 'Socket drain timeout, dropping further wait');
+                        finish();
+                    }, 1000);
+                    socket.once('drain', onDrain);
+                    socket.once('error', onError);
+                });
+            }
+        } catch (e) {
+            this.debugLog('error', `Socket write failed: ${e.message}`);
+        }
+    }
+
+    normalizeIp(addr) {
+        if (!addr || typeof addr !== 'string') {
+            return '';
+        }
+        let ip = addr;
+        if (ip.startsWith('::ffff:')) {
+            ip = ip.slice(7);
+        }
+        return ip.toLowerCase();
     }
 
     checkRateLimit(socket) {
         if (!this.rate_limit_enabled || socket.isserver || this.isIRCOp(socket.nickname)) {
-            return true; // No rate limiting for servers or IRCOps
+            return true;
         }
         
         const now = Date.now();
-        const socketId = socket.remoteAddress + ':' + socket.remotePort;
+        const socketId = this.normalizeIp(socket.remoteAddress) + ':' + socket.remotePort;
         
         if (!this.message_counts.has(socketId)) {
             this.message_counts.set(socketId, { count: 1, resetTime: now + 1000 });
@@ -287,14 +382,13 @@ class WTVIRC {
         const rateLimitData = this.message_counts.get(socketId);
         
         if (now > rateLimitData.resetTime) {
-            // Reset the counter
             rateLimitData.count = 1;
             rateLimitData.resetTime = now + 1000;
             return true;
         }
         
         if (rateLimitData.count >= this.max_messages_per_second) {
-            return false; // Rate limit exceeded
+            return false;
         }
         
         rateLimitData.count++;
@@ -302,7 +396,7 @@ class WTVIRC {
     }
 
     checkAuthAttempts(socket) {
-        const ip = socket.realhost || socket.remoteAddress;
+        const ip = this.normalizeIp(socket.realhost || socket.remoteAddress);
         const now = Date.now();
         
         if (!this.failed_auth_attempts.has(ip)) {
@@ -311,14 +405,17 @@ class WTVIRC {
         
         const authData = this.failed_auth_attempts.get(ip);
         if (authData.lockoutUntil && now < authData.lockoutUntil) {
-            return false; // Still locked out
+            return false;
+        }
+        if (authData.lockoutUntil && now >= authData.lockoutUntil) {
+            this.failed_auth_attempts.delete(ip);
         }
         
         return true;
     }
 
     recordAuthFailure(socket) {
-        const ip = socket.realhost || socket.remoteAddress;
+        const ip = this.normalizeIp(socket.realhost || socket.remoteAddress);
         const now = Date.now();
         
         if (!this.failed_auth_attempts.has(ip)) {
@@ -327,6 +424,10 @@ class WTVIRC {
         }
         
         const authData = this.failed_auth_attempts.get(ip);
+        if (authData.lockoutUntil && now >= authData.lockoutUntil) {
+            authData.count = 0;
+            authData.lockoutUntil = null;
+        }
         authData.count++;
         
         if (authData.count >= this.max_auth_attempts) {
@@ -336,7 +437,7 @@ class WTVIRC {
     }
 
     clearAuthFailures(socket) {
-        const ip = socket.realhost || socket.remoteAddress;
+        const ip = this.normalizeIp(socket.realhost || socket.remoteAddress);
         this.failed_auth_attempts.delete(ip);
     }
 
@@ -345,30 +446,88 @@ class WTVIRC {
             return '';
         }
         
-        // Remove control characters except \r\n
         input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
         
         switch (type) {
-            case 'nickname':
-                // IRC nicknames: A-Z a-z 0-9 [ ] \ ` _ ^ { | }
-                return input.replace(/[^A-Za-z0-9\[\]\\`_^{|}]/g, '').slice(0, this.nicklen);
+            case 'nickname': {
+                const sanitized = [...input]
+                    .filter(char => this.allowed_nick_characters.includes(char))
+                    .join('');
+                return sanitized.slice(0, this.nicklen);
+            }
             
-            case 'channel':
-                // Channel names: start with #, no spaces, commas, or control chars
-                if (!input.startsWith('#')) return '';
-                return input.replace(/[^A-Za-z0-9#\-_.]/g, '').slice(0, this.channellen);
+            case 'channel': {
+                const prefix = this.channelprefixes.find(p => input.startsWith(p));
+                if (!prefix) return '';
+                const nameWithoutPrefix = input.slice(prefix.length);
+                const sanitized = [...nameWithoutPrefix]
+                    .filter(char => this.allowed_chan_characters.includes(char))
+                    .join('');
+                return (prefix + sanitized).slice(0, this.channellen);
+            }
             
-            case 'message':
-                // Messages: no control chars, reasonable length
-                return input.slice(0, 512);
-            
-            case 'username':
-                // Usernames: alphanumeric and some special chars
-                return input.replace(/[^A-Za-z0-9\-_.]/g, '').slice(0, 32);
-            
+            case 'username': {
+                const sanitized = [...input]
+                    .filter(char => this.allowed_user_characters.includes(char))
+                    .join('');
+                return sanitized.slice(0, this.userlen);
+            }
+
             default:
-                return input.slice(0, 512);
+                return input.slice(0, this.max_message_len);
         }
+    }
+
+    sanitizeTrailingParam(text) {
+        if (text == null) {
+            return '';
+        }
+        return String(text).replace(/[\r\n\0]/g, '');
+    }
+
+    formatUidBurstLine(sock, nickname) {
+        const uniqueId = sock.uniqueId;
+        const signonTime = Math.floor(this.usersignontimestamps.get(nickname) || this.getDate());
+        const userModes = (this.getUserModes(nickname) || []).join('');
+        const username = this.usernames.get(nickname) || sock.username || '';
+        const host = sock.host || this.hostnames.get(nickname) || 'unknown';
+        const ip = sock.remoteAddress || sock.realhost || '0';
+        const userinfo = this.userinfo.get(nickname) || sock.userinfo || '';
+        // TS6 UID: nick hops ts umodes user host ip uid :gecos
+        return `:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${host} ${ip} ${uniqueId} :${userinfo}\r\n`;
+    }
+
+    formatStatsUptimeLine(nickname) {
+        const uptime = Math.max(0, this.getDate() - this.server_start_time);
+        const days = Math.floor(uptime / 86400);
+        const hours = Math.floor((uptime % 86400) / 3600);
+        const minutes = Math.floor((uptime % 3600) / 60);
+        const seconds = uptime % 60;
+        const mm = String(minutes).padStart(2, '0');
+        const ss = String(seconds).padStart(2, '0');
+        return `:${this.servername} 242 ${nickname} :Server Up ${days} days ${hours}:${mm}:${ss}\r\n`;
+    }
+
+    buildLusersLines(nickname) {
+        const visibleClients = Array.from(this.nicknames.values()).filter(nick => !(this.getUserModes(nick) || []).includes('i'));
+        const invisibleClients = Array.from(this.nicknames.values()).filter(nick => (this.getUserModes(nick) || []).includes('i'));
+        const operClients = Array.from(this.nicknames.values()).filter(nick => (this.getUserModes(nick) || []).includes('o'));
+        const serverCount = this.servers.size + 1;
+        const lines = [];
+        lines.push(`:${this.servername} 251 ${nickname} :There are ${visibleClients.length} users and ${invisibleClients.length} invisible on ${serverCount} servers\r\n`);
+        if (operClients.length > 0) {
+            lines.push(`:${this.servername} 252 ${nickname} ${operClients.length} :operator(s) online\r\n`);
+        }
+        lines.push(`:${this.servername} 253 ${nickname} 0 :unknown connection(s)\r\n`);
+        if (this.channelData.size > 0) {
+            lines.push(`:${this.servername} 254 ${nickname} ${this.channelData.size} :channels formed\r\n`);
+        }
+        lines.push(`:${this.servername} 255 ${nickname} :I have ${this.clients.length} clients and ${serverCount} servers\r\n`);
+        lines.push(`:${this.servername} 265 ${nickname} :Current local users ${this.clients.length}, max ${this.clientpeak}\r\n`);
+        const globalUsers = this.countGlobalUsers();
+        this.globalpeak = Math.max(this.globalpeak, globalUsers);
+        lines.push(`:${this.servername} 266 ${nickname} :Current global users ${globalUsers}, max ${this.globalpeak}\r\n`);
+        return lines;
     }
 
     validateCommand(command, params) {
@@ -376,17 +535,14 @@ class WTVIRC {
             return false;
         }
         
-        // Command must be uppercase letters only
         if (!/^[A-Z]+$/.test(command)) {
             return false;
         }
         
-        // Reasonable command length
         if (command.length > 20) {
             return false;
         }
         
-        // Parameters validation
         if (params && Array.isArray(params)) {
             for (const param of params) {
                 if (typeof param !== 'string' || param.length > 512) {
@@ -411,41 +567,25 @@ class WTVIRC {
         
         this.security_events.push(securityEvent);
         
-        // Keep only last 1000 security events in memory
         if (this.security_events.length > 1000) {
             this.security_events.shift();
         }
         
-        // Log to console/file if needed
         this.debugLog('security', `Security Event: ${event} from ${securityEvent.ip} (${securityEvent.nickname})`);
         
-        // Write to security log file if configured
         if (this.irc_config.security_log_file) {
-            const fs = require('fs');
-            fs.appendFileSync(this.irc_config.security_log_file, JSON.stringify(securityEvent) + '\n');
+            fs.promises.appendFile(this.irc_config.security_log_file, JSON.stringify(securityEvent) + '\n').catch((err) => {
+                this.debugLog('error', `Failed to write security log: ${err.message}`);
+            });
         }
     }
-            
 
     async initializeSocket(socket, secure = false, oldSocket = null) {
-        if (this.debug) {
-            // debug output for socket data
-            const originalWrite = socket.write.bind(socket);
-            socket.write = function (...args) {
-                var log_args = args.map(arg => {
-                    if (typeof arg === 'string') {
-                        return arg.replace(/\r\n/g, '').replace(/\n/g, '');
-                    }
-                    return arg;
-                });
-                console.log('<', ...log_args);
-                return originalWrite(...args);
-            };
-        }
         if (oldSocket) {
             socket.registered = oldSocket.registered;
             socket.nickname = oldSocket.nickname;
             socket.username = oldSocket.username;
+            socket.userinfo = oldSocket.userinfo;
             socket.isserver = oldSocket.isserver;
             socket.is_srv_authorized = oldSocket.is_srv_authorized;
             socket.signedoff = oldSocket.signedoff;
@@ -456,6 +596,23 @@ class WTVIRC {
             socket.host = oldSocket.host;
             socket.timestamp = oldSocket.timestamp;
             socket.uniqueId = oldSocket.uniqueId;
+            socket._lineBuffer = oldSocket._lineBuffer || '';
+            socket.loggingIn = oldSocket.loggingIn || false;
+            socket.capNegotiating = oldSocket.capNegotiating || false;
+            if (oldSocket._idleInterval) {
+                clearInterval(oldSocket._idleInterval);
+                oldSocket._idleInterval = null;
+            }
+            if (oldSocket.nickname && this.nicknames.get(oldSocket) === oldSocket.nickname) {
+                this.nicknames.delete(oldSocket);
+                this.nicknames.set(socket, oldSocket.nickname);
+            }
+            oldSocket._terminated = true;
+            oldSocket.signedoff = true;
+            this.clients = this.clients.filter(c => c !== oldSocket);
+            try {
+                oldSocket.removeAllListeners();
+            } catch (e) { /* ignore */ }
         } else {
             socket.registered = false;
             socket.nickname = '';
@@ -470,17 +627,31 @@ class WTVIRC {
             socket.host = this.filterHostname(socket, socket.remoteAddress);
             socket.timestamp = this.getDate();            
             socket.uniqueId = `${this.serverId}${this.generateUniqueId(socket)}`;
+            socket._lineBuffer = '';
+            socket.loggingIn = false;
+            socket.capNegotiating = false;
         }
         
         socket.secure = secure;
         socket.upgrading_to_tls = false;
         socket.error_count = 0;
+        socket._terminated = false;
         socket.lastseen = this.getDate();
-        await this.doInitialHandshake(socket);
+        if (!oldSocket) {
+            await this.doInitialHandshake(socket);
+        }
         
-        socket.on('data', async data => {
+        socket._processQueue = Promise.resolve();
+        socket.on('data', data => {
             socket.lastseen = this.getDate();
-            await this.processSocketData(socket, data);
+            socket._processQueue = socket._processQueue.then(async () => {
+                try {
+                    await this.processSocketData(socket, data);
+                } catch (e) {
+                    this.debugLog('error', `Error processing socket data: ${e.message}`);
+                    this.terminateSession(socket, true);
+                }
+            }).catch(() => {});
         });
 
         socket.on('end', () => {
@@ -495,828 +666,45 @@ class WTVIRC {
             this.terminateSession(socket, false);
         });
 
-        // Start a loop to check for idle clients and send PING if needed
         socket._idleInterval = setInterval(async () => {
-            if (socket.signedoff) {
-                clearInterval(socket._idleInterval);
-                return;
-            }
-            const now = this.getDate();
-            if ((now - socket.lastseen) > this.socket_timeout + 10) {
-                // Over 10 seconds has passed since we sent our PING, assume lost
-                this.debugLog('warn', `Socket ${socket.remoteAddress} has been idle for too long, terminating session`);
-                if (socket.nickname) {
-                    await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${now - socket.lastseen} seconds)\r\n`, socket);
-                    await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Ping timeout (${now - socket.lastseen} seconds)\r\n`, serverSocket);
+            try {
+                if (socket.signedoff || socket._terminated) {
+                    clearInterval(socket._idleInterval);
+                    return;
                 }
-                socket.signedoff = true;
-                this.terminateSession(socket, true);
-                return;
-            } else if ((now - socket.lastseen) > this.socket_timeout) {
-                // Client has been idle for too long, send PING
-                if (socket.isserver) {
-                    await this.safeWriteToSocket(socket, `:${this.serverId} PING ${this.serverId} ${this.servername}\r\n`);
-                } else {
-                    await this.safeWriteToSocket(socket, `PING :${this.servername}\r\n`);
+                const now = this.getDate();
+                if ((now - socket.lastseen) > this.socket_timeout + 10) {
+                    this.debugLog('warn', `Socket ${socket.remoteAddress} has been idle for too long, terminating session`);
+                    if (socket.nickname) {
+                        await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :Ping timeout (${now - socket.lastseen} seconds)\r\n`, socket);
+                        await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Ping timeout (${now - socket.lastseen} seconds)\r\n`, socket);
+                    }
+                    socket.signedoff = true;
+                    this.terminateSession(socket, true);
+                    return;
+                } else if ((now - socket.lastseen) > this.socket_timeout) {
+                    if (socket.isserver) {
+                        await this.safeWriteToSocket(socket, `:${this.serverId} PING ${this.serverId} ${this.servername}\r\n`);
+                    } else {
+                        await this.safeWriteToSocket(socket, `PING :${this.servername}\r\n`);
+                    }
+                    return;
                 }
-                return;
+            } catch (e) {
+                this.debugLog('error', `Idle interval error: ${e.message}`);
             }
-        }, 10000); // check every 5 seconds
+        }, 10000);
 
         this.clients.push(socket);
         this.clientpeak = Math.max(this.clientpeak, this.clients.length);
-    }        
-
-    async processServerData(socket, line) {
-        // Handle server-specific commands
-        const parts = line.split(' ');
-        if (parts[0] == `:${socket.uniqueId}`) {
-            parts.shift(); // Remove the unique ID prefix
-        }
-        if (parts.length < 1) return; // Invalid command
-        const command = parts[0].toUpperCase();
-        switch (command) {
-            case 'PASS':
-                // Handle PASS command from server
-                if (parts.length < 2) {
-                    this.debugLog('warn', 'Invalid PASS command from server');
-                    return;
-                }
-                const password = parts[1];
-                const servers = this.irc_config.servers || {};
-                let matchedServer = null;
-                Object.entries(servers).forEach(async ([key, serverObj]) => {
-                    if (serverObj.password && serverObj.password === password) {
-                        matchedServer = serverObj;
-                        this.debugLog('info', `Server ${serverObj.name || key} matched with provided password`);
-                        await this.safeWriteToSocket(socket, `PASS ${serverObj.password}\r\n`);
-                        socket.is_srv_authorized = true;                        
-                        var totalSockets = this.clients.length + this.servers.size;
-                        this.socketpeak = Math.max(this.socketpeak, totalSockets);
-                        return;
-                    }
-                });
-                if (!matchedServer) {
-                    this.debugLog('warn', 'Invalid server password provided');
-                    await this.safeWriteToSocket(socket, `:${this.servername} :ERROR :Invalid server password\r\n`);
-                    socket.error_count++;
-                    setTimeout((socket) => {
-                        if (socket) {
-                            socket.error_count--;
-                        }
-                    }, 60000);
-                    if (socket.error_count >= 5) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} :ERROR :Too many errors, disconnecting\r\n`);
-                        this.terminateSession(socket, true);
-                    }
-                    return;
-                }                    
-                socket.serverinfo = matchedServer
-                return;
-            case 'CAPAB':
-                if (!this.checkRegistered(socket, true)) {
-                    break;
-                }
-                // Handle CAPAB command from server
-                if (parts.length < 2) {
-                    this.debugLog('warn', 'Invalid CAPAB command from server');
-                    break;
-                }
-                var capabilities = parts.slice(1).join(' ').slice(1); // Remove leading ':'
-                capabilities = capabilities.split(' ');
-                this.debugLog('info', `Received CAPAB from server: ${capabilities.join(' ')}`);
-                var output_reply = [];
-                for (const cap of capabilities) {
-                    if (this.supported_server_caps.includes(cap)) {
-                        output_reply.push(cap);
-                    } else {
-                        this.debugLog('warn', `Unsupported server capability: ${cap}`);
-                    }
-                }
-                await this.safeWriteToSocket(socket, `CAPAB :${output_reply.join(' ')}\r\n`);
-                break;
-            case 'SERVER':
-                if (!this.checkRegistered(socket, true)) {
-                    break;
-                }
-                // Handle SERVER command from server
-                if (parts.length < 6) {
-                    this.debugLog('warn', 'Invalid SERVER command from server');
-                    break;
-                }
-                var serverName = parts[1];
-                var serverNumber = parts[2];
-                var serverId = parts[3];
-                var serverExtra = parts[4]
-                var serverInfo = parts.slice(5).join(' ');
-                socket.isserver = true;
-                this.clients = this.clients.filter(c => c !== socket);
-                this.clientpeak = this.clientpeak - 1;
-                socket.registered = true;
-                socket.servername = serverName;
-                socket.uniqueId = serverId;
-                socket.serverIdent = line;
-                this.servers.set(socket, serverName)
-                await this.safeWriteToSocket(socket, `SERVER ${this.servername} 1 ${this.serverId} + :${this.server_hello}\r\n`);
-                for (const [sock, nickname] of this.nicknames.entries()) {
-                    if (!sock || !nickname) continue;
-                    const uniqueId = sock.uniqueId;
-                    const signonTime = Math.floor(this.usersignontimestamps.get(nickname) || this.getDate());
-                    const userModes = this.getUserModes(nickname);
-                    const username = this.usernames.get(nickname) || '';
-                    await this.safeWriteToSocket(socket, `:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${sock.host} ${sock.realhost} ${sock.remoteAddress} ${uniqueId} * :${sock.userinfo}\r\n`);
-                }
-                for (const [channel, channelObj] of this.channelData.entries()) {
-                    const modes = channelObj.modes;
-                    for (const user of channelObj.users) {                        
-                        let userPrefix = '';
-                        if (channelObj.ops.has(user)) {
-                            userPrefix = '@';
-                        } else if (channelObj.halfops.has(user)) {
-                            userPrefix = '%';
-                        } else if (channelObj.voices.has(user)) {
-                            userPrefix = '+';
-                        }
-                        const userUniqueId = this.uniqueids.get(user);
-                        if (userUniqueId) {
-                            await this.safeWriteToSocket(socket, `:${this.serverId} SJOIN ${this.getDate()} ${channel} +${modes.join('')} :${userPrefix}${userUniqueId}\r\n`);
-                        }
-                    }
-                }
-
-                await this.broadcastToAllServers(socket.serverIdent, socket);
-                // Send EOB to the server
-                await this.safeWriteToSocket(socket, `:${this.serverId} EOB \r\n`);
-                break;
-            case 'SVINFO':
-                if (!this.checkRegistered(socket, true)) {
-                    break;
-                }
-                // Handle SVINFO command from server
-                if (parts.length < 4) {
-                    this.debugLog('warn', 'Invalid SVINFO command from server');
-                    return;
-                }
-                const serverInfoMessage = `:${this.serverId} SVINFO 6 6 0 ${this.getDate()}\r\n`;
-                await this.safeWriteToSocket(socket, serverInfoMessage);
-                break
-            case 'PING':
-                // Respond to PING with PONG
-                var pong = parts.slice(1).join(' ');
-                if (pong.startsWith(':')) {
-                    pong = pong.slice(1); // Remove leading ':'
-                }
-                await this.safeWriteToSocket(socket, `:${this.serverId} PONG ${pong}\r\n`);
-                break;
-            case 'PONG':
-                // Ignore PONG from server
-                break;
-            case 'RESV':
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                // Handle RESV command from server
-                if (parts.length < 2) {
-                    this.debugLog('warn', 'Invalid RESV command from server');
-                    break;
-                }
-                const targetMask = parts[1];
-                const expiry = parseInt(parts[2]) || 0;
-                const reservedNick = parts[3];
-                var reason = parts.slice(4).join(' ') || '';
-                if (!this.reservednicks.includes(reservedNick)) {
-                    this.reservednicks.push(reservedNick);
-                }
-                if (expiry > 0) {
-                    setTimeout(() => {
-                        const index = this.reservednicks.indexOf(reservedNick);
-                        if (index !== -1) {
-                            this.reservednicks.splice(index, 1);
-                            this.debugLog('info', `Reservation for ${reservedNick} expired`);
-                        }
-                    }, expiry * 1000);
-                }
-                await this.broadcastToAllServers(`:${socket.servername} RESV ${targetMask} ${expiry} ${reservedNick} :${reason}\r\n`, socket);
-                break;
-            case 'UID':
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                // Handle UID command from server
-                if (parts.length < 10) {
-                    this.debugLog('warn', 'Invalid UID command from server');
-                    break;
-                }
-                var nickname = parts[1];
-                const server_Id = parts[2];
-                const timestamp = parseInt(parts[3]) || 0;
-                const userModes = parts[4].replace("/\+/g","").split('');
-                var username = parts[5];
-                var hostname = parts[6];
-                const ipaddress = parts[7];
-                const ipaddress2 = parts[8];
-                const userUniqueId = parts[9];
-                var userinfo = parts.slice(10).join(' ').slice(1); // Remove leading ':'
-                this.addRemoteServerUser(socket, nickname);
-                this.addUserUniqueId(nickname, userUniqueId);
-                this.globalpeak = Math.max(this.globalpeak, this.countGlobalUsers());
-                this.usersignontimestamps.set(nickname, timestamp);
-                this.usernames.set(nickname, username);
-                this.hostnames.set(nickname, hostname);
-                this.realhosts.set(nickname, ipaddress2);
-                this.userinfo.set(nickname, userinfo);
-                for (const mode of userModes) {
-                    this.setUserMode(nickname, mode, true);
-                }
-                await this.broadcastToAllServers(`:${socket.servername} UID ${nickname} ${server_Id} ${timestamp} +${userModes.join('')} ${username} ${hostname} ${ipaddress} ${ipaddress2} ${userUniqueId} * :${userinfo}\r\n`, socket);
-                break;
-            case 'SVSHOST':
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                // Handle SVSHOST command from server
-                if (parts.length < 4) {
-                    this.debugLog('warn', 'Invalid SVSHOST command from server');
-                    break;
-                }
-                var uniqueId = parts[1];
-                var hostname = parts[3];
-                var targetSocket = this.findSocketByUniqueId(uniqueId);
-                if (!targetSocket) {
-                    this.debugLog('warn', `No socket found for unique ID ${uniqueId}`);
-                    break;
-                }
-                this.hostnames.set(this.findUserByUniqueId(uniqueId), hostname);
-                targetSocket.host = hostname;
-                if (targetSocket.client_caps && targetSocket.client_caps.includes('CHGHOST')) {
-                    await this.safeWriteToSocket(targetSocket, `:${targetSocket.nickname}!${targetSocket.username}@${targetSocket.host} CHGHOST ${targetSocket.username} ${targetSocket.host}\r\n`);
-                }
-                await this.safeWriteToSocket(targetSocket, `:${this.servername} 396 ${targetSocket.nickname} ${targetSocket.host} :is now your visible host\r\n`);
-                await this.broadcastToAllServers(`:${socket.servername} SVSHOST ${uniqueId} ${hostname}\r\n`, socket);
-                break;
-            case 'SVSACCOUNT':
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                if (parts.length < 4) {
-                    this.debugLog('warn', 'Invalid SVSACCOUNT command from server');
-                    break;
-                }
-                var uniqueId = parts[1];
-                var accountName = parts[3];
-                var nickname = this.findUserByUniqueId(uniqueId);
-                if (!nickname) {
-                    this.debugLog('warn', `No user found for unique ID ${uniqueId}`);
-                    break;
-                }
-                if (accountName === '*') {
-                    // Remove account association
-                    this.accounts.delete(nickname);
-                } else {
-                    this.accounts.set(nickname, accountName);
-                }
-                var targetSocket = this.findSocketByUniqueId(uniqueId);
-                if (!targetSocket) {
-                    this.debugLog('warn', `No socket found for unique ID ${uniqueId}`);
-                    break;
-                }
-                if (targetSocket.client_caps && targetSocket.client_caps.includes('account-notify')) {
-                    await this.safeWriteToSocket(targetSocket, `:${targetSocket.nickname}!${targetSocket.username}@${targetSocket.host} ACCOUNT ${accountName}\r\n`);
-                }
-                break;
-            case 'SVSNICK':
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                // Handle SVSNICK command from server
-                if (parts.length < 5) {
-                    this.debugLog('warn', 'Invalid SVSNICK command from server');
-                    break;
-                }
-                var oldNick = this.findUserByUniqueId(parts[1]);
-                var newNick = parts[3];
-                var targetSocket = this.findSocketByUniqueId(parts[1]);
-                await this.broadcastUser(oldNick, `:${oldNick}!${this.usernames.get(oldNick)}@${targetSocket.host} NICK :${newNick}\r\n`);
-                this.processNickChange(targetSocket, newNick);
-                await this.broadcastToAllServers(line, socket);
-                break;
-            case 'SJOIN':
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                var channel = parts[2];
-                var modes = parts[3];
-                var uniqueId = parts[4];
-                if (uniqueId.startsWith(':')) {
-                    uniqueId = uniqueId.slice(1); // Remove leading ':'
-                }                
-                if (!uniqueId) {
-                    await this.broadcastToAllServers(`:${socket.servername} SJOIN ${this.getDate()} ${channel} +${modes} :\r\n`, socket);
-                    break;
-                }
-                while (['@', '%', '+'].includes(uniqueId[0])) {
-                    uniqueId = uniqueId.slice(1);
-                }
-                var userSocket = this.findSocketByUniqueId(uniqueId);
-                var nickname = this.findUserByUniqueId(uniqueId);
-                var username = this.usernames.get(nickname) || nickname;
-                var hostname = this.hostnames.get(nickname)
-                if (!this.channelData.has(channel)) {
-                    this.createChannel(channel);
-                }
-                if (!this.channelData.get(channel).users.has(nickname)) {
-                    this.channelData.get(channel).users.add(nickname);
-                }
-                if (nickname && username && hostname) {
-                    await this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, userSocket);
-                }
-                await this.broadcastToAllServers(`:${socket.servername} SJOIN ${this.getDate()} ${channel} +${modes} :${uniqueId}\r\n`, socket);
-                break;
-            case 'SQUIT':
-                await this.broadcastToAllServers(`:${socket.servername} SQUIT ${parts[1]} :${parts.slice(2).join(' ').slice(1)}\r\n`, socket);
-                this.servers.delete(socket);
-                break;
-            case (command.match(/^\d{3}$/) || {}).input:
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                // Numeric reply from server
-                // Numeric replies are usually in the format: <numeric> <nickname> :<message>
-                var senderID = parts[1]
-                var targetSocket = this.findSocketByUniqueId(senderID);
-                if (!targetSocket) {
-                    this.debugLog('warn', `No socket found for unique ID ${senderID}`);
-                    break;
-                }                
-                var responded = false;
-                switch (command) {
-                    case '307':
-                        // WHOIS AWAY reply
-                        if (parts.length < 3) {
-                            this.debugLog('warn', 'Invalid WHOIS AWAY reply from server');
-                            break;
-                        }
-                        var whoisNick = parts[2];
-                        var awayMessage = parts.slice(3).join(' ');
-                        if (awayMessage.startsWith(':')) {
-                            awayMessage = awayMessage.slice(1);
-                        }                        
-                        await this.safeWriteToSocket(targetSocket, `:${socket.servername} 307 ${whoisNick} ${whoisNick} :${awayMessage}\r\n`);
-                        responded = true;
-                        break;
-                    case '311':
-                        // WHOIS reply
-                        var whoisNick = parts[2];
-                        var whoisUser = parts[3];
-                        var whoisHost = parts[4];
-                        var whoisServer = parts[5];
-                        var whoisRealname = parts.slice(6).join(' ');
-                        if (whoisRealname.startsWith(':')) {
-                            whoisRealname = whoisRealname.slice(1);
-                        }                        
-                        await this.safeWriteToSocket(targetSocket, `:${socket.servername} 311 ${whoisNick} ${whoisNick} ${whoisUser} ${whoisHost} ${whoisServer} :${whoisRealname}\r\n`);
-                        responded = true;
-                        break;
-                    case '312':
-                        // WHOIS SERVER reply
-                        var serverID = parts[1];
-                        var whoisNick = parts[2];
-                        var serverName = parts[2];
-                        var serverInfo = parts.slice(3).join(' ');
-                        if (serverInfo.startsWith(':')) {
-                            serverInfo = serverInfo.slice(1);
-                        }
-                        await this.safeWriteToSocket(targetSocket, `:${socket.servername} 312 ${whoisNick} ${serverName} :${serverInfo}\r\n`);
-                        responded = true;
-                        break;
-                    case '313':
-                        // WHOIS operator reply
-                        if (parts.length < 3) {
-                            this.debugLog('warn', 'Invalid WHOIS operator reply from server');
-                            break;
-                        }
-                        var whoisNick = parts[2];
-                        var message = parts.slice(3).join(' ');
-                        if (message.startsWith(':')) {
-                            message = message.slice(1);
-                        }      
-                        await this.safeWriteToSocket(targetSocket, `:${socket.servername} 313 ${whoisNick} ${whoisNick} :${message}\r\n`);
-                        responded = true;
-                        break;
-                    case '317':
-                        // WHOIS idle reply
-                        if (parts.length < 4) {
-                            this.debugLog('warn', 'Invalid WHOIS idle reply from server');
-                            break;
-                        }
-                        var whoisNick = parts[2];
-                        var idleTime = parts[3];
-                        var signonTime = parts[4];
-                        await this.safeWriteToSocket(targetSocket, `:${socket.servername} 317 ${whoisNick} ${whoisNick} ${idleTime} ${signonTime} :seconds idle, signon time\r\n`);
-                        responded = true;
-                        break;
-                    case '318':
-                        // WHOIS end of reply
-                        if (parts.length < 2) {
-                            this.debugLog('warn', 'Invalid WHOIS end of reply from server');
-                            break;
-                        }
-                        var whoisNick = parts[1];
-                        await this.safeWriteToSocket(targetSocket, `:${socket.servername} 318 ${whoisNick} :End of WHOIS list\r\n`);
-                        responded = true;
-                        break;
-                }
-                if (responded) {
-                    break;
-                }
-                if (parts.length < 4) {
-                    this.debugLog('warn', 'Invalid numeric reply from server');
-                    break;
-                }
-                const numericCode = parts[0];
-                const targetID = parts[1];
-                var numericMessage = parts.slice(3).join(' ');
-                if (numericMessage.startsWith(':')) {
-                    numericMessage = numericMessage.slice(1); // Remove leading ':'
-                }
-
-                if (!targetSocket) {
-                    this.debugLog('warn', `No socket found for target unique ID ${targetID}`);
-                    break;
-                }
-                await this.safeWriteToSocket(targetSocket, `:${socket.serverinfo.name} ${numericCode} ${targetID} :${numericMessage}\r\n`);
-                break;
-            default:
-                if (!this.checkRegistered(socket)) {
-                    break;
-                }
-                if (command.startsWith(':')) {
-                    // part out the line to "sourceUniqueId command targetUniqueId :message"
-                    var sourceUniqueId = parts[0].slice(1); // Remove the leading ':'
-                    var nickname = this.findUserByUniqueId(sourceUniqueId);
-                    if (!nickname) {
-                        this.debugLog('warn', `No nickname found for unique ID ${sourceUniqueId}`);
-                        break;
-                    }
-                    var srvCommand = parts[1];
-                    let whoisNick;
-                    switch (srvCommand) {
-                        case 'QUIT':
-                            var user_name = this.usernames.get(nickname) || nickname;
-                            var message = parts.slice(2).join(' ').slice(1); // Remove leading ':'                        
-                            // Remove user from the server's user list
-                            const serverUsers = this.serverusers.get(socket);
-                            if (serverUsers && typeof serverUsers.delete === 'function') {
-                                const nickToRemove = this.findUserByUniqueId(sourceUniqueId);
-                                serverUsers.delete(nickToRemove);
-                                this.cleanupUserSession(nickToRemove);
-                            }
-                            await this.broadcastToAllServers(`:${nickname}!${user_name}@${this.servername} QUIT :${message}\r\n`, socket);
-                            break;
-                        case 'JOIN':
-                            var channel = this.findChannel(parts[3]);
-                            if (!channel || !this.channelData.has(channel)) {
-                                channel = parts[3];
-                                this.createChannel(channel);
-                            }
-                            var userSocket = this.findSocketByUniqueId(sourceUniqueId);
-                            if (!userSocket) {
-                                this.debugLog('warn', `No socket found for source unique ID ${sourceUniqueId}`);
-                                break;
-                            }
-                            var username = this.usernames.get(nickname) || nickname;
-                            if (!this.channelData.get(channel).users.has(nickname)) {
-                                this.channelData.get(channel).users.add(nickname);
-                            }
-                            await this.broadcastChannelJoin(channel, userSocket);
-                            await this.broadcastToAllServers(`:${sourceUniqueId} JOIN ${channel}\r\n`, socket);
-                            break;
-                        case 'PART':
-                            var channel = this.findChannel(parts[2]);
-                            if (!channel) {
-                                this.debugLog('warn', `No channel found for PART command: ${parts[2]}`);
-                                break;
-                            }
-                            if (this.channelData.get(channel).ops.has(nickname)) {
-                                this.channelData.get(channel).ops.delete(nickname);
-                            }
-                            if (this.channelData.get(channel).halfops.has(nickname)) {
-                                this.channelData.get(channel).halfops.delete(nickname);
-                            }
-                            if (this.channelData.get(channel).voices.has(nickname)) {
-                                this.channelData.get(channel).voices.delete(nickname);
-                            }
-
-                            var username = this.usernames.get(nickname) || nickname;
-                            var hostname = this.hostnames.get(nickname);                            
-                            await this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} PART ${channel} :${parts.slice(4).join(' ')}\r\n`, userSocket);
-                            if (this.channelData.has(channel) && this.channelData.get(channel).users.size === 0) {
-                                this.deleteChannel(channel);
-                            }
-                            await this.broadcastToAllServers(`:${sourceUniqueId} PART ${channel} :${parts.slice(4).join(' ')}\r\n`, socket);
-                            break;
-                        case 'GLOBOPS':
-                            var message = parts.slice(3).join(' ');
-                            await this.broadcastToAllServers(`:${sourceUniqueId} GLOBOPS :${message}`, socket);
-                            break;
-                        case 'TBURST':
-                            // Handle TBURST command from server
-                            if (parts.length < 6) {
-                                this.debugLog('warn', `Invalid TBURST command from server: ${line}`);
-                                break;
-                            }
-                            var channel = parts[3];
-                            var topic = parts.slice(6).join(' ');
-                            if (topic.startsWith(':')) {
-                                topic = topic.slice(1);
-                            }
-                            if (!this.channelData.has(channel)) {
-                                this.createChannel(channel);
-                            }
-                            this.channelData.get(channel).topic = topic;
-                            await this.broadcastChannel(channel, `:${nickname} TOPIC ${channel} :${topic}\r\n`);
-                            await this.broadcastToAllServers(`:${sourceUniqueId} TBURST ${channel} :${topic}\r\n`, socket);
-                            break;
-                        case 'KILL':
-                            // Handle KILL command from server
-                            if (parts.length < 3) {
-                                this.debugLog('warn', `Invalid KILL command from server: ${line}`);
-                                break;
-                            }
-                            var targetUniqueId = parts[2];
-                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            var targetNickname = this.findUserByUniqueId(targetUniqueId);
-                            var sourceUsername = this.usernames.get(nickname) || nickname;
-                            var reason = parts.slice(3).join(' ');
-                            await this.safeWriteToSocket(targetSocket, `:${nickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${reason}\r\n`);
-                            await this.broadcastUser(targetNickname, `:${nickname}!${sourceUsername}@${socket.serverinfo.name} KILL ${targetNickname} :${reason}\r\n`, targetSocket);
-                            await this.broadcastToAllServers(`:${sourceUniqueId} KILL ${targetUniqueId} :${reason}\r\n`, socket);
-                            await this.broadcastConnection(socket, `Killed: ${reason}`);
-                            this.terminateSession(targetSocket, true);
-                            break;
-                        case 'MODE':
-                            var targetUniqueId = parts[2];
-                            if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
-                                var targetChannel = this.findChannel(targetUniqueId)
-                                if (!targetChannel) {
-                                    this.debugLog('warn', `No channel found for MODE command: ${line}`);
-                                    break;
-                                }
-                                // It's a channel, broadcast to all users in the channel
-                                if (this.channelData.has(targetChannel)) {
-                                    var modes = parts[3];
-                                    await this.processChannelModes(nickname, targetChannel, modes, parts.slice(4), socket);
-                                }
-                                break;
-                            }                        
-                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            if (!targetSocket) {
-                                this.debugLog('warn', `No socket found for target unique ID ${targetUniqueId}`);
-                                break;
-                            }
-                            await this.safeWriteToSocket(targetSocket, `:${targetSocket.nickname} MODE ${targetSocket.nickname} ${parts.slice(2).join(' ')}\r\n`);
-                            if (this.clientIsWebTV(targetSocket) && this.enable_webtv_command_hacks) {
-                                await this.sendWebTVNoticeTo(targetSocket, `The network has set your user mode: ${parts.slice(3).join(' ')}`);
-                            }
-                            await this.broadcastToAllServers(`:${sourceUniqueId} MODE ${targetUniqueId} ${parts.slice(3).join(' ')}\r\n`, socket);                        
-                            break;
-                        case 'NICK':
-                            if (parts.length < 3) {
-                                this.debugLog('warn', 'Invalid NICK command from server');
-                                break;
-                            }
-                            var targetSocket = this.findSocketByUniqueId(sourceUniqueId);
-                            if (!targetSocket) {
-                                this.debugLog('warn', `No socket found for source unique ID ${sourceUniqueId}`);
-                                break;
-                            }
-                            var oldNick = targetSocket.nickname;
-                            var newNick = parts[2];    
-                            
-                            if (this.nicknames.has(newNick)) {
-                                await this.safeWriteToSocket(targetSocket, `:${this.servername} 433 ${oldNick} ${newNick} :Nickname is already in use\r\n`);
-                                break;
-                            }
-                            this.processNickChange(targetSocket, newNick);
-                            await this.broadcastUser(oldNick, `:${targetSocket.nickname}!${targetSocket.username}@${targetSocket.host} NICK :${newNick}\r\n`, targetSocket);
-                            await this.broadcastToAllServers(`:${sourceUniqueId} NICK ${newNick}\r\n`, socket);
-                            break;
-                        case 'TOPIC':
-                            if (parts.length < 3) {
-                                this.debugLog('warn', 'Invalid TOPIC command from server');
-                                break;
-                            }
-                            var channel = this.findChannel(parts[2]);
-                            if (!channel || !this.channelData.has(channel)) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 403 ${nickname} ${channel} :No such channel\r\n`);
-                                break;
-                            }                            
-                            var topic = parts.slice(3).join(' ');
-                            if (topic.startsWith(':')) {
-                                topic = topic.slice(1); // Remove leading ':'
-                            }
-                            this.channelData.get(channel).topic = topic;
-                            var username = this.usernames.get(nickname) || nickname;
-                            var hostname = this.hostnames.get(nickname) || '';
-                            await this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} TOPIC ${channel} :${topic}\r\n`, targetSocket);
-                            await this.broadcastToAllServers(`:${sourceUniqueId} TOPIC ${channel} :${topic}\r\n`, socket);
-                            break;                                                    
-                        case 'PRIVMSG':
-                        case 'NOTICE':
-                            var targetUniqueId = parts[2];
-                            var message = parts.slice(3).join(' ');
-                            if (message.startsWith(':')) {
-                                message = message.slice(1); // Remove leading ':'
-                            }
-                            var sourceSocket = this.findSocketByUniqueId(sourceUniqueId);
-                            if (!sourceSocket) {
-                                this.debugLog('warn', `No socket found for source unique ID ${sourceUniqueId}`);
-                                break;
-                            }
-                            var sourceUsername = this.usernames.get(nickname) || nickname;
-                            const host = this.hostnames.get(nickname) || socketSource.host;
-                            if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
-                                // It's a channel, broadcast to all users in the channel except the source
-                                if (this.channelData.has(targetUniqueId)) {
-                                    const users = this.channelData.get(targetUniqueId).users;
-                                    for (const user of users) {
-                                        const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
-                                        if (userSocket && userSocket.uniqueId !== sourceUniqueId) {
-                                            const host = this.hostnames.get(user) || socketSource.host;
-                                            await this.sendThrottled(userSocket, [`:${nickname}!${sourceUsername}@${host} ${srvCommand} ${targetUniqueId} :${message}\r\n`], 30);
-                                            await this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
-                                        }
-                                    }
-                                }
-                                break;
-                            }
-                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            if (!targetSocket) {
-                                this.debugLog('warn', `No socket found for target unique ID ${targetUniqueId}`);
-                                break;
-                            }
-                            var targetNickname = this.getUsernameFromUniqueId(targetUniqueId); 
-                            if (message.startsWith(':')) {
-                                message = message.slice(1); // Remove leading ':'
-                            }
-                            if (this.clientIsWebTV(targetSocket)) {
-                                srvCommand = 'PRIVMSG';
-                            }
-                            await this.sendThrottled(targetSocket, [`:${nickname}!${sourceUsername}@${host} ${srvCommand} ${targetNickname} :${message}\r\n`], 30);
-                            await this.broadcastToAllServers(`:${sourceUniqueId} ${srvCommand} ${targetUniqueId} :${message}\r\n`, socket);
-                            break;
-                        case "WHOIS":
-                            if (parts.length < 3) {
-                                this.debugLog('warn', 'Invalid WHOIS command from server');
-                                break;
-                            }
-                            var targetUniqueId = parts[2];
-                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            if (!targetSocket) {
-                                this.debugLog('warn', `No socket found for target unique ID ${targetUniqueId}`);
-                                break;
-                            }
-                            var targetUniqueId = parts[2];
-                            whoisNick = this.findUserByUniqueId(targetUniqueId);
-                            if (!whoisNick) {
-                                whoisNick = parts[3].slice(1); // Remove leading ':'
-                            }
-                            const whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === whoisNick.toLowerCase());
-                            if (whoisSocket) {
-                                whoisNick = whoisSocket.nickname;
-                                const whois_username = this.usernames.get(whoisNick);
-                                var userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || '';
-                                output_lines = [];
-                                output_lines.push(`:${this.serverId} 311 ${targetUniqueId} ${whoisNick} ${whois_username} ${whoisSocket.host} * :${userinfo}\r\n`);
-                                if (this.awaymsgs.has(whoisNick)) {
-                                    output_lines.push(`:${this.serverId} 301 ${targetUniqueId} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
-                                }
-                                const userChannels = [];
-                                for (const [ch, channelObj] of this.channelData.entries()) {
-                                    if (channelObj.users.has(whoisNick)) {
-                                        let prefix = '';
-                                        var chanops = this.channelData.get(ch).ops;
-                                        var chanhalfops = this.channelData.get(ch).halfops;
-                                        var chanvoices = this.channelData.get(ch).voices;
-                                        const modes = this.channelData.get(ch).modes;
-                                        if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(ch) || !this.channelData.get(ch).users.has(socket.nickname))) {
-                                            continue; // Skip listing this channel if it's private/secret and user is not in it
-                                        }
-                                        if (chanops.has(whoisNick)) {
-                                            prefix = '@';
-                                        } else if (chanhalfops.has(whoisNick)) {
-                                            prefix = '%';
-                                        } else if (chanvoices.has(whoisNick)) {
-                                            prefix = '+';
-                                        }
-                                        userChannels.push(prefix + ch);
-                                    }
-                                }
-                                output_lines.push(`:${this.serverId} 312 ${targetUniqueId} ${whoisNick} ${this.servername} :zefIRCd v${this.version}\r\n`);
-                                if (this.isIRCOp(whoisNick)) {
-                                    output_lines.push(`:${this.serverId} 313 ${targetUniqueId} ${whoisNick} :is an IRC operator\r\n`);
-                                }
-                                if (usermodes && this.getUserModes(whoisNick).includes('s')) {
-                                    output_lines.push(`:${this.serverId} 671 ${targetUniqueId} ${whoisNick} :is using a secure connection\r\n`);
-                                }
-                                if (usermodes && this.getUserModes(whoisNick).includes('r')) {
-                                    output_lines.push(`:${this.serverId} 307 ${targetUniqueId} ${whoisNick} :is a registered nick\r\n`);
-                                }
-                                var now = this.getDate();
-                                var userTimestamp = whoisSocket.lastspoke || now;
-                                var idleTime = now - userTimestamp;
-                                output_lines.push(`:${this.serverId} 317 ${targetUniqueId} ${whoisNick} ${idleTime} ${this.usersignontimestamps.get(whoisNick) || 0} :seconds idle, signon time\r\n`);
-                                if (userChannels.length > 0) {
-                                    output_lines.push(`:${this.serverId} 319 ${targetUniqueId} ${whoisNick} :${userChannels.join(' ')}\r\n`);
-                                }
-                                output_lines.push(`:${this.serverId} 318 ${targetUniqueId} ${whoisNick} :End of /WHOIS list\r\n`);
-                                await this.sendThrottled(socket, output_lines);
-                            }
-                            break;
-                        case "SVSJOIN":
-                            if (parts.length < 3) {
-                                this.debugLog('warn', 'Invalid SVSJOIN command from server');
-                                break;
-                            }
-                            var targetUniqueId = parts[2];
-                            var channelName = this.findChannel(parts[3]);
-                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            var username = this.usernames.get(targetSocket.nickname) || socket.nickname;
-                            var hostname = this.hostnames.get(targetSocket.nickname) || '';
-                            if (!channelName ||!this.channelData.has(channelName)) {
-                                channelName = parts[3];
-                                this.createChannel(channelName);
-                            }
-                            if (!this.channelData.get(channelName).users.has(targetSocket.nickname)) {
-                                this.channelData.get(channelName).users.add(targetSocket.nickname);
-                            }
-                            await this.broadcastChannelJoin(channelName, targetSocket);
-                            //this.broadcastToAllServers(`:${sourceUniqueId} SVSJOIN ${channelName} ${targetUniqueId}\r\n`, socket);
-                            var chan_modes = this.channelData.get(channelName).modes;
-                            let modeString = '';
-                            let modeParams = [];
-                            for (const m of chan_modes) {
-                                if (m === 'k' && this.channelData.get(channelName).key) {
-                                    modeString += 'k';
-                                    modeParams.push(this.channelData.get(channelName).key);
-                                } else if (m === 'l' && this.channelData.get(channelName).limit) {
-                                    modeString += 'l';
-                                    modeParams.push(this.channelData.get(channelName).limit);
-                                } else if (typeof m === 'string' && m.length === 1 && m !== 'k' && m !== 'l') {
-                                    modeString += m;
-                                }
-                            }
-                            if (modeString.length > 0) {
-                                await this.safeWriteToSocket(targetSocket, `:${this.servername} 324 ${nickname} ${channelName} +${modeString}${modeParams.length ? ' ' + modeParams.join(' ') : ''}\r\n`);
-                            }
-                            await this.broadcastToAllServers(`:${this.serverId} SJOIN ${this.getDate()} ${channelName} +${modeString}${modeParams.length ? ' ' + modeParams.join(' ') : ''} ${targetUniqueId}\r\n`);
-                            break;
-                        case "SVSMODE":
-                            if (parts.length < 4) {
-                                this.debugLog('warn', 'Invalid SVSMODE command from server');
-                                break;
-                            }
-                            var targetUniqueId = parts[2];
-                            var targetSocket = this.findSocketByUniqueId(targetUniqueId);
-                            var targetNickname = targetSocket.nickname;
-                            var modes = parts[4].split('');
-                            let adding = true;
-                            for (const char of modes.join('')) {
-                                if (char === '+') {
-                                    adding = true;
-                                } else if (char === '-') {
-                                    adding = false;
-                                } else {
-                                    if (adding) {
-                                        this.setUserMode(targetNickname, char, true);
-                                    } else {
-                                        this.setUserMode(targetNickname, char, false);
-                                    }
-                                }
-                            }                            
-                            var username = this.usernames.get(nickname);
-                            var hostname = this.hostnames.get(nickname);
-                            await this.safeWriteToSocket(targetSocket, `:${nickname}!${username}@${hostname} MODE ${targetSocket.nickname} ${modes.join('')}\r\n`);
-                            await this.broadcastToAllServers(`:${sourceUniqueId} SVSMODE ${targetUniqueId} ${modes.join('')}\r\n`, socket);
-                            break;                    
-                        default:
-                            if (!this.checkRegistered(socket)) {
-                                break;
-                            }
-                            this.debugLog('warn', `Unhandled server command from ${sourceUniqueId} to ${targetUniqueId}: ${srvCommand} ${message}`);
-                    }            
-            } 
-        }
     }
 
     async processSocketData(socket, data) {
-        var output_lines = []; // Declare once at function scope
-        
-        if (socket.signedoff) {
+        if (socket.signedoff || socket._terminated) {
             return;
         }
         if (socket.upgrading_to_tls) {
-            socket.removeAllListeners()
+            socket.removeAllListeners();
             socket.pause();
             socket.on('error', (err) => {
                 this.debugLog('error', 'Error during TLS upgrade: ' + err.message);
@@ -1325,25 +713,25 @@ class WTVIRC {
             
             if (Buffer.isBuffer(data) ? data[0] === 0x16 : data.charCodeAt(0) === 0x16) {
                 if (!this.enable_tls) {
-                    // If SSL is not enabled, close the socket
                     await this.safeWriteToSocket(socket, `:${this.servername} 421 * :TLS is not enabled on this server\r\n`);
                     this.terminateSession(socket, true);
                     return;
                 }
 
-                // SSL detected, upgrade socket to TLS
-                const keyBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.key));
-                const certBuffer = fs.readFileSync(this.wtvshared.parseConfigVars(this.irc_config.ssl_cert.cert));
-                // Remove from this.clients if present
+                let secureContext;
+                try {
+                    secureContext = this.getTlsSecureContext();
+                } catch (e) {
+                    this.debugLog('error', `STARTTLS context error: ${e.message}`);
+                    this.terminateSession(socket, true);
+                    return;
+                }
                 
                 this.clients = this.clients.filter(c => c !== socket);
                 const secureSocket = new tls.TLSSocket(socket, {
                     isServer: true,
                     ALPNProtocols: ['irc'],
-                    secureContext: tls.createSecureContext({                        
-                        key: keyBuffer,
-                        cert: certBuffer,
-                    }),
+                    secureContext,
                 });
                 socket.push(data);
 
@@ -1355,14 +743,16 @@ class WTVIRC {
                     this.terminateSession(secureSocket, false);
                 });                    
 
-                // Only start processing after handshake is complete
                 secureSocket.on('secure', async () => {
-                    this.debugLog('info', 'Secure connection (STARTTLS) established with '+ socket.remoteAddress);
-                    socket.removeAllListeners('error');
-                    await this.initializeSocket(secureSocket, true, socket);
-                    // Remove the original socket from clients
-                    this.clients = this.clients.filter(c => c !== socket);
-                    this.clientpeak = Math.max(this.clientpeak, this.clients.length);                    
+                    try {
+                        this.debugLog('info', 'Secure connection (STARTTLS) established with '+ socket.remoteAddress);
+                        socket.removeAllListeners('error');
+                        await this.initializeSocket(secureSocket, true, socket);
+                        this.clientpeak = Math.max(this.clientpeak, this.clients.length);
+                    } catch (e) {
+                        this.debugLog('error', `STARTTLS initialize error: ${e.message}`);
+                        this.terminateSession(secureSocket, true);
+                    }
                 });                 
                 secureSocket.resume();
             } else {
@@ -1373,23 +763,45 @@ class WTVIRC {
             socket.upgrading_to_tls = false;
             return;
         }
-        // Ensure data is a string
+
         if (typeof data !== 'string') {
             if (Buffer.isBuffer(data)) {
                 data = data.toString('ascii');
             } else if (data && typeof data.toString === 'function') {
                 data = data.toString();
             } else {
-                return; // Invalid data, ignore
+                return;
             }
         }
-        const lines = data.split(/\r\n|\n/).filter(Boolean);
-        for (let line of lines) {
+        if (typeof socket._lineBuffer !== 'string') {
+            socket._lineBuffer = '';
+        }
+        socket._lineBuffer += data;
+        if (socket._lineBuffer.length > this.max_message_len * 4) {
+            this.debugLog('warn', `Line buffer overflow from ${socket.remoteAddress}`);
+            await this.safeWriteToSocket(socket, `:${this.servername} ERROR :Input line too long\r\n`);
+            this.terminateSession(socket, true);
+            return;
+        }
+        const parts = socket._lineBuffer.split(/\r\n|\n/);
+        socket._lineBuffer = parts.pop() || '';
+        for (let line of parts) {
+            if (!line) {
+                continue;
+            }
+            if (this.reject_overlength_messages && line.length > this.max_message_len) {
+                this.debugLog('warn', `Overlength message from ${socket.remoteAddress} (${line.length})`);
+                await this.safeWriteToSocket(socket, `:${this.servername} 417 ${socket.nickname || '*'} :Input line too long\r\n`);
+                continue;
+            }
             if (this.debug) {
-                console.log(`> ${line}`);
+                let logLine = line;
+                if (/^PASS\s+/i.test(logLine)) {
+                    logLine = logLine.replace(/^(PASS\s+)\S+/i, '$1***');
+                }
+                console.log(`> ${logLine}`);
             }
             
-            // Rate limiting check for non-server connections
             if (!socket.isserver && !this.checkRateLimit(socket)) {
                 this.debugLog('warn', `Rate limit exceeded for ${socket.remoteAddress}, disconnecting`);
                 this.logSecurityEvent('RATE_LIMIT_EXCEEDED', socket, { limit: this.max_messages_per_second });
@@ -1401,1821 +813,177 @@ class WTVIRC {
             if (socket.isserver) {
                 await this.processServerData(socket, line);
                 continue;
-            }            
-            // Check for server prefix (e.g., :00B) and extract command
-            let prefix = null;
-            if (line.startsWith(':')) {
-                const spaceIdx = line.indexOf(' ');
-                
-                if (spaceIdx > 0) {
-                    prefix = line.slice(1, spaceIdx);
-                    if (!socket.uniqueId) {
-                        socket.uniqueId = prefix;
-                    } else if (socket.uniqueId !== prefix) {
-                        if (!socket.isserver) {
-                            socket.uniqueId = prefix;
-                        } else {
-                            this.debugLog('warn', `Socket uniqueId mismatch: ${socket.uniqueId} !== ${prefix}`);
-                            this.debugLog('warn', line);
-                            continue;
-                        }
-                    }
-                }
-                this.processServerData(socket, line);
-                continue;
             }
 
-            // initial commands before we assign socket.isserver = true
-            const serverCommands = ['PASS', 'CAPAB', 'SERVER', 'SVINFO'];
+            // Server-link handshake commands are only accepted before client registration,
+            // and never after the socket is a normal registered client.
+            const serverHandshakeCommands = ['PASS', 'CAPAB', 'SERVER', 'SVINFO'];
             const firstWord = line.trim().split(' ')[0].toUpperCase();
-            if (!prefix && serverCommands.includes(firstWord)) {
-                this.processServerData(socket, line);
+            if (!line.startsWith(':') && serverHandshakeCommands.includes(firstWord)) {
+                if (socket.registered || socket.nickname) {
+                    await this.safeWriteToSocket(socket, `:${this.servername} 421 ${socket.nickname || '*'} ${firstWord} :Unknown command\r\n`);
+                    continue;
+                }
+                await this.processServerData(socket, line);
                 continue;
             }
 
+            // Prefixed TS6 lines are server-link only; never accept from clients.
+            if (line.startsWith(':')) {
+                this.debugLog('warn', `Ignoring prefixed line from non-server client ${socket.remoteAddress}`);
+                continue;
+            }
 
             const [command, ...params] = line.trim().split(' ');
+            if (!command) {
+                continue;
+            }
             
-            // Validate command and parameters
             if (!this.validateCommand(command.toUpperCase(), params)) {
                 this.logSecurityEvent('INVALID_COMMAND', socket, { command, params });
                 await this.safeWriteToSocket(socket, `:${this.servername} 421 ${socket.nickname || '*'} ${command} :Unknown command\r\n`);
                 continue;
             }
             
-            switch (command.toUpperCase()) {
-                case 'OPER':
-                    if (!socket.secure) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 464 ${socket.nickname} :SSL required for OPER\r\n`);
-                    }
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.checkAuthAttempts(socket)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 491 ${socket.nickname} :Too many failed attempts. Try again later.\r\n`);
-                        this.logSecurityEvent('OPER_LOCKOUT', socket, { attempts: this.failed_auth_attempts.get(socket.realhost || socket.remoteAddress) });
-                        break;
-                    }
-                    if (!this.oper_enabled) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 491 ${socket.nickname} :This server does not support IRC operators\r\n`);
-                        break;
-                    }
-                    if (params.length < 2) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} OPER :Not enough parameters\r\n`);
-                        break;
-                    }
-                    const [operName, operPassword] = params;
-                    if (operName !== this.oper_username) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 491 ${socket.nickname} :No permission\r\n`);
-                        this.debugLog('warn', `Invalid oper name attempt: ${operName} from ${socket.nickname} (${socket.username}@${socket.realhost})`);
-                        this.logSecurityEvent('OPER_FAILED_USERNAME', socket, { provided_username: operName });
-                        this.recordAuthFailure(socket);
-                        break;
-                    }
-                    // Use timing-safe comparison to prevent timing attacks
-                    const providedPassword = Buffer.from(operPassword, 'utf8');
-                    const actualPassword = Buffer.from(this.oper_password, 'utf8');
-                    const passwordMatch = providedPassword.length === actualPassword.length && 
-                                        require('crypto').timingSafeEqual(providedPassword, actualPassword);
-                    
-                    if (!passwordMatch) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 464 ${socket.nickname} :Password incorrect\r\n`);
-                        this.debugLog('warn', `Invalid oper password attempt from ${socket.nickname} (${socket.username}@${socket.realhost}) (using oper name ${operName})`);
-                        this.logSecurityEvent('OPER_FAILED_PASSWORD', socket, { username: operName });
-                        this.recordAuthFailure(socket);
-                        break;
-                    }
-                    this.clearAuthFailures(socket);
-                    this.logSecurityEvent('OPER_SUCCESS', socket, { username: operName });
-                    this.setUserMode(socket.nickname, 'o', true);
-                    await this.safeWriteToSocket(socket, `:${this.servername} 381 ${socket.nickname} :You are now an IRC operator\r\n`);
-                    await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +o\r\n`);
-                    await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +o\r\n`);
-                    this.debugLog('info', `IRC operator ${socket.nickname} (${socket.username}@${socket.realhost}) has logged in with oper name ${operName}`);
-                    break;
-                case 'UPTIME':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    const uptime = this.getDate() - this.server_start_time;
-                    const days = Math.floor(uptime / 86400);
-                    const hours = Math.floor((uptime % 86400) / 3600);
-                    const minutes = Math.floor((uptime % 3600) / 60);
-                    const seconds = uptime % 60;
-                    await this.safeWriteToSocket(socket, `:${this.servername} 242 ${socket.nickname} :Server uptime is ${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds\r\n`);
-                    break;
-                case 'SECURITY':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        break;
-                    }
-                    
-                    // Show security statistics
-                    let output_lines = [];
-                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :=== Security Report ===\r\n`);
-                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Active connections per IP: ${this.connections_per_ip.size}\r\n`);
-                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Failed auth attempts tracked: ${this.failed_auth_attempts.size}\r\n`);
-                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Security events logged: ${this.security_events.length}\r\n`);
-                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :Rate limit violations: ${this.security_events.filter(e => e.event === 'RATE_LIMIT_EXCEEDED').length}\r\n`);
-                    output_lines.push(`:${this.servername} NOTICE ${socket.nickname} :=== End Report ===\r\n`);
-                    
-                    await this.sendThrottled(socket, output_lines);
-                    break;
-                case 'KICK':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    var channel = this.findChannel(params[0]);                    
-                    var targetNick = this.findUser(params[1]);
-                    if  (!channel || !targetNick) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${params[1]} :No such nick/channel\r\n`);
-                        break;
-                    }
-                    // Check if the user is a channel operator
-                    if (this.channelData.get(channel).ops instanceof Set && this.channelData.get(channel).ops.has(socket.nickname)) {
-                        // Allow kick
-                    } else if (this.channelData.get(channel).halfops instanceof Set && this.channelData.get(channel).halfops.has(socket.nickname)) {
-                        // Only allow kick if the target is NOT a channel operator
-                        if (this.channelData.get(channel).ops instanceof Set && this.channelData.get(channel).ops.has(targetNick)) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${channel} :You cannot kick a channel operator\r\n`);
-                            break;
-                        }
-                        // Allow kick
-                    } else {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${channel} :You're not channel operator\r\n`);
-                        break;
-                    }                  
-                    if (params.length < 2) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} KICK :Not enough parameters\r\n`);
-                        break;
-                    }
-                    socket.lastspoke = this.getDate();
+            const cmdUpper = command.toUpperCase();
+            const handlerName = `handleCommand_${cmdUpper}`;
+            if (typeof this[handlerName] === 'function') {
+                await this[handlerName](socket, params, line);
+            }
+        }
+    }
 
+    linkOwnsUid(socket, uniqueId) {
+        if (!socket || !uniqueId) return false;
+        if (socket.uniqueId && (uniqueId === socket.uniqueId || uniqueId.startsWith(socket.uniqueId))) {
+            return true;
+        }
+        if (socket.servername && uniqueId.toLowerCase() === String(socket.servername).toLowerCase()) {
+            return true;
+        }
+        for (const [sid, sock] of this.peerSids.entries()) {
+            if (sock === socket && (uniqueId === sid || uniqueId.startsWith(sid))) {
+                return true;
+            }
+        }
+        // Allow UIDs for users already introduced on this link.
+        const users = this.serverusers.get(socket);
+        if (users) {
+            const nick = this.findUserByUniqueId(uniqueId);
+            if (nick && users.has(nick)) return true;
+        }
+        return false;
+    }
 
-                    if (!this.channelData.has(channel)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
-                        break;
-                    }                      
-                    if (!this.channelData.get(channel).users.has(targetNick)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 441 ${socket.nickname} ${targetNick} :They aren't on that channel\r\n`);
-                        break;
-                    }
-                    // Check if channel mode +Q (no kicks) is set
-                    var chan_modes = this.channelData.get(channel).modes;
-                    if (chan_modes.includes('Q')) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${channel} :Cannot kick users, channel is +Q (no kicks allowed)\r\n`);
-                        break;
-                    }
-                    this.channelData.get(channel).users.delete(targetNick);
-                    var targetSocket = Array.from(this.clients).find(s => this.nicknames.get(s) === targetNick);
-                    if (params.length > 2) {
-                        let reason = params.slice(2).join(' ');
-                        if (reason.startsWith(':')) {
-                            reason = reason.slice(1);
-                        }
-                        await this.safeWriteToSocket(targetSocket, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${targetNick} :${reason}\r\n`);
-                        await this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${targetNick} :${reason}\r\n`);
-                        await this.broadcastToAllServers(`:${socket.uniqueId} KICK ${channel} ${targetSocket.uniqueId} :${reason}\r\n`);
-                        break;
-                    } else {
-                        await this.safeWriteToSocket(targetSocket, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${targetNick}\r\n`);
-                        await this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} KICK ${channel} ${targetNick}\r\n`);
-                        await this.broadcastToAllServers(`:${socket.uniqueId} KICK ${channel} ${targetSocket.uniqueId}\r\n`);
-                    }
-                    break;
-                case 'TOPIC':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} TOPIC :Not enough parameters\r\n`);
-                        break;
-                    }
-                    var channel = this.findChannel(params[0]);
-                    if (!channel) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${params[0]} :No such channel\r\n`);
-                        break;
-                    }
-                    var chan_modes = this.channelData.get(channel).modes;
-                    if (chan_modes.includes('t')) {
-                        if (this.channelData.get(channel).ops instanceof Set && this.channelData.get(channel).ops.has(socket.nickname)) {
-                            // Allow topic
-                        } else {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${channel} :You're not channel operator\r\n`);
-                            break;
-                        }
-                    }
-                    socket.lastspoke = this.getDate();
-                    if (!this.channelData.has(channel)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
-                        break;
-                    }                        
-                    if (params.length > 1) {
-                        var topic = params.slice(1).join(' ');
-                        if (topic.startsWith(':')) {
-                            topic = topic.slice(1);
-                        }
-                        this.channelData.get(channel).topic = topic;
-                        await this.safeWriteToSocket(socket, `:${this.servername} 332 ${socket.nickname} ${channel} :${topic}\r\n`);                        
-                        await this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} TOPIC ${channel} :${topic}\r\n`);
-                        await this.broadcastToAllServers(`:${socket.uniqueId} TOPIC ${channel} :${topic}\r\n`);
-                    } else {
-                        const topic = this.channelData.get(channel).topic;
-                        await this.safeWriteToSocket(socket, `:${this.servername} 331 ${socket.nickname} ${channel} :${topic}\r\n`);
-                    }
-                    break;
-                case 'AWAY':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    socket.lastspoke = this.getDate();
-                    if (params.length > 0) {
-                        if (params.length > this.awaylen) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 417 ${socket.nickname} ${channel} :Away message is too long\r\n`);
-                            break;
-                        }
-                        await this.safeWriteToSocket(socket, `:${this.servername} 306 ${socket.nickname} :You are now marked as away\r\n`);
-                        let awayMsg = params.join(' ');
-                        if (awayMsg.startsWith(':')) {
-                            awayMsg = awayMsg.slice(1);
-                        }
-                        this.awaymsgs.set(socket.nickname, awayMsg);
-                        await this.broadcastUserIfCap(socket, `:${socket.nickname}!${socket.username}@${socket.host} AWAY :${awayMsg}\r\n`, socket, 'away-notify');
-                        await this.broadcastToAllServers(`:${socket.uniqueId} AWAY :${awayMsg}\r\n`);
-                    } else {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 305 ${socket.nickname} :You are no longer marked as away\r\n`);                        
-                        this.awaymsgs.delete(socket.nickname);
-                        await this.broadcastUserIfCap(socket, `:${socket.nickname}!${socket.username}@${socket.host} AWAY\r\n`, socket, 'away-notify');
-                        await this.broadcastToAllServers(`:${socket.uniqueId} AWAY\r\n`);
-                    }
-                    break;
-                case 'CAP':
-                    // Attempt to map any client caps with our supported caps
-                    if (params[0] && params[0].toUpperCase() === 'LS') {
-                        const capsString = this.supported_client_caps.map(cap => cap.toLowerCase()).join(' ');
-                        await this.safeWriteToSocket(socket, `:${this.servername} CAP ${socket.uniqueId} LS :${capsString}\r\n`);
-                    }
-                    if (params[0] && params[0].toUpperCase() === 'REQ') {
-                        socket.client_caps = params.slice(1).map(cap => {
-                            if (cap.startsWith(':')) {
-                                return cap.slice(1).toLowerCase();
-                            }
-                            return cap.toLowerCase();
-                        });
-                        var supportedCaps = this.supported_client_caps.filter(cap => socket.client_caps.includes(cap.toLowerCase()));
-                        if (params.length > 1) {
-                            // params[1] is the first cap, may be prefixed with ':'
-                            // Remove ':' from first cap if present
-                            let reqCaps = params.slice(1).map(cap => cap.startsWith(':') ? cap.slice(1).toLowerCase() : cap.toLowerCase());
-                            // Only include supported caps, in the order requested
-                            supportedCaps = reqCaps.filter(cap => this.supported_client_caps.includes(cap));
-                        }
-                        await this.safeWriteToSocket(socket, `:${this.servername} CAP ${socket.uniqueId} ACK :${supportedCaps.join(' ').toLowerCase()}\r\n`);
-                        this.debugLog('info', `Client with uniqueId ${socket.uniqueId} requested capabilities: ${supportedCaps.join(', ')}`);
-                    }                    
-                    break;                
-                case 'MODE':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} MODE :Not enough parameters\r\n`);
-                        break;
-                    }
-                    var isChannel = true;
-                    channel = this.findChannel(params[0]);
-                    if (!channel) {
-                        isChannel = false;
-                        channel = this.findUser(params[0]);
-                    }
-                    if (!channel) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
-                        break;
-                    }
-                    if (!this.channelData.has(channel)) {
-                        isChannel = false;
-                    }
-                    // Check if 'channel' is actually a user (nickname) instead of a channel name
-                    let isUser = false;
-                    for (const prefix of this.channelprefixes) {
-                        if (channel.startsWith(prefix)) {
-                            isUser = false;
-                            break;
-                        } else {
-                            isUser = true;
-                        }
-                    }
-                    if (!isChannel && !isUser) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${channel} :No such channel or user\r\n`);
-                        break;
-                    }
-                    const mode = params[1];
-                    if (isUser) {
-                        // User mode handling
-                        if (!this.isIRCOp(socket.nickname) && channel !== socket.nickname) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 502 ${socket.nickname} :Cannot set modes on other users\r\n`);
-                        } else {
+    linkOwnsSid(socket, sid) {
+        if (!socket || !sid) return false;
+        if (socket.uniqueId && sid === socket.uniqueId) return true;
+        return this.peerSids.get(sid) === socket;
+    }
 
-                            var usermodes = this.getUserModes(channel);
-                            if (!mode) { 
-                                // List user modes
-                                if (usermodes.length === 0) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 324 ${socket.nickname} ${channel} :No modes set\r\n`);
-                                } else {
-                                    const modes = usermodes.map(m => (m.startsWith('+') ? m : '+' + m)).join(' ');
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 324 ${socket.nickname} ${channel} :${modes}\r\n`);
-                                }
-                            } else if (mode.startsWith('+x')) {
-                                if (usermodes.includes('x')) {
-                                    break;
-                                }
-                                this.setUserMode(socket.nickname, 'x', true);
-                                socket.host = this.filterHostname(socket, socket.realhost);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +x\r\n`);
-                                if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
-                                    await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
-                                }
-                                await this.safeWriteToSocket(socket, `:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your visible host\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +x\r\n`);
-                            } else if (mode.startsWith('-x')) {
-                                if (!usermodes.includes('x')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'x', false);
-                                socket.host = socket.realhost
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -x\r\n`);
-                                if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
-                                    await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
-                                }
-                                await this.safeWriteToSocket(socket, `:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your visible host\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -x\r\n`);
-                            } else if (mode.startsWith('+w')) {
-                                if (usermodes.includes('w')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'w', true);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +w\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +w\r\n`);
-                            } else if (mode.startsWith('-w')) {
-                                if (!usermodes.includes('w')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'w', false);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -w\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -w\r\n`);
-                            } else if (mode.startsWith('+c')) {
-                                if (!this.isIRCOp(socket.nickname)) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                                    this.debugLog('warn', `User ${socket.nickname} attempted to set +c mode without being an IRC operator`);
-                                    break;
-                                }
-                                if (usermodes.includes('c')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'c', true);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +c\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +c\r\n`);
-                            } else if (mode.startsWith('-c')) {
-                                if (!this.isIRCOp(socket.nickname)) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                                    this.debugLog('warn', `User ${socket.nickname} attempted to unset +c mode without being an IRC operator`);
-                                    break;
-                                }
-                                if (!usermodes.includes('c')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'c', false);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -c\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -c\r\n`);
-                            } else if (mode.startsWith('+i')) {
-                                if (usermodes.includes('i')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'i', true);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +i\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +i\r\n`);
-                            } else if (mode.startsWith('-i')) {
-                                if (!usermodes.includes('i')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'i', false);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -i\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -i\r\n`);
-                            } else if (mode.startsWith('+s')) {
-                                if (usermodes.includes('s')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 's', true);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +s\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +s\r\n`);
-                            } else if (mode.startsWith('-s')) {
-                                if (!usermodes.includes('s')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 's', false);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -s\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -s\r\n`);
-                            } else if (mode.startsWith('+B')) {
-                                if (usermodes.includes('B')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'B', true);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +B\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +B\r\n`);
-                            } else if (mode.startsWith('-B')) {
-                                if (!usermodes.includes('B')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'B', false);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -B\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -B\r\n`);                                
-                            } else if (mode.startsWith('+R')) {
-                                if (usermodes.includes('R')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'R', true);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +R\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +R\r\n`);
-                            } else if (mode.startsWith('-R')) {
-                                if (!usermodes.includes('R')) {
-                                    break;
-                                }                                
-                                this.setUserMode(socket.nickname, 'R', false);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -R\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -R\r\n`);
-                            } else if (mode.startsWith('+z') || mode.startsWith('-z')) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :is set by the server and cannot be changed\r\n`);
-                            } else if (mode.startsWith('+r') || mode.startsWith('-r')) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :is set by the server and cannot be changed\r\n`);
-                            } else if (mode.startsWith('+Z')) {
-                                if (!socket.secure) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :You must be secure to set this mode\r\n`);
-                                    break;
-                                }
-                                if (usermodes.includes('Z')) {
-                                    break;
-                                }
-                                this.setUserMode(socket.nickname, 'Z', true);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} +Z\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} +Z\r\n`);
-                            } else if (mode.startsWith('-Z')) {
-                                if (!socket.secure) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :You must be secure to set this mode\r\n`);
-                                    break;
-                                }
-                                if (!usermodes.includes('Z')) {
-                                    break;
-                                }
-                                this.setUserMode(socket.nickname, 'Z', false);
-                                await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${socket.nickname} -Z\r\n`);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} MODE ${socket.uniqueId} -Z\r\n`);
-                            } else {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 472 ${socket.nickname} ${mode.slice(1)} :is unknown mode char to me\r\n`);
-                            }
-                        }
-                        break;
-                    }
-                    if (!mode) {
-                        // List channel modes
-                        if (!this.checkRegistered(socket)) {
-                            break;
-                        }
-                        let validPrefix = this.channelprefixes.some(prefix => channel.startsWith(prefix));
-                        if (!validPrefix) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 476 ${socket.nickname} ${channel} :Bad channel mask\r\n`);
-                            break;
-                        }
-                        if (!this.channelData.has(channel)) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
-                            break;
-                        }
-                        var chan_modes = this.channelData.get(channel).modes;
+    async processServerData(socket, line) {
+        // Only authorized server links may use the full server command surface.
+        // Pre-auth handshake commands (PASS/CAPAB/SERVER/SVINFO) are allowed before authorization.
+        if (!socket.linkState) {
+            socket.linkState = 'none';
+        }
+        const parts = line.split(' ');
+        let workingParts = parts.slice();
+        let sourcePrefix = null;
+        if (workingParts[0] && workingParts[0].startsWith(':')) {
+            sourcePrefix = workingParts[0].slice(1);
+            workingParts.shift();
+        }
+        if (workingParts.length < 1) return;
+        const command = workingParts[0].toUpperCase();
+        const handshakeCommands = ['PASS', 'CAPAB', 'SERVER', 'SVINFO'];
+        const isHandshake = handshakeCommands.includes(command) && !sourcePrefix;
 
-                        chan_modes = chan_modes.map(mode => {
-                            if (typeof mode === 'string' && !mode.startsWith('+')) {
-                                return '+' + mode;
-                            }
-                            return mode;
-                        });
-                        if (chan_modes.length > 0) {
-                            var params2 = [];
-                            // Batch all modes into a single 324 reply
-                            var modeString =
-                                chan_modes.map(m => {
-                                    // For modes with parameters (like k <key> or l<limit>)
-                                    if (typeof m === 'string' && (m === '+k' || m === '+l')) {
-                                        if (m === '+l') {
-                                            params2.push(this.channelData.get(channel).limit);
-                                        } else if (m === '+k') {
-                                            params2.push(this.channelData.get(channel).key);
-                                        }
-                                        return m.replace(/^\+/, '');
-                                    }
-                                    return m.replace(/^\+/, ''); // Remove leading '+' for other modes
-                                })
-                                .join('');
-                            params2.forEach(param => {
-                                if (param) {
-                                    modeString += ` ${param}`;
-                                }
-                            });
-                            await this.safeWriteToSocket(socket, `:${this.servername} 324 ${socket.nickname} ${channel} +${modeString}\r\n`);
-                        } else {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 324 ${socket.nickname} ${channel}\r\n`);
-                        }
-                        await this.safeWriteToSocket(socket, `:${this.servername} 329 ${socket.nickname} ${channel} ${this.channelData.get(channel).timestamp || M}\r\n`);
-                        break;
-                    } else {
-                        // Process channel mode changes
-                        await this.processChannelModes(socket.nickname, channel, mode, params.slice(2), socket);
-                        break;
-                    } 
-                case 'NICK':
-                    var old_nickname = socket.nickname;
-                    var new_nickname = params[0];
-                    if (new_nickname && new_nickname.startsWith(':')) {
-                        new_nickname = new_nickname.slice(1);
-                    }
-                    if (!new_nickname || new_nickname.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 431 * :No nickname\r\n`);
-                        break;
-                    }
-                    
-                    // Sanitize nickname input
-                    const sanitized_nickname = this.sanitizeInput(new_nickname, 'nickname');
-                    if (sanitized_nickname !== new_nickname || sanitized_nickname.length === 0) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 432 * ${new_nickname} :Erroneus nickname (invalid characters)\r\n`);
-                        this.logSecurityEvent('INVALID_NICKNAME', socket, { provided: new_nickname, sanitized: sanitized_nickname });
-                        break;
-                    }
-                    new_nickname = sanitized_nickname;
-                    
-                    if (new_nickname.length > this.nicklen) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 432 * ${new_nickname} :Erroneus nickname (too long)\r\n`);
-                        break;
-                    }                    
-                    if (this.findUser(new_nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 433 * ${new_nickname} :Nickname is already in use\r\n`);
-                        break; 
-                    }
-                    for (const prefix of this.channelprefixes) {
-                        if (new_nickname.startsWith(prefix)) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 432 * ${new_nickname} :Erroneus nickname (you are not a channel)\r\n`);
-                            return;
-                        }
-                    }
-                    for (let i = 0; i < new_nickname.length; i++) {
-                        if (!this.allowed_nick_characters.includes(new_nickname[i])) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 432 * ${new_nickname} :Erroneus nickname (invalid character)\r\n`);
-                            return;
-                        }
-                    }
-                    if (this.reservednicks && Array.isArray(this.reservednicks)) {
-                        if (this.reservednicks.some(nick => nick.toLowerCase() === new_nickname.toLowerCase())) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 432 * ${new_nickname} :This nickname is reserved\r\n`);
-                            break;
-                        }
-                    }
-                    // Prevent nick change if user is in any channel with +N mode
-                    let inNoNickChangeChannel = false;
-                    for (const [ch, channelObj] of this.channelData.entries()) {
-                        if (channelObj.users.has(socket.nickname)) {
-                            const chanModes = this.channelData.get(ch).modes;
-                            if (chanModes.includes('N')) {
-                                inNoNickChangeChannel = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (inNoNickChangeChannel) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 447 * :You cannot change your nickname while in a +N (no nick change) channel\r\n`);
-                        break;
-                    }
+        if (!isHandshake && !(socket.isserver && socket.is_srv_authorized)) {
+            this.debugLog('warn', `Rejecting server command ${command} from unauthorized socket`);
+            await this.safeWriteToSocket(socket, `:${this.servername} ERROR :Unauthorized\r\n`);
+            this.addSocketError(socket);
+            return;
+        }
 
-                    if (!socket.nickname) {
-                        // If no nickname is set, set it now
-                        socket.nickname = new_nickname;
-                        this.nicknames.set(socket, socket.nickname);
-                    } else if (socket.nickname != new_nickname) {                        
-                        this.processNickChange(socket, new_nickname);
-                        if (socket.registered) {
-                            await this.safeWriteToSocket(socket, `:${old_nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`);
-                            await this.broadcastUser(socket.nickname, `:${old_nickname}!${socket.username}@${socket.host} NICK :${new_nickname}\r\n`, socket);                        
-                            await this.broadcastToAllServers(`:${socket.uniqueId} NICK ${new_nickname} :${this.getDate()}\r\n`);
-                        }
-                    }
-                    if (!socket.registered && socket.nickname && socket.username) {
-                        var totalSockets = this.clients.length + this.servers.size;
-                        var totalSockets = this.clients.length + this.servers.size;
-                        this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
-                        this.usernames.set(socket.nickname, socket.username);
-                        socket.lastspoke = this.getDate();
-                        this.usersignontimestamps.set(socket.nickname, socket.timestamp);
-                        this.doLogin(socket.nickname, socket);
-                    }
-                    break;
-                case 'USER':
-                    if (params.length < 4) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} USER :Not enough parameters\r\n`);
-                        this.addSocketError(socket);
-                        break;
-                    }
-                    socket.username = params[0];
-                    socket.userinfo = params.slice(3).join(' ').replace(/^:/, '');
-                    if (!socket.registered && socket.nickname && socket.username) {
-                        var totalSockets = this.clients.length + this.servers.size;
-                        this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
-                        this.usernames.set(socket.nickname, socket.username);
-                        socket.lastspoke = this.getDate();
-                        this.usersignontimestamps.set(socket.nickname, socket.timestamp);
-                        this.doLogin(socket.nickname, socket);
-                    }
-                    break;
-                case 'JOIN':
-                    var key = null;
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    channel = params[0];
-                    if (params.length == 2) {
-                        key = params[1];
-                    }
-                    if (channel.includes(',')) {
-                        var channels = channel.split(',');
-                    } else {
-                        var channels = [channel];
-                    }
-                    for (var ch of channels) {
-                        // Simulate a JOIN command for each channel
-                        for (let i = 0; i < ch.length; i++) {
-                            if (i == 0 && !this.channelprefixes.includes(ch[0])) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
-                                return;
-                            } 
-                            if (this.channelprefixes.includes(ch[1])) {
-                                ch = ch.slice(1); // Remove double prefix
-                            }
-                            for (let j = 0; j < ch.slice(1).length; j++) {
-                                if (!this.allowed_chan_characters.includes(ch.slice(1)[j])) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
-                                    return;
-                                }
-                            }                            
-                        }
-                        if (this.getUserChannelCount(socket.nickname) >= this.channellimit) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 405 ${socket.nickname} ${ch} :Too many channels\r\n`);
-                            continue; // Skip joining this channel
-                        }     
-                        var validChannel = false;
-                        this.channelprefixes.forEach(prefix => {
-                            if (ch.startsWith(prefix)) {
-                                validChannel = true;
-                            }
-                        });
-                        if (!validChannel) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
-                            continue; // Skip this channel
-                        }
-                        if (ch.length < 2 || ch.length > this.channellen) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
-                            continue; // Skip this channel
-                        }
-                        let foundChannel = null;
-                        for (const existingChannel of this.channelData.keys()) {
-                            if (existingChannel.toLowerCase() === ch.toLowerCase()) {
-                                foundChannel = existingChannel;
-                                break;
-                            }
-                        }
-                        if (foundChannel) {
-                            ch = foundChannel;
-                        } else {
-                            this.createChannel(ch, socket.nickname);
-                        }
+        // Enforce handshake ordering for bare handshake commands (pass → capab → server → svinfo → burst → eob).
+        if (isHandshake) {
+            const order = {
+                none: ['PASS'],
+                pass: ['PASS', 'CAPAB', 'SERVER'],
+                capab: ['CAPAB', 'SERVER'],
+                server: ['SVINFO'],
+                svinfo: ['SVINFO'],
+                burst: ['SVINFO'],
+                eob: []
+            };
+            const allowed = order[socket.linkState];
+            if (Array.isArray(allowed) && !allowed.includes(command)) {
+                this.debugLog('warn', `Rejecting out-of-order handshake ${command} (linkState=${socket.linkState})`);
+                await this.safeWriteToSocket(socket, `:${this.servername} ERROR :Out of order command\r\n`);
+                this.addSocketError(socket);
+                return;
+            }
+        }
 
-                        var joinLine = '';
-                        if (key) {
-                            joinLine = `JOIN ${ch} ${key}`;
-                        } else {
-                            joinLine = `JOIN ${ch}`;
-                        }                                               
-                        const [command, ...params] = joinLine.trim().split(' ');
-                        
-                        const chmodes = this.channelData.get(ch).modes;
-                        if (this.isBanned(ch, socket)) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 474 ${socket.nickname} ${ch} :Cannot join channel (+b)\r\n`);
-                            continue; // Skip joining this channel
-                        }
-                        // Check if the user is in too many channels                       
-                        if (chmodes.includes('k')) {
-                            const channelKey = this.channelData.get(ch).key;
-                            // The key must be provided as the second parameter in the JOIN command
-                            // params[1] is the key for the first channel, params[2] for the second, etc.
-                            // For simplicity, assume only one channel per JOIN or the key is always params[1]
-                            const providedKey = params[1];
-                            if (!providedKey || providedKey !== channelKey) {
-                                var code = (this.clientIsWebTV(socket) ? 474 : 475);
-                                await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+k)\r\n`);
-                                continue; // Skip joining this channel
-                            }
-                        }
-                        if (chmodes.includes('l')) {
-                            // Channel has a user limit (+l)
-                            const limit = this.channelData.get(ch).limit;
-                            if (limit !== null && this.channelData.get(ch).users.size >= limit) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 471 ${socket.nickname} ${ch} :Cannot join channel (+l)\r\n`);
-                                continue; // Skip joining this channel
-                            }
-                        }
-                        if (chmodes.includes('i')) {
-                            // Channel is invite-only (+i)
-                            const invited = this.channelData.get(ch).inviteexceptions;
-                            let isInvited = false;
-                            for (const inviteMask of invited) {
-                                isInvited = this.checkMask(inviteMask, socket);
-                                if (isInvited) {
-                                    break; // Stop checking if we found a match
-                                }
-                            }
-                            if (!this.channelData.get(ch).invites.has(socket.nickname) && !isInvited) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 473 ${socket.nickname} ${ch} :Cannot join channel (+i)\r\n`);
-                                continue; // Skip joining this channel
-                            }
-                            if (!this.channelData.get(ch).invites.has(socket.nickname)) {
-                                this.channelData.get(ch).invites.delete(socket.nickname);
-                            }
-                        }
-                        if (chmodes.includes('O')) {
-                            if (!this.isIRCOp(socket.nickname)) {
-                                var code = (this.clientIsWebTV(socket) ? 474 : 404);
-                                await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+O)\r\n`);
-                                continue; // Skip joining this channel
-                            }
-                        }
-                        if (chmodes.includes('S')) {
-                            // Channel is restricted to users with a secure connection (+S)
-                            if (!socket.secure) {
-                                var code = (this.clientIsWebTV(socket) ? 474 : 468);
-                                await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+S)\r\n`);
-                                continue; // Skip joining this channel
-                            }
-                        }
-                        if (chmodes.includes('R')) {
-                            // Channel is registered users only (+R)
-                            if (!this.getUserModes(socket.nickname).includes('r')) {
-                                var code = (this.clientIsWebTV(socket) ? 474 : 447);
-                                await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+R)\r\n`);
-                                continue; // Skip joining this channel
-                            }
-                        }
+        if (/^\d{3}$/.test(command)) {
+            await this.handleServerNumericReply(socket, command, workingParts, line);
+            return;
+        }
 
-                        // If we reach here, the user can join the channel
-                        // Reuse the JOIN logic for each channel
-                        // Only run the code after $PLACEHOLDER$ for each channel
-                        // (excluding the code before $PLACEHOLDER$ to avoid duplicate checks)
-                        // You can refactor this logic into a helper if needed
-                        socket.lastspoke = this.getDate();
-                        if (!this.channelData.has(ch)) {
-                            this.createChannel(ch, socket.nickname);
-                        }
-                        var channelObj = this.channelData.get(ch);
-                        channelObj.users.add(socket.nickname);
-                        await this.broadcastChannelJoin(ch, socket);
+        if (sourcePrefix && !this.linkOwnsUid(socket, sourcePrefix) && command !== 'SERVER' && command !== 'SID') {
+            this.debugLog('warn', `Rejecting prefixed ${command} from ${socket.servername}: UID ${sourcePrefix} not owned by link`);
+            return;
+        }
 
-                        let modes = channelObj.modes;         
-                        let prefix = '';
-                        if (channelObj.ops.has(socket.nickname)) {
-                            if (socket.client_caps.includes('multi-prefix')) {
-                                prefix += '@';
-                            } else {
-                                prefix = '@';
-                            }
-                        }
-                        if (channelObj.halfops.has(socket.nickname)) {
-                             if (socket.client_caps.includes('multi-prefix')) {
-                                prefix += '%';
-                            } else {
-                                if (!prefix) {
-                                    prefix = '%';
-                                }
-                            }
-                        }
-                        if (channelObj.voices.has(socket.nickname)) {
-                            if (socket.client_caps.includes('multi-prefix')) {
-                                prefix += '+';
-                            } else {
-                                if (!prefix) {
-                                    prefix = '+';
-                                }
-                            }
-                        }
-                        await this.broadcastToAllServers(`:${this.serverId} SJOIN ${this.getDate()} ${ch} +${modes.join('')} :${prefix}${socket.uniqueId}\r\n`);
-                        if (channelObj.topic) {
-                            const topic = channelObj.topic;
-                            if (topic) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 332 ${socket.nickname} ${ch} :${topic}\r\n`);
-                            }
-                        }
-                        var users = this.getUsersInChannel(ch);
-                        output_lines = [];
-                        var prefixRegex = new RegExp(`^[${this.supported_prefixes[1]}]`);
-                        if (users.length > 0) {
-                            users.sort((a, b) => {
-                                // Remove any prefixes for comparison                                
-                                const cleanA = a.replace(prefixRegex, '');
-                                const cleanB = b.replace(prefixRegex, '');
-                                // Get privilege for each user
-                                var channelObj = this.channelData.get(ch);
-                                function getPriv(user) {
-                                    if (channelObj.ops.has(user)) return 1;
-                                    if (channelObj.halfops.has(user)) return 2;
-                                    if (channelObj.voices.has(user)) return 3;
-                                    return 4;
-                                }
-                                const privA = getPriv(cleanA);
-                                const privB = getPriv(cleanB);
-                                if (privA !== privB) return privA - privB;
-                                // If same privilege, sort alphabetically (case-insensitive)
-                                return cleanA.localeCompare(cleanB, undefined, { sensitivity: 'base' });
-                            });
-                            if (socket.client_caps.includes('userhost-in-names')) {
-                                const userHosts = users.map(user => {
-                                    var nick = this.findUser(user.replace(prefixRegex, ''));
-                                    var username = this.usernames.get(nick) || 'unknown';
-                                    var host = this.hostnames.get(nick) || 'unknown';
-                                    return `${user}!${username}@${host}`;
-                                });
-                                output_lines.push(`:${this.servername} 353 ${socket.nickname} = ${ch} :${userHosts.join(' ')}\r\n`);
-                            } else {
-                                output_lines.push(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
-                            }
-                        }
-                        output_lines.push(`:${this.servername} 366 ${socket.nickname} ${ch} :End of /NAMES list\r\n`);
-                        await this.sendThrottled(socket, output_lines, 0);
-                        if (this.isReservedChannel(ch)) {
-                            if (this.checkIfReservedChannelOp(socket, ch)) {
-                                this.channelData.get(ch).ops.add(socket.nickname);
-                                await this.broadcastChannel(ch, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${ch} +o ${socket.nickname}\r\n`);
-                            }
-                        }
-                        var awaymsg = this.awaymsgs.get(socket.nickname);
-                        if (awaymsg) {
-                            await this.broadcastUserIfCap(socket, `:${socket.nickname}!${socket.username}@${socket.host} AWAY :${awaymsg}\r\n`, socket, 'away-notify');
-                        }
-                        if (
-                            this.irc_config &&
-                            Array.isArray(this.irc_config.channels)
-                        ) {
-                            const channel_data = this.irc_config.channels.find(cfg => cfg.name === ch);
-                            if (channel_data && channel_data.intro) {
-                                // Send intro messages (array of lines) to the joining user only
-                                for (const line of channel_data.intro) {
-                                    await this.safeWriteToSocket(socket, `:${ch}!system@${this.servername} PRIVMSG ${ch} :${line}\r\n`);
-                                }
-                            }
-                        }                        
-                        if (this.clientIsWebTV(socket) && this.enable_webtv_command_hacks) {
-                            output_lines = [];
-                            var channelObj = this.channelData.get(ch);
-                            output_lines.push("You have joined " + ch);
-                            output_lines.push("Current channel modes: +" + channelObj.modes.join(''));
-                            let isOp = channelObj.ops.has(socket.nickname);
-                            let isHalfOp = channelObj.halfops.has(socket.nickname);
-                            let isVoice = channelObj.voices.has(socket.nickname);
-                            if (isOp) {
-                                output_lines.push("You are a channel operator (@) in " + ch);
-                            } else if (isHalfOp) {
-                                output_lines.push("You are a channel half-operator (%) in " + ch);
-                            } else if (isVoice) {
-                                output_lines.push("You are voiced (+) in " + ch);
-                            }
-                            this.sendWebTVSpoofedActionTo(socket, ch, output_lines);
-                        }
-                    }
-                    break;
-                case 'NAMES':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} NAMES :Not enough parameters\r\n`);
-                        break;
-                    }
-                    channel = this.findChannel(params[0]);
-                    if (!channel || !this.channelData.has(channel)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
-                        break;
-                    }
-                    var users = this.getUsersInChannel(channel);
-                    output_lines = [];
-                    if (users.length > 0) {
-                        if (socket.client_caps.includes('userhost-in-names')) {
-                            const userHosts = users.map(user => {
-                                var prefixRegex = new RegExp(`^[${this.supported_prefixes[1]}]`);
-                                var nick = this.findUser(user.replace(prefixRegex, ''));
-                                var username = this.usernames.get(nick) || 'unknown';
-                                var host = this.hostnames.get(nick) || 'unknown';
-                                return `${user}!${username}@${host}`;
-                            });
-                            output_lines.push(`:${this.servername} 353 ${socket.nickname} = ${ch} :${userHosts.join(' ')}\r\n`);
-                        } else {
-                            output_lines.push(`:${this.servername} 353 ${socket.nickname} = ${ch} :${users.join(' ')}\r\n`);
-                        }
-                    }
-                    output_lines.push(`:${this.servername} 366 ${socket.nickname} ${channel} :End of /NAMES list\r\n`);
-                    await this.sendThrottled(socket, output_lines);
-                    break;
-                case 'PART':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    channel = this.findChannel(params[0]);
-                    if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 442 ${socket.nickname} ${channel} :You're not on that channel\r\n`);
-                        break;
-                    }
-                    if (this.channelData.get(channel).ops.has(socket.nickname)) {
-                        this.channelData.get(channel).ops.delete(socket.nickname);
-                    }
-                    if (this.channelData.get(channel).halfops.has(socket.nickname)) {
-                        this.channelData.get(channel).halfops.delete(socket.nickname);
-                    }
-                    if (this.channelData.get(channel).voices.has(socket.nickname)) {
-                        this.channelData.get(channel).voices.delete(socket.nickname);
-                    }                                        
-                    socket.lastspoke = this.getDate();
-                    if (params.length == 2) {
-                        let reason = params.join(' ');
-                        if (reason.startsWith(':')) {
-                            reason = reason.slice(1);
-                        }
-                        await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} PART ${channel} :${reason}\r\n`);
-                        await this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} PART ${channel} :${reason}\r\n`, socket);
-                    } else {
-                        await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} PART ${channel}\r\n`);
-                        await this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} PART ${channel}\r\n`, socket);
-                    }
-                    if (this.channelData.has(channel)) {
-                        this.channelData.get(channel).users.delete(socket.nickname);
-                        if (this.channelData.get(channel).users.size === 0) {
-                            this.deleteChannel(channel);
-                        }
-                    }
-                    await this.broadcastToAllServers(`:${socket.uniqueId} PART ${channel}\r\n`);
-                    break;
-                case 'INVITE':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (params.length < 2) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} INVITE :Not enough parameters\r\n`);
-                        break;
-                    }
-                    const invitee = this.findUser(params[0]);
-                    channel = this.findChannel(params[1]);
-                    if (!invitee || !channel) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
-                        break;
-                    }
-                    if (!this.channelData.has(channel)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
-                        break;
-                    }
-                    if (!this.channelData.get(channel).ops.has(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.socket.nickname} ${channel} :You're not channel operator\r\n`);
-                        break;
-                    }
-                    if (!this.nicknames.has(socket)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${invitee} :No such nick/channel\r\n`);
-                        break;
-                    }
-                    const inviteeSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === invitee);
-                    if (!inviteeSocket) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${invitee} :No such nick/channel\r\n`);
-                        break;
-                    }
-                    if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(invitee)) {
-                        if (this.channelData.get(channel).modes.includes('V')) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${channel} :Cannot invite users, channel is +V (no invites allowed)\r\n`);
-                            break;
-                        }
-                        const invited = this.channelData.get(channel).invites;
-                        invited.add(invitee);
-                        await this.safeWriteToSocket(socket, `:${this.servername} 341 ${socket.nickname} ${invitee} ${channel} :Invited to channel\r\n`);
-                        await this.broadcastUserIfCapAndChanOp(socket, `:${socket.nickname}!${socket.username}@${socket.host} INVITE ${invitee} ${channel}`, socket, 'invite-notify', channel);
-                        await this.safeWriteToSocket(inviteeSocket, `:${this.servername} 341 ${socket.nickname} ${invitee} ${channel} :You have been invited to join ${channel}\r\n`);
-                        break;
-                    } else {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 443 ${socket.nickname} ${invitee} ${channel} :${invitee} is already on that channel\r\n`);
-                        break;
-                    }
-                case 'LIST':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }                    let channelsToList;
-                    if (params.length > 0 && params[0]) {
-                        channelsToList = params[0].split(',').filter(ch => ch.length > 0);
-                    } else {
-                        channelsToList = Array.from(this.channelData.keys());
-                    }
-                    await this.safeWriteToSocket(socket, `:${this.servername} 321 ${socket.nickname} :Channel :Users :Topic\r\n`);
-                    for (const channel of channelsToList) {
-                        if (!this.channelprefixes.some(prefix => channel.startsWith(prefix))) {
-                            continue; // Skip invalid channel names
-                        }
-                        var modes = this.channelData.get(channel).modes;
-                        if (modes.includes('p')) {
-                            if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(socket.nickname)) {
-                                continue; // Skip if user is not in the channel
-                            }
-                        }
-                        if (modes.includes('s')) {
-                            if (!this.channelData.has(channel) || !this.channelData.get(channel).users.has(socket.nickname)) {
-                                continue; // Skip if user is not in the channel
-                            }
-                        }
-                        const users = this.getUsersInChannel(channel);
-                        const topic = this.channelData.get(channel).topic;
-                        await this.safeWriteToSocket(socket, `:${this.servername} 322 ${socket.nickname} ${channel} ${users.length} :${topic}\r\n`);
-                    }
-                    await this.safeWriteToSocket(socket, `:${this.servername} 323 ${socket.nickname} :End of /LIST\r\n`);
-                    break;
-                case 'WHO':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!params[0]) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} WHO :Not enough parameters\r\n`);
-                        break;
-                    }
-                    const target = this.findChannel(params[0]);
-                    if (!target) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
-                        break;
-                    }
-
-                    var isChannel = false;
-                    for (const prefix of this.channelprefixes) {
-                        if (target.startsWith(prefix)) {
-                            isChannel = true;
-                            break;
-                        }
-                    }
-                    if (isChannel) {
-                        // WHO for channel
-                        const modes = this.channelData.get(target).modes
-                        if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(target) || !this.channelData.get(target).users.has(socket.nickname))) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
-                            break;
-                        }
-                        if (this.channelData.has(target)) {
-                            const users = this.channelData.get(target).users;
-                            for (const user of users) {
-                                let cleanUser = user;
-                                if (!user) {
-                                    continue; // Skip empty users
-                                }
-                                if (['@', '%', '+'].includes(cleanUser[0])) {
-                                    cleanUser = cleanUser.slice(1);
-                                }
-                                var hostname = this.hostnames.get(cleanUser);
-                                var username = this.usernames.get(cleanUser) || cleanUser;
-                                var whoisSocket = Array.from(this.nicknames.keys()).find(
-                                    s => this.nicknames.get(s).toLowerCase() === cleanUser.toLowerCase()
-                                );
-                                if (!whoisSocket) {
-                                    // try to get server socket
-                                    whoisSocket = this.getRemoteServerUserSocket(cleanUser);                                    
-                                }
-                                var userSecure = false;
-                                if (whoisSocket) {
-                                    userSecure = whoisSocket.secure;
-                                }
-                                let prefix = '';
-                                var channelObj = this.channelData.get(target);                              
-                                if (channelObj.ops.has(cleanUser)) {
-                                    prefix = '@';
-                                } else if (channelObj.halfops.has(cleanUser)) {
-                                    prefix = '%';
-                                } else if (channelObj.voices.has(cleanUser)) {
-                                    prefix = '+';
-                                }
-                                var userinfo = this.userinfo.get(cleanUser) || cleanUser;
-                                var flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(userSecure) ? 'z' : ''}`
-                                var secondsIdle = (this.getDate() - whoisSocket.lastspoke);
-                                await this.safeWriteToSocket(socket, `:${this.servername} 352 ${socket.nickname} ${target} ${username} ${hostname} ${this.servername} ${cleanUser} ${flags} 0 ${secondsIdle} 0 :${userinfo}\r\n`);
-                            }
-                        }
-                        await this.safeWriteToSocket(socket, `:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
-                    } else {
-                        // WHO for nickname
-                        output_lines = [];
-                        if (target.includes('*') || target.includes('?')) {
-                            // Wildcard mask search for nicknames
-                            const maskRegex = new RegExp('^' + target.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
-                            let found = false;
-                            for (const [sock, nick] of this.nicknames.entries()) {
-                                if (maskRegex.test(nick)) {
-                                    if (this.getUserModes(nick).includes('s')) {
-                                        continue;
-                                    }
-                                    found = true;
-                                    output_lines.push(`:${this.servername} 352 ${socket.nickname} * ${nick} ${sock.host} ${this.servername} ${nick} ${(this.awaymsgs.has(nick)) ? 'G' : 'H'}${(sock.secure) ? 'z' : ''} :0 ${sock.userinfo}\r\n`);
-                                }
-                            }
-                            if (!found) {
-                                output_lines.push(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);
-                            }
-                            output_lines.push(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
-                            await this.sendThrottled(socket, output_lines);
-                            break;
-                        } else {
-                            var whoisSocket = Array.from(this.nicknames.keys()).find(
-                                s => this.nicknames.get(s).toLowerCase() === target.toLowerCase()
-                            );
-                            if (whoisSocket) {
-                                if (this.getUserModes(whoisSocket.nickname).includes('s')) {
-                                    // Skip invisible users
-                                    output_lines.push(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
-                                    break;
-                                }
-                                output_lines.push(`:${this.servername} 352 ${socket.nickname} * ${whoisSocket.nickname} ${whoisSocket.host} ${this.servername} ${whoisSocket.nickname} ${(this.awaymsgs.has(target)) ? 'G' : 'H'}${(whoisSocket.secure) ? 'z' : ''} :0 ${whoisSocket.userinfo}\r\n`);
-                            } else {
-                                output_lines.push(`:${this.servername} 401 ${socket.nickname} ${target} :No such nick/channel\r\n`);
-                            }
-                            output_lines.push(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
-                            await this.sendThrottled(socket, output_lines);
-                            break;
-                        }
-                    }
-                    break;
-                case 'PRIVMSG':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    socket.lastspoke = this.getDate();
-                    if (params[0]) {
-                        const target = params[0];
-                        let targets = target.includes(',') ? target.split(',') : [target];
-                        if (targets.length > this.maxtargets) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 407 ${socket.nickname} :Too many targets. Maximum allowed is ${this.maxtargets}\r\n`);
-                            return;
-                        }
-                        for (var t of targets) {
-                            if (t === this.servername) {
-                                var msg = line.slice(line.indexOf(':', 1) + 1);
-                                if (msg.startsWith("\x01VERSION")) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :${this.servername} zefIRCd ${this.version} - zefIRCd IRC server - a part of the zefie minisrv project\r\n`);
-                                    break;
-                                }
-                                if (msg.startsWith("\x01PING")) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :\x01PING ${this.getDate()}\r\n`);
-                                    break;
-                                }
-                                if (msg.startsWith("\x01TIME")) {
-                                    const dateObj = new Date();
-                                    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-                                    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                                    const pad = n => n.toString().padStart(2, '0');
-                                    const formattedDate = `${dayNames[dateObj.getDay()]} ${monthNames[dateObj.getMonth()]} ${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:${pad(dateObj.getSeconds())} ${dateObj.getFullYear()}`;
-                                    await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :\x01TIME ${formattedDate}\x01\r\n`);
-                                    break;
-                                }
-                            }
-                            let isChan = false;
-                            for (const prefix of this.channelprefixes) {
-                                if (t.startsWith(prefix)) {
-                                    isChan = true;
-                                    t = this.findChannel(t);
-                                    break;
-                                }
-                            }
-                            if (!t) {
-                                t = this.findUser(t);
-                                isChan = false;
-                            }                            
-                            if (!t) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
-                                continue;
-                            }
-                            var channelObj = this.channelData.get(t);                            
-                            var msg = line.slice(line.indexOf(':', 1) + 1);
-                            if (isChan) {
-                                // Channel message
-                                if (channelObj.modes.includes('m')) {
-                                    // Channel is moderated (+m)
-                                    
-                                    if (!channelObj.voices.has(socket.nickname && !channelObj.ops.has(socket.nickname) && !channelObj.halfops.has(socket.nickname))) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+m)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('n')) {
-                                    // Channel is no-external-messages (+n)
-                                    if (!channelObj.users.has(socket.nickname)) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+n)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('c')) {
-                                    // Block all IRC control codes (ASCII 0x00-0x1F except \r and \n)
-                                    if (/[\x00-\x09\x0B\x0C\x0E-\x1F]/.test(msg)) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+c)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('C')) {
-                                    // channel blocks CTCP, detect if the message contains CTCPS
-                                    if (msg.includes('\x01')) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+C)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('O')) {
-                                    if (!this.isIRCOp(socket.nickname)) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+O)\r\n`);
-                                    }
-                                }
-                            }
-                            if (isChan) {
-                                if (!this.channelData.has(t)) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${t} :No such channel\r\n`);
-                                    continue;
-                                }
-                                if (this.clientIsWebTV(socket) && msg.startsWith('/') && this.enable_webtv_command_hacks) {
-                                    var wtvcmd = msg.slice(1).split(' ');
-                                    if (wtvcmd[0].length > 0) {
-                                        if (this.supported_webtv_command_hacks.includes(wtvcmd[0].toUpperCase())) {
-                                            var wtvstr = `${wtvcmd[0].toUpperCase()} ${wtvcmd.splice(1).join(' ')}\r\n`;
-                                            this.processSocketData(socket, wtvstr);
-                                        }
-                                    }
-                                    continue;
-                                }                                
-                                await this.broadcastChannel(t, `:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${t} :${msg}\r\n`, socket);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} PRIVMSG ${t} :${msg}\r\n`);
-                            } else {
-                                if (this.awaymsgs.has(t)) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 301 ${socket.nickname} ${t} :${this.awaymsgs.get(t)}\r\n`);
-                                }
-                                var targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === t.toLowerCase());
-                                if (!targetSock) {
-                                    // check remote servers
-                                    targetSock = this.getRemoteServerUserSocket(t);
-                                    if (targetSock) {
-                                        const sender_id = this.getUniqueId(socket.nickname);
-                                        const unique_id = this.getUniqueId(t);
-                                        targetSock.write(`:${sender_id} PRIVMSG ${unique_id} :${msg}\r\n`);
-                                        break;
-                                    }
-                                }
-                                if (!targetSock) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
-                                    continue;
-                                }
-                                var targetUserModes = this.getUserModes(t);
-                                var usermodes = this.getUserModes(socket.nickname);
-                                if (targetUserModes.includes('R')) {
-                                    if (!usermodes.includes('r')) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 447 ${socket.nickname} ${t} :Cannot send to user (+R)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (targetUserModes.includes('Z') && !socket.secure) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to user (+Z)\r\n`);
-                                    continue;
-                                }
-                                if (!usermodes || usermodes === true) {
-                                    usermodes = [];
-                                }
-                                if (usermodes.includes('Z') && !targetUserModes.includes('Z')) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to non-+Z user while you are +Z\r\n`);
-                                    continue;
-                                }
-                                targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${targetSock.nickname} :${msg}\r\n`);
-                                if (socket.client_caps.includes('echo-message')) {
-                                    await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${targetSock.nickname} :${msg}\r\n`);
-                                }
-                            }
-                        }
-                        return;
-                    }
-                    break;
-                case 'NOTICE':
-                    if (!this.checkRegistered(socket, false, true) && params[0] !== this.servername) {                        
-                        break;
-                    }
-                    socket.lastspoke = this.getDate();
-                    if (params[0]) {
-                        const target = params[0];
-                        let targets = target.includes(',') ? target.split(',') : [target];
-                        if (targets.length > this.maxtargets) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 407 ${socket.nickname} :Too many targets. Maximum allowed is ${this.maxtargets}\r\n`);
-                            return;
-                        }
-                        for (const t of targets) {
-                            let isChan = false;
-                            if (t === this.servername) { 
-                                // client responding to a system message
-                                var msg = line.slice(line.indexOf(':', 1) + 1);
-                                if (msg.startsWith('\x01VERSION')) {
-                                    socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
-                                    break;
-                                }
-                            }
-                            for (const prefix of this.channelprefixes) {
-                                if (t.startsWith(prefix)) {
-                                    isChan = true;
-                                    t = this.findChannel(t);
-                                    break;
-                                }
-                            }
-                            if (!t) {
-                                t = this.findUser(t);
-                                isChan = false;
-                            }                            
-                            if (!t) {
-                                await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
-                                continue;
-                            }
-                            var channelObj = this.channelData.get(t);
-                            var msg = line.slice(line.indexOf(':', 1) + 1);
-                            if (isChan) {
-                                if (!this.channelData.has(t)) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${t} :No such channel\r\n`);
-                                    continue;
-                                }
-                                // Channel notice
-                                if (channelObj.modes.includes('n')) {
-                                    // Channel is no-external-messages (+n)
-                                    if (!this.channelData.get(t).users.has(socket.nickname)) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+n)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('c')) {
-                                    // channel blocks color, detect if the message contains color codes
-                                    if (/[\x00-\x09\x0B\x0C\x0E-\x1F]/.test(msg)) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+c)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('C')) {
-                                    // channel blocks CTCP, detect if the message contains CTCPS
-                                    if (msg.includes('\x01')) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+C)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('T')) {
-                                    if (
-                                        !channelObj.ops.has(socket.nickname) &&
-                                        !channelObj.halfops.has(socket.nickname) &&
-                                        !channelObj.voices.has(socket.nickname)
-                                    ) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${t} :Cannot send to channel (+T)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (channelObj.modes.includes('O')) {
-                                    if (!this.isIRCOp(socket.nickname)) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel (+O)\r\n`);
-                                    }
-                                }                                
-                                await this.broadcastChannel(t, `:${socket.nickname}!${socket.username}@${socket.host} NOTICE ${t} :${msg}\r\n`, socket);
-                                await this.broadcastToAllServers(`:${socket.uniqueId} NOTICE ${t} :${msg}\r\n`);
-                            } else {
-                                // Assume it's a nick, check if it exists
-                                var targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === t.toLowerCase());
-                                if (!targetSock) {
-                                    // check remote servers
-                                    targetSock = this.getRemoteServerUserSocket(t);
-                                    if (targetSock) {
-                                        const sender_id = this.getUniqueId(socket.nickname);
-                                        const unique_id = this.getUniqueId(t);
-                                        targetSock.write(`:${sender_id} PRIVMSG ${unique_id} :${msg}\r\n`);
-                                        break;
-                                    }
-                                }                                
-                                if (!targetSock) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
-                                    continue;
-                                }
-                                var targetUserModes = this.getUserModes(t);
-                                var usermodes = this.getUserModes(socket.nickname);
-                                if (targetUserModes.includes('R')) {
-                                    if (!usermodes.includes('r')) {
-                                        await this.safeWriteToSocket(socket, `:${this.servername} 447 ${socket.nickname} ${t} :Cannot send to user (+R)\r\n`);
-                                        continue;
-                                    }
-                                }
-                                if (targetUserModes.includes('Z') && !socket.secure) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to user (+Z)\r\n`);
-                                    continue;
-                                }
-                                if (!usermodes || usermodes === true) {
-                                    usermodes = [];
-                                }
-                                if (usermodes.includes('Z') && !targetUserModes.includes('Z')) {
-                                    await this.safeWriteToSocket(socket, `:${this.servername} 484 ${socket.nickname} ${t} :Cannot send to non-+Z user while you are +Z\r\n`);
-                                    continue;
-                                }
-                                var cmd = 'NOTICE';
-                                if (this.clientIsWebTV(targetSock)) {
-                                    cmd = 'PRIVMSG'; // WebTV clients do not support NOTICE, use PRIVMSG instead
-                                }
-                                targetSock.write(`:${socket.nickname}!${socket.username}@${socket.host} ${cmd} ${targetSock.nickname} :${msg}\r\n`);
-                                if (socket.client_caps.includes('echo-message')) {
-                                    await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} PRIVMSG ${targetSock.nickname} :${msg}\r\n`);
-                                }
-                            }
-                        }
-                        return;                   
-                    }
-                    break;
-                case 'SYSTEM':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `SYSTEM command attempted by non-IRCOp: ${socket.nickname}`);
-                        break;
-                    }
-                    var type = params[0] ? params[0].toUpperCase() : '';
-                    output_lines = [];
-                    switch (type) {
-                        case "HELP":
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :Available commands:\r\n`);
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :  HELP - Show this help message\r\n`);
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :  LOG - Show server log data\r\n`);
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :  KLINES - Show KLINE data\r\n`);
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :  CHANNELS - Show channel data\r\n`);
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :End of help data\r\n`);
-                            break;
-                        case "LOG":
-                            this.logdata.forEach((logEntry) => {
-                                output_lines.push(`:${this.servername} 200 ${socket.nickname} :${logEntry}\r\n`);
-                            });
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :End of log data\r\n`);
-                            break;
-                        case "KLINES":
-                            if (this.klines.length === 0) {
-                                output_lines.push(`:${this.servername} 200 ${socket.nickname} :No KLINES found\r\n`);
-                                break;
-                            }
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :KLINE data:\r\n`);
-                            for (const kline of this.klines) {
-                                output_lines.push(`:${this.servername} 200 ${socket.nickname} :Mask: ${kline.mask}, Expiry: ${kline.expiry}, Reason: ${kline.reason}\r\n`);
-                            }
-                            output_lines.push(`:${this.servername} 200 ${socket.nickname} :End of KLINE data\r\n`);
-                            break;                            
-                        case 'CHANNELS':
-                            for (const [channelName, channelObj] of this.channelData.entries()) {
-                                output_lines.push(`:${this.servername} 200 :Channel: ${channelName}\r\n`);
-                                for (const [key, value] of Object.entries(channelObj)) {
-                                    let valStr;
-                                    if (value instanceof Set) {
-                                        valStr = Array.from(value).join(', ');
-                                    } else if (typeof value === 'object' && value !== null) {
-                                        valStr = JSON.stringify(value);
-                                    } else {
-                                        valStr = String(value);
-                                    }
-                                    output_lines.push(`:${this.servername} 200 :  ${key}: ${valStr}\r\n`);
-                                }
-                            }
-                            break;
-                        default:
-                            output_lines.push(`:${this.servername} 500 ${socket.nickname} :Unknown debug command\r\n`);
-                            break;
-                    }
-                    await this.sendThrottled(socket, output_lines);
-                    break;
-                case 'PING':
-                    await this.safeWriteToSocket(socket, `PONG ${params.join(' ')}\r\n`);
-                    break;
-                case 'KLINE':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `KLINE command attempted by non-IRCOp: ${socket.nickname}`);
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} KLINE :Not enough parameters\r\n`);
-                        break;
-                    }
-                    var targetMask = params[0];
-                    var expiry = this.getDate() + 3600;
-                    var reasonParam = 1;
-                    if (!isNaN(parseInt(targetMask))) {
-                        expiry = this.getDate() + parseInt(targetMask);
-                        targetMask = params[1];
-                        reasonParam = 2;
-                    }
-                    if (this.klines.findIndex(k => k.mask === targetMask) !== -1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 200 ${socket.nickname} ${targetMask} :KLINE already exists for this mask\r\n`);
-                        break;
-                    }
-                    var reason = params.slice(reasonParam).join(' ') || '';
-                    var kline = {
-                        "mask": targetMask,
-                        "expiry": expiry,
-                        "reason": reason
-                    }
-                    this.klines.push(kline);
-                    this.saveKLinesToFile();
-                    if (reason) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 381 ${socket.nickname} :KLINE added for ${targetMask} (duration ${expiry - this.getDate()} seconds) [${reason}]\r\n`);
-                    } else {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 381 ${socket.nickname} :KLINE added for ${targetMask} (duration ${expiry - this.getDate()} seconds)\r\n`);
-                    }
-                    await this.scanUsersForKLines();
-                    break;
-                case 'UNKLINE':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `UNKLINE command attempted by non-IRCOp: ${socket.nickname}`);
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} UNKLINE :Not enough parameters\r\n`);
-                        break;
-                    }
-                    var targetMask = params[0];
-                    if (this.klines.findIndex(k => k.mask === targetMask) == -1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 200 ${socket.nickname} ${targetMask} :No such KLINE\r\n`);
-                        break;
-                    }
-                    const klineIndex = this.klines.findIndex(k => k.mask === targetMask);
-                    if (klineIndex !== -1) {
-                        this.klines.splice(klineIndex, 1);
-                    }
-                    await this.safeWriteToSocket(socket, `:${this.servername} 381 ${socket.nickname} :KLINE removed for ${targetMask}\r\n`);
-                    break;
-                case 'WHOIS':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} WHOIS :Not enough parameters\r\n`);
-                        break;
-                    }
-                    var whoisNick = params[0];
-                    var nickCheck = this.findUser(whoisNick);
-                    if (nickCheck) {
-                        whoisNick = nickCheck;
-                        var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s)=== whoisNick);
-                        const whois_username = this.usernames.get(whoisNick);
-                        var userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || 'unknown';
-                        await this.safeWriteToSocket(socket, `:${this.servername} 311 ${socket.nickname} ${whoisNick} ${whois_username} ${whoisSocket.host} * :${userinfo}\r\n`);
-                        if (this.awaymsgs.has(whoisNick)) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 301 ${socket.nickname} ${whoisNick} :${this.awaymsgs.get(whoisNick)}\r\n`);
-                        }
-                        const userChannels = [];
-
-                        output_lines = [];
-                        for (const [ch, channelObj] of this.channelData.entries()) {
-                            if (channelObj.users.has(whoisNick)) {
-                                let prefix = '';
-                                var chanops = channelObj.ops;
-                                var chanhalfops = channelObj.halfops;
-                                var chanvoices = channelObj.voices;
-                                var modes = channelObj.modes;
-
-                                if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(ch) || !this.channelData.get(ch).users.has(socket.nickname))) {
-                                    continue; // Skip listing this channel if it's private/secret and user is not in it
-                                }
-                                 if (chanops.has(whoisNick)) {
-                                    if (socket.client_caps.includes('multi-prefix')) {
-                                        prefix += '@';
-                                    } else {
-                                        prefix = '@';
-                                    }
-                                } 
-                                if (chanhalfops.has(whoisNick)) {
-                                    if (socket.client_caps.includes('multi-prefix')) {
-                                        prefix += '%';
-                                    } else {
-                                        if (!prefix) {
-                                            prefix = '%';
-                                        }
-                                    }
-                                } 
-                                if (chanvoices.has(whoisNick)) {
-                                    if (socket.client_caps.includes('multi-prefix')) {
-                                        prefix += '+';
-                                    } else {
-                                        if (!prefix) {
-                                            prefix = '+';
-                                        }
-                                    }
-                                }
-                                userChannels.push(prefix + ch);
-                            }
-                        }
-                        output_lines.push(`:${this.servername} 312 ${socket.nickname} ${whoisNick} ${this.servername} :zefIRCd-${this.version}\r\n`);
-                        if (this.isIRCOp(whoisNick)) {
-                            output_lines.push(`:${this.servername} 313 ${socket.nickname} ${whoisNick} :is an IRC operator\r\n`);
-                        }
-                        usermodes = this.getUserModes(whoisNick);
-                        if (usermodes && usermodes.includes('s')) {
-                            output_lines.push(`:${this.servername} 671 ${socket.nickname} ${whoisNick} :is using a secure connection\r\n`);
-                        }
-                        if (usermodes && usermodes.includes('r')) {
-                            output_lines.push(`:${this.servername} 307 ${socket.nickname} ${whoisNick} :is a registered nick\r\n`);
-                        }
-                        if (usermodes && usermodes.includes('B')) {
-                            output_lines.push(`:${this.servername} 335 ${socket.nickname} ${whoisNick} :is a bot\r\n`);
-                        }
-                        const now = this.getDate();
-                        const userTimestamp = whoisSocket.lastspoke || now;
-                        const idleTime = now - userTimestamp;
-                        output_lines.push(`:${this.servername} 317 ${socket.nickname} ${whoisNick} ${idleTime} ${this.usersignontimestamps.get(whoisNick) || 0} :seconds idle, signon time\r\n`);
-                        if (userChannels.length > 0) {
-                            output_lines.push(`:${this.servername} 319 ${socket.nickname} ${whoisNick} :${userChannels.join(' ')}\r\n`);
-                        }
-                        output_lines.push(`:${this.servername} 318 ${socket.nickname} ${whoisNick} :End of /WHOIS list\r\n`);
-                        await this.sendThrottled(socket, output_lines);
-                    } else {
-                        // Check if whoisNick is a remote server user
-                        let foundRemote = false;
-                        for (const [srvSocket, users] of this.serverusers.entries()) {
-                            if (users && typeof users.has === 'function'
-                                ? Array.from(users).some(u => typeof u === 'string' && u.toLowerCase() === whoisNick.toLowerCase())
-                                : Array.isArray(users) && users.some(u => typeof u === 'string' && u.toLowerCase() === whoisNick.toLowerCase())
-                            ) {
-                                // Found remote user
-                                const sender_id = this.getUniqueId(socket.nickname);
-                                const unique_id = this.getUniqueId(whoisNick);
-                                await this.safeWriteToSocket(srvSocket, `:${sender_id} WHOIS :${unique_id}\r\n`);
-                                foundRemote = true;
-                                break;
-                            }
-                        }
-                        if (!foundRemote) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${whoisNick} :No such nick/channel\r\n`);
-                        }
-                    }
-                    break;
-                case 'KILL':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `KILL command attempted by non-IRCOp: ${socket.nickname}`);
-                        break;
-                    }
-                    if (params.length < 2) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} KILL :Not enough parameters\r\n`);
-                        break;
-                    }
-                    const target_nick = this.findUser(params[0]);
-                    if (!target_nick) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
-                        break;
-                    }
-
-                    const killReason = params.slice(1).join(' ');
-                    let cleanKillReason = killReason;
-                    if (cleanKillReason.startsWith(':')) {
-                        cleanKillReason = cleanKillReason.slice(1);
-                    }
-                    targetSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === target_nick);
-                    if (!targetSocket) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${target_nick} :No such nick/channel\r\n`);
-                        break;
-                    }
-
-                    // Broadcast the KILL message to all users
-                    await this.broadcastUser(target_nick, `:${socket.nickname}!${socket.username}@${socket.host} KILL ${target_nick} :${cleanKillReason}\r\n`);
-                    this.terminateSession(targetSocket, true);
-                    break;
-                case 'QUIT':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    for (const [ch, channelObj] of this.channelData.entries()) {
-                        if (channelObj.users.has(socket.nickname)) {
-                            channelObj.ops.delete(socket.nickname);
-                            channelObj.halfops.delete(socket.nickname);
-                            channelObj.voices.delete(socket.nickname);
-                        }
-                    }
-                    if (params.length > 0) {
-                        let reason = params.join(' ');
-                        if (reason.startsWith(':')) {
-                            reason = reason.slice(1);
-                        }
-                        await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`);
-                        await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`, socket);
-                        await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :${reason}\r\n`);
-                        await this.broadcastConnection(socket, `Quit: ${reason}`);
-                        socket.signedoff = true;
-                    } else {
-                        await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`);
-                        await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT\r\n`, socket);
-                        await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`);
-                        await this.broadcastConnection(socket, 'Quit: Client disconnected');
-                        socket.signedoff = true;
-                    }
-                    this.terminateSession(socket, true);
-                    break;
-                case 'MOTD':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    await this.doMOTD(socket.nickname, socket);
-                    break;
-                case 'VERSION':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    await this.safeWriteToSocket(socket, `:${this.servername} 351 ${socket.nickname} ${this.servername} zefIRCd ${this.version} :zefIRCd IRC server - a part of the zefie minisrv project\r\n`);
-                    break;
-                case 'WALLOPS':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `WALLOPS command attempted by non-IRCOp: ${socket.nickname}`);
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} WALLOPS :Not enough parameters\r\n`);
-                        break;
-                    }
-                    let wallopsMessage = params.join(' ');
-                    if (wallopsMessage.startsWith(':')) {
-                        wallopsMessage = wallopsMessage.slice(1);
-                    }
-                    await this.broadcastWallops(`:${socket.nickname}!${socket.username}@${socket.host} WALLOPS :${wallopsMessage}\r\n`);
-                case 'VHOST':
-                    if (!this.checkRegistered(socket)) {
-                        break;
-                    }
-                    if (!this.isIRCOp(socket.nickname) && !this.allow_public_vhosts) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 481 ${socket.nickname} :Permission denied - you are not an IRC operator\r\n`);
-                        this.debugLog('warn', `VHOST command attempted by non-IRCOp: ${socket.nickname}`);
-                        break;
-                    }
-                    if (params.length < 1) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} VHOST :Not enough parameters\r\n`);
-                        break;
-                    }
-                    const newVHost = params[0];
-                    if (!newVHost || !/^[a-zA-Z0-9.-]+$/.test(newVHost)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 501 ${socket.nickname} :Invalid VHost format\r\n`);
-                        break;
-                    }
-                    // Prevent setting VHost to an IP address (IPv4 or IPv6)
-                    const ipv4Pattern = /^(?:\d{1,3}\.){3}\d{1,3}$/;
-                    const ipv6Pattern = /^([a-fA-F0-9:]+:+)+[a-fA-F0-9]+$/;
-                    if (ipv4Pattern.test(newVHost) || ipv6Pattern.test(newVHost)) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} 501 ${socket.nickname} :VHost cannot be an IP address\r\n`);
-                        break;
-                    }
-                    dns.lookup(newVHost, async (err, address) => {
-                        if (!err && address) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} 501 ${socket.nickname} :VHost must not resolve to a real IP (resolved to: ${address})\r\n`);
-                            return;
-                        }
-                        // Set the new VHost for the socket
-                        socket.host = newVHost;
-                        if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
-                            await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
-                        }                        
-                        await this.safeWriteToSocket(socket, `:${this.servername} 396 ${socket.nickname} :Your VHost has been changed to ${socket.host}\r\n`);
-                    });
-                    break;
-                case 'STARTTLS':                   
-                    socket.upgrading_to_tls = true;
-                    await this.safeWriteToSocket(socket, `:${this.servername} 670 ${socket.uniqueId} :STARTTLS successful, go ahead with TLS handshake\r\n`);
-                    break;
-                default:
-                    // Ignore unknown commands
-                    break;
+        const handlerName = `handleServerCommand_${command}`;
+        if (typeof this[handlerName] === 'function') {
+            await this[handlerName](socket, workingParts, line);
+        } else if (sourcePrefix) {
+            var nickname = this.findUserByUniqueId(sourcePrefix);
+            if (!nickname) {
+                // SID-sourced commands (TBURST/TOPIC/MODE/KILL/etc.) — not user UIDs.
+                if (this.linkOwnsSid(socket, sourcePrefix) ||
+                    (sourcePrefix.length === 3 && this.linkOwnsUid(socket, sourcePrefix))) {
+                    nickname = socket.servername || sourcePrefix;
+                } else {
+                    this.debugLog('warn', `No nickname/SID found for unique ID ${sourcePrefix}`);
+                    return;
+                }
+            }
+            var srvCommand = workingParts[0];
+            const srvHandlerName = `handleServerPrefixCommand_${srvCommand}`;
+            if (typeof this[srvHandlerName] === 'function') {
+                const prefixParts = [`:${sourcePrefix}`, ...workingParts];
+                await this[srvHandlerName](socket, nickname, sourcePrefix, prefixParts, line);
+            } else {
+                this.debugLog('warn', `Unhandled server command from ${sourcePrefix}: ${srvCommand}`);
             }
         }
     }
 
     deleteChannel(channel) {
-        // Cleans up the channel from all lists
         if (!this.isReservedChannel(channel)) {
             this.channelData.delete(channel);
             this.debugLog('info', `Channel ${channel} deleted`);
         }
+    }
+
+    removeUserFromChannel(nickname, channel) {
+        channel = this.findChannel(channel) || channel;
+        if (!channel || !this.channelData.has(channel) || !nickname) {
+            return false;
+        }
+        const channelObj = this.channelData.get(channel);
+        channelObj.users.delete(nickname);
+        channelObj.ops.delete(nickname);
+        channelObj.halfops.delete(nickname);
+        channelObj.voices.delete(nickname);
+        channelObj.invites.delete(nickname);
+        if (channelObj.users.size === 0) {
+            this.deleteChannel(channel);
+        }
+        return true;
     }
 
     cleanupUserSession(nickname) {
@@ -3224,63 +992,54 @@ class WTVIRC {
         this.usermodes.delete(nickname);
         this.awaymsgs.delete(nickname); 
         this.accounts.delete(nickname); 
-        this.userinfo.delete(nickname); 
+        this.userinfo.delete(nickname);
+        this.hostnames.delete(nickname);
+        this.realhosts.delete(nickname);
         this.deleteUserUniqueId(nickname);         
-        for (const [ch, channelObj] of this.channelData.entries()) {
-            if (channelObj.users.has(nickname)) {
-                channelObj.users.delete(nickname);
-            }
-            if (channelObj.ops.has(nickname)) {
-                channelObj.ops.delete(nickname);
-            }
-            if (channelObj.halfops.has(nickname)) {
-                channelObj.halfops.delete(nickname);
-            }
-            if (channelObj.voices.has(nickname)) {
-                channelObj.voices.delete(nickname);
-            }
-            if (channelObj.invites.has(nickname)) {
-                channelObj.invites.delete(nickname);
-            }
-            if (channelObj.users.size === 0) {
-                this.deleteChannel(ch);
-            }            
+        for (const ch of Array.from(this.channelData.keys())) {
+            this.removeUserFromChannel(nickname, ch);
         }
     }
-        
 
     async terminateSession(socket, close = false) {
-        // Cleans up the user session and removes them from all channels
+        if (!socket || socket._terminated) {
+            return;
+        }
+        socket._terminated = true;
         const nickname = this.nicknames.get(socket);
         if (nickname) {
             if (!socket.signedoff) {
                 let serverSocket = null;
                 for (const [srvSocket, users] of this.serverusers.entries()) {
                     if (users && typeof users.has === 'function' && users.has(nickname)) {               
-                        // Don't send QUIT to this server, as it owns the user
                         serverSocket = srvSocket;
                         continue;
                     }
                 }
                 await this.broadcastUser(nickname, `:${nickname}!${socket.username}@${socket.host} QUIT :Client disconnected\r\n`, socket);
                 await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :Client disconnected\r\n`, serverSocket);
-                socket.signedoff = true; // Just in case
+                socket.signedoff = true;
             }
             this.cleanupUserSession(nickname);
             this.nicknames.delete(socket);
         }
         if (socket.isserver) {
-            const srvUsers = this.serverusers.get(socket) || [];
-            for (const nickname of srvUsers) {
-                // Remove all user data for this server
-                this.debugLog('debug', `Removing user ${nickname} from server ${socket.servername}`);
-                if (users && typeof users.delete === 'function') {
-                    users.delete(nickname);
-                }
-                this.cleanupUserSession(nickname);                        
+            const srvUsers = this.serverusers.get(socket) || new Set();
+            for (const remoteNick of srvUsers) {
+                this.debugLog('debug', `Removing user ${remoteNick} from server ${socket.servername}`);
+                const username = this.usernames.get(remoteNick) || remoteNick;
+                const hostname = this.hostnames.get(remoteNick) || this.servername;
+                await this.broadcastUser(remoteNick, `:${remoteNick}!${username}@${hostname} QUIT :Server disconnected\r\n`);
+                await this.broadcastToAllServers(`:${this.uniqueids.get(remoteNick) || remoteNick} QUIT :Server disconnected\r\n`, socket);
+                this.cleanupUserSession(remoteNick);
             }
             this.servers.delete(socket);
             this.serverusers.delete(socket);
+            for (const [sid, sock] of Array.from(this.peerSids.entries())) {
+                if (sock === socket) {
+                    this.peerSids.delete(sid);
+                }
+            }
         } else {
             this.clients = this.clients.filter(c => c !== socket);
         }        
@@ -3289,12 +1048,10 @@ class WTVIRC {
             socket._idleInterval = null;
         }
         
-        // Clean up rate limiting data
-        const socketId = socket.remoteAddress + ':' + socket.remotePort;
+        const socketId = this.normalizeIp(socket.remoteAddress) + ':' + socket.remotePort;
         this.message_counts.delete(socketId);
         
-        // Clean up connection count per IP
-        const clientIP = socket.remoteAddress;
+        const clientIP = this.normalizeIp(socket.remoteAddress);
         if (this.connections_per_ip.has(clientIP)) {
             const currentCount = this.connections_per_ip.get(clientIP);
             if (currentCount <= 1) {
@@ -3305,17 +1062,17 @@ class WTVIRC {
         }
         
         if (close) {
-            socket.end();
+            try {
+                socket.end();
+            } catch (e) { /* ignore */ }
         }
     }
 
     async sendWebTVNotice(message) {
-        // Send a WebTV Global Notice to all WebTV clients
         await this.broadcastToAllWebTVClients(`:${this.servername} NOTICE * :${message}\r\n`);
     }
 
     async sendWebTVNoticeTo(socket, message) {
-        // Sends a WebTV Global Notice to the specified socket        
         if (Array.isArray(message)) {
             message = message.map(line => `:${this.servername} NOTICE * :${line}\r\n`);
             await this.sendThrottled(socket, message);
@@ -3328,22 +1085,20 @@ class WTVIRC {
         if (!Array.isArray(message)) {
             message = [message];
         }
-        if (this.clientIsWebTV(socket)) {        
-            message.forEach(async (line) => {
-                const msg = line.split(' ');
-                const firstWord = msg[0];
-                const action = msg.slice(1).join(' ');
-                const message = [`:${firstWord}!system@webtv PRIVMSG ${channel} :\x01ACTION ${action}\x01\r\n`];
-                await this.sendThrottled(socket, message);
-            });
+        if (!this.clientIsWebTV(socket)) {
             return;
+        }
+        for (const line of message) {
+            const msg = line.split(' ');
+            const firstWord = msg[0];
+            const action = msg.slice(1).join(' ');
+            await this.sendThrottled(socket, [`:${firstWord}!system@webtv PRIVMSG ${channel} :\x01ACTION ${action}\x01\r\n`]);
         }
     }
 
     getUserChannelCount(username) {
-        // returns the number of channels a user is in
         let count = 0;
-        for (const [channel, channelObj] of this.channelData.entries()) {
+        for (const channelObj of this.channelData.values()) {
             if (channelObj.users.has(username)) {
                 count++;
             }
@@ -3351,26 +1106,34 @@ class WTVIRC {
         return count;
     }
 
-    getUsersInChannel(channel) {
-        // Returns an array of users in a specific channel, with modes applied        
+    formatNickPrefixes(nickname, channelObj, multiPrefix = false) {
+        const ops = channelObj.ops || new Set();
+        const halfops = channelObj.halfops || new Set();
+        const voices = channelObj.voices || new Set();
+        if (multiPrefix) {
+            let prefixes = '';
+            if (ops.has(nickname)) prefixes += '@';
+            if (halfops.has(nickname)) prefixes += '%';
+            if (voices.has(nickname)) prefixes += '+';
+            return prefixes + nickname;
+        }
+        if (ops.has(nickname)) return '@' + nickname;
+        if (halfops.has(nickname)) return '%' + nickname;
+        if (voices.has(nickname)) return '+' + nickname;
+        return nickname;
+    }
+
+    getUsersInChannel(channel, multiPrefix = false) {
         if (this.channelData.has(channel)) {
             const channelObj = this.channelData.get(channel);
-            const ops = channelObj.ops || new Set();
-            const halfops = channelObj.halfops || new Set();
-            const voices = channelObj.voices || new Set();
-            return Array.from(channelObj.users).map(user => {
-                if (ops.has(user)) return '@' + user;
-                if (halfops.has(user)) return '%' + user;
-                if (voices.has(user)) return '+' + user;
-                return user;
-            });
+            return Array.from(channelObj.users).map(user => this.formatNickPrefixes(user, channelObj, multiPrefix));
         }
+        return [];
     }
 
     async broadcastUser(username, message, exceptSocket = null) {
-        // Broadcast a message to all users in any channels that the specified user is in, except the one specified 
         const alreadyNotified = [];
-        for (const [channel, channelObj] of this.channelData.entries()) {
+        for (const channelObj of this.channelData.values()) {
             if (channelObj.users.has(username)) {
                 for (const user of channelObj.users) {
                     const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
@@ -3387,15 +1150,13 @@ class WTVIRC {
     }
 
     async broadcastChannel(channel, message, exceptSocket = null) {
-        // Broadcast a message to all users in a specific channel, except the one specified
         const alreadyNotified = [];
         if (this.channelData.has(channel)) {
             const channelObj = this.channelData.get(channel);
             for (const user of channelObj.users) {
-                // +Z (secureonly): Restricts private message (PRIVMSG) or notice (NOTICE) reception/sending to users with a secure connection (TLS).
                 if (channelObj.modes.includes('Z') && (message.includes('PRIVMSG') || message.includes('NOTICE'))) {
                     const user_modes = this.getUserModes(user);
-                    if (user_modes.includes('z')) {
+                    if (user_modes && user_modes.includes('z')) {
                         const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                         if (alreadyNotified.includes(sock)) {
                             continue;
@@ -3412,7 +1173,7 @@ class WTVIRC {
                         continue;
                     }                    
                     if (sock && sock !== exceptSocket) {
-                        sock.write(message);
+                        await this.safeWriteToSocket(sock, message);
                         alreadyNotified.push(sock);
                     }
                 }
@@ -3421,7 +1182,6 @@ class WTVIRC {
     }
 
     async broadcastChannelWebTV(channel, message, exceptSocket = null) {
-        // Broadcast a message to all WebTV users in a specific channel, except the one specified
         const alreadyNotified = [];
         if (this.channelData.has(channel)) {
             const channelObj = this.channelData.get(channel);
@@ -3430,9 +1190,8 @@ class WTVIRC {
                 if (alreadyNotified.includes(socket)) {
                     continue;
                 }
-                // Only send to WebTV clients
                 if (socket && socket !== exceptSocket && this.clientIsWebTV(socket)) {
-                    this.sendWebTVSpoofedActionTo(socket, channel, message)
+                    this.sendWebTVSpoofedActionTo(socket, channel, message);
                     alreadyNotified.push(socket);
                 }
             }
@@ -3440,7 +1199,6 @@ class WTVIRC {
     }
 
     async broadcastChannelJoin(channel, sourceSocket, exceptSocket = null) {
-        // Broadcast a channel join message to all users in the channel, except the one specified
         channel = this.findChannel(channel);
         if (!channel) {
             this.debugLog('warn', `Attempted to broadcast join to non-existent channel: ${channel}`);
@@ -3466,8 +1224,7 @@ class WTVIRC {
     }
 
     async broadcastToAllServers(message, exceptSocket = null) {
-        // Broadcast a message to all server sockets, except the one specified
-        for (const [srvSocket, serverName] of this.servers.entries()) {
+        for (const srvSocket of this.servers.keys()) {
             if (srvSocket && srvSocket !== exceptSocket) {
                 await this.safeWriteToSocket(srvSocket, message);
             }
@@ -3475,17 +1232,15 @@ class WTVIRC {
     }    
   
     async broadcastWallops(message) {
-        // Broadcast a message to all users with 'w' or 'o' user modes
         for (const [socket, nickname] of this.nicknames.entries()) {
             const usermodes = this.getUserModes(nickname);
-            if (usermodes.includes('w') || usermodes.includes('o')) {
+            if (usermodes && (usermodes.includes('w') || usermodes.includes('o'))) {
                 await this.safeWriteToSocket(socket, message);
             }
         }
     }
 
     async broadcastToAllClients(message, exceptSocket = null) {
-        // Broadcast a message to all connected clients, except the one specified
         for (const client of this.clients) {
             if (client !== exceptSocket) {
                 await this.safeWriteToSocket(client, message);
@@ -3494,7 +1249,6 @@ class WTVIRC {
     }
 
     async broadcastToAllWebTVClients(message, exceptSocket = null) {
-        // Broadcast a message to all connected WebTV clients, except the one specified
         for (const client of this.clients) {
             if (client !== exceptSocket && this.clientIsWebTV(client)) {
                 await this.safeWriteToSocket(client, message);
@@ -3503,8 +1257,6 @@ class WTVIRC {
     }    
 
     isIRCOp(nickname) {
-        // Check if the user is an IRC operator
-        if (!this.getUserModes(nickname)) return false;
         const modes = this.getUserModes(nickname);
         if (Array.isArray(modes)) {
             return modes.includes('o');
@@ -3513,7 +1265,6 @@ class WTVIRC {
     }
 
     isSpyingOnConnections(nickname) {
-        if (!this.getUserModes(nickname)) return false;
         const modes = this.getUserModes(nickname);
         if (Array.isArray(modes)) {
             return modes.includes('c');
@@ -3522,17 +1273,23 @@ class WTVIRC {
     }
 
     createChannel(channel, creator) {
-        // Create a new channel with the specified creator
         if (!this.channelData.has(channel)) {
+            const ops = new Set();
+            if (creator) {
+                ops.add(creator);
+            }
             this.channelData.set(channel, {
                 users: new Set(),
-                ops: new Set([creator]),
+                ops,
                 halfops: new Set(),
                 voices: new Set(),
                 topic: '',
-                bans: new Set(),
-                exemptions: new Set(),
+                topicSetter: '',
+                topicTs: 0,
+                bans: [],
+                exemptions: [],
                 invites: new Set(),
+                inviteexemptions: [],
                 modes: [...this.default_channel_modes],
                 mlock: [],
                 limit: null,
@@ -3542,8 +1299,15 @@ class WTVIRC {
         }
     }
 
+    globToRegExp(glob) {
+        const escaped = String(glob || '*')
+            .replace(/[.^$+(){}[\]\\|]/g, '\\$&')
+            .replace(/\*/g, '.*')
+            .replace(/\?/g, '.');
+        return new RegExp('^' + escaped + '$', 'i');
+    }
+
     checkMask(mask, socket) {
-        // Check if a mask matches a user's socket
         const host = socket.host;
         const realhost = socket.realhost;
         const realaddress = socket.remoteAddress;
@@ -3559,37 +1323,27 @@ class WTVIRC {
             fullMask3 = `${nickname}!${userIdent}@${realaddress}`;
         }
         
-
-        // If mask does not contain '!', treat as nickname or username only
         if (!mask.includes('!')) {
-            // Wildcard match for just the nickname or username
-            // Try matching against both nickname and username
-            const maskRegex = new RegExp('^' + mask.replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+            const maskRegex = this.globToRegExp(mask);
             return maskRegex.test(nickname) || maskRegex.test(userIdent);
         }
 
-        // If mask contains '!', match against full mask (nick!user@host)
-        // Split mask into nick, user, host
         const [maskNick, rest] = mask.split('!', 2);
         const [maskUser, maskHost] = (rest || '').split('@', 2);
 
-        // Split fullMask into nick, user, host
         const [fullNick, fullRest] = fullMask.split('!', 2);
         const [fullUser, fullHost] = (fullRest || '').split('@', 2);
 
-        // Build regex for each part, defaulting to '*' if missing
-        const nickRegex = new RegExp('^' + (maskNick || '*').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
-        const userRegex = new RegExp('^' + (maskUser || '*').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
-        const hostRegex = new RegExp('^' + (maskHost || '*').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+        const nickRegex = this.globToRegExp(maskNick || '*');
+        const userRegex = this.globToRegExp(maskUser || '*');
+        const hostRegex = this.globToRegExp(maskHost || '*');
         let matches = nickRegex.test(fullNick) && userRegex.test(fullUser) && hostRegex.test(fullHost);
         if (!matches && fullMask2) {
-            // Try matching against the real host if available
             const [fullNick2, fullRest2] = fullMask2.split('!', 2);
             const [fullUser2, fullHost2] = (fullRest2 || '').split('@', 2);
             matches = nickRegex.test(fullNick2) && userRegex.test(fullUser2) && hostRegex.test(fullHost2);
         }
         if (!matches && fullMask3) {
-            // Try matching against the real IP if available
             const [fullNick3, fullRest3] = fullMask3.split('!', 2);
             const [fullUser3, fullHost3] = (fullRest3 || '').split('@', 2);
             matches = nickRegex.test(fullNick3) && userRegex.test(fullUser3) && hostRegex.test(fullHost3);
@@ -3598,7 +1352,6 @@ class WTVIRC {
     }
 
     filterHostname(socket, hostname) {
-        // Masks the user's hostname or IP for privacy
         const username = this.nicknames.get(socket);
         let modes = null;
         if (username) {
@@ -3606,10 +1359,7 @@ class WTVIRC {
         }
         if (modes) {
             if (Array.isArray(modes) && modes.includes('x')) {
-                // Masked hostname for +x users
                 if (typeof hostname === 'string') {
-                    // Mask everything except the first and last octet for IPv4
-                    // Mask IP-like subdomains (e.g., 1-1-1-1.domain.com)
                     const ipSubdomainMatch = hostname.match(/^(\d+)-(\d+)-(\d+)-(\d+)\./);
                     if (ipSubdomainMatch) {
                         return `${ipSubdomainMatch[1]}-x-x-${ipSubdomainMatch[4]}.${hostname.split('.').slice(1).join('.')}`;
@@ -3618,12 +1368,10 @@ class WTVIRC {
                     if (ipv4Match) {
                         return `${ipv4Match[1]}.x.x.${ipv4Match[4]}`;
                     }
-                    // For hostnames, mask all but the first and last label
                     const parts = hostname.split('.');
                     if (parts.length > 2) {
                         return `${parts[0]}.x.${parts[parts.length - 1]}`;
                     }
-                    // Otherwise, just return 'hidden.host'
                     return 'hidden.host';
                 }
             }
@@ -3632,91 +1380,153 @@ class WTVIRC {
     }
 
     isBanned(channel, socket) {
-        // Check if a user is banned from a channel
         const nickname = this.nicknames.get(socket);
         channel = this.findChannel(channel);
         if (!channel) {
             return false;
         }
-        if (this.channelData.has(channel).bans) {
-            const bans = this.channelData.get(channel).bans;
-            // Check if the user's mask matches any ban mask
-            let isUserBanned = false;
-            for (const banMask of bans) {
-                isUserBanned = this.checkMask(banMask, socket);
-                if (isUserBanned) {
-                    if (this.channelexemptions.has(channel)) {
-                        const exemptions = this.channelexemptions.get(channel);
-                        for (const exemptMask of exemptions) {
-                            isUserBanned = !this.checkMask(exemptMask, socket);
-                            if (!isUserBanned) {
-                                break;
-                            }
+        const chanData = this.channelData.get(channel);
+        if (chanData && chanData.bans) {
+            for (const banMask of chanData.bans) {
+                if (!this.checkMask(banMask, socket)) {
+                    continue;
+                }
+                let exempt = false;
+                if (chanData.exemptions) {
+                    for (const exemptMask of chanData.exemptions) {
+                        if (this.checkMask(exemptMask, socket)) {
+                            exempt = true;
+                            break;
                         }
                     }
                 }
+                if (!exempt) {
+                    return true;
+                }
             }
-            return isUserBanned;
         }
         return false;
     }
 
-    findSocketByUniqueId(uniqueId) {
-        // Find a socket related to a unique ID
-        for (const [socket, nickname] of this.nicknames.entries()) {
+    findLocalSocketByUniqueId(uniqueId) {
+        for (const socket of this.nicknames.keys()) {
             if (socket.uniqueId === uniqueId) {
-                // client socket
                 return socket;
             }
         }
-        for (const [srvSocket, users] of this.serverusers.entries()) {
-            const searchID = this.findUserByUniqueId(uniqueId);
-            if (users.has(searchID)) {
-                // server socket
-                return srvSocket;
+        return null;
+    }
+
+    findSocketByUniqueId(uniqueId) {
+        const local = this.findLocalSocketByUniqueId(uniqueId);
+        if (local) {
+            return local;
+        }
+        const searchID = this.findUserByUniqueId(uniqueId);
+        if (searchID) {
+            for (const [srvSocket, users] of this.serverusers.entries()) {
+                if (users.has(searchID)) {
+                    return srvSocket;
+                }
             }
         }        
         return null;
     }
 
-    findUserByUniqueId(uniqueId) {
-        // Find a user by their unique ID
-        let uniqueids = this.uniqueids || new Map();
-        if (!uniqueids || uniqueids === true) {
-            uniqueids = new Map();        
+    isAuthorizedServer(socket) {
+        return !!(socket && socket.isserver && socket.is_srv_authorized);
+    }
+
+    isServicesPeer(socket) {
+        if (!this.isAuthorizedServer(socket)) {
+            return false;
         }
-        for (const [nickname, id] of uniqueids.entries()) {
-            if (id === uniqueId) {
-                return nickname;
+        const info = socket.serverinfo || {};
+        if (info.services === true || info.is_services === true) {
+            return true;
+        }
+        const name = (info.name || socket.servername || '').toLowerCase();
+        return name.includes('services') || name.includes('anope');
+    }
+
+    migrateNickKeyedMap(map, oldNick, newNick) {
+        if (!map || !map.has(oldNick)) {
+            return;
+        }
+        map.set(newNick, map.get(oldNick));
+        map.delete(oldNick);
+    }
+
+    processRemoteNickChange(oldNick, newNick) {
+        if (!oldNick || !newNick || oldNick === newNick) {
+            return;
+        }
+        for (const channelObj of this.channelData.values()) {
+            if (channelObj.users.has(oldNick)) {
+                channelObj.users.delete(oldNick);
+                channelObj.users.add(newNick);
+            }
+            if (channelObj.ops.has(oldNick)) {
+                channelObj.ops.delete(oldNick);
+                channelObj.ops.add(newNick);
+            }
+            if (channelObj.halfops.has(oldNick)) {
+                channelObj.halfops.delete(oldNick);
+                channelObj.halfops.add(newNick);
+            }
+            if (channelObj.voices.has(oldNick)) {
+                channelObj.voices.delete(oldNick);
+                channelObj.voices.add(newNick);
+            }
+            if (channelObj.invites.has(oldNick)) {
+                channelObj.invites.delete(oldNick);
+                channelObj.invites.add(newNick);
             }
         }
-        for (const [socket, users] of this.serverusers.entries()) {
-            for (const user of users) {
-                if (this.getUniqueId(user) === uniqueId) {
-                    return user;
-                }
+        this.migrateNickKeyedMap(this.usernames, oldNick, newNick);
+        this.migrateNickKeyedMap(this.usermodes, oldNick, newNick);
+        this.migrateNickKeyedMap(this.awaymsgs, oldNick, newNick);
+        this.migrateNickKeyedMap(this.usersignontimestamps, oldNick, newNick);
+        this.migrateNickKeyedMap(this.hostnames, oldNick, newNick);
+        this.migrateNickKeyedMap(this.realhosts, oldNick, newNick);
+        this.migrateNickKeyedMap(this.accounts, oldNick, newNick);
+        this.migrateNickKeyedMap(this.userinfo, oldNick, newNick);
+        const uid = this.uniqueids.get(oldNick);
+        if (uid) {
+            this.addUserUniqueId(newNick, uid);
+            this.deleteUserUniqueId(oldNick);
+        }
+        for (const [srvSocket, users] of this.serverusers.entries()) {
+            if (users && users.has(oldNick)) {
+                users.delete(oldNick);
+                users.add(newNick);
+            }
+        }
+    }
+
+    findUserByUniqueId(uniqueId) {
+        for (const [nickname, id] of this.uniqueids.entries()) {
+            if (id === uniqueId) {
+                return nickname;
             }
         }
         return null;
     }
 
     addUserUniqueId(nickname, uniqueId) {
-        // Add or update the unique ID for a user
-        if (!this.uniqueids || this.uniqueids === true) {
-            this.uniqueids = new Map();
-        }
         this.uniqueids.set(nickname, uniqueId);
     }
 
     deleteUserUniqueId(nickname) {
-        // Remove the unique ID for a user
-        if (this.uniqueids && this.uniqueids.has(nickname)) {
-            this.uniqueids.delete(nickname);
+        const id = this.uniqueids.get(nickname);
+        this.uniqueids.delete(nickname);
+        if (id && this._usedUniqueIds && id.length > 3) {
+            // free the random suffix portion for local UIDs
+            this._usedUniqueIds.delete(id.slice(3));
         }
     }
 
     async doMOTD(nickname, socket = null) {
-        // Sends the Message of the Day (MOTD) to the user
         const output_lines = [];
         output_lines.push(`:${this.servername} 375 ${nickname} :${this.servername} message of the day\r\n`);
         if (!this.irc_config.hide_version) {
@@ -3743,7 +1553,6 @@ class WTVIRC {
     }
 
     isReservedChannel(channel) {
-        // Check if the channel is a reserved channel
         if (this.irc_config.channels && Array.isArray(this.irc_config.channels)) {
             return this.irc_config.channels.some(ch => ch.name === channel);
         }
@@ -3751,23 +1560,20 @@ class WTVIRC {
     }
 
     checkIfReservedChannelOp(socket, channel) {
-        // Check if the channel is a reserved channel and if the user is an operator for that channel
         if (this.isReservedChannel(channel)) {
             const reservedChannel = this.irc_config.channels.find(ch => ch.name === channel);
-            // reservedChannel.ops is an array of masks
             if (reservedChannel && reservedChannel.ops && Array.isArray(reservedChannel.ops)) {
                 for (const mask of reservedChannel.ops) {
                     if (this.checkMask(mask, socket)) {
-                        return true; // User is an operator for this reserved channel
+                        return true;
                     }
                 }
             }
         }
-        return false; // User is not an operator for this reserved channel
+        return false;
     }
 
     isRemoteServerUser(socket, username) {
-        // Check if the user is a remote server user
         let serverUsers = this.serverusers.get(socket) || new Set();
         if (!serverUsers || serverUsers === true) {
             serverUsers = new Set();
@@ -3781,7 +1587,6 @@ class WTVIRC {
     }
 
     addRemoteServerUser(socket, username) {
-        // Add a remote server user to the serverusers map
         if (!this.serverusers.has(socket)) {
             this.serverusers.set(socket, new Set());
         }
@@ -3789,7 +1594,6 @@ class WTVIRC {
     }
 
     getRemoteServerUserSocket(username) {
-        // Find the socket of a remote server user by username
         for (const [socket, users] of this.serverusers.entries()) {
             for (const user of users) {
                 if (typeof user === 'string' && user.toLowerCase() === username.toLowerCase()) {
@@ -3800,13 +1604,10 @@ class WTVIRC {
         return null;
     }
 
-    
-
     getUsernameFromUniqueId(uniqueId) {
-        // Find the username associated with a unique ID
-        for (const [socket, nickname] of this.nicknames.entries()) {
+        for (const socket of this.nicknames.keys()) {
             if (socket.uniqueId === uniqueId) {
-                return nickname;
+                return this.nicknames.get(socket);
             }
         }
         for (const [nick, id] of this.uniqueids.entries()) {
@@ -3818,22 +1619,17 @@ class WTVIRC {
     }
 
     getUniqueId(username) {
-        // Find the unique ID for a given username
-        const socket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === username.toLowerCase());
-        if (socket) {
-            return socket.uniqueId;
-        } else {
-            for (const [nick, id] of this.uniqueids.entries()) {
-                if (nick.toLowerCase() === username.toLowerCase()) {
-                    return id;
-                }
+        if (!username) return null;
+        const lower = username.toLowerCase();
+        for (const [nick, id] of this.uniqueids.entries()) {
+            if (nick.toLowerCase() === lower) {
+                return id;
             }
         }
         return null;
     }
 
     countGlobalUsers() {
-        // Counts the total number of users across all clients and server users
         let globalUsers = this.clients.length;
         for (const users of this.serverusers.values()) {
             if (users && typeof users.size === 'number') {
@@ -3845,121 +1641,166 @@ class WTVIRC {
         return globalUsers;
     }
 
-    processNickChange(socket, newNick) {        
-        // Handles nickname changes, assumes the newNick is already validated
-        // Update all channel user lists to use channelData
-        for (const [ch, channelObj] of this.channelData.entries()) {
-            if (channelObj.users.has(socket.nickname)) {
-                channelObj.users.delete(socket.nickname);
+    processNickChange(socket, newNick) {
+        const oldNick = socket.nickname;
+        if (!oldNick || !newNick || oldNick === newNick) {
+            return;
+        }
+        for (const channelObj of this.channelData.values()) {
+            if (channelObj.users.has(oldNick)) {
+                channelObj.users.delete(oldNick);
                 channelObj.users.add(newNick);
             }
+            if (channelObj.ops.has(oldNick)) {
+                channelObj.ops.delete(oldNick);
+                channelObj.ops.add(newNick);
+            }
+            if (channelObj.halfops.has(oldNick)) {
+                channelObj.halfops.delete(oldNick);
+                channelObj.halfops.add(newNick);
+            }
+            if (channelObj.voices.has(oldNick)) {
+                channelObj.voices.delete(oldNick);
+                channelObj.voices.add(newNick);
+            }
+            if (channelObj.invites.has(oldNick)) {
+                channelObj.invites.delete(oldNick);
+                channelObj.invites.add(newNick);
+            }
         }
-        this.usernames.set(newNick, this.usernames.get(socket.nickname) || socket.nickname);
-        this.usernames.delete(socket.nickname);
+        this.migrateNickKeyedMap(this.usernames, oldNick, newNick);
+        if (!this.usernames.has(newNick)) {
+            this.usernames.set(newNick, socket.username || oldNick);
+        }
         this.nicknames.set(socket, newNick);
-        this.nicknames.delete(socket.nickname);
         this.addUserUniqueId(newNick, socket.uniqueId);
-        this.deleteUserUniqueId(socket.nickname);
-        this.usermodes.set(newNick, this.getUserModes(socket.nickname) || []);
-        this.usermodes.delete(socket.nickname);
-        if (this.awaymsgs.has(socket.nickname)) {
-            this.awaymsgs.set(newNick, this.awaymsgs.get(socket.nickname) || '');
-            this.awaymsgs.delete(socket.nickname);
-        }
-        this.usersignontimestamps.set(newNick, this.usersignontimestamps.get(socket.nickname) || this.getDate());
-        this.usersignontimestamps.delete(socket.nickname);
+        this.deleteUserUniqueId(oldNick);
+        this.migrateNickKeyedMap(this.usermodes, oldNick, newNick);
+        this.migrateNickKeyedMap(this.awaymsgs, oldNick, newNick);
+        this.migrateNickKeyedMap(this.usersignontimestamps, oldNick, newNick);
+        this.migrateNickKeyedMap(this.hostnames, oldNick, newNick);
+        this.migrateNickKeyedMap(this.realhosts, oldNick, newNick);
+        this.migrateNickKeyedMap(this.accounts, oldNick, newNick);
+        this.migrateNickKeyedMap(this.userinfo, oldNick, newNick);
         socket.nickname = newNick;
     }
 
     generateUniqueId(socket) {
-        // Generate a unique ID
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let id = '';
         for (let i = 0; i < 6; i++) {
             id += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-        if (this.uniqueids.has(id)) {
-            // If the ID already exists, generate a new one
+        const fullId = `${this.serverId}${id}`;
+        if (this._usedUniqueIds.has(id) || this._usedUniqueIds.has(fullId)) {
             return this.generateUniqueId(socket);
         }
+        for (const existing of this.uniqueids.values()) {
+            if (existing === id || existing === fullId || existing.endsWith(id)) {
+                return this.generateUniqueId(socket);
+            }
+        }
+        this._usedUniqueIds.add(id);
         return id;
+    }
+
+    casefold(str) {
+        if (typeof str !== 'string') {
+            return '';
+        }
+        // RFC1459 casemapping: []\ are uppercase equivalents of {}|
+        return str.toLowerCase()
+            .replace(/\[/g, '{')
+            .replace(/\]/g, '}')
+            .replace(/\\/g, '|')
+            .replace(/\^/g, '~');
     }
 
     async sendThrottled(socket, lines, delayMs = 1) {
         for (const line of lines) {
-            await new Promise(res => setTimeout(res, delayMs));
+            if (delayMs > 0) {
+                await new Promise(res => setTimeout(res, delayMs));
+            }
             if (socket.writable) {
                 await this.safeWriteToSocket(socket, line);
             }
         }
     }
 
-    getDate() {
-        // Returns the current timestamp in seconds
-        return Math.floor(Date.now() / 1000)
-    }
-
     findChannel(channel) {
-        // Normalize the channel name to lowercase for case-insensitive comparison
-        let foundChannel = null;
+        if (typeof channel !== 'string') return null;
+        const folded = this.casefold(channel);
         for (const existingChannel of this.channelData.keys()) {
-            if (existingChannel.toLowerCase() === channel.toLowerCase()) {
-                foundChannel = existingChannel;
-                break;
+            if (this.casefold(existingChannel) === folded) {
+                return existingChannel;
             }
         }
-        return foundChannel;
+        return null;
     }
 
     findUser(username) {
-        // Normalize the username to lowercase for case-insensitive comparison
-        let foundUser = null;
-        if (typeof username !== 'string') {
-            return null;
-        }
-        for (const [socket, nick] of this.nicknames.entries()) {
-             if (nick.toLowerCase() === username.toLowerCase()) {
-                foundUser = nick;
-                break;
+        if (typeof username !== 'string') return null;
+        const folded = this.casefold(username);
+        for (const nick of this.nicknames.values()) {
+             if (this.casefold(nick) === folded) {
+                return nick;
             }
         }
-        return foundUser;
+        for (const users of this.serverusers.values()) {
+            if (!users) continue;
+            for (const nick of users) {
+                if (typeof nick === 'string' && this.casefold(nick) === folded) {
+                    return nick;
+                }
+            }
+        }
+        return null;
     }
 
     clientIsWebTV(socket) {
-        // Check if the client is a WebTV client based on the client version
-        if (socket.client_version.includes('WebTV')) {
+        if (socket && socket.client_version && socket.client_version.includes('WebTV')) {
             return true;
         }
         return false;
     }
 
     async broadcastUserIfCap(socket, message, exceptSocket = null, client_cap) {
-        if (socket.client_caps.includes(client_cap)) {
-            await this.broadcastUser(socket.nickname, message, exceptSocket);
+        // Notify shared-channel peers that have the capability (recipient-gated).
+        const alreadyNotified = [];
+        for (const channelObj of this.channelData.values()) {
+            if (!channelObj.users.has(socket.nickname)) continue;
+            for (const user of channelObj.users) {
+                const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+                if (!sock || sock === exceptSocket || alreadyNotified.includes(sock)) continue;
+                if (sock.client_caps && sock.client_caps.includes(client_cap)) {
+                    await this.safeWriteToSocket(sock, message);
+                    alreadyNotified.push(sock);
+                }
+            }
         }
     }
 
     async broadcastUserIfCapAndChanOp(socket, message, exceptSocket = null, client_cap, channel) {
-        if (socket.client_caps.includes(client_cap)) {
-            // Check if the user is an operator in the specified channel
-            channel = this.findChannel(channel);
-            if (!channel) {
-                this.debugLog('warn', `Attempted to broadcast to channel ${channel} that does not exist.`);
-                return;
-            }
-            const channelObj = this.channelData.get(channel);
-            const isOp = channelObj.ops.has(socket.nickname) || false;
-            const isHalfOp = channelObj.halfops.has(socket.nickname) || false;
+        channel = this.findChannel(channel);
+        if (!channel) {
+            this.debugLog('warn', `Attempted to broadcast to channel ${channel} that does not exist.`);
+            return;
+        }
+        const channelObj = this.channelData.get(channel);
+        for (const user of channelObj.users) {
+            const sock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
+            if (!sock || sock === exceptSocket) continue;
+            if (!(sock.client_caps && sock.client_caps.includes(client_cap))) continue;
+            const isOp = channelObj.ops.has(user);
+            const isHalfOp = channelObj.halfops.has(user);
             if (isOp || isHalfOp) {
-                await this.broadcastUser(socket.nickname, message, exceptSocket);
+                await this.safeWriteToSocket(sock, message);
             }
         }
     }
 
     async broadcastConnection(clientSocket, quitMsg = null) {
-        // Broadcasts a connection message to all clients with mode +c
-        for (const [index, socket] of this.clients.entries()) {
+        for (const socket of this.clients) {
             if (socket !== clientSocket && this.isSpyingOnConnections(socket.nickname)) {
                 if (quitMsg) {
                     await this.sendWebTVNoticeTo(socket, `*** Notice --- Client exiting: ${clientSocket.nickname} (${clientSocket.username}@${clientSocket.host}) [${clientSocket.remoteAddress}] [${quitMsg}]`);
@@ -3973,51 +1814,25 @@ class WTVIRC {
     }
 
     getUserModes(nickname) {
-        // Returns the user modes for a given nickname
-        let foundSocket = null;
-        for (const [socket, nick] of this.nicknames.entries()) {
-            if (nick.toLowerCase() === nickname.toLowerCase()) {
-                foundSocket = socket;
-                nickname = socket.nickname; // Ensure we use the correct nickname
-                break;
-            }
-        }
-        if (!foundSocket) {
-            // Also search this.serverusers for remote users (case-insensitive)
-            for (const [srvSocket, users] of this.serverusers.entries()) {
-                if (users && typeof users.forEach === 'function') {
-                    for (const user of users) {
-                        if (typeof user === 'string' && user.toLowerCase() === nickname.toLowerCase()) {
-                            foundSocket = srvSocket;
-                            nickname = user;
-                            break;
-                        }
-                    }
-                } else if (Array.isArray(users)) {
-                    for (const user of users) {
-                        if (typeof user === 'string' && user.toLowerCase() === nickname.toLowerCase()) {
-                            foundSocket = srvSocket;
-                            nickname = user;
-                            break;
-                        }
-                    }
-                }
-                if (foundSocket) break;
-            }
-        }
-        if (!foundSocket) {
+        if (!nickname || typeof nickname !== 'string') {
             return null;
         }
-        const modes = this.usermodes.get(nickname);
+        let resolved = this.findUser(nickname) || nickname;
+        const modes = this.usermodes.get(resolved);
         if (!modes || modes === true) {
-            this.usermodes.set(nickname, [...this.default_user_modes]);
+            // Pure read: do not mutate usermodes map here.
+            return [];
         }
-        return this.usermodes.get(nickname);
+        return [...modes];
     }
 
     setUserMode(nickname, mode, adding) {
-        // Sets a user mode for a given nickname
-        const modes = this.getUserModes(nickname);
+        let resolved = this.findUser(nickname) || nickname;
+        let modes = this.usermodes.get(resolved);
+        if (!modes || modes === true) {
+            modes = [];
+            this.usermodes.set(resolved, modes);
+        }
         if (adding) {
             if (!modes.includes(mode)) {
                 modes.push(mode);
@@ -4031,7 +1846,6 @@ class WTVIRC {
     }
 
     async getHostname(socket) {
-        // Resolve the hostname for a socket, using reverse DNS lookup
         let hostname;
         if (socket && socket.remoteAddress) {
             try {
@@ -4062,135 +1876,137 @@ class WTVIRC {
     }
 
     async doInitialHandshake(socket) {
-        // Perform the initial handshake with the client
-        // We pause the socket to prevent sending data before the hostname is resolved
         await this.safeWriteToSocket(socket, `:${this.servername} NOTICE AUTH :*** Looking up your hostname\r\n`);
+        // Preserve the connecting IP as realhost for KLINE/ban matching.
+        socket.realhost = socket.remoteAddress;
         socket.pause();
         socket.host = await this.getHostname(socket);
         socket.resume();
-        socket.realhost = socket.host;        
+    }
+
+    isKLineActive(kline) {
+        if (!kline) {
+            return false;
+        }
+        // Permanent when expiry is missing/null/0; otherwise active until expiry.
+        if (!kline.expiry) {
+            return true;
+        }
+        return kline.expiry > this.getDate();
     }
 
     async scanSocketForKLine(socket) {
-        for (const kline of this.klines) {
+        let changed = false;
+        for (let i = this.klines.length - 1; i >= 0; i--) {
+            const kline = this.klines[i];
+            if (!this.isKLineActive(kline)) {
+                this.klines.splice(i, 1);
+                changed = true;
+                continue;
+            }
             if (this.checkMask(kline.mask, socket)) {
-                if (kline.expiry && kline.expiry > this.getDate()) {
-                    if (kline.reason) {
-                        await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined: ${kline.reason}\r\n`);
-                        await this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined: ${kline.reason}\r\n`, socket);
-                    } else {
-                        await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined\r\n`);
-                        await this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined\r\n`, socket);
-                    }
-                    this.terminateSession(socket, true);
-                    return true;
+                if (kline.reason) {
+                    await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined: ${kline.reason}\r\n`);
                 } else {
-                    const klineIndex = this.klines.findIndex(k => k.mask === kline.mask);
-                    if (klineIndex !== -1) {
-                        this.klines.splice(klineIndex, 1);
-                    }
+                    await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined\r\n`);
+                }
+                if (changed) {
                     this.saveKLinesToFile();
                 }
+                this.terminateSession(socket, true);
+                return true;
             }
+        }
+        if (changed) {
+            this.saveKLinesToFile();
         }
         return false;        
     }
 
     async scanUsersForKLines() {
-        for (const kline of this.klines) {
-            for (const socket of this.nicknames.keys()) {
+        let changed = false;
+        for (let i = this.klines.length - 1; i >= 0; i--) {
+            const kline = this.klines[i];
+            if (!this.isKLineActive(kline)) {
+                this.klines.splice(i, 1);
+                changed = true;
+                continue;
+            }
+            for (const socket of Array.from(this.nicknames.keys())) {
                 if (this.checkMask(kline.mask, socket)) {
-                    if (kline.expiry && kline.expiry > this.getDate()) {
-                        if (kline.reason) {
-                            await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined: ${kline.reason}\r\n`);
-                            await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} KILL :K-lined: ${kline.reason}\r\n`);
-                        } else {
-                            await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined\r\n`);
-                            await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} KILL :K-lined\r\n`);
-                        }
+                    if (kline.reason) {
+                        await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined: ${kline.reason}\r\n`);
+                        await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} KILL :K-lined: ${kline.reason}\r\n`);
                         await this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined: ${kline.reason}\r\n`, socket);
-                        this.terminateSession(socket, true);
                     } else {
-                        const klineIndex = this.klines.findIndex(k => k.mask === kline.mask);
-                        if (klineIndex !== -1) {
-                            this.klines.splice(klineIndex, 1);
-                        }
-                        this.saveKLinesToFile();
+                        await this.safeWriteToSocket(socket, `:${this.servername} KILL ${socket.nickname} :K-lined\r\n`);
+                        await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} KILL :K-lined\r\n`);
+                        await this.broadcastToAllServers(`:${socket.uniqueId} KILL ${socket.uniqueId} :K-lined\r\n`, socket);
                     }
+                    this.terminateSession(socket, true);
                 }
             }
+        }
+        if (changed) {
+            this.saveKLinesToFile();
         }
     }
 
     saveKLinesToFile() {
-        // Ensure the session store directory exists
-        if (!fs.existsSync(this.session_store_path)) {
-            fs.mkdirSync(this.session_store_path, { recursive: true });
+        try {
+            if (!fs.existsSync(this.session_store_path)) {
+                fs.mkdirSync(this.session_store_path, { recursive: true });
+            }
+            fs.writeFileSync(this.klines_path, JSON.stringify(this.klines, null, 2));
+        } catch (e) {
+            this.debugLog('error', `Failed to save klines: ${e.message}`);
         }
-        // Save the KLines to a file
-        fs.writeFileSync(this.klines_path, JSON.stringify(this.klines, null, 2));        
     }
 
     loadKLinesFromFile() {
-        // Load KLines from a file if it exists
-        if (fs.existsSync(this.klines_path)) {
-            const data = fs.readFileSync(this.klines_path, 'utf8');
-            this.klines = JSON.parse(data);
+        try {
+            if (fs.existsSync(this.klines_path)) {
+                const data = fs.readFileSync(this.klines_path, 'utf8');
+                this.klines = JSON.parse(data);
+                if (!Array.isArray(this.klines)) {
+                    this.klines = [];
+                }
+            }
+        } catch (e) {
+            this.debugLog('error', `Failed to load klines, starting empty: ${e.message}`);
+            this.klines = [];
         }
     }
 
-    getGitRevision() {
-        try {
-            const gitPath = __dirname + path.sep + ".." + path.sep + ".." + path.sep + ".." + path.sep + ".git" + path.sep
-            const rev = fs.readFileSync(gitPath + "HEAD").toString().trim();
-            if (rev.indexOf(':') === -1) {
-                return rev.slice(0, 8);
-            } else {
-                return fs.readFileSync(gitPath + rev.slice(5)).toString().trim().slice(0, 8) + "-" + rev.split('/').pop();
-            }
-        } catch (e) {
-            return null;
-        }
-    }    
-
     isChannelOp(nickname, channel) {
-        // Check if the user is a channel operator
         channel = this.findChannel(channel);
         if (!channel) {
-            return false; // Channel not found
-        }
-        const channelOps = this.channelData.get(channel).ops;
-        if (channelOps === true) {
             return false;
         }
-        if (channelOps.has(nickname)) {
-            return true; // User is a channel operator
+        const channelOps = this.channelData.get(channel).ops;
+        if (channelOps && typeof channelOps.has === 'function' && channelOps.has(nickname)) {
+            return true;
         }
-        // Check if the user is an IRC operator
         if (this.isIRCOp(nickname)) {
-            return true; // IRC operator is considered a channel operator
+            return true;
         }
+        return false;
     }
 
     isChannelHalfOp(nickname, channel) {
-        // Check if the user is a channel half-operator
         channel = this.findChannel(channel);
         if (!channel) {
-            return false; // Channel not found
-        }
-        const channelHalfOps = this.channelData.get(channel).halfops;
-        if (channelHalfOps === true) {
             return false;
         }
-        if (channelHalfOps.has(nickname)) {
-            return true; // User is a channel half-operator
+        const channelHalfOps = this.channelData.get(channel).halfops;
+        if (channelHalfOps && typeof channelHalfOps.has === 'function' && channelHalfOps.has(nickname)) {
+            return true;
         }
-        // Check if the user is an IRC operator
         if (this.isIRCOp(nickname)) {
-            return true; // IRC operator is considered a channel half-operator
+            return true;
         }
+        return false;
     }
-
 
     processChannelModeParams(channel, mode, target) {
         let result = false;
@@ -4246,7 +2062,7 @@ class WTVIRC {
                 }
             } else if (mode === '-b') {
                 if (channelBans.includes(target)) {
-                    channelBans = channelBans.filter(ban => ban !== target);
+                    this.channelData.get(channel).bans = channelBans.filter(ban => ban !== target);
                     return true;
                 }
             }
@@ -4259,7 +2075,7 @@ class WTVIRC {
                 }
             } else if (mode === '-e') {
                 if (channelExemptions.includes(target)) {
-                    channelExemptions = channelExemptions.filter(exception => exception !== target);
+                    this.channelData.get(channel).exemptions = channelExemptions.filter(exception => exception !== target);
                     return true;
                 }
             }
@@ -4272,7 +2088,7 @@ class WTVIRC {
                 }
             } else if (mode === '-I') {
                 if (channelInvites.includes(target)) {
-                    channelInvites = channelInvites.filter(invite => invite !== target);
+                    this.channelData.get(channel).inviteexemptions = channelInvites.filter(invite => invite !== target);
                     return true;
                 }
             }
@@ -4280,14 +2096,14 @@ class WTVIRC {
             if (mode === '+l') {
                 result = this.setChannelMode(channel, 'l', true);
                 if (result === false && this.channelData.get(channel).limit === parseInt(target)) {
-                    return false; // Mode already set with the same limit
+                    return false;
                 }
                 this.channelData.get(channel).limit = parseInt(target);
                 return true;
             } else {
                 result = this.setChannelMode(channel, 'l', false);
                 if (result === false && this.channelData.get(channel).limit === null) {
-                    return false; // Mode already unset
+                    return false;
                 }
                 this.channelData.get(channel).limit = null;
                 return true;
@@ -4296,33 +2112,33 @@ class WTVIRC {
             if (mode === '+k') {
                 result = this.setChannelMode(channel, 'k', true);
                 if (result === false && this.channelData.get(channel).key === target) {
-                    return false; // Mode already set with the same key
+                    return false;
                 }
                 this.channelData.get(channel).key = target;
                 return true;
             } else {                
                 result = this.setChannelMode(channel, 'k', false);
                 if (result === false && !this.channelData.get(channel).key) {
-                    return false; // Mode already unset
+                    return false;
                 }
                 this.channelData.get(channel).key = null;
                 return true;
             }
         } 
+        return false;
     }
 
     async processChannelModes(nickname, channel, modes, params, socket) {
-        // Split modes into array and process each character        
         const modeChars = modes.split('');
         const validModes = [];
         const supportedChannelModes = (this.supported_channel_modes.split(',').join('') + this.supported_prefixes[0]).split('');
         let serverModeMsg = '';
         let target = null;
         if (socket.isserver) {
-            const sourceUniqueId = this.uniqueids.get(nickname);
+            const sourceUniqueId = this.uniqueids.get(nickname) || nickname || socket.uniqueId || this.serverId;
             serverModeMsg = `:${sourceUniqueId} MODE ${channel} `;
         } else {
-            if (!this.checkRegistered(socket)) {
+            if (!(await this.checkRegistered(socket))) {
                 return;
             }
             serverModeMsg = `:${socket.uniqueId} MODE ${channel} `;
@@ -4332,7 +2148,7 @@ class WTVIRC {
 
         let modeMsg = `:${nickname}!${username}@${hostname} MODE ${channel} `;
         let WTVMsg = `${nickname} has set channel mode `;
-        let addingFlag = false;
+        let addingFlag = true;
         let paramIndex = 0;
         const output_lines = [];  
         if (!socket.isserver) {
@@ -4348,37 +2164,47 @@ class WTVIRC {
                     await this.safeWriteToSocket(socket, `:${this.servername} 482 ${nickname} ${channel} :You're not an IRC operator\r\n`);
                     return;
                 }
-            } else if (modes === 'b') {
-                // Get the list of channel ban
-                if (this.channelData.has(channel).bans) {
-                    const bans = this.channelData.has(channel).bans;
-                    for (const ban of bans) {
-                        output_lines.push(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
+            } else if (modes === 'b' || modes === 'e' || modes === 'I') {
+                const chanData = this.channelData.get(channel);
+                const onChannel = chanData && chanData.users.has(nickname);
+                const secret = chanData && (chanData.modes.includes('s') || chanData.modes.includes('p'));
+                if (!onChannel && !this.isIRCOp(nickname) && secret) {
+                    if (modes === 'b') {
+                        output_lines.push(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
+                    } else if (modes === 'e') {
+                        output_lines.push(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
+                    } else {
+                        output_lines.push(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
                     }
+                    await this.sendThrottled(socket, output_lines);
+                    return;
                 }
-                output_lines.push(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
-                await this.sendThrottled(socket, output_lines);
-                return;
-            } else if (modes === 'e') {
-                // Get the list of channel exemptions
-                if (this.channelData.has(channel).exemptions) {
-                    const exemptions = this.channelData.has(channel).exemptions;
-                    for (const exemption of exemptions) {
-                        output_lines.push(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
+                if (!onChannel && !this.isIRCOp(nickname)) {
+                    await this.safeWriteToSocket(socket, `:${this.servername} 442 ${nickname} ${channel} :You're not on that channel\r\n`);
+                    return;
+                }
+                if (modes === 'b') {
+                    if (chanData && chanData.bans) {
+                        for (const ban of chanData.bans) {
+                            output_lines.push(`:${this.servername} 367 ${nickname} ${channel} ${ban}\r\n`);
+                        }
                     }
-                }
-                output_lines.push(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
-                await this.sendThrottled(socket, output_lines);
-                return;
-            } else if (modes === 'I') {
-                // Get the list of channel invites masks
-                if (this.channelData.has(channel).invites) {
-                    const invites = this.channelData.has(channel).invites;
-                    for (const invite of invites) {
-                        output_lines.push(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
+                    output_lines.push(`:${this.servername} 368 ${nickname} ${channel} :End of channel ban list\r\n`);
+                } else if (modes === 'e') {
+                    if (chanData && chanData.exemptions) {
+                        for (const exemption of chanData.exemptions) {
+                            output_lines.push(`:${this.servername} 348 ${nickname} ${channel} ${exemption}\r\n`);
+                        }
                     }
+                    output_lines.push(`:${this.servername} 349 ${nickname} ${channel} :End of channel exception list\r\n`);
+                } else {
+                    if (chanData && chanData.inviteexemptions) {
+                        for (const invite of chanData.inviteexemptions) {
+                            output_lines.push(`:${this.servername} 336 ${nickname} ${channel} ${invite}\r\n`);
+                        }
+                    }
+                    output_lines.push(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
                 }
-                output_lines.push(`:${this.servername} 337 ${nickname} ${channel} :End of channel invite list\r\n`);
                 await this.sendThrottled(socket, output_lines);
                 return;
             } else {
@@ -4389,7 +2215,6 @@ class WTVIRC {
             }
         }
         for (let j = 0; j < modeChars.length; j++) {
-            let param = null;
             let modeStr = '';
             const mc = modeChars[j];
             let result = false;
@@ -4413,39 +2238,43 @@ class WTVIRC {
                 continue;
             }
             modeStr += mc;
-            // Modes that require a parameter
             if ([...this.supported_prefixes[0], 'I', 'b', 'e', 'l', 'k'].includes(mc)) {
                 const plusminus = (addingFlag) ? "+" : "-";
-                param = params[paramIndex];
+                const param = params[paramIndex];
+                const isStatusMode = this.supported_prefixes[0].includes(mc);
                 if (socket.isserver) {
-                    target = this.findUserByUniqueId(param);
+                    if (isStatusMode) {
+                        target = this.findUserByUniqueId(param) || this.findUser(param) || param;
+                    } else {
+                        target = param; // ban/except/invex/key/limit — raw param
+                    }
                 } else {
-                    target = this.findUser(param);
+                    target = isStatusMode ? (this.findUser(param) || param) : param;
+                    if (isStatusMode && !this.findUser(param) && !socket.isserver) {
+                        await this.safeWriteToSocket(socket, `:${this.servername} 401 ${nickname} ${param} :No such nick/channel\r\n`);
+                        return;
+                    }
                 }
-                if ((!target && !socket.isserver) || !this.channelData.get(channel).users.has(target)) {
+                if (!target && !socket.isserver) {
                     await this.safeWriteToSocket(socket, `:${this.servername} 401 ${nickname} ${param} :No such nick/channel\r\n`);
                     return;
                 }
-                result = this.processChannelModeParams(channel, plusminus + mc, target, socket);
+                result = this.processChannelModeParams(channel, plusminus + mc, target);
                 paramIndex++;
-                if (!result) {
-                    if (params.length > 0) {
-                        params.shift();
-                    }
-                }
             } else {
                 result = this.setChannelMode(channel, mc, addingFlag);
                 if (addingFlag) {
                     if (mc === 'S' && this.kick_insecure_users_on_secure) {
-                        // Kick users who do not have user mode +z
-                        const usersInChannel = this.channelData.get(channel).users;
+                        const usersInChannel = Array.from(this.channelData.get(channel).users);
+                        const kickReason = 'Channel is now +S (SSL/TLS required)';
                         for (const user of usersInChannel) {
                             const userSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === user);
                             if (userSocket && !userSocket.secure) {
-                                await this.safeWriteToSocket(userSocket, `:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
-                                await this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :Channel is now +S (SSL-only, +z usermode required)\r\n`, userSocket);
-                                await this.broadcastToAllServers(`:${sourceUniqueId} KICK ${channel} ${userSocket.uniqueId} :Channel is now +S (SSL-only, +z usermode required)\r\n`);
-                                this.channelData.get(channel).users.delete(userSocket.nickname);
+                                await this.safeWriteToSocket(userSocket, `:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :${kickReason}\r\n`);
+                                await this.broadcastChannel(channel, `:${nickname}!${username}@${socket.host} KICK ${channel} ${userSocket.nickname} :${kickReason}\r\n`, userSocket);
+                                const sourceUniqueId = this.uniqueids.get(nickname);
+                                await this.broadcastToAllServers(`:${sourceUniqueId} KICK ${channel} ${userSocket.uniqueId} :${kickReason}\r\n`);
+                                this.removeUserFromChannel(userSocket.nickname, channel);
                             }
                         }
                     }                                                    
@@ -4463,7 +2292,7 @@ class WTVIRC {
         if (params.length > 0) {
             for (let i = 0; i < params.length; i++) {
                 if (socket.isserver) {
-                    modeMsg += ' ' + this.findUserByUniqueId(params[i]);
+                    modeMsg += ' ' + (this.findUserByUniqueId(params[i]) || params[i]);
                 } else {
                     modeMsg += ' ' + params[i];
                     WTVMsg += ' ' + params[i];
@@ -4491,41 +2320,41 @@ class WTVIRC {
             this.terminateSession(socket, true);
             return;
         }        
-        setTimeout((socket) => {
-            if (socket) {
-                socket.error_count--;
+        setTimeout((sock) => {
+            if (sock) {
+                sock.error_count--;
             }
-        }, 60000);
+        }, 60000, socket);
     }
 
     async checkRegistered(socket, allowUnregistered = false, silent = false) {
-        let retval = false;
         if (socket.isserver) {
-            if (!socket.is_srv_authorized && (!socket.registered && !allowUnregistered)) {
-                if (socket.writable && !silent) {
-                    await this.safeWriteToSocket(socket, `:${this.servername} ERROR :Unauthorized\r\n`);
-                }
-                this.addSocketError(socket);
-            } else {
-                retval = true; // Server is authorized
+            if (socket.is_srv_authorized) {
+                return true;
             }
-        }
-        if (!socket.registered && (!socket.registered && !allowUnregistered)) {
+            if (allowUnregistered) {
+                return true;
+            }
             if (socket.writable && !silent) {
-                await this.safeWriteToSocket(socket, `:${this.servername} 451 ${socket.uniqueId} :You have not registered\r\n`);
+                await this.safeWriteToSocket(socket, `:${this.servername} ERROR :Unauthorized\r\n`);
             }
             this.addSocketError(socket);
-        } else {
-            retval = true; // User is registered        
+            return false;
         }
-        return retval;
+        if (socket.registered || allowUnregistered) {
+            return true;
+        }
+        if (socket.writable && !silent) {
+            await this.safeWriteToSocket(socket, `:${this.servername} 451 ${socket.nickname || '*'} :You have not registered\r\n`);
+        }
+        this.addSocketError(socket);
+        return false;
     }
 
     setChannelMode(channel, mode, adding) {
-        // Updates the channel modes for a given channel
         const modes = this.channelData.get(channel).modes;
         if (!modes) {
-            return false; // Channel not found
+            return false;
         }
         if (adding) {
             if (!modes.includes(mode)) {
@@ -4539,7 +2368,7 @@ class WTVIRC {
                 return true;
             }
         }
-        return false; // Mode not changed
+        return false;
     }
 
     debugLog(type = 'debug', ...message) {
@@ -4547,7 +2376,6 @@ class WTVIRC {
             typeof m === 'object' ? JSON.stringify(m) : String(m)
         ).join(' ');
 
-        // Logs debug messages to the console if debugging is enabled
         switch (type) {
             case 'debug':
                 this.logdata.push(`[DEBUG] ${parsedMessage}`);
@@ -4585,15 +2413,22 @@ class WTVIRC {
     }
 
     async doLogin(nickname, socket) {
+        if (socket.loggingIn || socket.registered) {
+            return;
+        }
+        socket.loggingIn = true;
         if (await this.scanSocketForKLine(socket)) {
-            return; // If the socket is K-lined, exit early
+            socket.loggingIn = false;
+            return;
         }
         this.addUserUniqueId(nickname, socket.uniqueId);
         this.hostnames.set(nickname, socket.host);
         this.realhosts.set(nickname, socket.realhost);
+        // Register before optional VERSION probe so mid-login commands are not rejected.
+        socket.registered = true;
         await this.safeWriteToSocket(socket, `:${this.servername} PRIVMSG ${socket.nickname} :\x01VERSION\x01\r\n`);
         let waited = 0;
-        while (socket.client_version === '' && waited < 3000) {
+        while (socket.client_version === '' && waited < 1000) {
             await new Promise(res => setTimeout(res, 100));
             waited += 100;
         }
@@ -4602,17 +2437,14 @@ class WTVIRC {
         output_lines.push(`:${this.servername} 001 ${nickname} :Welcome to the IRC server, ${nickname}\r\n`);
         output_lines.push(`:${this.servername} 002 ${nickname} :Your host is ${this.servername}, running version zefIRCd v${this.version}\r\n`);
         output_lines.push(`:${this.servername} 003 ${nickname} :This server is ready to accept commands\r\n`);
-        // Sort supported_channel_modes and supported_user_modes alphabetically with capitals first
+        
         function sortModesAlphaCapsFirst(modes) {
-            // Remove commas, split to chars, sort, then re-insert commas if needed
-            // If input is comma-separated groups, sort each group
             return modes
             .split(',')
             .map(group => {
                 return group
                 .split('')
                 .sort((a, b) => {
-                    // Capital letters first, then lowercase, then numbers/symbols
                     if (a === b) return 0;
                     const isACap = a >= 'A' && a <= 'Z';
                     const isBCap = b >= 'A' && b <= 'Z';
@@ -4633,7 +2465,7 @@ class WTVIRC {
         if (channelModesParts.length > 1) {
             let modesToSort = channelModesParts.slice(0, -1).join('').split('');
             modesToSort.push(...this.supported_prefixes[0].split(''));
-            modesToSort = Array.from(new Set(modesToSort)); // remove duplicates
+            modesToSort = Array.from(new Set(modesToSort));
             modesToSort.sort();
             sortedModesWithParams = modesToSort.join('');
         }
@@ -4642,41 +2474,15 @@ class WTVIRC {
         const sortedUserModes = sortModesAlphaCapsFirst(this.supported_user_modes);
         output_lines.push(`:${this.servername} 004 ${nickname} ${this.servername} zefIRCd-${this.version} ${sortedUserModes} ${sortedChannelModes} ${sortedModesWithParams}\r\n`);
         for (const caps of this.caps) {
-            output_lines.push(`:${this.servername} 005 ${caps}\r\n`);
+            output_lines.push(`:${this.servername} 005 ${nickname} ${caps} :are supported by this server\r\n`);
         }
-        socket.registered = true;
         output_lines.push(`:${this.servername} 042 ${nickname} ${socket.uniqueId} :your unique ID\r\n`);
 
         output_lines.push(...(await this.doMOTD(nickname)));        
 
-        const visibleClients = Array.from(this.nicknames.values()).filter(nick => {
-            const modes = this.usermodes.get(nick) || [];
-            return !modes.includes('i');
-        });
-        const invisibleClients = Array.from(this.nicknames.values()).filter(nick => {
-            const modes = this.usermodes.get(nick) || [];
-            return modes.includes('i');
-        });
-        const operClients = Array.from(this.nicknames.values()).filter(nick => {
-            const modes = this.usermodes.get(nick) || [];
-            return modes.includes('o');
-        });        
-        const serverCount = this.servers.size + 1; // Include this server
-        output_lines.push(`:${this.servername} 251 ${nickname} :There are ${visibleClients.length} visible users and ${invisibleClients.length} invisible users on this server\r\n`);
-        if (operClients.length > 0) {
-            output_lines.push(`:${this.servername} 252 ${nickname} ${operClients.length} :operator(s) online\r\n`);
-        }
-        if (this.channelData.size > 0) {
-            output_lines.push(`:${this.servername} 253 ${nickname} ${this.channelData.size} :channels formed\r\n`);
-        }
-        output_lines.push(`:${this.servername} 255 ${nickname} :I have ${this.clients.length} clients and ${serverCount} servers\r\n`);
-        output_lines.push(`:${this.servername} 265 ${nickname} :Current Local Users: ${this.clients.length}  Max: ${this.clientpeak}\r\n`);
-        const globalUsers = this.countGlobalUsers();
-        this.globalpeak = Math.max(this.globalpeak, this.countGlobalUsers());
         const totalSockets = this.clients.length + this.servers.size;
         this.socketpeak = Math.max(this.socketpeak, totalSockets);
-
-        output_lines.push(`:${this.servername} 266 ${nickname} :Current Global Users: ${globalUsers}  Max: ${this.globalpeak}\r\n`);
+        output_lines.push(...this.buildLusersLines(nickname));
         output_lines.push(`:${this.servername} 250 ${nickname} :Highest connection count: ${this.socketpeak} (${this.clientpeak} clients) (${this.totalConnections} connections received)\r\n`);
         let usermodes = this.usermodes.get(nickname);
         if (!usermodes || usermodes === true) {
@@ -4693,27 +2499,29 @@ class WTVIRC {
         this.usermodes.set(nickname, [...usermodes]);
         if (usermodes.includes('x')) {
             socket.host = this.filterHostname(socket, socket.realhost);
-            if (socket.client_caps && socket.client_caps.includes('CHGHOST')) {
+            this.hostnames.set(nickname, socket.host);
+            if (socket.client_caps && socket.client_caps.includes('chghost')) {
                 output_lines.push(`:${socket.nickname}!${socket.username}@${socket.host} CHGHOST ${socket.username} ${socket.host}\r\n`);
             }
             output_lines.push(`:${this.servername} 396 ${socket.nickname} ${socket.host} :is now your visible host\r\n`);            
         }
         output_lines.push(`:${this.servername} 221 ${nickname} :+${this.usermodes.get(nickname).join('')}\r\n`);
         await this.sendThrottled(socket, output_lines);
-        for (const [srvSocket, serverName] of this.servers.entries()) {
+        for (const srvSocket of this.servers.keys()) {
             if (srvSocket) {
-                // Compose UID message for this client
-                const nickname = socket.nickname;
-                const username = socket.username || this.usernames.get(socket.nickname) || socket.nickname;
-                const uniqueId = socket.uniqueId;
-                const signonTime = socket.timestamp || this.getDate();
-                const userModes = (this.usermodes.get(nickname) || []).join('');
-                const userinfo = socket.userinfo || '';
-                await this.safeWriteToSocket(srvSocket, `:${this.serverId} UID ${nickname} 1 ${signonTime} +${userModes} ${username} ${socket.host} ${socket.realhost} ${socket.remoteAddress} ${uniqueId} * ${nickname} :${userinfo}\r\n`);
+                const nick = socket.nickname;
+                await this.safeWriteToSocket(srvSocket, this.formatUidBurstLine(socket, nick));
+                if (socket.realhost && socket.realhost !== socket.host) {
+                    await this.safeWriteToSocket(srvSocket, `:${this.serverId} ENCAP * REALHOST ${socket.uniqueId} :${socket.realhost}\r\n`);
+                }
             }
         } 
         await this.broadcastConnection(socket);
+        socket.loggingIn = false;
     }
 }
+
+Object.assign(WTVIRC.prototype, clientCommands);
+Object.assign(WTVIRC.prototype, serverCommands);
 
 module.exports = WTVIRC;

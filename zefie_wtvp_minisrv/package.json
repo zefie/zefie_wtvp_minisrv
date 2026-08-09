@@ -1,16 +1,19 @@
 {
   "name": "zefie_wtvp_minisrv",
-  "version": "0.9.71",
+  "version": "0.9.75",
   "description": "WebTV Service (WTVP) Emulation Server",
   "main": "app.js",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "homepage": "https://github.com/zefie/zefie_wtvp_minisrv",
   "license": "GPL3",
   "scripts": {
     "start": "node app.js",
-    "irc": "node irconly.js",
     "test": "node test.js",
     "debug": "cross-env DEBUG=* node app.js",
-    "modem-proxy": "node modem_proxy.js"
+    "modem-proxy": "node modem_proxy.js",
+    "scan-service-deprecations": "node tools/scan_service_vault_deprecations.js"
   },
   "author": {
     "name": "zefie",
@@ -30,7 +33,7 @@
   },
   "dependencies": {
     "@serialport/parser-readline": "^13.0.0",
-    "adm-zip": "^0.5.12",
+    "adm-zip": "^0.6.0",
     "cross-env": "^7.0.3",
     "crypto-js": "^4.2.0",
     "easy-crc": "0.0.2",
@@ -43,6 +46,7 @@
     "mime-types": "^2.1.35",
     "newsie": "1.2.1",
     "nntp-server-zefie": "^3.1.0",
+    "node-forge": "^1.4.0",
     "nunjucks": "^3.2.4",
     "pcap-parser": "^0.2.1",
     "php-serialize": "^5.0.1",
@@ -50,7 +54,7 @@
     "rc4-crypto": "^1.5.0",
     "sanitize-html": "^2.13.0",
     "serialport": "^13.0.0",
-    "sharp": "^0.34.3",
+    "sharp": "^0.35.3",
     "starttls": "^1.0.1",
     "strftime": "^0.10.2",
     "uuid": "^14.0.0"

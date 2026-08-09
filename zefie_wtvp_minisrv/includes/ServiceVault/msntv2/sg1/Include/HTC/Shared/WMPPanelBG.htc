@@ -1,0 +1,67 @@
+<PUBLIC:COMPONENT lightweight="true">
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+</PUBLIC:COMPONENT>
+
+<SCRIPT>
+
+PanelState_Rising = 1;
+
+var bgTopDiv;
+var bgMidDiv;
+var bgBottomDiv;
+var bgMidDivHTML;
+var myName;
+
+
+function OnBeforeShow(name)
+{
+	if (name == myName) {
+		bgMidDiv.innerHTML =  bgMidDivHTML;
+	}
+}
+
+function OnAfterHide(name)
+{
+	if (name == myName) {
+		bgMidDiv.innerHTML = "";
+	}
+}
+
+function Init()
+{
+	bgTopDiv = element.document.createElement("DIV");
+	bgMidDiv = element.document.createElement("DIV");
+	bgBottomDiv = element.document.createElement("DIV");
+
+	bgTopDiv.style.position = bgMidDiv.style.position = bgBottomDiv.style.position = "absolute";
+	bgTopDiv.style.pixelLeft = bgMidDiv.style.pixelLeft = bgBottomDiv.style.pixelLeft = 0;
+	bgTopDiv.style.pixelRight = bgMidDiv.style.pixelRight = bgBottomDiv.style.pixelRight =
+		-parseInt(currentStyle.marginLeft) - parseInt(currentStyle.marginRight);
+	bgTopDiv.style.pixelTop = 0;
+	bgMidDiv.style.pixelTop = 15;
+	bgBottomDiv.style.pixelBottom = 0;
+	bgTopDiv.style.pixelHeight = bgBottomDiv.style.pixelHeight = 15;
+	bgMidDiv.style.height = element.clientHeight-30;
+	bgMidDiv.style.zIndex = bgTopDiv.style.zIndex = bgBottomDiv.style.zIndex=-1;
+
+
+	bgTopDiv.innerHTML = "<img src='msntv:/Panels/Images/PanelPlayerTopLeftCorner.jpg' style='width:15px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/PanelPlayerTopStretch.jpg' style='width:" + (element.clientWidth-30) + "px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/PanelPlayerTopRightCorner.jpg' style='width:15px;height:15px'>";	
+	bgMidDivHTML = "<img src='msntv:/Panels/Images/PanelPlayerLeftStretch.jpg' style='vertical-align:top;width:15px;height:100%' >" +
+					"<span style='background:#17181C url(msntv:/Panels/Images/PanelPlayerLargeBG.jpg) no-repeat bottom center; width:" + (element.clientWidth-30) + "px;height:100%;'></span>" +
+					"<img src='msntv:/Panels/Images/PanelPlayerRightStretch.jpg' style='vertical-align:top;width:15px;height:100%' >";
+	bgBottomDiv.innerHTML = "<img src='msntv:/Panels/Images/PanelPlayerBottomLeftCorner.jpg' style='width:15px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/PanelPlayerBottomStretch.jpg' style='width:" + (element.clientWidth-30) + "px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/PanelPlayerBottomRightCorner.jpg' style='width:15px;height:15px'>";	
+	
+	element.appendChild(bgMidDiv);
+	element.appendChild(bgTopDiv);
+	element.appendChild(bgBottomDiv);
+
+	myName = window.name;
+
+	Sink.AttachEvent(TVShell.PanelManager, "OnBeforeShow", OnBeforeShow);
+	Sink.AttachEvent(TVShell.PanelManager, "OnAfterHide", OnAfterHide);
+}
+</SCRIPT>

@@ -1,0 +1,120 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         MediaNavHeading.htc
+//
+//  Description:  The heading element for Media Navigation page.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="MediaNavHeading" lightweight=true>
+
+<PUBLIC:PROPERTY NAME="mainTitle" />
+<PUBLIC:PROPERTY NAME="subTitle" />
+<PUBLIC:PROPERTY NAME="helpURL" />
+<PUBLIC:PROPERTY NAME="settingsURL" />
+<PUBLIC:PROPERTY NAME="app" />
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="doPropChange" />
+
+<PUBLIC:DEFAULTS style="{position:absolute;top:0;left:0;width:100%;height:100%;color:#07214D; font-family: highway;}" />
+
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	redraw();
+}
+
+
+function doPropChange()
+{
+	TVShell.Message("event prop="+event.propertyName);
+	var nm = event.propertyName;
+	if ( 
+		( nm == "mainTitle" ) ||
+		( nm == "subTitle" ) ||
+		( nm == "settingsURL" ) ||
+		( nm == "helpURL" ) ||
+		( nm == "app" )
+		)
+		redraw();
+}
+
+function redraw()
+{
+	var ew = element.clientWidth;
+	var divStyle = "header";
+	var titleStyle = "headerTitle";
+	var subTitleStyle = "headerSubTitle";
+	if ( app == "photo" )
+	{
+		divStyle = "headerPhoto";
+		titleStyle = "headerTitlePhoto";
+		subTitleStyle = "headerSubTitlePhoto";
+	}
+	if ( app == "music" )
+	{
+		divStyle = "headerMusic";
+		titleStyle = "headerTitleMusic";
+		subTitleStyle = "headerSubTitleMusic";
+	}
+	if ( app == "video" )
+	{
+		divStyle = "headerVideo";
+		titleStyle = "headerTitleVideo";
+		subTitleStyle = "headerSubTitleVideo";
+	}
+	
+ 	var output = "<TABLE cellspacing=0 cellpadding=0 height=100% width=100%><TR><TD>";
+ 	output += "<DIV id=" + divStyle + " style='width:" + ew + "px' class=ellipsis>";
+
+ 	if (mainTitle)
+		output += "<SPAN id=" + titleStyle + ">" + mainTitle + "</SPAN>";
+
+	if (subTitle)
+		output += "<SPAN id=" + subTitleStyle + ">" + subTitle + "</SPAN>";
+
+	if ( helpURL || settingsURL )
+	{
+		output +="<div style='position:absolute; top:0px; right:0px;' ><table cellpadding=0 cellspacing=0><tr>";
+		if ( settingsURL )
+			output += "<td height=30><A href='" + settingsURL + "' id=settings>Settings</td><td height=30 width=15></td>";
+			
+		if (helpURL)
+			output += "<td height=30><A href='" + helpURL + "' id=help>Help<SPAN id=helpIcon></SPAN></A></td>";
+
+		output += "<td height=30 width=8></td></tr></table></div>";
+	}
+
+	output += "</DIV></TD></TR></TABLE>";
+
+	innerHTML = output;
+}
+
+</SCRIPT>
+
+</PUBLIC:COMPONENT>
+
+

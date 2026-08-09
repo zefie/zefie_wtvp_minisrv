@@ -70,7 +70,7 @@ class WTVFTP {
                         stream.on('data', (chunk) => {
                             chunks.push(chunk);
                             totalsize += chunk.length;
-                            if (totalsize > 1024 * 1024 * 4) {
+                            if (totalsize > 1024 * 1024 * this.minisrv_config.services[this.service_name].max_response_size) {
                                 this.sendToClient(socket, { 'Status': '413 The item chosen contains too much information to be used.', 'Content-Type': 'text/plain' }, 'Item too large');
                                 ftpClient.end();
                                 return;

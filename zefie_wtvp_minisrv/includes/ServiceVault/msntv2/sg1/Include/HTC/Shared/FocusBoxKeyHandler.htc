@@ -1,0 +1,154 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:		ScrollingDIV.htc
+//
+//  Description:	The ScrollingDIV HTML behavior allows web authors to easily add
+//				scrolling functionality to any DIV.  This attached behavior properly
+//				handles the arrow keys, page-up/down, and adds visible scroll arrows
+//				as needed.  It further adds optional features, such as pre-emptive
+//				scrolling and custom arrow-key handling.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="FocusBoxKeyHandler" lightweight=true>
+
+<PUBLIC:ATTACH EVENT="onkeydown" HANDLER="KeydownHandler" />
+
+</PUBLIC:COMPONENT>
+
+
+<SCRIPT>
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       KeydownHandler
+//  Description:    Handle the up and down arrows and the page-up and page-down buttons.
+//						Also handle the nextLeft/nextRight/nextUp/nextDown HTML attributes.
+//  Arguments:      none
+//  Returns:        nothing
+//
+//	Note:			Holding down the control key with page-up/down causes the DIV
+//						to scroll to the end/beginning.
+//+----------------------------------------------------------------------------
+var sPreviousSelectName = null;
+function KeydownHandler()
+{
+	var handled = false;
+	var srcElem = event.srcElement;
+	var selnRange = null;
+	var txtAreaRange = null;
+	
+	// Special hadling for <SELECT> and it's options
+	if (srcElem.tagName == "SELECT")
+	{
+		if (srcElem.name == sPreviousSelectName)
+		{
+			if (event.keyCode == 13 || event.keyCode == 38 || event.keyCode == 40) 
+			{	// default the standard key events.
+				return;
+			}
+		} else 
+		{	// a new select has focus, do custom scroll below
+			sPreviousSelectName = srcElem.name;
+		}
+	}
+	else
+		sPreviousSelectName = null;
+		
+	// If the selection is editable text, only handle keys when the caret
+	// is at the appropriate edge
+	if (srcElem.isContentEditable)
+	{
+	 	selnRange = element.document.selection.createRange();
+		txtAreaRange = srcElem.createTextRange();
+	}
+	
+	switch (event.keyCode)
+	{
+		case 38:	// up
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the top or this is a repeat
+				if (txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextUp = srcElem.attributes.getNamedItem("nextup");
+			if (nextUp)
+			{
+				element.document.all[nextUp.value].focus();
+				handled = true;
+			}			
+			break;
+
+		case 40:	// down
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the bottom or this is a repeat
+				txtAreaRange.collapse(false);	// move to the end
+				if (txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextDown = srcElem.attributes.getNamedItem("nextdown");
+			if (nextDown)
+			{
+				element.document.all[nextDown.value].focus();
+				handled = true;
+			}			
+			break;
+			
+
+		case 37:	// left
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the beginning or this is a repeat
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextLeft = srcElem.attributes.getNamedItem("nextleft");
+			if (nextLeft)
+			{
+				element.document.all[nextLeft.value].focus();
+				handled = true;
+			}
+			break;
+
+		case 39:	// right
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the end or this is a repeat
+				txtAreaRange.collapse(false);	// move to the end
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextRight = srcElem.attributes.getNamedItem("nextright");
+			if (nextRight)
+			{
+				element.document.all[nextRight.value].focus();
+				handled = true;
+			}
+			break;
+		
+	}
+
+	if (handled)
+	{
+		event.returnValue=false;
+		event.cancelBubble=true;
+		return false;
+	}
+
+	return true;
+}
+
+</SCRIPT>
+

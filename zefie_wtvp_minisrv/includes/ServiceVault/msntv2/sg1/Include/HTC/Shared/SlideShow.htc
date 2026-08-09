@@ -1,0 +1,1395 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2004 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         SlideShow.htc
+//
+//  Description:  The SlideShow behavior implements a slideshow 
+//				  reusable DHTML component. This allows web authors to easily 
+//				  add a slideshow to their content. 
+//
+//				  For usage details, take a look at :
+//				  public/msntv_core/help/SlideShow/SlideShow.html
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="slideShow" lightweight=true>
+
+<!-- Public Methods. -->
+<PUBLIC:METHOD NAME="open" />
+<PUBLIC:METHOD NAME="close" />
+<PUBLIC:METHOD NAME="play" />
+<PUBLIC:METHOD NAME="pause" />
+<PUBLIC:METHOD NAME="next" />
+<PUBLIC:METHOD NAME="prev" />
+<PUBLIC:METHOD NAME="setText" />
+<PUBLIC:METHOD NAME="jumpToImage" />
+<PUBLIC:METHOD NAME="onAutoAdvanceTimeout" />
+
+<!-- Configuration Attributes. Set these before calling open -->
+<PUBLIC:PROPERTY NAME="textColor" value="#838483" />
+<PUBLIC:PROPERTY NAME="initialLoadingText" value="Loading ..." />
+<PUBLIC:PROPERTY NAME="noImagesErrorText" value="No Images" />
+<PUBLIC:PROPERTY NAME="allImagesAreBadErrorText" value="Cannot show any of the images" />
+<PUBLIC:PROPERTY NAME="deviceUnmountedText" value="Your content is no longer available" />
+<PUBLIC:PROPERTY NAME="startIndex" value="0" />
+<PUBLIC:PROPERTY NAME="resizeImages" value=true  />
+<PUBLIC:PROPERTY NAME="autoStart" value=false />
+<PUBLIC:PROPERTY NAME="flatten" value=false />
+<PUBLIC:PROPERTY NAME="autoAdvanceInterval" value=8 />
+<PUBLIC:PROPERTY NAME="imageLoadTimeout" value=8 />/*SEE IMAGE_LOAD_TIMEOUT BELOW*/
+<PUBLIC:PROPERTY NAME="viewWidth" value=100 />
+<PUBLIC:PROPERTY NAME="viewHeight" value=100 />
+<PUBLIC:PROPERTY NAME="thumbnailWidth" value=96 />
+<PUBLIC:PROPERTY NAME="thumbnailHeight" value=96 />
+<PUBLIC:PROPERTY NAME="photoResizeWidth" value=560 />
+<PUBLIC:PROPERTY NAME="photoResizeHeight" value=420 />
+<PUBLIC:PROPERTY NAME="numBadPhotos" value=0 />
+<PUBLIC:PROPERTY NAME="maxPhotosToDisplay" value=-1 />
+<PUBLIC:PROPERTY NAME="maxSearchCount" value=-1 />
+
+
+<!-- These new IE6 filters do not appear to work on WINCE 5.0:
+	'progid: DXImageTransform.Microsoft.Fade(Overlap=0.6)'
+	'progid:DXImageTransform.Microsoft.Blinds( Bands=10,direction=up)'
+	So using old style filter spec.
+-->
+<!-- PUBLIC:PROPERTY NAME="filter" value="blendTrans(duration=0.6)"  -->
+<PUBLIC:PROPERTY NAME="filter" value="progid:DXImageTransform.Microsoft.Fade(Overlap=0.2, Duration=0.5)" />
+<PUBLIC:PROPERTY NAME="XMLFileURL"  />
+
+<!-- Set only one of these combos:
+-	 imageFolderVolumeName + imageFolderPath, 
+-	 imageStorageDevice + imageFolderPath, 
+-	 imageFilenames,
+-	 imageListTempFilename - must contain a list of image filenames.
+ -->
+<PUBLIC:PROPERTY NAME="imageFolderVolumeName"/>
+<PUBLIC:PROPERTY ID="imageStorageDeviceID" NAME="imageStorageDevice" GET="GetImageStorageDevice" PUT="PutImageStorageDevice" />
+<PUBLIC:PROPERTY NAME="imageFolderPath"/>
+<PUBLIC:PROPERTY NAME="imageListTempFilename"/>
+<PUBLIC:PROPERTY NAME="imageFilenames"  />
+
+<!-- Status Attributes. These should be treated as read-only. They are
+     set by the HTC to let the client know about the state of the HTC. -->
+<PUBLIC:PROPERTY ID="isOpenedID" NAME="isOpened" GET="GetIsOpened" PUT="PutIsOpened" />
+<PUBLIC:PROPERTY ID="playStateID" NAME="playState" GET="GetPlayState" PUT="PutPlayState" />
+<PUBLIC:PROPERTY ID="numPhotosID" NAME="numPhotos" GET="GetNumPhotos" PUT="PutNumPhotos" />
+<PUBLIC:PROPERTY ID="numBadPhotosID" NAME="numBadPhotos" GET="GetNumBadPhotos" PUT="PutNumBadPhotos" />
+<PUBLIC:PROPERTY NAME="currentImageIsLoading" value=false />
+<PUBLIC:PROPERTY NAME="currentImage" value="" />
+<PUBLIC:PROPERTY NAME="currentImageIndex" value=-1 />
+//This is generally the current image index. It will differ if the user
+//has done one or more next(),prev() methods and the slideshow has not yet
+//``caught up'' with the desired index. In this case only, will the current
+//image index differ from the desiredCurrentImageIndex.
+<PUBLIC:PROPERTY NAME="desiredCurrentImageIndex" GET="GetDesiredCurrentImageIndex" PUT="PutDesiredCurrentImageIndex" />
+
+<!-- Events. These callbacks are invoked to notify the client when
+  the HTC changes -->
+<PUBLIC:EVENT ID="onPlayStateChangeID" NAME="onPlayStateChange" />
+<PUBLIC:EVENT ID="onImageTransitionStartID" NAME="onImageTransitionStart" />
+<PUBLIC:EVENT ID="onImageTransitionCompleteID" NAME="onImageTransitionComplete" />
+<PUBLIC:EVENT ID="onImageReadyID" NAME="onImageReady" />
+<PUBLIC:EVENT ID="onBadPhotoID" NAME="onBadPhoto" />
+<PUBLIC:EVENT ID="onNoPhotosToDisplayID" NAME="onNoPhotosToDisplay" />
+<PUBLIC:EVENT ID="onDebugID" NAME="onDebug" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="onPropertyChange" />
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+
+<!-- HTC Implementation  -->
+
+<script LANGUAGE=Javascript SRC="../Javascript/TVShell.js"></script>
+<script LANGUAGE=Javascript SRC="msntv:/Javascript/VKCodes.js"></script>
+<script LANGUAGE=Javascript SRC="msntv:/Javascript/ConnectionManager.js"></script>
+<script LANGUAGE=Javascript SRC="msntv:/Javascript/DMRHome.js"></script>
+<script LANGUAGE=Javascript SRC="msntv:/Photo/Photos.js"></script>
+<script language=javascript src="../Javascript/HomeNetworking.js"></script>
+
+<SCRIPT language="JavaScript" type="text/javascript">
+
+var WanType = GetWanConnectionType();
+var EMPTY_IMAGE = "msntv:/tvshell/images/empty.jpg";
+var IMAGE_LOAD_TIMEOUT = (WanType == CONN_NB?60000:30000);//Updated when the imageLoadTimeout prop changes
+var autoMount = true;
+var SKIPTO_FILTER = "blendTrans(duration=0.01)";
+var PS_PLAY				= "Playing";
+var PS_PAUSED			= "Paused";
+var AUTO_ADVANCE_TIMEOUT_INTERVAL;
+//NOTE: this is larger than the default thumbnail width & height, because
+//we'll still use a thumbnail to scale it larger in order to save space.
+var MAX_VIEW_WIDTH_FOR_THUMBNAILS = 150;
+var MAX_VIEW_HEIGHT_FOR_THUMBNAILS = 150;
+var IMG_MARGIN=0;
+
+// Used by next/prev. This is the desired photo location.
+// The desired current image index is used by the javascript to keep track
+// of where it would like the slideshow to be at. It will be distinct
+// from the actual image diplayed by slideshow until the show
+// catches up with it.
+var desiredPlayState_CurrentImageIndex = -1;;
+var imgUrlIdxMap		= new Object();
+var badImgs			= new Object();
+var inited = false;
+var autoAdvanceTimeout = -1;
+var playState = PS_PAUSED;
+var playState_FirstNotification = true;
+var numPhotos = -1;
+var theImageStorageDevice = null;
+
+function CreateEvent()
+{
+	oEvent = createEventObject();
+	oEvent.playState = playState;
+	oEvent.id = uniqueID;
+	return oEvent;
+}
+
+var commandQueue = new Array();
+
+function CommandFinished()
+{
+	if ( commandQueue.length > 0 )
+	{
+		var cmdReq = commandQueue.pop();
+		//Debug( "Executing command " + cmdReq.cmdName );
+		cmdReq.cmd();
+	}
+}
+
+function QueueCommand(cmdName, cmd, putInFront)
+{
+	//Debug( "Queuing command " + cmdName + " putInFront=" + putInFront );
+	var cmdReq = new Object();
+	cmdReq.cmdName = cmdName;
+	cmdReq.cmd = cmd;
+	if (putInFront)
+		commandQueue.push( cmdReq );
+	else
+	{
+		// we need to put this entry at the start of the array
+		commandQueue.reverse();
+		commandQueue.push( cmdReq );	// append to the end
+		commandQueue.reverse();
+	}
+}
+
+function DeferProcessing(cmdName,cmd)
+{
+	var defer = false;
+	if ( commandQueue.length > 0 )
+	{
+		defer = true;
+		//Debug( "Deferring command " + cmdName );
+		QueueCommand(cmdName, cmd,false);
+	}
+
+	return defer;
+}
+
+function Debug( msg )
+{
+	//TVShell.Message( uniqueID + ": " + msg );
+   	oEvent = CreateEvent();
+	oEvent.msg = msg;
+	onDebugID.fire(oEvent);   
+}
+
+function onPropertyChange()
+{
+	if (event.propertyName == "viewWidth" ||event.propertyName == "viewHeight")
+	{
+		//Update the Width & Height by resetting the image.
+		var img = element.all._img;
+		var mainArea = element.all._MainArea;
+		if ( img && img.src )
+		{
+			//Thumbnail Manager was reporting 0 width & height on the old
+			//thumbnail, so now we have to regenerate the thumbnail image 
+			var imgSrcURL = unescape(img.src);
+			if (imgSrcURL.toLowerCase().indexOf("file://")==0)
+				imgSrcURL = "file://" + imgSrcURL.substr(7,imgSrcURL.length).replace(/\//g,"\\");
+			if ( imgSrcURL != EMPTY_IMAGE )
+				SetImgSrc(mainArea,img,imgSrcURL,null);
+		}
+	}
+	else if (event.propertyName == "initialLoadingText")
+	{
+		setText( initialLoadingText );
+	}
+	else if (event.propertyName == "imageLoadTimeout")
+	{
+		IMAGE_LOAD_TIMEOUT = parseInt( imageLoadTimeout ) * 1000;
+	}
+}
+
+function shouldResize()
+{
+	//For narrowband, we always do resize.
+	if (resizeImages != true && WanType == CONN_NB && UseThumbnail() == false)
+		resizeImages = true;
+
+	if ( resizeImages != false && resizeImages != true )
+	{
+		try
+		{
+			resizeImages = (resizeImages == null|| resizeImages.toLowerCase()=="true");
+		} 
+		catch (ex)
+		{
+			resizeImages = true;
+		}
+	}
+	return resizeImages;
+}
+
+function isAutoStart()
+{
+  return (autoStart == false || autoStart == "false"? false : true );
+}
+
+function Init()
+{
+	if ( element.innerHTML !=  "" )
+		return;//we must be printing. ignore this init.
+
+	//Generate the HTML.
+	for (var i = element.childNodes.length -1; i >= 0; --i)
+		element.removeChild(element.childNodes[i]);
+
+	var slideShowHtml=
+'<div style="border: 0; padding: 0px; height: ' + viewHeight + '; width: ' + viewWidth + '; overflow:hidden; display: none; margin: 0;" id="_MainArea">' +
+'<table cellpadding=0 cellspacing=0 ' +
+'      height="100%" width="100%" ' +
+' >' +
+'	<tr id="_row" ' +
+' height="100%" width="100%" ' +
+' > ' +
+'		<td id="_cell" align="center" vAlign="middle" ' +
+' height="100%" width="100%" ' +
+' > ' +
+'           <span id="_text" style="color:' + textColor + ';" ></span> ' +
+'			<img id="_img"  ' +
+'                src="msntv:/tvshell/images/empty.jpg" ' +
+'                style="margin: 0px;"/> ' +
+'			<img id="_imgLoader"  ' +
+'                src="msntv:/tvshell/images/empty.jpg" ' +
+'                style="margin: 0px;display: none;"/> ' +
+'		</td> ' +
+'	</tr>'+
+'</table> ' +
+'</div> ';
+
+	element.innerHTML = slideShowHtml;
+
+
+	setText( initialLoadingText );
+
+	if ( isAutoStart() )
+	{
+		open();
+		play();
+	}
+	else if ( (imageListTempFilename && imageListTempFilename!= "")
+		    || ( imageFolderVolumeName != null && imageFolderVolumeName != "" )
+		    || ( theImageStorageDevice != null )
+		    || ( imageFilenames != null && imageFilenames.length 
+			     && imageFilenames.length > 0) )
+	{
+		open();
+	}
+}
+
+function MaybeMount( imageFilenames )
+{
+	if ( imageFilenames && imageFilenames.length > 0 )
+		AsyncMount( imageFilenames[0], null );
+}
+
+function GetImageStorageDevice()
+{
+	return null;//not returning theImageStorageDevice intentionally.
+}
+
+function PutImageStorageDevice( imageStorageDevice )
+{
+	theImageStorageDevice = imageStorageDevice;
+}
+
+//public method
+function open()
+{
+	if ( inited )
+		close();
+
+	//Reset everything.
+	//Debug( "open" );
+
+	Sink.AttachEvent(PhotoManager, "OnResizedImageReady", OnCachedImageReady);
+	Sink.AttachEvent(PhotoManager, "OnThumbnailReady"   , OnCachedImageReady);
+  	Sink.AttachEvent(TVShell.StorageManager	, "OnDeviceAdd", OnDeviceAdd);	
+	Sink.AttachEvent(TVShell.ConnectionManager.HomeNetworking, "OnServiceHandler", OnServiceHandler);
+  	Sink.AttachEvent(TVShell.StorageManager	, "OnDeviceRemove", OnDeviceRemove);	
+
+	if(imageListTempFilename)
+	{
+		//Debug( "open: reading temp file with filenames. tempFile="+ imageListTempFilename);
+		imageFilenames = null;
+		var allImageFileNames = Utilities.ReadTextFile(imageListTempFilename);
+		if(allImageFileNames)
+		{
+			imageFilenames = allImageFileNames.split('\n');
+			//Truncate the last entry. It will be '' 
+			if ( imageFilenames.length > 0 )
+				imageFilenames.length--;
+
+			MaybeMount( imageFilenames );
+		}
+		FinishOpen();
+	} else if ( imageFolderVolumeName != null ) {
+		Debug( "open: given folder = '" + imageFolderVolumeName 
+			   + "' path='" + imageFolderPath + "'" );
+		if ( imageFolderPath == null )
+		{
+			Debug( "WARNING!! NULL IMAGE FOLDER PATH. imageFolderVolumeName="+ imageFolderVolumeName);
+			imageFolderPath = "";
+		}
+		imageFilenames = null;
+		var allImageFileNames = null;
+		theImageStorageDevice = FindStorageDevice(imageFolderVolumeName);
+
+		//We queue this last portion so that if the user calls
+		//play, the command will be queued. We always do this even though
+		//its only in the case of the async mount that we need this.
+		QueueCommand("FinishOpen", FinishOpen,true);
+
+		if ( theImageStorageDevice == null 
+			 || theImageStorageDevice.Mounted == false)
+			AsyncMount( imageFolderVolumeName, FinishOpenVN );
+		else
+			FinishOpenVN();
+	} else if ( theImageStorageDevice != null ) {
+		Debug( "open: given storageDevice = '" + 
+				(theImageStorageDevice? theImageStorageDevice.VolumeName:
+				'null') 
+			   + "' path='" + imageFolderPath + "'" );
+		if ( imageFolderPath == null )
+		{
+			Debug("WARNING!! NULL IMAGE FOLDER PATH. STORAGE-DEVICE="+ theImageStorageDevice.VolumeName );
+			 imageFolderPath = "";
+		}
+		imageFilenames = null;
+		var allImageFileNames = null;
+		
+		allImageFileNames = GetImageHREFNodes(theImageStorageDevice,imageFolderPath,(flatten=="true"), maxSearchCount, maxPhotosToDisplay);
+		
+		if (allImageFileNames)
+		{
+			imageFilenames = allImageFileNames.split('\n');
+			//Truncate the last entry. It will be '' 
+			if ( imageFilenames.length > 0 )
+				imageFilenames.length--;
+		}
+		FinishOpen();
+	}
+	else if ( imageFilenames != null )
+	{
+		//Debug( "open: open called with imageFilenames " );
+		FinishOpen();
+	}
+	else 
+	{
+		Debug( "open: open called without any imageFilenames, folders, storagedeivces, etc. " );
+		//What to do? Throw an exception or just ignore this error?
+		//throw "open: open called without any imageFilenames, folders, storagedeivces, etc. ";
+		imageFilenames = null;
+		FinishOpen();
+	}
+}
+
+function FinishOpenVN()
+{
+	//Debug("FinishOpenVN");
+
+	imageFilenames = null;
+	var allImageFileNames = null;
+	theImageStorageDevice = FindStorageDevice(imageFolderVolumeName);
+		
+	allImageFileNames = GetImageHREFNodes(theImageStorageDevice,imageFolderPath,(flatten=="true"), maxSearchCount, maxPhotosToDisplay);
+	
+	if (allImageFileNames)
+	{
+		imageFilenames = allImageFileNames.split('\n');
+		//Truncate the last entry. It will be '' 
+		if ( imageFilenames.length > 0 )
+			imageFilenames.length--;
+	}
+
+	CommandFinished();
+}
+
+function FinishOpen()
+{
+	if ( !imageFilenames )
+		imageFilenames = new Array();
+
+	if ( autoAdvanceInterval < 1 )
+		autoAdvanceInterval = 1;
+	else if ( autoAdvanceInterval > 30 )
+		autoAdvanceInterval = 30;
+
+	AUTO_ADVANCE_TIMEOUT_INTERVAL= autoAdvanceInterval * 1000;
+
+	InternalPutNumPhotos( imageFilenames.length );
+
+	for ( var i = 0 ; i < numPhotos ; i++ )
+	{
+		if ( imageFilenames[i] != "" )
+		{
+			var s = imageFilenames[i];
+			s = s.replace(/\//g, "\\" );
+			imgUrlIdxMap[s]	= i;
+		}
+	}
+
+	inited = true;
+
+	if ( numPhotos == 0 )
+	{
+		//Should I call Fire_OnNoPhotosToDisplay()?
+		setText( noImagesErrorText );
+		Fire_OnNoPhotosToDisplay();
+	}
+	else if ( numPhotos > 0 )
+	{
+		var i = parseInt(startIndex);
+
+		if ( theImageStorageDevice == null )
+			theImageStorageDevice =
+				FindStorageDeviceForUNCPath( imageFilenames[0] );
+
+		if ( i < 0 ) i = 0;
+		if ( i >= numPhotos ) i = numPhotos - 1;
+
+		if ( i >= 0 ) ShowImage( i, false );
+
+		InternalPutPlayState(PS_PAUSED);
+		ShowImage_SrcURL = imageFilenames[i];
+	} 
+
+	CommandFinished();
+}
+ 
+//public method
+function close()
+{
+	//Debug( "close" );
+
+	//Stop immediately, don't wait for the commands to finish processing
+	commandQueue = new Array();
+
+	Sink.DetachEvent(PhotoManager, "OnResizedImageReady", OnCachedImageReady);
+	Sink.DetachEvent(PhotoManager, "OnThumbnailReady"   , OnCachedImageReady);
+  	Sink.DetachEvent(TVShell.StorageManager	, "OnDeviceAdd", OnDeviceAdd);	
+  	Sink.DetachEvent(TVShell.StorageManager	, "OnDeviceRemove", OnDeviceRemove);	
+	Sink.DetachEvent(TVShell.ConnectionManager.HomeNetworking, "OnServiceHandler", OnServiceHandler);
+	StopAllTimeouts();
+
+	try {
+		element.all._img.style.display = 'none';
+		element.all._img.onload = null;
+		element.all._img.onerror = null;
+	} catch (ex) {}
+
+	try {
+		element.all._imgLoader.onload = null;
+		element.all._imgLoader.onerror = null;
+	} catch (ex) {}
+
+	try {
+		element.all._MainArea.onfilterchange = null;
+	} catch (ex) {}
+	theImageStorageDevice = null;
+	inited = false;
+}
+
+//public method
+function setText( text )
+{
+	element.all._img.style.display = 'none';
+	element.all._text.style.display = 'block';
+	element.all._text.innerHTML = text;
+	element.all._MainArea.style.display='block';
+}
+
+function StopAllTimeouts()
+{
+    //Stop timers
+	StopShowImageTimeout();
+
+    //Stop timers
+	StopAutoAdvance();
+
+	StopOnCachedImageReadyTimeouts();
+}
+
+function GetIsOpened() 
+{
+	return inited;
+}
+
+function PutIsOpened(v) 
+{
+	//Debug( "isOpened is read only" );
+}
+
+function GetPlayState() 
+{
+	if ( playState != PS_PAUSED )
+		playState = PS_PLAY;
+
+	return playState;
+}
+
+function PutPlayState(v) 
+{
+	//Debug( "PlayState is read only" );
+}
+
+function InternalPutPlayState(newState) 
+{
+	if ( newState != PS_PAUSED )
+		newState = PS_PLAY;
+
+	var oldState = playState;
+
+	playState = newState;
+
+	if ( oldState != playState
+		 || playState_FirstNotification == true)
+	{
+		Fire_OnPlayStateChange();
+		playStateID.fireChange();
+	}
+
+	playState_FirstNotification = false;
+
+	return playState;
+}
+
+function GetNumBadPhotos() 
+{
+	return numBadPhotos;
+}
+
+function PutNumBadPhotos() 
+{
+	//Debug( "NumBadPhotos is read only" );
+}
+
+function GetNumPhotos() 
+{
+	return numPhotos;
+}
+
+function PutNumPhotos() 
+{
+	//Debug( "NumPhotos is read only" );
+}
+
+function InternalPutNumPhotos( n ) 
+{
+	numPhotos = n;
+
+	playStateID.fireChange();
+}
+
+function Fire_OnPlayStateChange()
+{
+   	oEvent = CreateEvent();
+	onPlayStateChangeID.fire(oEvent);   
+}
+
+function Fire_OnImageReady(newIdx)
+{
+   	oEvent = CreateEvent();
+	oEvent.photoIndex = newIdx;
+
+	onImageReadyID.fire(oEvent);   
+}
+
+function Fire_OnImageTransitionStart(newIdx)
+{
+   	oEvent = CreateEvent();
+
+	currentImageIndex = newIdx;
+	oEvent.CurrentImageIndex = currentImageIndex;
+
+	currentImage = ( currentImageIndex > -1 ?
+				imageFilenames[currentImageIndex] : null );
+
+	currentImageIsLoading = true;
+
+	onImageTransitionStartID.fire(oEvent);   
+}
+
+function Fire_OnImageTransitionComplete(newIdx)
+{
+   	oEvent = CreateEvent();
+
+	currentImageIndex = newIdx;
+	oEvent.currentImageIndex = currentImageIndex;
+
+	currentImage = ( currentImageIndex > -1 ?
+				imageFilenames[currentImageIndex] : null );
+
+	currentImageIsLoading = false;
+
+	onImageTransitionCompleteID.fire(oEvent);   
+}
+
+function Fire_OnBadPhoto( srcURL, badIndex )
+{
+   	oEvent = CreateEvent();
+	oEvent.photoURL = srcURL;
+	oEvent.photoIndex = badIndex;
+	onBadPhotoID.fire(oEvent);   
+}
+
+function Fire_OnNoPhotosToDisplay()
+{
+   	oEvent = CreateEvent();
+	oEvent.numBadPhotos = numBadPhotos;
+	onNoPhotosToDisplayID.fire(oEvent);   
+}
+
+
+//public method
+function play()
+{
+	if ( inited == false )
+		open();
+
+	if (DeferProcessing("play",DoPlay) == false)
+		DoPlay();
+}
+
+function DoPlay()
+{
+	if (numPhotos <= 1)
+	{
+		if ( numPhotos == 1 && ShowImage_SrcURL == null)
+			ShowImage(0,true);
+
+		CommandFinished();
+		return;
+	}
+
+	var oldState = playState;
+	InternalPutPlayState(PS_PLAY);
+
+	if ( ShowImage_SrcURL != null && oldState != PS_PLAY) 
+	{
+		StartAutoAdvance();
+	}
+	else
+	{
+		var i = Increment(GetDesiredCurrentImageIndex());
+		autoAdvanceTimeout = -2;
+		onAutoAdvanceTimeout(curTimer);
+	}
+
+	StartAutoAdvance();
+}
+
+//public method
+function pause()
+{
+    if ( inited == false )
+        open();
+
+	//NOTE: call close if you need to stop things now
+	if (DeferProcessing("pause",DoPause) == false)
+		DoPause();
+}
+
+function DoPause()
+{
+    if (numPhotos > 1)
+	{
+	    InternalPutPlayState(PS_PAUSED);
+	    StopAutoAdvance();
+	}
+
+	CommandFinished();
+}
+
+
+//public method
+function prev()
+{
+	if ( inited == false )
+		open();
+
+	if (DeferProcessing("prev",DoPrev) == false)
+		DoPrev();
+}
+
+function DoPrev()
+{
+	if (numPhotos > 1)
+	{
+		desiredPlayState_CurrentImageIndex = 
+			Decrement(GetDesiredCurrentImageIndex());
+		ShowImage( desiredPlayState_CurrentImageIndex, true );
+	}
+
+	CommandFinished();
+}
+
+//public method
+function next()
+{
+	if ( inited == false )
+		open();
+
+	if (DeferProcessing("next",DoNext) == false)
+		DoNext();
+}
+
+function DoNext()
+{
+	if (numPhotos > 1)
+	{
+		desiredPlayState_CurrentImageIndex = 
+			Increment(GetDesiredCurrentImageIndex());
+		ShowImage( desiredPlayState_CurrentImageIndex, true );
+	}
+
+	CommandFinished();
+}
+
+function ToIndex( url )
+{
+	var idx = null;
+	if (url)
+	{
+		url = url.replace(/\//g, "\\" );
+		idx = imgUrlIdxMap[url];
+	}
+
+	if ( idx == null )
+		idx = -1;
+
+	return idx;
+}
+
+function GetDesiredCurrentImageIndex()
+{
+	var idx = desiredPlayState_CurrentImageIndex;
+	if ( idx == -1 )
+		idx = ToIndex( ShowImage_SrcURL );
+
+	return idx;
+}
+
+function PutDesiredCurrentImageIndex()
+{
+	//Debug( "DesiredCurrentImageIndex is read only" );
+}
+
+function UseThumbnail()
+{
+	//Use minus below to ensure viewWidth is treated as an integer and
+	//not a string.
+	return ( (MAX_VIEW_WIDTH_FOR_THUMBNAILS - viewWidth) > 0
+			&& (MAX_VIEW_HEIGHT_FOR_THUMBNAILS - viewHeight) > 0 );
+}
+
+function GetCachedImgURL( imgSrcURL )
+{
+	if ( IsInRotatedImageList(imgSrcURL) )
+	{
+		return  FormatURL(PhotoManager.GetRotatedImageURL(imgSrcURL));
+	} 
+	else if ( shouldResize() == false )
+	{
+		return  FormatURL(imgSrcURL);
+	}
+	else if ( UseThumbnail() )
+	{
+		var res = FormatURL(PhotoManager.GetThumbnailImageURL(imgSrcURL));
+		return res;
+	}
+	else
+	{
+		return  FormatURL(PhotoManager.GetResizedImageURL(imgSrcURL));
+	}
+}
+
+function Increment( value )
+{
+	var i = -1;
+
+	do {
+		value++;
+		if(value >= numPhotos)
+			value=0;
+		i++;
+	} while (  imageFilenames[value] == null && i < numPhotos );
+			
+	return imageFilenames[value] != null ? value : -1;
+}
+
+function Decrement( value )
+{
+	var i = -1;
+
+	do {
+		value--;
+		if(value < 0)
+			value= numPhotos;
+		i++;
+	} while (  imageFilenames[value] == null && i < numPhotos );
+			
+	return imageFilenames[value] != null ? value : -1;
+}
+
+function RequestCachedImage(imgIndex)
+{
+	var res= null;
+	var srcURL = imageFilenames[imgIndex];
+
+	if (!srcURL)
+		return null;
+
+	if ( IsInRotatedImageList(srcURL) )
+	{
+		res = FormatURL(PhotoManager.GetRotatedImageURL(srcURL));
+	}
+	else if ( shouldResize() == false )
+	{
+		res = FormatURL(srcURL);
+	}
+	else if ( UseThumbnail() )
+	{
+		res = PhotoManager.RequestThumbnail(srcURL, false);
+
+		if ( res != null ) 
+			res = IsDefaultThumbnailFile(res) ? null : FormatURL(res);
+	}
+	else
+	{
+		// shrink by maintaining proportions
+		//Debug( uniqueID + ".SlideShow.htc: PhotoManager.RequestResizedImage( '" + srcURL + "')");
+		var tempURL = PhotoManager.RequestResizedImage(srcURL, false);
+		res = tempURL != null ? FormatURL(tempURL) : null;
+		if ( res != null && IsDefaultResizeFile(res) )
+			res = null;
+	}
+
+	return res;
+}
+
+var ShowImage_SrcURL = null;
+var ShowImage_SkipTo = -1;
+var ShowImage_CurTimer = 0;
+var ShowImage_TimerId = -1;
+var ShowImage_nextIndex = -1;
+var ShowImage_nextSkipTo = -1;
+var ShowImage_ImageLoaderURL = null;
+var imageCount = 0;
+var startTime = new Date();
+function ShowImage(imgIndex, skipTo)
+{
+	imageCount++;
+	//Debug( "ShowImage. date/time = " + new Date() + " imageCount=" + imageCount + " start time " + startTime);
+	//Debug( "ShowImage. Mount_Count = " + Mount_Count + " Mount_LastTime = " + Mount_LastTime + " Mount_LastImageCount = " + Mount_LastImageCount );
+	StopShowImageTimeout();
+
+	Fire_OnImageTransitionStart(imgIndex);
+
+	ShowImage_nextIndex = imgIndex;
+	ShowImage_nextSkipTo = skipTo;
+
+	var HomeNetworkShare = null;
+	if ( imageFilenames[imgIndex] )
+		AsyncMount( imageFilenames[imgIndex], CallShowImageImpl );
+}
+
+function CallShowImageImpl()
+{
+	var timeout = ShowImage_nextSkipTo ? 200 : 100;
+
+	ShowImage_TimerId =
+		setTimeout( function() { onShowImageTimeout(ShowImage_nextIndex, ShowImage_nextSkipTo, ShowImage_CurTimer); }, timeout );
+}
+
+function FindStorageDeviceForUNCPath( uncPath )
+{
+	var se = FindHomeNetworkServiceForUNCPath( uncPath );
+	var dev = null;
+	if ( se && se.NetStorage != null )
+	{
+		dev = se.NetStorage;
+	}
+	if ( dev == null )
+	{
+		var bestMatch = -1;
+		for (var i = 0; i<TVShell.StorageManager.Count; i++) 
+		{
+			var sd = TVShell.StorageManager.Item(i);
+			if ( sd && uncPath.indexOf(sd.VolumeName)==0
+				&& sd.VolumeName.length > bestMatch )
+			{
+				bestMatch = sd.VolumeName.length;
+				dev = sd;
+			}
+		}
+	}
+	return dev;
+}
+
+var Mount_HostName = null;
+var Mount_ShareName = null;
+var Mount_Func = null;
+var Mount_Count = 0;
+var Mount_LastImageCount = -1;
+var Mount_LastTime = new Date();
+
+function AsyncMount( uncPath, callbackFunc )
+{
+	var HomeNetworkShare =
+		FindHomeNetworkServiceForUNCPath( uncPath );
+	var hname = ToUNCHostName( uncPath );
+	var hn = TVShell.ConnectionManager.HomeNetworking;
+	var he = null;
+	if ( hn ) he = hn.Item( hname );
+	var offline = false;
+	if ( he && he.state != HOST_STATE_ONLINE ) offline = true;
+	if ( offline )
+	{
+		setText( deviceUnmountedText );
+	}
+
+	if ( HomeNetworkShare && HomeNetworkShare.State == 1 && autoMount )
+	{
+		if ( callbackFunc != null )
+		{
+			Mount_HostName = ToUNCHostName( uncPath ).toLowerCase();
+			Mount_ShareName = ToUNCShareName( uncPath ).toLowerCase();
+			Mount_Func = callbackFunc;
+		}
+
+		Mount_Count++;
+		Mount_LastTime = new Date();
+		Mount_LastImageCount = imageCount;
+		HomeNetworkShare.Mount( false );
+	} 
+	else if (callbackFunc != null) 
+	{
+		var host = ToUNCHostName( uncPath ).toLowerCase();
+		var share = ToUNCShareName( uncPath ).toLowerCase();
+		if (HomeNetworkShare && FindStorageDevice("\\\\" + host + "\\" + share)==null)
+		{
+			//Network share is mounted, but the storage device has
+			//not yet been added.
+			//Debug( "AsyncMount: Network share is mounted, but device not yet added. waiting for storage device to be added" );
+			Mount_HostName = host.toLowerCase();
+			Mount_ShareName = share.toLowerCase();
+			Mount_Func = callbackFunc;
+		}
+		else
+		{
+			//Debug( "AsyncMount: Storage device is added" );
+			callbackFunc();
+		}
+	}
+}
+
+function IsStorageDeviceWaitingFor(host, share)
+{
+	var res = false;
+	if (host && share)
+	{
+		if ( host.toLowerCase() == Mount_HostName 
+		     && share.toLowerCase() == Mount_ShareName )
+		{
+			Mount_HostName = null;
+			Mount_ShareName = null;
+			res = true;
+		}
+	}
+	return res;
+}
+
+function OnDeviceAdd(sd)
+{
+	//Debug( "OnDeviceAdd: sd.VolumeName=" + (sd?sd.VolumeName:"No SD"));
+
+	if (sd != null 
+	    && IsStorageDeviceWaitingFor(ToUNCHostName(sd.VolumeName),
+		                             ToUNCShareName(sd.VolumeName)))
+	{
+		//Debug( "OnDeviceAdd: Calling mount function" );
+		var f = Mount_Func;
+		Mount_Func = null;
+		f();
+	}
+}
+		
+function OnDeviceRemove(sd)
+{
+	if ( inited == false )
+		return;
+
+    if (sd && sd.VolumeName && theImageStorageDevice 
+		&& theImageStorageDevice.Removable 
+		&& !theImageStorageDevice.IsNetwork)
+	{
+		//For USB devices, close the HTC if it goes away.
+		if ( sd.VolumeName.toLowerCase() ==
+			    theImageStorageDevice.VolumeName.toLowerCase() )
+		{
+			InternalPutPlayState(PS_PAUSED);
+			setText( deviceUnmountedText );
+			close();
+			Fire_OnNoPhotosToDisplay();
+	    }
+	}
+}
+
+function OnServiceHandler(he, se, evt, status)
+{
+	switch (evt) {
+	case HN_EVT_MOUNTED:
+
+		//If this is the device we are viewing, then let's close the HTC.
+		//Debug( "OnServiceHandler: HN_EVT_MOUNTED. status=" + status + " se.NetStorage=" + (se? (se.NetStorage?se.NetStorage.Name:"No NetStorage") : "No SE" ) );
+		if ( status != 0 && he != null && se != null
+		     && IsStorageDeviceWaitingFor(he.Name,se.Name))
+		{
+			//Debug( "OnServiceHandler: Mount failed with status=" + status + ". closing HTC" );
+			Mount_Func = null;
+			InternalPutPlayState(PS_PAUSED);
+			setText( deviceUnmountedText );
+			close();
+			Fire_OnNoPhotosToDisplay();
+		}
+		break;
+	}
+}	
+
+
+function StopShowImageTimeout()
+{
+	if (ShowImage_TimerId != -1 )
+		clearTimeout( ShowImage_TimerId );
+	ShowImage_TimerId = -1;
+	ShowImage_CurTimer++;
+}
+
+function onShowImageTimeout( imgIndex, skipTo, curTimer )
+{
+	if ( curTimer == ShowImage_CurTimer )
+		ShowImageImpl( imgIndex, skipTo );
+}
+
+function ShowImageImpl(imgIndex, skipTo)
+{
+	//Don't do any auto advance until after this image loads.
+	StopAutoAdvance();
+	
+	var imgSrcURL = imageFilenames[imgIndex];
+
+	if ( ShowImage_SrcURL != imgSrcURL )
+	{
+		//Queue processing of the next image just in case
+//		var nextIdx = Increment(imgIndex);
+//		if ( nextIdx != imgIndex )
+//			RequestCachedImage( nextIdx );
+
+		ShowImage_SkipTo = skipTo;
+	}
+	else
+	{
+		if (skipTo)
+			ShowImage_SkipTo = skipTo;
+	}
+
+	//Remember the image that we are loading.
+	if ( desiredPlayState_CurrentImageIndex == -1 )
+		desiredPlayState_CurrentImageIndex = imgIndex;
+
+	//Remember the image that we are loading so that we can ignore
+	//the OnCachedImageReady() callbacks that occur when doing our
+	//preloading of images.
+	ShowImage_SrcURL = imgSrcURL;
+
+	try
+	{
+		var resizedImgURL = RequestCachedImage(imgIndex);
+		if (resizedImgURL != null)
+			OnCachedImageReady( imgSrcURL, true );
+		else
+		{
+			if (OnCachedImageReady_LoadingTimerId != -1 )
+				clearTimeout( OnCachedImageReady_LoadingTimerId );
+			OnCachedImageReady_LoadingTimerId = 
+				setTimeout( OnImageLoadTimeout, IMAGE_LOAD_TIMEOUT );
+		}
+	}
+	catch (ex)
+	{
+		//Bad image:!!
+		OnCachedImageReady( imgSrcURL, false );
+	}
+}
+
+var OnCachedImageReady_first = true;
+var OnCachedImageReady_LoadingTimerId = -1;
+var OnCachedImageReady_TimerId = -1;
+function OnImageLoadTimeout()
+{
+	//Debug( uniqueID + ".OnImageLoadTimeout(). Failed to load image in " + IMAGE_LOAD_TIMEOUT + " milliseconds" );
+	
+	OnCachedImageReady_LoadingTimerId = -1;
+	OnCachedImageReady( ShowImage_SrcURL, false );
+}
+
+function OnCachedImageReady( srcURL, opStatus )
+{
+	if ( !opStatus )
+		Debug( uniqueID + ".SlideShow.htc: THUMBNAIL/RESIZE FAILED. opStatus=" + opStatus + " On[Resize/Thumbnail]ImageReady( '" + srcURL + "')");
+
+	if ( !( ShowImage_SrcURL == srcURL
+	     || (IsInRotatedImageList(ShowImage_SrcURL) && PhotoManager.GetRotatedImageURL(ShowImage_SrcURL) == srcURL) ) )
+		return;
+	StopOnCachedImageReadyTimeouts();
+
+	srcURL = ShowImage_SrcURL;
+
+	if ( !opStatus )
+	{
+		OnCachedImageReady2Error();
+		return;
+	}
+
+	element.all._imgLoader.onload = OnCachedImageReady2;
+	element.all._imgLoader.onerror = OnCachedImageReady2Error;
+	ShowImage_ImageLoaderURL = srcURL;
+	var url = GetCachedImgURL( ShowImage_ImageLoaderURL );
+	//Debug("Retrieving image " + url );
+	element.all._imgLoader.src = url;
+}
+
+function OnCachedImageReady2Error()
+{
+	var srcURL = ShowImage_SrcURL;
+	var imgIndex = ToIndex( srcURL );
+	//Debug("Error Retrieving image " + srcURL );
+
+	if ( imageFilenames[imgIndex] )
+	{
+		//Debug( "SlideShow.htc: Image Resize Failed. Skipping it. "+ ". Image=" + srcURL );
+		Fire_OnBadPhoto( imageFilenames[imgIndex], imgIndex );
+		imageFilenames[imgIndex] = null;
+		numBadPhotos++;
+		if ( numBadPhotos >= numPhotos )
+		{
+			Fire_OnNoPhotosToDisplay();
+		}
+	}
+	desiredPlayState_CurrentImageIndex = Increment(GetDesiredCurrentImageIndex());
+	if ( desiredPlayState_CurrentImageIndex > -1 )
+	{
+		ShowImage(desiredPlayState_CurrentImageIndex, ShowImage_SkipTo);
+		return;
+	}
+
+	//Debug( "SlideShow.htc: All images are bad. Pausing slideshow ");
+	InternalPutPlayState(PS_PAUSED);
+	setText(allImagesAreBadErrorText);
+	close();
+}
+
+function OnCachedImageReady2()
+{
+	var imgLoader = element.all._imgLoader;
+	if (!imgLoader.complete)
+		return;
+
+	var srcURL = ShowImage_SrcURL;
+	var imgIndex = ToIndex( srcURL );
+
+	//Debug("Retrieved image " + srcURL );
+
+	Fire_OnImageReady( imgIndex );
+	if ( OnCachedImageReady_TimerId != -1 )
+		clearTimeout( OnCachedImageReady_TimerId );
+
+	OnCachedImageReady_TimerId = -1;
+
+	OnCachedImageReady_TimerId = setTimeout( function() { OnCachedImageReadyImpl( srcURL ); }, 100 );
+}
+
+function StopOnCachedImageReadyTimeouts()
+{
+	if ( OnCachedImageReady_TimerId != -1 )
+		clearTimeout( OnCachedImageReady_TimerId );
+
+	OnCachedImageReady_TimerId = -1;
+
+	if ( OnCachedImageReady_LoadingTimerId != -1 )
+		clearTimeout( OnCachedImageReady_LoadingTimerId );
+
+	OnCachedImageReady_LoadingTimerId = -1;
+}
+
+function OnCachedImageReadyImpl( srcURL )
+{
+	//Debug("Processing Retrieved image " + srcURL );
+
+	var imgIndex = ToIndex( srcURL );
+
+	if (OnCachedImageReady_first)
+		ShowImage_SkipTo = true;
+
+	OnCachedImageReady_first = false;
+
+	element.all._text.style.display = 'none';
+	element.all._img.style.display = 'block';
+	var img = element.all._img;
+	var mainArea = element.all._MainArea;
+
+	var nextImage = GetCachedImgURL( srcURL );
+	var prevImage = unescape(img.src);
+
+	//Reset the desired image index to be -1.
+	if ( imgIndex == desiredPlayState_CurrentImageIndex )
+		desiredPlayState_CurrentImageIndex = -1;
+
+	if ( prevImage != nextImage && nextImage != null ) 
+	{
+		var elem = mainArea;
+		var filterSpec = null;
+		if ( ShowImage_SkipTo!= -1) {
+			filterSpec = (ShowImage_SkipTo?SKIPTO_FILTER:filter);
+		}
+		SetImgSrc(mainArea, img, nextImage,filterSpec);
+	}
+	else
+	{
+		//Debug( "Image is the same. nextImage=" + nextImage );
+		//In this case, go to the next one after the appropriate interval
+		StartAutoAdvance();
+	}
+}	
+
+function SetImgSrc( elem, img, nextImage, filterName )
+{
+	//Debug( 'SetImgSrc(' + nextImage + ',' + filterName +')');
+	var filterObj = null;
+	if ( elem )
+	{
+		elem.style.filter=filterName;
+		if ( filterName && elem.style.filter && elem.filters
+			 && elem.filters.length > 0)
+		{
+			filterObj = elem.filters[0];
+		}
+	}
+
+	if (filterObj)
+		filterObj.apply();
+
+	img.src = "msntv:/tvshell/images/empty.jpg";
+	elem.style.width = viewWidth;
+	elem.style.height = viewHeight;
+
+	img.onload = OnLoadImageSlide;
+	//Debug("set img.src= " + nextImage );
+	img.src = nextImage;
+
+	if (filterObj)
+		filterObj.play();
+}
+
+
+function OnLoadImageSlide()
+{
+	var img = element.all._img;
+	if ( !img.complete || img.src == EMPTY_IMAGE)
+		return;
+	img.onload = null;
+
+	//Debug("loaded img.src= " + img.src );
+
+	img.removeAttribute("height");
+	img.removeAttribute("width");
+
+	//Use minus below to ensure viewWidth is treated as an integer and
+	//not a string.
+	if( (viewHeight-img.clientHeight) < 0 || (viewWidth - img.clientWidth) <0 )
+	{
+		//Use multiply below to ensure viewWidth is treated as an integer and
+		//not a string.
+		if(img.clientHeight*viewWidth >= img.clientWidth*viewHeight)
+			img.height = viewHeight;// height is the limiting factor
+		else
+			img.width = viewWidth;	// width is the limiting factor
+	}
+	var imgIndex = ToIndex( ShowImage_SrcURL );
+	Fire_OnImageTransitionComplete(imgIndex);
+
+	//Now queue up next change
+	StartAutoAdvance();
+
+	var srcURL = imageFilenames[Increment(GetDesiredCurrentImageIndex())];
+	var imgLoader = element.all._imgLoader;
+	if ( srcURL != ShowImage_ImageLoaderURL )
+	{
+		//restart auto advance
+		//Debug( "Caching next image " + srcURL );
+		ShowImage_ImageLoaderURL = srcURL;
+		imgLoader.onload = null;
+		imgLoader.onerror = null;
+		imgLoader.src = GetCachedImgURL( ShowImage_ImageLoaderURL );
+	}
+}
+
+var curTimer = 0;
+function StartAutoAdvance()
+{
+	StopAutoAdvance();
+	if (playState == PS_PLAY)
+		autoAdvanceTimeout =
+			setTimeout( uniqueID + '.onAutoAdvanceTimeout(' + curTimer + ')',
+			            AUTO_ADVANCE_TIMEOUT_INTERVAL );
+}
+
+function onAutoAdvanceTimeout(timerCnt)
+{
+	if (timerCnt == curTimer )
+	{
+		var oldTimeout = autoAdvanceTimeout;
+		autoAdvanceTimeout = -1;
+
+		if (playState == PS_PLAY && oldTimeout != -1)
+			ShowImage( Increment(GetDesiredCurrentImageIndex()), false );
+	}
+}
+
+function StopAutoAdvance()
+{
+    curTimer++;
+    if ( autoAdvanceTimeout != -1 )
+        clearTimeout(autoAdvanceTimeout);
+    autoAdvanceTimeout=-1;
+}
+
+</SCRIPT>
+
+</PUBLIC:COMPONENT>
+

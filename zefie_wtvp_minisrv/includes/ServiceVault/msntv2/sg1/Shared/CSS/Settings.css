@@ -1,0 +1,249 @@
+@import url(msntv:/Shared/CSS/Base.css);
+
+body
+{
+	background-color: #B6D4F0;
+	overflow: hidden;
+	margin: 0px;
+}
+
+a:visited
+{
+	color:#14224b;
+	text-decoration: none;
+}
+
+a:link
+{
+	color:#14224b;
+	text-decoration: none;
+}
+
+/******************************************************************
+*	The following -- header, title, title2, subTitle, help, and helpIcon -- are used
+*	exclusively by SettingsHeading.htc. 
+*/
+#header
+{
+	position: absolute;
+	background: url(msntv:/Settings/Images/SettingsHeaderBG.jpg) no-repeat;
+	background-color: #1C5798;
+	top: 0px;
+	left: 0px;
+	height: 56px;
+	width: 100%;
+}
+
+#title
+{
+	position: relative;
+	top: 23px;
+	margin-left: 15px;
+	margin-right: 15px;
+	color: #AACFF7;
+	font: bold 21px;
+}
+
+/* font, color and margin style only from title style above */
+/* used by settingsTemplate.js */
+
+#mainHeading
+{
+	color: #AACFF7;
+	font: bold 21px;
+	margin-left: 15px;
+	margin-right: 15px;
+}
+
+
+#title2
+{
+	position: relative;
+	top: 23px;
+	color: #F7F7F7;
+	font-size: 21px;
+	white-space: nowrap;
+}
+
+#subTitle
+{
+	display:none;
+}
+
+#help
+{
+	position: absolute;
+	bottom: 30px;
+	right: 8px;
+	color: #F2F2F2;
+	font-size: 16px;
+	text-align: right;
+}
+
+#helpIcon
+{
+	position: relative;
+	top: 1px;
+	left: 4px;
+	margin-left: 4px;
+	behavior: url(#default#alphaImageLoader);
+	src: url(msntv:/Shared/images/Icon_Help_RelatedLink.png);
+	width: 20px;
+	height: 20px;
+}
+
+/* 
+*	End for SettingsHeading.htc
+******************************************************************/
+
+
+#sideBar
+{
+	position: absolute;
+	top: 71px;
+	right: 0px;
+	width: 151px;
+	padding-right: 8px;
+	padding-left: 6px;
+}
+
+.sideBarButton, #sideBar msntv\:CustomButton
+{
+	height: 26px;
+	width: 100%;
+	display: block;
+	text-align:left;
+	margin: 0 0 4px 0;
+}
+
+
+/* The following are for buttons at the bottom of a page: */
+#buttonBar
+{
+	position: absolute;
+	right: 20px;
+	bottom: 10px;
+	text-align: right;
+}
+
+.buttonBarButton, #buttonBar msntv\:CustomButton
+{
+	margin-left: 15px;
+	margin-right:0px;
+}
+
+
+/* The following two -- scrollArea and gradient -- are for the
+*  section of scrollable pages that are supposed to scroll.
+*  If you use a <DIV id=scrollArea> on your page, be sure
+*  to also set "showscrolltop=true" in the SettingsHeading.
+*/
+#scrollArea
+{
+	position: absolute;
+	top: 71px;
+	left: 0px;
+	width: 73%;
+	bottom: 0px;
+	height: 1px;	/* will be overridden (because of the bottom value) once the HTC loads */
+	padding-left: 15px;
+	padding-right: 22px;
+	overflow-y: hidden;
+	behavior: url(msntv:/HTC/ScrollingDIV.htc);
+}
+
+#gradient
+{
+	width: 73%;
+	height: 100%;
+	behavior: url(#default#gradient);
+	startColor:#7A9FCC;
+	startTransparency:100;
+	endTransparency:0;
+	endcolor: #7A9FCC;
+	angle:0;
+}
+
+/* If your page is NOT supposed to scroll, use the following as
+*  the ID of your content's DIV.
+*/
+#nonScrollArea
+{
+	position: absolute;
+	top: 71px;
+	left: 0px;
+	width: 100%;
+	bottom: 51px;
+	padding-left: 15px;
+	padding-right: 20px;
+}
+
+/* If you have a two-column table with check-boxes or radio-buttons
+*  or text fields (or a table that should look the same way), use
+*  <TABLE class=controlTable>.  However, when using a table of
+*  radio-buttons or check-boxes where some of the description
+*  will span two or more lines, use class=options instead.
+*/
+table.controlTable, table.options
+{
+	margin-top:-5px;
+	margin-bottom:9px;
+	border-collapse:collapse;
+}
+table.controlTable td, table.options td
+{
+	padding: 0px 8px 5px 0px;
+}
+table.options td
+{
+	vertical-align:top;
+}
+
+
+/* class=topic is used on index pages for the section titles,
+*  which are also links.
+*/
+.topic
+{
+	margin-top: 4px;
+	font: bold 18px;
+	color: #14224b;
+	display: inline-block;
+}
+
+/* class=description is used on index pages for the description
+*  under the section titles.
+*/
+.description, .description td
+{
+	font-size: 18px;
+	color: #1D1D1D;
+	font-weight: normal;
+	margin-bottom: 7px;
+}
+.description
+{
+	width: 100%;
+}
+
+hr
+{
+	height:2px;
+	width: 100%;
+	border:#5981B3 solid 2px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+
+/* override scrollArea and SideBar for printing */
+@media print {
+	#scrollArea
+	{
+		width: 100%;
+	}
+	
+	#sideBar
+	{
+		visibility: hidden;
+	}
+}

@@ -1,0 +1,43 @@
+<PUBLIC:COMPONENT lightweight="true">
+<PUBLIC:PROPERTY NAME="stretchyBackground" /> 
+<PUBLIC:ATTACH EVENT="ondocumentready" HANDLER="Init2" />
+</PUBLIC:COMPONENT>
+
+<SCRIPT>
+	var bgIMG = element.document.createElement("IMG");
+	
+	if (currentStyle.stretchyBackground)
+		stretchyBackground = currentStyle.stretchyBackground;
+
+	if (stretchyBackground)
+	{
+		bgIMG.src = stretchyBackground;
+		bgIMG.style.pixelLeft = 0;
+		bgIMG.style.pixelTop = 0;
+		bgIMG.style.width = "100%";
+		bgIMG.style.height = "100%";
+		bgIMG.style.position = "absolute";
+		bgIMG.style.zIndex = -1;
+		element.insertBefore(bgIMG, element.firstChild);
+	}
+
+	// "Lock" the width and height so that if the status bar comes up or goes away
+	function Init2()
+	{
+		bgIMG.style.height = bgIMG.clientHeight + "px";
+		bgIMG.style.width = bgIMG.clientWidth + "px";
+
+		// We now need to calculate the elements position relative to the image's offset parent.
+		// to set the image's position.
+		var finalOffsetParent = bgIMG.offsetParent;
+		var offsetTop = 0;
+
+		for (var current = element; current != finalOffsetParent; current = current.offsetParent) {
+			offsetTop += current.offsetTop;
+		}
+
+		bgIMG.style.pixelTop = offsetTop;
+}
+
+</SCRIPT>
+

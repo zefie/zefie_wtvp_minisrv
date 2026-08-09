@@ -84,14 +84,17 @@ if (session_data.data_store.wtvsec_login) {
 				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
 				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
 				*/
-				//if (wtvshared.isMiniBrowser(session_data)) {
-				//	if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
-				//	else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
-				//} else {
+				if (wtvshared.isMiniBrowser(session_data)) {
+					// I think we need an older template
+					//template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+					//if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
+					//else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
+					send_tellyscript = false;
+				} else {
 					template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
 					if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
 					else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
-				//}
+				}
 				break;
 
 			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
@@ -166,15 +169,15 @@ if (session_data.data_store.wtvsec_login) {
 	headers += "wtv-initial-key: " + session_data.data_store.wtvsec_login.challenge_key.toString(CryptoJS.enc.Base64) + "\n";
 	headers += "Content-Type: " + prereg_contype + "\n";
 	if (!request_headers.query.reconnect) headers += "wtv-service: reset\n";
-	if (!bf0app_update) headers += getServiceString('wtv-1800') + "\n";
+	if (!bf0app_update) headers += wtvshared.getServiceString('wtv-1800') + "\n";
 
-	if (bf0app_update) headers += getServiceString('wtv-head-waiter', { "flags": "0x00000001" }) + "\n";
-	else headers += getServiceString('wtv-head-waiter') + "\n";
+	if (bf0app_update) headers += wtvshared.getServiceString('wtv-head-waiter', { "flags": "0x00000001" }) + "\n";
+	else headers += wtvshared.getServiceString('wtv-head-waiter') + "\n";
 
-	if (bf0app_update) headers += getServiceString('wtv-star', { "no_star_word": true }) + "\n";
-	else headers += getServiceString('wtv-star') + "\n";
-	if (request_headers.query.reconnect && !session_data.isRegistered() && !session_data.lockdown) headers += getServiceString('wtv-register') + "\n";
-	if (!session_data.lockdown) headers += getServiceString('wtv-flashrom') + "\n";
+	if (bf0app_update) headers += wtvshared.getServiceString('wtv-star', { "no_star_word": true }) + "\n";
+	else headers += wtvshared.getServiceString('wtv-star') + "\n";
+	if (request_headers.query.reconnect && !session_data.isRegistered() && !session_data.lockdown) headers += wtvshared.getServiceString('wtv-register') + "\n";
+	if (!session_data.lockdown) headers += wtvshared.getServiceString('wtv-flashrom') + "\n";
 	if (bf0app_update) headers += "wtv-boot-url: " + gourl + "\n";
 	else {
 		headers += "wtv-boot-url: wtv-head-waiter:/login?relogin=true";

@@ -5,12 +5,13 @@ require(classPath + "Prototypes.js");
 const { WTVShared, clientShowAlert } = require(classPath + "WTVShared.js");
 const wtvshared = new WTVShared(); // creates minisrv_config
 
-const fs = require('fs');
-const util = require('util');
+const fs = wtvshared.fs;
+const zlib = wtvshared.zlib;
+const process = wtvshared.process;
+const util = wtvshared.util;
 const nunjucks = require('nunjucks');
-const zlib = require('zlib');
 const {serialize, unserialize} = require('php-serialize');
-const {spawn} = require('child_process');
+const {spawn, spawnSync} = require('child_process');
 const http = require('follow-redirects').http;
 const httpx = require(classPath + "/HTTPX.js");
 const { URL } = require('url');
@@ -18,7 +19,6 @@ const net = require('net');
 const crypto = require('crypto')
 const CryptoJS = require('crypto-js');
 const sharp = require('sharp')
-const process = require('process');
 const WTVSec = require(classPath + "/WTVSec.js");
 const WTVSSL = require(classPath + "/WTVSSL.js");
 const LZPF = require(classPath + "/LZPF.js");
@@ -26,6 +26,8 @@ const WTVClientCapabilities = require(classPath + "/WTVClientCapabilities.js");
 const WTVClientSessionData = require(classPath + "/WTVClientSessionData.js");
 const WTVMime = require(classPath + "/WTVMime.js");
 const WTVFlashrom = require(classPath + "/WTVFlashrom.js");
+const WTVImage = require(classPath + "/WTVImage.js");
+const WTVAudioProxy = require(classPath + "/WTVAudioProxy.js");
 const vm = require('vm');
 const debug = require('debug')('app');
 const express = require('express');
@@ -36,11 +38,37 @@ const protocolServers = [];
 
 const minisrv_config = wtvshared.getMiniSrvConfig(); // snatches minisrv_config
 const wtvmime = new WTVMime(minisrv_config);
+const wtvAudioProxy = new WTVAudioProxy(minisrv_config);
+
+function validateAudioProxy() {
+    if (!wtvAudioProxy || !wtvAudioProxy.isEnabled()) return;
+
+    try {
+        const check = spawnSync(wtvAudioProxy.config.ffmpegPath, ['-hide_banner', '-version'], {
+            stdio: ['ignore', 'ignore', 'ignore'],
+            timeout: 5000
+        });
+
+        if (check.error || check.status !== 0) {
+            console.warn(` # AudioProxy disabled: ffmpeg not found or failed to execute at '${wtvAudioProxy.config.ffmpegPath}'.`);
+            if (check.error) console.warn(` # AudioProxy ffmpeg error: ${check.error.message}`);
+            wtvAudioProxy.config.enabled = false;
+            return;
+        }
+
+        console.log(` * AudioProxy enabled: transcoding audio to ${wtvAudioProxy.config.bitrate} ${wtvAudioProxy.config.sampleRate}Hz mono MP3.`);
+    } catch (error) {
+        console.warn(` # AudioProxy disabled: ffmpeg validation failed: ${error.message}`);
+        wtvAudioProxy.config.enabled = false;
+    }
+}
 
 process
     .on('SIGTERM', shutdown('SIGTERM'))
     .on('SIGINT', shutdown('SIGINT'))
-    .on('uncaughtException', (e => { console.error(e); }));
+    .on('uncaughtException', function (err) {
+        console.error((err && err.stack) ? err.stack : err);
+    });
 
 
 function shutdown(signal = 'SIGTERM') {
@@ -156,8 +184,8 @@ function configureService(service_name, service_obj, initial = false) {
         else ports.push(service_obj.port);
     }
 
-    // Exclude PNM services
-    if (service_obj.protocol_handler === 'pnm') {
+    // Exclude protocols that handle their own ports
+    if (service_obj.handler_handles_port) {
         return true;
     }
 
@@ -195,26 +223,51 @@ let socket_sessions = [];
 const ports = [];
 const pc_ports = [];
 
-function moveArrayKey(array, from, to) {
-    array.splice(to, 0, array.splice(from, 1)[0]);
-    return array;
-};
+function getServiceString(service_name, overrides = {}) {
+    wtvshared.getServiceString(service_name, overrides);
+}
+
+
+const DEPRECIATED_CONFIG_PATH = path.join(__dirname, 'includes', 'depreciated.json');
+
+function loadDepreciatedPatterns() {
+    try {
+        if (!fs.existsSync(DEPRECIATED_CONFIG_PATH)) {
+            return {};
+        }
+
+        const raw = fs.readFileSync(DEPRECIATED_CONFIG_PATH, 'utf8');
+        const parsed = JSON.parse(raw);
+
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+            return {};
+        }
+
+        const mapped = parsed
+            .filter((entry) => entry && typeof entry.pattern === 'string')
+            .map((entry) => ({
+                id: entry.id || entry.pattern,
+                pattern: new RegExp(entry.pattern, entry.flags || 'g'),
+                message: entry.message || 'Deprecated API usage found',
+                removeVersion: entry.removeVersion || 'unknown',
+                replacement: entry.replacement || null
+            }));
+
+        return mapped.length > 0 ? mapped : {};
+    } catch (error) {
+        console.warn('Failed to load includes/depreciated.json, using fallback deprecation patterns:', error.message);
+        return {};
+    }
+}
+
 
 // Deprecation warnings configuration
 const deprecationWarnings = {
     // Array of deprecated patterns with their details
-    patterns: [
-        {
-            // Example deprecations - you can modify these as needed
-            pattern: /session\_data\.hasCap\s*\(/g,
-            message: "session_data.hasCap() is deprecated and will be removed",
-            removeVersion: "0.9.80",
-            replacement: "Use session_data.capabilities.get() instead"
-        }
-    ],
+    patterns: loadDepreciatedPatterns(),
     
     // Enable/disable deprecation warnings globally
-    enabled: false,
+    enabled: true,
     
     // Log level for deprecation warnings (console.warn, console.log, etc.)
     logLevel: 'warn'
@@ -253,10 +306,6 @@ function checkDeprecationWarnings(script_data, filename = null, debug_name = nul
         });
         logFunction(''); // Empty line for readability
     }
-}
-
-function getServiceString(service, overrides = {}) {
-    return wtvshared.getServiceString(service, overrides);
 }
 
 async function sendRawFile(socket, path) {
@@ -328,12 +377,12 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
         "data": null,
         "request_is_async": false,
         "minisrv_version_string": z_title,
-        "getServiceString": getServiceString,
-        "sendToClient": sendToClient,
+        "getServiceString": getServiceString, // deprecated - use wtvshared.getServiceString() instead
+        "sendToClient": sendToClient,        
         "service_vaults": service_vaults,
         "service_deps": service_deps,
         "ssid_sessions": ssid_sessions,
-        "moveArrayKey": moveArrayKey,
+        "moveArrayKey": wtvshared.moveArrayKey, // deprecated - use wtvshared.moveArrayKey() instead
         "cwd": (filename) ? path.dirname(filename) : __dirname, // current working directory        
 
         // Our prototype overrides
@@ -359,32 +408,38 @@ const runScriptInVM = function (script_data, user_contextObj = {}, privileged = 
                 } catch (e) {
                     console.error(" *!* Could not load module", module_file, "requested by service", contextObj.service_name, e)
                 }
+                // Special case for WTVNews services which require a reference to the server for its functionality
                 if (vm_modules[k] === "WTVNews") contextObj['wtvnewsserver'] = wtvnewsserver;
-            })            
+            })
+        }
+        // Provide flashrom class to any service that is reported as a flashrom service in the config
+        if (minisrv_config.services[contextObj.service_name].is_flashrom_service) {
+            contextObj["WTVFlashrom"] = WTVFlashrom;
         }
     }
+
     switch (contextObj.service_name) {
         case "wtv-guide":
             // wtv-guide is a special case due to needing this function
             contextObj.wtvguide = new contextObj["WTVGuide"](minisrv_config, ssid_sessions[contextObj.socket.ssid], contextObj.socket, runScriptInVM);
             break;
-        case "wtv-admin":
-            // wtv-admin needs util.isArray in validation of certain actions.
-            contextObj["util"] = require("util");
         case "wtv-1800":
-        case "wtv-flashrom":
-            // these are special cases because the primary app already loaded this
+            // special case for bf0app (wtv-1800:/noflash)
             contextObj["WTVFlashrom"] = WTVFlashrom;
             break;
     }
 
-
     if (contextObj.socket) {
-        if (contextObj.socket.id)
-            if (socket_sessions[contextObj.socket.id]) contextObj.wtv_encrypted = (socket_sessions[contextObj.socket.id].secure === true);
+        if(contextObj.socket.id) {
+            if (socket_sessions[contextObj.socket.id]) {
+                contextObj.wtv_encrypted = (socket_sessions[contextObj.socket.id].secure === true);
+            }
+        }
     }
 
     if (privileged) {
+        // Grant the service additional access to global variables, such as the session stores.
+        // This is needed for privileged services such as wtv-1800, wtv-setup, wtv-head-waiter, etc. but should be avoided for regular services for security.
         contextObj["privileged"] = true;
         contextObj["require"] = require; // this is dangerous but needed for some scripts at this time
         contextObj["SessionStore"] = SessionStore;
@@ -457,7 +512,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     env.SERVER_PORT = request_data.port;
     env.SERVER_ADDR = request_data.host;
     env.SERVER_NAME = request_data.host;
-    if (minisrv_config.services[socket.service_name] && minisrv_config.services[socket.service_name].hide_minisrv_version) {
+    if (minisrv_config.config.hide_minisrv_version) {
         env.SERVER_SOFTWARE = "NodeJS; minisrv";
     } else {
         // Full version
@@ -767,7 +822,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                             }
                         }
                     } else {
-                        // php is not enabled, don't expose source code
+                        // cgi is not enabled, don't expose source code
                         service_vault_found = true;
                         const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
                         sendToClient(socket, errpage[0], errpage[1]);
@@ -990,7 +1045,17 @@ async function processURL(socket, request_headers, pc_services = false) {
     request_headers.query = {};
 
     if (request_headers.request_url) {
-        service_name = socket.service_name || verifyServicePort(decodeURIComponent(request_headers.request_url).split(':')[0], socket);
+        try {
+            // wtv-log handling
+            request_headers.request_url = request_headers.request_url.replaceAll(/\%\+/g, "%20"); // sanitize parentheses for logging
+            service_name = socket.service_name || verifyServicePort(decodeURIComponent(request_headers.request_url).split(':')[0], socket);
+        } catch (err) {
+            console.log(" * Invalid URI: %s", request_headers.request_url);
+            console.error((err && err.stack) ? err.stack : err);
+            const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+            sendToClient(socket, errpage[0], errpage[1]);
+            return;
+        }
         if (minisrv_config.services[service_name]) {
             allow_double_slash = minisrv_config.services[service_name].allow_double_slash || false;
             enable_multi_query = minisrv_config.services[service_name].enable_multi_query || false;
@@ -1104,7 +1169,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                 headers += "minisrv-no-mail-count: true\n";
                 data = "";
                 sendToClient(socket, headers, data);
-                console.warn(" * Lockdown rejected request for " + shortURL + " on socket ID", socket.id);
+                console.warn(" * Lockdown rejected request for %s on socket ID %d", shortURL, socket.id);
                 return;
             }
 
@@ -1116,7 +1181,7 @@ async function processURL(socket, request_headers, pc_services = false) {
                     headers += "minisrv-no-mail-count: true\n";
                     data = "";
                     sendToClient(socket, headers, data);
-                    console.warn(" * Incomplete login rejected request for " + shortURL + " on socket ID", socket.id);
+                    console.warn(" * Incomplete login rejected request for %s on socket ID %d", shortURL, socket.id);
                     return;
                 }
             }
@@ -1136,15 +1201,15 @@ Location: ${minisrv_config.config.unauthorized_url}
 minisrv-no-mail-count: true`;
                 data = "";
                 sendToClient(socket, headers, data);
-                console.warn(" * Rejected login bypass request for " + shortURL + " on socket ID", socket.id);
+                console.warn(" * Rejected login bypass request for %s on socket ID %d", shortURL, socket.id);
                 return;
             }
         }
 
         if (pc_services) {
             const ssl = (socket.ssl) ? true : false;
-            if (original_service_name === service_name) console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + service_name + " for " + request_headers.request_url, 'on', socket.id);
-            else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service " + original_service_name + " (Service Vault " + service_name + ") for " + request_headers.request_url, 'on', socket.id);
+            if (original_service_name === service_name) console.log(" * PC" + ((ssl) ? "SSL " : "") + "PC request on service %s for %s on %d", service_name, request_headers.request_url, socket.id);
+            else console.log(" * " + ((ssl) ? "SSL " : "") + "PC request on service %s (Service Vault %s) for %s on %d", original_service_name, service_name, request_headers.request_url, socket.id);
         } 
 
         if ((shortURL.includes(':/')) && (!shortURL.includes('://') || (shortURL.includes('://') && allow_double_slash) && uses_service_vault)) {
@@ -1158,16 +1223,16 @@ minisrv-no-mail-count: true`;
                 let reqverb = "Request";
                 if (request_headers.encrypted || request_headers.secure) reqverb = "Encrypted " + reqverb;
                 if (ssid !== null) {
-                    console.log(" * " + reqverb + " for " + request_headers.request_url + " from WebTV SSID " + (await wtvshared.filterSSID(ssid)), 'on', socket.id);
+                    console.log(" * " + reqverb + " for %s from WebTV SSID %s on socket ID %d", request_headers.request_url, await wtvshared.filterSSID(ssid), socket.id);
                 } else {
-                    console.log(" * " + reqverb + " for " + request_headers.request_url, 'on', socket.id);
+                    console.log(" * " + reqverb + " for %s on socket ID %d", request_headers.request_url, socket.id);
                 }
                 
                 if (!service_name) {
                     // detect if client is trying to load wtv-star due to client-perceived error
                     if (getSocketDestinationPort(socket) === getPortByService("wtv-star")) {
                         // is wtv-star
-                        if (minisrv_config.config.debug_flags.debug) console.debug(" * client requested", shortURL, "on wtv-star port", getSocketDestinationPort(socket))
+                        if (minisrv_config.config.debug_flags.debug) console.debug(" * client requested %s on wtv-star port %d", shortURL, getSocketDestinationPort(socket));
                         shortURL = "wtv-star:/star";
                         service_name = "wtv-star";
                     } else {
@@ -1235,7 +1300,7 @@ minisrv-no-mail-count: true`;
     }
 }
 
-async function sendToClient(socket, headers_obj, data = null) {
+async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
     let headers = "";
     let content_length = 0;
     const eol = "\n";
@@ -1251,6 +1316,7 @@ async function sendToClient(socket, headers_obj, data = null) {
         if (socket.destroy) socket.destroy();
         return;
     }
+    const isWebTVClient = Boolean(socket.ssid && ssid_sessions[socket.ssid]);
     if (!socket.res) {
         wtv_connection_close = (headers_obj["wtv-connection-close"]) ? true : false;
         if (typeof (headers_obj["wtv-connection-close"]) !== 'undefined') delete headers_obj["wtv-connection-close"];
@@ -1303,9 +1369,18 @@ async function sendToClient(socket, headers_obj, data = null) {
     }
    
 
+    let imageArtemisType = minisrv_config.config.image_decoder.gif_type || 'ALP';
     // Add last modified if not a dynamic script
     if (socket_sessions[socket.id]) {
         if (socket_sessions[socket.id].request_headers) {
+            if (socket_sessions[socket.id].request_headers.query) {
+                    if (socket_sessions[socket.id].request_headers.query.type === "ALF" ||
+                        socket_sessions[socket.id].request_headers.query.type === "ALP"
+                       )
+                    {
+                        imageArtemisType = socket_sessions[socket.id].request_headers.query.type;
+                    }
+            }
             if (socket_sessions[socket.id].request_headers.service_file_path) {
                 // Don't change Last-modified header if provided already
                 if (!headers['Last-Modified'] && !headers['minisrv-no-last-modified']) {
@@ -1337,6 +1412,78 @@ async function sendToClient(socket, headers_obj, data = null) {
         delete headers_obj['minisrv-no-last-modified'];
     }
 
+    if (isWebTVClient && minisrv_config.config.image_decoder && minisrv_config.config.image_decoder.enabled) {
+        const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
+        if (contype_key) {
+            if (minisrv_config.config.image_decoder.image_formats && minisrv_config.config.image_decoder.image_formats.includes(headers_obj[contype_key].toLowerCase())) {            
+                const convertOpts = {
+                    jpegQuality: minisrv_config.config.image_decoder.jpg_quality,
+                    type: imageArtemisType,
+                    imgopts: minisrv_config.config.image_decoder.image_options || null
+                };
+
+                if (minisrv_config.config.image_decoder.max_height > 0) convertOpts.maxHeight = minisrv_config.config.image_decoder.max_height;
+                if (minisrv_config.config.image_decoder.max_width > 0) convertOpts.maxWidth = minisrv_config.config.image_decoder.max_width;
+
+                const sourceData = Buffer.isBuffer(data) ? data : Buffer.from(data);
+                try {
+                    const converted = await WTVImage.ImageToWebTV(sourceData, convertOpts);
+                    data = converted.data;
+                    content_length = data.length;
+                    var i=0;
+                    while (content_length > minisrv_config.config.image_decoder.max_size && converted.mime === 'image/jpeg') {
+                        // Image is too big, try to reduce quality
+                        if (i < minisrv_config.config.image_decoder.max_quality_tries) {
+                            convertOpts.jpegQuality -= minisrv_config.config.image_decoder.jpeg_interval;
+                            var converted2 = await WTVImage.ImageToWebTV(sourceData, convertOpts, pngOpts);
+                            data = converted2.data;
+                            content_length = data.length;
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (content_length > minisrv_config.config.image_decoder.max_size) {
+                        headers_obj = {
+                            "Status": `400 ${minisrv_config.config.service_name} ran into a technical problem. (Image too large)`,
+                            "Content-type": "text/html"
+                        }
+                    data = "";
+                    } else {
+                        headers_obj[contype_key] = (converted.mime === 'image/jpeg') ? 'image/jpeg' : 'image/gif';
+                    }
+                } catch (e) {
+                    console.error("Error converting image for client:", e);
+                    headers_obj = {
+                        "Status": `400 ${minisrv_config.config.service_name} ran into a technical problem. (Image not supported by backend, it may be corrupt)`,
+                        "Content-type": "text/html"
+                    }
+                    data = "";
+                }
+            }
+        }
+    }
+
+    if (isWebTVClient && wtvAudioProxy && wtvAudioProxy.isEnabled()) {
+        const contype_key = wtvshared.getCaseInsensitiveKey('content-type', headers_obj);
+        if (contype_key && wtvAudioProxy.shouldProxy(headers_obj[contype_key])) {
+            try {
+                const transformResult = await wtvAudioProxy.transformIfNeeded(headers_obj, data);
+                headers_obj = transformResult.headers;
+                data = transformResult.data;
+                content_length = Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data || '');
+            } catch (e) {
+                console.error('Audio proxy error:', e.message);
+                headers_obj = {
+                    "Status": "413 Audio Too Long",
+                    "Content-type": "text/plain"
+                };
+                data = (e.code === 'AUDIO_TOO_LONG') ?
+                    `Audio exceeds maximum allowed duration of ${wtvAudioProxy.config.maxDurationSeconds} seconds.` :
+                    `Audio proxy failure: ${e.message}`;
+            }
+        }
+    }
 
 
     // if client can do compression, see if its worth enabling
@@ -1462,7 +1609,7 @@ async function sendToClient(socket, headers_obj, data = null) {
     if (!xpower && socket.service_name) {
         // add X-Powered-By header if not WebTV and not already set
         xpower = 'X-Powered-By';
-        if (minisrv_config.services[socket.service_name].hide_minisrv_version) {   
+        if (minisrv_config.config.hide_minisrv_version) {   
             // Don't report version         
             if (!socket.ssid) headers_obj[xpower] = "NodeJS; minisrv";
         } else {
@@ -1473,7 +1620,7 @@ async function sendToClient(socket, headers_obj, data = null) {
         // delete if webtv
         if (socket.ssid) delete headers_obj[xpower];
         if (socket.service_name) {
-            if (minisrv_config.services[socket.service_name].hide_minisrv_version) {   
+            if (minisrv_config.config.hide_minisrv_version) {   
                 // Don't report version         
                 if (!socket.ssid) headers_obj[xpower] = headers_obj[xpower] + "; NodeJS; minisrv";
             } else {
@@ -1531,64 +1678,98 @@ async function sendToClient(socket, headers_obj, data = null) {
         let toClient = null;
         if (typeof data === 'string') {
             toClient = headers + eol + data;
-            sendToSocket(socket, Buffer.from(toClient));
+            sendToSocket(socket, Buffer.from(toClient), throttle);
         } else if (typeof data === 'object') {
             let verbosity_mod = (headers_obj["wtv-encrypted"] === 'true') ? " encrypted response" : "";
             if (socket_sessions[socket.id].secure_headers === true) {
                 // encrypt headers
                 if (minisrv_config.config.debug_flags.quiet) verbosity_mod += " with encrypted headers";
                 const enc_headers = socket_sessions[socket.id].wtvsec.Encrypt(1, headers + eol);
-                sendToSocket(socket, new Buffer.from(concatArrayBuffer(enc_headers, data)));
+                sendToSocket(socket, new Buffer.from(concatArrayBuffer(enc_headers, data)), throttle);
             } else {
-                sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + eol), data)));
+                sendToSocket(socket, new Buffer.from(concatArrayBuffer(Buffer.from(headers + eol), data)), throttle);
             }
             if (minisrv_config.config.debug_flags.quiet) console.debug(" * Sent" + verbosity_mod + " " + headers_obj.Status + " to client (Content-Type:", headers_obj['Content-type'], "~", headers_obj['Content-length'], "bytes)");
         }
     }
 }
 
-async function sendToSocket(socket, data) {
+async function sendToSocket(socket, data, throttle = 0) {
     const chunk_size = 16384;
-    let can_write = true;
-    let close_socket = false;
-    let expected_data_out = 0;
-    while ((socket.bytesWritten === 0 || socket.bytesWritten !== expected_data_out) && can_write) {
-        if (expected_data_out === 0) expected_data_out = data.byteLength + (socket_sessions[socket.id].socket_total_written || 0);
-        if (socket.bytesWritten === expected_data_out) break;
+    if (!throttle || throttle <= 0) {
+        let can_write = true;
+        let close_socket = false;
+        let expected_data_out = 0;
+        while ((socket.bytesWritten === 0 || socket.bytesWritten !== expected_data_out) && can_write) {
+            if (expected_data_out === 0) expected_data_out = data.byteLength + (socket_sessions[socket.id].socket_total_written || 0);
+            if (socket.bytesWritten === expected_data_out) break;
 
-        const data_left = (expected_data_out - socket.bytesWritten);
-        // buffer size = lesser of chunk_size or size remaining
-        const buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
-        if (buffer_size < 0) {
-            socket.destroy();
-            close_socket = true;
-            break;
+            const data_left = (expected_data_out - socket.bytesWritten);
+            // buffer size = lesser of chunk_size or size remaining
+            const buffer_size = (data_left >= chunk_size) ? chunk_size : data_left;
+            if (buffer_size < 0) {
+                socket.destroy();
+                close_socket = true;
+                break;
+            }
+            const offset = (data.byteLength - data_left);
+            const chunk = new Buffer.alloc(buffer_size);
+            data.copy(chunk, 0, offset, (offset + buffer_size));
+            can_write = socket.write(chunk);
+            if (!can_write) {
+                socket.once('drain', function () {
+                    sendToSocket(socket, data, throttle);
+                });
+                break;
+            }
         }
-        const offset = (data.byteLength - data_left);
-        const chunk = new Buffer.alloc(buffer_size);
-        data.copy(chunk, 0, offset, (offset + buffer_size));
-        can_write = socket.write(chunk);
+        if (socket.bytesWritten === expected_data_out || close_socket) {
+            socket_sessions[socket.id].socket_total_written = socket.bytesWritten;
+            if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+            if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
+            if (socket_sessions[socket.id].secure_buffer) delete socket_sessions[socket.id].secure_buffer;
+            if (socket_sessions[socket.id].buffer) delete socket_sessions[socket.id].buffer;
+            if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
+            if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
+            if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
+            if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
+            socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
+            if (socket_sessions[socket.id] && socket_sessions[socket.id].close_me) socket.end();
+            if (socket_sessions[socket.id].destroy_me) socket.destroy();
+        }
+        return;
+    }
+
+    let offset = 0;
+    while (offset < data.byteLength) {
+        const buffer_size = Math.min(chunk_size, data.byteLength - offset);
+        const chunk = Buffer.alloc(buffer_size);
+        data.copy(chunk, 0, offset, offset + buffer_size);
+        offset += buffer_size;
+
+        const can_write = socket.write(chunk);
         if (!can_write) {
-            socket.once('drain', function () {
-                sendToSocket(socket, data);
-            });
-            break;
+            await new Promise(resolve => socket.once('drain', resolve));
+        }
+
+        if (offset < data.byteLength) {
+            const delay_ms = Math.max(1, Math.round((buffer_size * 8) / throttle * 1000));
+            await new Promise(resolve => setTimeout(resolve, delay_ms));
         }
     }
-    if (socket.bytesWritten === expected_data_out || close_socket) {
-        socket_sessions[socket.id].socket_total_written = socket.bytesWritten;
-        if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
-        if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
-        if (socket_sessions[socket.id].secure_buffer) delete socket_sessions[socket.id].secure_buffer;
-        if (socket_sessions[socket.id].buffer) delete socket_sessions[socket.id].buffer;
-        if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
-        if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
-        if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
-        if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
-        socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
-        if (socket_sessions[socket.id] && socket_sessions[socket.id].close_me) socket.end();
-        if (socket_sessions[socket.id].destroy_me) socket.destroy();
-    }
+
+    socket_sessions[socket.id].socket_total_written = socket.bytesWritten;
+    if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
+    if (socket_sessions[socket.id].header_buffer) delete socket_sessions[socket.id].header_buffer;
+    if (socket_sessions[socket.id].secure_buffer) delete socket_sessions[socket.id].secure_buffer;
+    if (socket_sessions[socket.id].buffer) delete socket_sessions[socket.id].buffer;
+    if (socket_sessions[socket.id].headers) delete socket_sessions[socket.id].headers;
+    if (socket_sessions[socket.id].post_data) delete socket_sessions[socket.id].post_data;
+    if (socket_sessions[socket.id].post_data_length) delete socket_sessions[socket.id].post_data_length;
+    if (socket_sessions[socket.id].post_data_percents_shown) delete socket_sessions[socket.id].post_data_percents_shown;
+    socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
+    if (socket_sessions[socket.id] && socket_sessions[socket.id].close_me) socket.end();
+    if (socket_sessions[socket.id].destroy_me) socket.destroy();
 }
 
 function concatArrayBuffer(buffer1, buffer2) {
@@ -2172,8 +2353,10 @@ function reloadConfig() {
 
 // SERVER START
 const git_commit = getGitRevision()
-let z_title = "zefie's wtv minisrv v" + require('./package.json').version;
-const z_cgiver = "minisrv/" + require('./package.json').version;
+const pkgjson = require('./package.json');
+const { head } = require('nntp-server-zefie/lib/commands/article');
+let z_title = "zefie's wtv minisrv v" + pkgjson.version;
+const z_cgiver = "minisrv/" + pkgjson.version;
 if (git_commit) z_title += " (git " + git_commit + ")";
 console.log("**** Welcome to " + z_title + "  ****");
 console.log("**** Detected nodejs v" + process.versions.node + " ****")
@@ -2231,10 +2414,13 @@ Object.keys(minisrv_config.services).forEach(function (k) {
                     handlerModules[minisrv_config.services[k].handler_module + "_main"] = require(classPath + "/" + minisrv_config.services[k].handler_module + ".js");
                     var args = [];
                     for (let i = 0; i < (minisrv_config.services[k].handler_extra_vars || []).length; i++) {
+                        // is there a better way to do this than eval ? ...
+                        // concept: server owner can specify handler_extra_vars in the config as an array of
+                        // variable/function/module names (as strings in the config) that they want to pass to the handler module constructor
                         let extraVar = eval(minisrv_config.services[k].handler_extra_vars[i]);
                         args.push(extraVar);
                     }
-                    const constructorArgs = [minisrv_config, k, wtvshared, sendToClient, ...args];
+                    const constructorArgs = [minisrv_config, k, wtvshared, sendToClient, net, ...args];
                     handlerModules[minisrv_config.services[k].handler_module.toLowerCase()] = new handlerModules[minisrv_config.services[k].handler_module + "_main"](...constructorArgs);
                 }
                 loadedModule = true;
@@ -2243,7 +2429,7 @@ Object.keys(minisrv_config.services).forEach(function (k) {
             }
         }
         const using_tls = (minisrv_config.services[k].pc_services && minisrv_config.services[k].https_cert && minisrv_config.services[k].use_https) ? true : false;
-        const protocol = (minisrv_config.services[k].protocol_handler) ? minisrv_config.services[k].protocol_handler.toUpperCase() : (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP";
+        const protocol = (minisrv_config.services[k].protocol) ? minisrv_config.services[k].protocol.toUpperCase() : (minisrv_config.services[k].pc_services) ? "HTTP" : "WTVP";
         console.log(" * Configured Service:", k, "on Port", minisrv_config.services[k].port, "- Service Host:", minisrv_config.services[k].host + ((using_tls) ? " (TLS)" : ""), "- Protocol:", protocol, (loadedModule) ? "- Handler Module: " + minisrv_config.services[k].handler_module : "");
 
         if (minisrv_config.services[k].local_nntp_enabled && minisrv_config.services[k].local_nntp_port) {
@@ -2314,9 +2500,11 @@ if (minisrv_config.config.user_accounts.max_users_per_account > 99) {
 if (minisrv_config.config.shenanigans) console.log(" * WARNING: Shenanigans level", minisrv_config.config.shenanigans, "enabled");
 else console.log(" * Shenanigans disabled");
 
-process.on('uncaughtException', function (err) {
-    console.error((err && err.stack) ? err.stack : err);
-});
+// ImageProxy
+if (minisrv_config.config.image_decoder.enabled) console.log(" * ImageProxy enabled: unsupported images will be processed and converted for WebTV clients");
+else console.log(" * ImageProxy disabled: unsupported images will not be processed, and sent to client as-is");
+
+validateAudioProxy();
 
 ports.sort();
 pc_ports.sort();
@@ -2325,12 +2513,12 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     if (typeof (minisrv_config.services[service_name]) === 'function') return;
     const service = minisrv_config.services[service_name];
     if (!service || service.disabled || !service.port) return;
-    if (service.protocol_handler === 'pnm') {
+    if (service.handler_handles_port && service.protocol && service.handler_module) {
         try {
-            handlerModules['wtvpnm'].listen(service.port, minisrv_config.config.bind_ip);
-            protocolServers.push(handlerModules['wtvpnm']);
+            handlerModules[service.handler_module.toLowerCase()].listen(service.port, minisrv_config.config.bind_ip);
+            protocolServers.push(handlerModules[service.handler_module.toLowerCase()]);
         } catch (e) {
-            throw ("Could not bind PNM protocol handler to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
+            throw ("Could not bind port for protocol " + service.protocol + " to port " + service.port + " on " + minisrv_config.config.bind_ip + ": " + e.toString());
         }
     }
 });
@@ -2340,11 +2528,9 @@ Object.keys(minisrv_config.services).forEach((service_name) => {
     if (typeof (minisrv_config.services[service_name]) === 'function') return;
     const service = minisrv_config.services[service_name];
     if (!service || service.disabled || !service.port) return;
-    if (service.protocol_handler === 'pnm') {
-        protocolHandledPorts.add([service_name, service.protocol_handler, parseInt(service.port)]);
+    if (service.protocol) {
+        protocolHandledPorts.add([service_name, service.protocol, parseInt(service.port)]);
     }
-    // Any other future special protocols would go here, and should be added to the `protocolHandledPorts` set to avoid conflicts with the main socket listener
-    // We ignore unknown protocols and treat it like the flag doesn't exist.
 });
 
 // de-duplicate ports in case user configured multiple services on same port
@@ -2469,16 +2655,17 @@ Content-type: text/html`;
                     if (typeof (req.body) === "string") {
                         request_headers.post_data = req.body;
                     } else if (Buffer.isBuffer(req.body)) {
-                        if (req.body.length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
+                        const bodyString = req.body.toString('utf8');                        
+                        if (bodyString.length > (minisrv_config.config.max_post_length * 1024 * 1024)) {
                             errpage = wtvshared.doErrorPage("400", "POST size too large", null, true);
                         } else {
                             request_headers.post_data = "";
-                            for (let  i = 0; i < req.body.length; i++) {
-                                request_headers.post_data += String.fromCharCode(req.body[i]);
+                            for (let  i = 0; i < bodyString.length; i++) {
+                                request_headers.post_data += String.fromCharCode(bodyString.charCodeAt(i));
                             }
                         }
                     } else {
-                        request_headers.post_data = req.body.toString();
+                        request_headers.post_data = req.body.toString('utf8');
                     }
                 } else {
                     request_headers.post_data = "";	 // Invalid type (array/object), possible type confusion attack
@@ -2516,3 +2703,21 @@ if (pc_bind_ports.length > 0) console.log(` * Started HTTP Server on port${pc_bi
 if (protocolHandledPorts.size > 0) console.log(` * Started ${protocolHandledPorts.size} specialized protocol handler${protocolHandledPorts.size !== 1 ? "s" : ""} on port${protocolHandledPorts.size !== 1 ? "s" : ""} ` + [...protocolHandledPorts].map(([sn, sp, pt]) => `${pt} (${sp.toUpperCase()})`).join(", ") + "...");
 const listening_ip_string = (minisrv_config.config.bind_ip !== "0.0.0.0") ? "IP: " + minisrv_config.config.bind_ip : "all interfaces";
 console.log(" * Listening on", listening_ip_string, "~", "Service IP:", service_ip);
+
+// Security warning for default user data encryption key
+if (minisrv_config.config.keys.user_data_key === "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP") {
+    console.log(" * WARNING: You are using the default user data encryption key. This is not secure, and you should change it in the configuration file before registering any users.");
+    console.log(" * To generate a random key in bash or PowerShell, you can run: node ./tools/configurator.js config.keys.user_data_key $(openssl rand -base64 32)");
+    console.log(" * After changing the key in the user_config, please restart the server.");
+    console.log(" * If you had existing users prior to changing the key, you can run tools/update_user_data_key.js to update existing accounts with the new key.");
+    console.log(" * Making a backup of your user accounts before doing this is highly recommended, in case something goes wrong during the update process.");    
+}
+
+// Security warning for default IRC oper password
+const ircService = minisrv_config.services && minisrv_config.services.ircserver;
+if (ircService && !ircService.disabled && ircService.oper_password === "changeme573") {
+    console.log(" * WARNING: ircserver is using the default oper_password. Change services.ircserver.oper_password before enabling oper_enabled.");
+    if (ircService.oper_enabled) {
+        console.log(" * WARNING: oper_enabled is true with the default oper_password. Disable oper_enabled or change the password immediately.");
+    }
+}

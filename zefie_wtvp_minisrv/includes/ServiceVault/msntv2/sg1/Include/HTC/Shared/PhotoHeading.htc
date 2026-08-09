@@ -1,0 +1,119 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         PhotoHeading.htc
+//
+//  Description:  The PhotoHeading behavior creates the standard heading
+//				  element for Photo pages.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="PhotoHeading" lightweight=true>
+
+<PUBLIC:PROPERTY NAME="label" value="Heading" />
+<PUBLIC:PROPERTY NAME="helpURL" value="msntv:/Photo/PhotoHelp.html" />
+<PUBLIC:PROPERTY NAME="helpDest" value="MSNTV_TRS_TOC_Photos" />
+<PUBLIC:PROPERTY NAME="showscrolltop" />
+
+<PUBLIC:METHOD NAME="ShowInMain" />
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="doPropChange" />
+
+<PUBLIC:DEFAULTS style="{color:#C4C0B1; font-family: highway;}" />
+
+// Private methods (must still declare public)
+<PUBLIC:METHOD NAME="GotoSignOn" />
+<PUBLIC:METHOD NAME="ShowInMain" />
+
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+var TVShell= new ActiveXObject("MSNTV.TVShell");
+var VK_BROWSER_HOME			= 0xAC;		
+function GotoSignOn()
+{
+	if(CurrentUser && CurrentUser.IsAuthorized)
+		TVShell.Message("authorized");
+
+
+	else
+	{
+		var signonEntry = TVShell.BuiltinServiceList("SignOn");
+		var loginEntry = TVShell.ServiceList("connection::login");
+		var numUsers = TVShell.UserManager.Count;
+
+		TVShell.Message("GotoSignOn");
+
+		if (signonEntry && loginEntry && ( numUsers > 0 ) ) {
+			signonEntry.KeyCode = VK_BROWSER_HOME;
+			TVShell.URL = signonEntry.URL;
+		}
+		else if (TVShell.SystemInfo.Flavor == "release" || TVShell.SystemInfo.Flavor == "ppe") {
+			TVShell.URL = "msntv:/Registration/pages/Welcome.html";
+		}
+		else {
+			TVShell.URL = "msntv:/tvshell/Register.html";
+		}
+	}				
+}
+function Init()
+{
+	if(typeof(PH_topicTOC)=="undefined")
+    	helpURL = "";
+	else if (helpDest != "")
+		helpURL = GetDMRHelpURL(helpDest);
+
+	var output =
+		"<DIV id=header>" +
+			"<TABLE cellspacing=0 cellpadding=0 width=100%>" +
+			"<TR>" +
+				"<TD><IMG src='msntv:/Photo/Assets/PhotoHeader.jpg' width=550 height=56 align=top>" +
+				"<TD style='background: url(msntv:/Photo/Assets/PhotoTopStretch.jpg) repeat-x;width:100%'></TD>" +
+			"<TR>" +
+				"<TD colspan=2 style='background-color:#F1F1F1;width:100%;height=1px'></TD>" +
+			"</TR>"+
+			"</TABLE>" +
+			"<DIV id=headerTitle>Photos</DIV>" +
+			"<DIV id=title class=ellipsis xstyle='width:330px;'>" + label + "</DIV>";
+
+	output+="<A onclick='" + uniqueID + ".ShowInMain(\"helpURL\");' id=help>Help<SPAN id=helpIcon></SPAN></A>";
+	output+=
+		"</DIV>";
+
+	innerHTML = output;
+}
+
+function ShowInMain(property)
+{
+	TVShell.PanelManager.Item("main").GotoURL(element[property]);
+	TVShell.PanelManager.Show("main");
+}
+
+function doPropChange()
+{
+	if (event.propertyName == "label") {
+		element.all["title"].innerText = label;
+	}
+}
+</SCRIPT>
+
+</PUBLIC:COMPONENT>

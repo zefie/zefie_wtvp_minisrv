@@ -262,7 +262,7 @@ label="View saved e-mail messages">
 <font sizerange=medium> ${message_list_string}
 <table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
-${username}@${minisrv_config.config.service_name}
+${username}@${minisrv_config.config.domain_name}
 </TD></TR>
 </TABLE>
 </font><br>
@@ -321,7 +321,7 @@ ${message_font_close}
             data += `
 <font sizerange=medium> No ${(mailbox_name === "Inbox") ? `new e-mail messages for<table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
-${username}@${minisrv_config.config.service_name}
+${username}@${minisrv_config.config.domain_name}
 </TD></TR>
 </TABLE>` : 'e-mail messages in mailbox ' + mailbox_name}
 </font><br>

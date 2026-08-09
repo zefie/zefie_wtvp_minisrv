@@ -127,7 +127,7 @@ Content-Type: audio/wav`;
 
         const username = session_data.getSessionData("subscriber_username");
         const userdisplayname = wtvshared.htmlEntitize(session_data.getSessionData("subscriber_name"));
-        const address = username + "@" + minisrv_config.config.service_name //minisrv_config.config.domain_name
+        const address = username + "@" + minisrv_config.config.domain_name //minisrv_config.config.domain_name
         const notImplementedAlert = new clientShowAlert({
             'image': minisrv_config.config.service_logo,
             'message': "This feature is not available.",

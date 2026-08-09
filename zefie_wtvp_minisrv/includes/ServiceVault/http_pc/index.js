@@ -1,15 +1,17 @@
 const minisrv_service_file = true;
 
+const title = minisrv_config.config.hide_minisrv_version ? "zefie's minisrv PC Services" : `zefie minisrv v${minisrv_config.version} PC Services`;
+
 headers = `200 OK
 Content-Type: text/html`
 
 data = `<html>
 <head>
-<title>zefie minisrv v${minisrv_config.version}</title>
+<title>${title}</title>
 </head>
 <body bgcolor="#000000" text="#449944">
 <p>
-Welcome to the zefie minisrv v${minisrv_config.version} PC Services
+Welcome to ${title}
 </p>
 <hr>
 <a href="/viewergen/">WebTV Viewer Generator</a><br>

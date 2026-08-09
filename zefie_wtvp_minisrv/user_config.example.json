@@ -15,6 +15,9 @@
 			"C:/Users/zefie/webtv/ServiceVault2",
 			"/home/zefie/webtv/ServiceVault"
 		],
+		"keys": {
+			"user_data_key": "SOMETHING_RANDOM_AND_SECRET" // this can be any string, but should be changed to a random value before registering any users.
+		},
 		"php_enabled": true, // enables PHP CGI support
 		"php_binpath": "/usr/bin/php-cgi", // path to PHP CGI binary
 		"cgi_enabled": true, // enables CGI Support

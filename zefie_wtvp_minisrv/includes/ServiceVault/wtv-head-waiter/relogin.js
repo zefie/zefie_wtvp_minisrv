@@ -12,7 +12,7 @@ Expires: Wed, 09 Oct 1991 22:00:00 GMT
 wtv-expire-all: wtv-head-waiter:
 wtv-expire-all: wtv-1800:
 wtv-service: reset
-${getServiceString('wtv-1800')}
+${wtvshared.getServiceString('wtv-1800')}
 wtv-visit: ${gourl}
 Content-type: text/html`;
 data = '';

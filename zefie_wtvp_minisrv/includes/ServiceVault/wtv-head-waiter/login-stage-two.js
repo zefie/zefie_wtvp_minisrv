@@ -14,9 +14,9 @@ if (gourl) {
 		// fake logged in for reg
 		session_data.setUserLoggedIn(true);
 		headers += `wtv-encrypted: ${(request_headers['wtv-encrypted']) ? wtvshared.parseBool(request_headers['wtv-encrypted']) : true}
-${getServiceString('wtv-register')}
-${getServiceString('wtv-head-waiter')}
-${getServiceString('wtv-star')}
+${wtvshared.getServiceString('wtv-register')}
+${wtvshared.getServiceString('wtv-head-waiter')}
+${wtvshared.getServiceString('wtv-star')}
 wtv-boot-url: wtv-head-waiter:/relogin?
 `
 	}
@@ -102,7 +102,7 @@ wtv-expire-all: client:closeallpanels
 		if (!limitedLogin && !limitedLoginRegistered) {
 			session_data.assignMailStore();
 			headers += "wtv-service: reset\n";
-			headers += getServiceString('all', { "exceptions": ["wtv-register"] });
+			headers += wtvshared.getServiceString('all', { "exceptions": ["wtv-register"] });
 			if (offline_user_list) headers += "wtv-offline-user-list: " + offline_user_list + "\n";
 			headers += `wtv-messenger-authorized: ${messenger_authorized}
 wtv-messenger-enable: ${messenger_enabled}
@@ -113,11 +113,11 @@ wtv-messenger-login-url: wtv-passport:/messengerlogin
 `;
 		} else {
 			/*
-			headers += getServiceString('wtv-1800') + "\n";
-			headers += getServiceString('wtv-head-waiter') + "\n";
-			headers += getServiceString('wtv-log') + "\n";
-			headers += getServiceString('wtv-star') + "\n";
-			headers += getServiceString('wtv-flashrom') + "\n";
+			headers += wtvshared.getServiceString('wtv-1800') + "\n";
+			headers += wtvshared.getServiceString('wtv-head-waiter') + "\n";
+			headers += wtvshared.getServiceString('wtv-log') + "\n";
+			headers += wtvshared.getServiceString('wtv-star') + "\n";
+			headers += wtvshared.getServiceString('wtv-flashrom') + "\n";
 			*/
 			headers += `wtv-messenger-authorized: 0
 wtv-messenger-enable: 0

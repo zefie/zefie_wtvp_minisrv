@@ -16,11 +16,12 @@ class WTVShared {
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
     parentDirectory = process.cwd()
-    extend = require('util')._extend;
+    util = require('util');
     debug = require('debug')('WTVShared')
     process = require('process');
     shenanigans = null;
     appdir = this.path.resolve(__dirname + this.path.sep + ".." + this.path.sep + "..");
+    tokens = {};
 
     minisrv_config = [];
     
@@ -138,6 +139,19 @@ class WTVShared {
         }
         return false;
     }
+
+    /**
+      * Moves an array element from one index to another
+      * @param {Array} array The array to modify
+      * @param {number} from The index of the element to move 
+      * @param {number} to The index to move the element to
+      * @return {Array} The modified array with the element moved
+      * @notice This function modifies the original array and also returns it for convenience
+      */
+    moveArrayKey(array, from, to) {
+        array.splice(to, 0, array.splice(from, 1)[0]);
+        return array;
+    };
 
     /**
      * Converts a byte array to a 32-bit unsigned integer (big-endian)
@@ -615,6 +629,114 @@ class WTVShared {
         // Use the fixPathSlashes method to normalize the slashes
         return this.fixPathSlashes(check_path);
     }
+
+    /**
+     * Get the session data (email, creation time, expiry) associated with a given token, also deletes the token if expired.
+     * @param {string} token The token to retrieve data for
+     * @return {object|null} { token, created, expires } for the token, or null if token is invalid/expired
+     */
+    getTokenData(token) {
+        const session = this.tokens[token];
+        if (session && session.expires > Date.now()) {
+            return { email: session.email, token: session.token, created: session.timestamp, expires: session.expires };
+        }
+        this.deleteToken(token);
+        return null;
+    }
+
+    /**
+     * Checks if a token is valid (exists and not expired)
+     * @param {string} token The token to check
+     * @returns {boolean} true if valid, false if not
+     */
+    isTokenValid(token) {
+        const session = this.tokens[token];
+        if (session && session.expires > Date.now()) {
+            return true;
+        }
+        this.deleteToken(token);
+        return false;
+    }
+
+    /**
+     * Deletes a token from the token store.
+     * @param {string} token The token to delete
+     */
+    deleteToken(token) {
+        if (this.tokens[token]) {
+            delete this.tokens[token];
+            this.saveTokens();
+        }
+    }
+
+    /**
+     * Deletes all tokens associated with a given email.
+     * @param {string} email The email to delete tokens for
+     */
+    deleteTokenByEmail(email) {
+        let deleted = false;
+        Object.keys(this.tokens).forEach((k) => {
+            if (this.tokens[k].email === email) {
+                delete this.tokens[k];
+                deleted = true;
+            }
+        });
+        if (deleted) this.saveTokens();
+    }
+
+    mkdirRecursive(dirPath) {
+        if (!this.path.isAbsolute(dirPath)) {
+            dirPath = this.getAbsolutePath(this.parentDirectory + this.path.sep + dirPath);
+        }
+        const parts = dirPath.split(this.path.sep);
+        let currentPath = '';
+        for (const part of parts) {
+            if (part) {
+                if (currentPath === '') {
+                    currentPath = part;
+                } else {
+                    currentPath += this.path.sep + part;
+                }
+                if (!this.fs.existsSync(currentPath)) {
+                    try {
+                        this.fs.mkdirSync(currentPath);
+                    } catch (e) {
+                        if (e.code !== 'EEXIST') {
+                            throw e;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    saveTokens() {
+        const session_store = this.minisrv_config.config.SessionStore + this.path.sep + "msntv2";
+        if (!this.fs.existsSync(session_store)) {
+            this.mkdirRecursive(session_store);
+        }
+        const tokenFile = this.getAbsolutePath(this.path.join(session_store, `tokens.json`));
+        this.fs.writeFile(tokenFile, JSON.stringify(this.tokens), (err) => {
+            if (err) {
+                console.error('[WTV-MSNTV2] Error writing token file:', err);
+            }
+        });
+    }
+
+    /**
+     * Store a token with its associated email.
+     * @param {string} userid The user ID associated with the token
+     * @param {string} email The email associated with the token
+     * @param {string} token The token to store
+     * @param {string|null} expiresTime - Optional expiration time for the token, otherwise uses server config defaults
+     */
+    storeToken(userid, email, token, expiresTime = null) {
+        this.deleteToken(token); // ensure any existing token with the same value is removed before storing new data
+        this.tokens[token] = { userid, email, token, timestamp: Date.now(), expires: expiresTime ? new Date(expiresTime).getTime() : Date.now() + (this.minisrv_config.services[this.service_name]?.token_expiry || 3600) * 1000 }; // 1 hour expiry
+        this.saveTokens();
+        this.debug(" * MSNTV2 stored token for account %s, token expires in %d seconds", email, (this.tokens[token].expires - Date.now()) / 1000);
+    }
+
 
     /**
      * Detects if the client is in MiniBrowser mode
@@ -1117,6 +1239,7 @@ class WTVShared {
     // DON'T USE THIS
     // Saved for reference until I come up with a better way
     // If used, this will exceed the stack limit over time
+    /*
     unloadModule(moduleName) {
         // Prevent usage
         return;
@@ -1128,7 +1251,8 @@ class WTVShared {
             delete require.cache[resolvedPath];
         }
     }
-
+    */
+   
     /**
     * Returns an absolute path without an trailing path seperator
     * @param {string} path 

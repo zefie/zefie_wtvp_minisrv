@@ -19,7 +19,7 @@ if (session_data.user_id !== 0 && session_data.user_id !== parseInt(request_head
     data = errpage[1];
 }
 
-if (user_id && !errpage) {
+if (user_id >= 0 && !errpage) {
     headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`

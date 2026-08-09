@@ -1,0 +1,269 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         RecentMedia.htc
+//
+//  Description:  Displays recent media links per application.  This includes,
+// new media available on WMC servers, USB deveices and old recently
+// accessed Home networking links.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="RecentMedia" lightweight=true>
+
+<PUBLIC:PROPERTY NAME="app" />	<!-- application "photo", "video", "music" -->
+<PUBLIC:PROPERTY NAME="iconURL" />	<!-- icon beside folders -->
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+<PUBLIC:ATTACH EVENT="onpropertychange" HANDLER="doPropChange" />
+<PUBLIC:ATTACH EVENT="ondocumentready" HANDLER="documentReady" />
+
+<PUBLIC:DEFAULTS style="{color:#c2c2c2; font-family: highway;}" />
+
+<SCRIPT LANGUAGE="jscript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+var appName = "";
+var iconURLStr = "";
+var elWidth = 0;
+var elHeight = 0;
+var bHostAutoDetect = false;
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{
+	//We can't do the normal check using element.innerHTML because in some
+	//cases, BuildList() leaves innerHTML blank.
+	//We look for TVShell instead to determine if we are printing.
+	var doInit = false;
+	try { doInit = (TVShell != null); } catch(ex){}
+	if (doInit)
+		BuildList();
+}
+
+function getHostName( vn )
+{
+	var hostName = "";
+
+	if ( vn != null && vn.length > 2 && vn.charAt(0) == '\\' && vn.charAt(1) == '\\' )
+	{
+		var s = vn.substring(2, vn.length );
+		var idx1 = s.indexOf("\\");
+		hostName = s.substring(0, idx1 );
+	}
+	return hostName;
+}
+
+function UpdateHost( name )
+{
+	var nm = name.toLowerCase();
+	var hn = TVShell.ConnectionManager.HomeNetworking;
+	for ( var i = 0 ; i < hn.Count ; i++ )
+	{
+		var host = hn.Item(i);
+		if ( host.Name.toLowerCase() == nm )
+		{
+			// if this host is in our recent list and it has zero shares, we need to detect shares
+			if ( ( host.Count <= 0 ) && ( host.ApplicationData != "scanned" ) )
+			{
+				host.AutoDetect(1);
+				host.ApplicationData = "scanned";
+			}
+		}
+	}
+}
+
+function DetectShares( lst )
+{
+  for ( var i = 0 ; i < lst.length ; i++ )
+  {
+     // get host name from storage device name if this is from the home network
+     var hname = getHostName( lst[i].name );
+     TVShell.Message("Detect shares("+i+") host="+hname);
+     // if this is a home network host, do an autodetect if it has zero shares
+     if ( hname != "" ) UpdateHost( hname );
+  }
+}
+
+function doPropChange()
+{
+	var redraw = false;
+	if (event.propertyName == "app")
+	{
+		if ( appName != app ) redraw = true;
+		appName = app;
+	}
+	if (event.propertyName == "iconURL")
+	{
+		if ( iconURLStr != iconURL ) redraw = true;
+		iconURLStr = iconURL;
+	}
+
+	var ew = element.clientWidth;
+	var eh = element.clientHeight;
+	if ( ( ew != elWidth ) || ( eh != elHeight ) )
+	{
+		TVShell.Message("Size change w = " + ew + "  h = " + eh );
+		elWidth = ew;
+		elHeight = eh;
+		redraw = true;
+	}
+
+	if ( redraw )
+	{
+		TVShell.Message('on prop change calls redraw' );
+		BuildList();
+	}
+}
+
+
+function mediaEntry( name , url )
+{
+	this.name = name;
+	this.url = url;
+}
+
+function getNewList()
+{
+	var list = new Array();
+	return list;
+}
+
+function getRecentList()
+{
+	var list = new Array();
+	var hst = TVShell.MediaHistory;
+	var num = hst.Count( app );
+	var index = 0;
+	for ( var i = num - 1 ; i >= 0 ; i-- )
+	{
+		var entry = hst.Item( app , i );
+		if ( entry ) list[index++] = new mediaEntry( entry.Name , entry.URL );
+	}
+	return list;
+}
+
+function BuildList()
+{
+	var ew = element.clientWidth;
+	TVShell.Message("clientwidth = " + ew );
+	if ( ew <= 0 ) return;	// only act when we have a specified width
+	var eh = element.clientHeight;
+	TVShell.Message("clientHeight = " + eh );
+
+	var newList = getNewList();
+	var recentList = getRecentList();
+	// make sure any HN hosts in our history have detected shares at least once
+	if ( !bHostAutoDetect )
+	{
+		DetectShares( recentList );
+		bHostAutoDetect = true;
+	}
+	var titleStr = "";
+	var listArray = new Array();
+	var bNew = false;
+	var icon = iconURL;
+	if ( newList.length > 0 )
+	{
+		titleStr = "New videos on your home network.";
+		listArray = newList;
+		bNew = true;
+	}
+	else
+	{
+		titleStr = "Recently visited on my home network";
+		listArray = recentList;
+	}
+
+	var iconWidth = 0;
+	var textWidth = 0;
+	var tableWidth = 0;
+	var padLeft = 15;
+	var padRight = 10;
+	var spacing = 6;
+	var rowH = 30;
+	if ( icon && icon != "" )
+	{
+		iconWidth = 30;
+		spacing = 6;
+	}
+	else
+	{
+		iconWidth = spacing = 0;
+	}
+	tableWidth = ew;
+	textWidth = tableWidth - iconWidth - spacing - padLeft - padRight;
+	titleWidth = tableWidth - padLeft;
+	TVShell.Message("ew:" + ew + "  tw:" + textWidth + " sp:" + spacing + "  ic:" + iconWidth );
+	var str = "<div style='position:absolute; top:0px; left:0px; width:100%; padding:0px;'>";
+	str += "<table cellspacing='0' cellpadding='0' height='100%' width='100%'>";
+	str += "<tr><td colspan=5 width=" + tableWidth + " height=10></td></tr>";
+	str += "<tr><td colspan=5 valign='top' width=" + tableWidth + "><span style='behavior:url(#default#gradient); angle:90; startColor:#6e0002; endColor:transparent; width:" +
+		tableWidth + "px; height:26px;'><table cellspacing='0' cellpadding='0'><tr><td width="+padLeft+"></td><td style='height: 26px;vertical-align: middle;'><span style='font-family:segoe tv; font-size:18px; color:#ebb206;'>" + titleStr + "</span></td></tr></table></span></td></tr>";
+	str += "<tr><td colspan=5 height=10 width=" + tableWidth + "></td></tr>";
+
+	// determine how many we can display
+	var useHt = eh - 54;
+	var numAllowed = Math.floor( useHt / rowH );
+	if ( numAllowed > listArray.length ) numAllowed = listArray.length;
+
+	if ( numAllowed == 0 )
+	{
+		var noneTxt = "None available.";
+		str += "<tr><td colspan=5 height=" + rowH + ">" + noneTxt + "</td></tr>";
+	}
+	else
+	{
+		var spanStr;
+		var dstURL;
+		var linkStr;
+		for ( var i = 0 ; i < numAllowed ; i++ )
+		{
+			dstURL = listArray[i].url;
+			var nm = listArray[i].name.split( '\\' );
+			var displayName = nm[nm.length-1];
+//			TVShell.Message("item:" + i + "  name=" + listArray[i].name + "  url=" + dstURL );
+			linkStr = "<a style='' href='" + dstURL + "'><span style='width:" + textWidth + "px; font-family:segoe tv; font-size:18px; color:#c2c2c2;' class=ellipsis>" + displayName + "</span></a>";
+			str += "<tr><td width="+padLeft+"></td>";
+			if ( iconWidth > 0 )
+			{
+				str += "<td width=" + iconWidth + " height=" + rowH + "><span style='behavior:url(#default#alphaImageLoader); src:url(" + icon + ");'></span></td>";
+				str += "<td width=" + spacing + " height=" + rowH + "></td>";
+				str += "<td width=" + textWidth + " height=" + rowH + ">" + linkStr + "</td>";
+			}
+			else
+			{
+				str += "<td></td><td width=" + textWidth + " height=" + rowH + ">" + linkStr + "</td><td></td>";
+			}
+			str += "<td></td></tr>";
+		}
+	}
+	
+
+	str += "</table></div>";
+	innerHTML = str;
+}
+
+function documentReady()
+{
+}
+
+</SCRIPT>
+
+</PUBLIC:COMPONENT>

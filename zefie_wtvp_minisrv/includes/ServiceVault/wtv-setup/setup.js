@@ -37,7 +37,7 @@ if (minisrv_config.config.hide_incomplete_features) {
 }
 
 /* We need to fix most webtv viewers for this, since they spoof a build that doesn't support messenger?
-if (!session_data.hasCap("client-can-use-messenger")) {
+if (!session_data.capabilities.get("client-can-use-messenger")) {
   removeSettingByUrl("wtv-setup:/messenger");
 }
 */
