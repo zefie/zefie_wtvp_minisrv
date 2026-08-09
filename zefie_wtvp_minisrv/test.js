@@ -27,7 +27,9 @@ function checkScopeErrors(file) {
 		
 		// Check if file is in ServiceDeps or ServiceVault directories
 		const normalizedFile = file.replace(/\\/g, '/');
-		const isServiceFile = normalizedFile.includes('includes/ServiceDeps') || normalizedFile.includes('includes/ServiceVault');
+		// Match absolute or relative paths on any OS (ServiceVault scripts run in the VM context)
+		const isServiceFile = /(?:^|\/)includes\/Service(?:Deps|Vault)(?:\/|$)/i.test(normalizedFile)
+			|| /(?:^|\/)Service(?:Deps|Vault)(?:\/|$)/i.test(normalizedFile);
 		const isWTVSharedFile = normalizedFile.includes('includes/classes/WTVShared.js');
 		
 		const eslintConfig = {
@@ -266,9 +268,10 @@ function checkScopeErrors(file) {
 				"debug": "readonly",
 				"minisrv_config": "readonly",
 				"socket": "readonly",
-				"headers": "readonly",
-				"data": "readonly",
-				"request_is_async": "readonly",
+				// Writable: ServiceVault / ServiceDeps scripts assign these for the host to read back
+				"headers": "writable",
+				"data": "writable",
+				"request_is_async": "writable",
 				"minisrv_version_string": "readonly",
 				"getServiceString": "readonly",
 				"sendToClient": "readonly",

@@ -1204,7 +1204,7 @@ class WTVPNM {
 
                 const payload = media.subarray(classicRa.dataOffset);
                 const packetSize = Math.max(1, classicRa.packetSize);
-                let tsStepMs = Number.isInteger(this.service_config.classic_ra_frame_ms)
+                const tsStepMs = Number.isInteger(this.service_config.classic_ra_frame_ms)
                     ? Math.max(1, this.service_config.classic_ra_frame_ms)
                     : (classicRa.frameMs > 0
                         ? classicRa.frameMs
@@ -1838,7 +1838,7 @@ class WTVPNM {
             const rmfSize = raBuffer.readUInt32BE(4);
             offset += rmfSize;
 
-            let chunksFound = [];
+            const chunksFound = [];
             const descriptorChunks = new Map();
             while (offset < raBuffer.length) {
                 const tag = raBuffer.toString('latin1', offset, offset + 4);

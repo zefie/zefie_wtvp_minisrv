@@ -89,8 +89,8 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} KICK :Not enough parameters\r\n`);
             return;
         }
-        var channel = this.findChannel(params[0]);                    
-        var targetNick = this.findUser(params[1]);
+        const channel = this.findChannel(params[0]);                    
+        const targetNick = this.findUser(params[1]);
         if (!channel || !this.channelData.has(channel)) {
             await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${params[0]} :No such channel\r\n`);
             return;
@@ -118,12 +118,12 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 441 ${socket.nickname} ${targetNick} ${channel} :They aren't on that channel\r\n`);
             return;
         }
-        var chan_modes = this.channelData.get(channel).modes;
+        const chan_modes = this.channelData.get(channel).modes;
         if (chan_modes.includes('Q')) {
             await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${channel} :Cannot kick users, channel is +Q (no kicks allowed)\r\n`);
             return;
         }
-        var targetSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === targetNick);
+        const targetSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === targetNick);
         let reason = '';
         if (params.length > 2) {
             reason = this.sanitizeTrailingParam(params.slice(2).join(' ').replace(/^:/, ''));
@@ -151,7 +151,7 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} TOPIC :Not enough parameters\r\n`);
             return;
         }
-        var channel = this.findChannel(params[0]);
+        const channel = this.findChannel(params[0]);
         if (!channel || !this.channelData.has(channel)) {
             await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${params[0]} :No such channel\r\n`);
             return;
@@ -162,14 +162,14 @@ module.exports = {
         }
         socket.lastspoke = this.getDate();
         if (params.length > 1) {
-            var chan_modes = this.channelData.get(channel).modes;
+            const chan_modes = this.channelData.get(channel).modes;
             if (chan_modes.includes('t')) {
                 if (!this.isChannelOp(socket.nickname, channel) && !this.isChannelHalfOp(socket.nickname, channel)) {
                     await this.safeWriteToSocket(socket, `:${this.servername} 482 ${socket.nickname} ${channel} :You're not channel operator\r\n`);
                     return;
                 }
             }
-            var topic = this.sanitizeTrailingParam(params.slice(1).join(' ').replace(/^:/, ''));
+            let topic = this.sanitizeTrailingParam(params.slice(1).join(' ').replace(/^:/, ''));
             if (topic.length > this.topiclen) {
                 topic = topic.slice(0, this.topiclen);
             }
@@ -195,7 +195,7 @@ module.exports = {
         }
         socket.lastspoke = this.getDate();
         if (params.length > 0) {
-            let awayMsg = this.sanitizeTrailingParam(params.join(' ').replace(/^:/, ''));
+            const awayMsg = this.sanitizeTrailingParam(params.join(' ').replace(/^:/, ''));
             if (awayMsg.length > this.awaylen) {
                 await this.safeWriteToSocket(socket, `:${this.servername} 417 ${socket.nickname} :Away message is too long\r\n`);
                 return;
@@ -273,8 +273,8 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} MODE :Not enough parameters\r\n`);
             return;
         }
-        var isChannel = true;
-        var channel = this.findChannel(params[0]);
+        let isChannel = true;
+        let channel = this.findChannel(params[0]);
         if (!channel) {
             isChannel = false;
             channel = this.findUser(params[0]);
@@ -305,7 +305,7 @@ module.exports = {
                 await this.safeWriteToSocket(socket, `:${this.servername} 502 ${socket.nickname} :Cannot set modes on other users\r\n`);
             } else {
                 const targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === channel) || socket;
-                var usermodes = this.getUserModes(channel);
+                const usermodes = this.getUserModes(channel);
                 if (!mode) { 
                     if (usermodes.length === 0) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 221 ${socket.nickname} +\r\n`);
@@ -480,7 +480,7 @@ module.exports = {
             if (!(await this.checkRegistered(socket))) {
                 return;
             }
-            let validPrefix = this.channelprefixes.some(prefix => channel.startsWith(prefix));
+            const validPrefix = this.channelprefixes.some(prefix => channel.startsWith(prefix));
             if (!validPrefix) {
                 await this.safeWriteToSocket(socket, `:${this.servername} 476 ${socket.nickname} ${channel} :Bad channel mask\r\n`);
                 return;
@@ -489,7 +489,7 @@ module.exports = {
                 await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${channel} :No such channel\r\n`);
                 return;
             }
-            var chan_modes = this.channelData.get(channel).modes;
+            let chan_modes = this.channelData.get(channel).modes;
 
             chan_modes = chan_modes.map(mode => {
                 if (typeof mode === 'string' && !mode.startsWith('+')) {
@@ -498,8 +498,8 @@ module.exports = {
                 return mode;
             });
             if (chan_modes.length > 0) {
-                var params2 = [];
-                var modeString =
+                const params2 = [];
+                let modeString =
                     chan_modes.map(m => {
                         if (typeof m === 'string' && (m === '+k' || m === '+l')) {
                             if (m === '+l') {
@@ -530,8 +530,8 @@ module.exports = {
     },
 
     async handleCommand_NICK(socket, params) {
-        var old_nickname = socket.nickname;
-        var new_nickname = params[0];
+        const old_nickname = socket.nickname;
+        let new_nickname = params[0];
         const nickTarget = socket.nickname || '*';
         if (new_nickname && new_nickname.startsWith(':')) {
             new_nickname = new_nickname.slice(1);
@@ -605,7 +605,7 @@ module.exports = {
             }
         }
         if (!socket.registered && socket.nickname && socket.username) {
-            var totalSockets = this.clients.length + this.servers.size;
+            const totalSockets = this.clients.length + this.servers.size;
             this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
             this.usernames.set(socket.nickname, socket.username);
             if (this.userinfo.has(socket.username) && !this.userinfo.has(socket.nickname)) {
@@ -636,7 +636,7 @@ module.exports = {
         socket.userinfo = this.sanitizeTrailingParam(params.slice(3).join(' ').replace(/^:/, ''));
         this.userinfo.set(socket.nickname || socket.username, socket.userinfo);
         if (!socket.registered && socket.nickname && socket.username) {
-            var totalSockets = this.clients.length + this.servers.size;
+            const totalSockets = this.clients.length + this.servers.size;
             this.socketpeak = Math.max(this.socketpeak, totalSockets);                        
             this.usernames.set(socket.nickname, socket.username);
             socket.lastspoke = this.getDate();
@@ -653,18 +653,19 @@ module.exports = {
         if (!(await this.checkRegistered(socket))) {
             return;
         }
-        var channel = params[0];
-        var key = null;
-        if (params.length == 2) {
+        const channel = params[0];
+        let key = null;
+        if (params.length === 2) {
             key = params[1];
             if (key && key.startsWith(':')) {
                 key = key.slice(1);
             }
         }
-        var channels = channel.includes(',') ? channel.split(',') : [channel];
-        for (var ch of channels) {
+        const channels = channel.includes(',') ? channel.split(',') : [channel];
+        for (let ch of channels) {
+            let code;
             for (let i = 0; i < ch.length; i++) {
-                if (i == 0 && !this.channelprefixes.includes(ch[0])) {
+                if (i === 0 && !this.channelprefixes.includes(ch[0])) {
                     await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
                     return;
                 } 
@@ -682,7 +683,7 @@ module.exports = {
                 await this.safeWriteToSocket(socket, `:${this.servername} 405 ${socket.nickname} ${ch} :Too many channels\r\n`);
                 continue;
             }     
-            var validChannel = false;
+            let validChannel = false;
             this.channelprefixes.forEach(prefix => {
                 if (ch.startsWith(prefix)) {
                     validChannel = true;
@@ -696,14 +697,14 @@ module.exports = {
                 await this.safeWriteToSocket(socket, `:${this.servername} 403 ${socket.nickname} ${ch} :No such channel\r\n`);
                 continue;
             }
-            let foundChannel = this.findChannel(ch);
+            const foundChannel = this.findChannel(ch);
             if (foundChannel) {
                 ch = foundChannel;
             } else {
                 this.createChannel(ch, socket.nickname);
             }
 
-            var joinLine = key ? `JOIN ${ch} ${key}` : `JOIN ${ch}`;
+            const joinLine = key ? `JOIN ${ch} ${key}` : `JOIN ${ch}`;
             const [joinCmd, ...joinParams] = joinLine.trim().split(' ');
             
             const chmodes = this.channelData.get(ch).modes;
@@ -715,7 +716,7 @@ module.exports = {
                 const channelKey = this.channelData.get(ch).key;
                 const providedKey = joinParams[1];
                 if (!providedKey || providedKey !== channelKey) {
-                    var code = (this.clientIsWebTV(socket) ? 474 : 475);
+                    code = (this.clientIsWebTV(socket) ? 474 : 475);
                     await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+k)\r\n`);
                     continue;
                 }
@@ -746,21 +747,21 @@ module.exports = {
             }
             if (chmodes.includes('O')) {
                 if (!this.isIRCOp(socket.nickname)) {
-                    var code = (this.clientIsWebTV(socket) ? 474 : 404);
+                    code = (this.clientIsWebTV(socket) ? 474 : 404);
                     await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+O)\r\n`);
                     continue;
                 }
             }
             if (chmodes.includes('S')) {
                 if (!socket.secure) {
-                    var code = (this.clientIsWebTV(socket) ? 474 : 468);
+                    code = (this.clientIsWebTV(socket) ? 474 : 468);
                     await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+S)\r\n`);
                     continue;
                 }
             }
             if (chmodes.includes('R')) {
                 if (!this.getUserModes(socket.nickname).includes('r')) {
-                    var code = (this.clientIsWebTV(socket) ? 474 : 447);
+                    code = (this.clientIsWebTV(socket) ? 474 : 447);
                     await this.safeWriteToSocket(socket, `:${this.servername} ${code} ${socket.nickname} ${ch} :Cannot join channel (+R)\r\n`);
                     continue;
                 }
@@ -770,11 +771,11 @@ module.exports = {
             if (!this.channelData.has(ch)) {
                 this.createChannel(ch, socket.nickname);
             }
-            var channelObj = this.channelData.get(ch);
+            const channelObj = this.channelData.get(ch);
             channelObj.users.add(socket.nickname);
             await this.broadcastChannelJoin(ch, socket);
 
-            let modes = channelObj.modes;         
+            const modes = channelObj.modes;         
             let prefix = '';
             if (channelObj.ops.has(socket.nickname)) {
                 prefix += '@';
@@ -791,9 +792,9 @@ module.exports = {
                 }
             }
             const multiPrefix = socket.client_caps.includes('multi-prefix');
-            var users = this.getUsersInChannel(ch, multiPrefix);
-            var output_lines = [];
-            var prefixRegex = new RegExp(`^[${this.supported_prefixes[1].replace(/[\]\\-]/g, '\\$&')}]+`);
+            const users = this.getUsersInChannel(ch, multiPrefix);
+            let output_lines = [];
+            const prefixRegex = new RegExp(`^[${this.supported_prefixes[1].replace(/[\]\\-]/g, '\\$&')}]+`);
             if (users.length > 0) {
                 users.sort((a, b) => {
                     const cleanA = a.replace(prefixRegex, '');
@@ -805,9 +806,9 @@ module.exports = {
                 });
                 if (socket.client_caps.includes('userhost-in-names')) {
                     const userHosts = users.map(user => {
-                        var nick = this.findUser(user.replace(prefixRegex, ''));
-                        var username = this.usernames.get(nick) || 'unknown';
-                        var host = this.hostnames.get(nick) || 'unknown';
+                        const nick = this.findUser(user.replace(prefixRegex, ''));
+                        const username = this.usernames.get(nick) || 'unknown';
+                        const host = this.hostnames.get(nick) || 'unknown';
                         return `${user}!${username}@${host}`;
                     });
                     output_lines.push(`:${this.servername} 353 ${socket.nickname} = ${ch} :${userHosts.join(' ')}\r\n`);
@@ -823,7 +824,7 @@ module.exports = {
                     await this.broadcastChannel(ch, `:${socket.nickname}!${socket.username}@${socket.host} MODE ${ch} +o ${socket.nickname}\r\n`);
                 }
             }
-            var awaymsg = this.awaymsgs.get(socket.nickname);
+            const awaymsg = this.awaymsgs.get(socket.nickname);
             if (awaymsg) {
                 await this.broadcastUserIfCap(socket, `:${socket.nickname}!${socket.username}@${socket.host} AWAY :${awaymsg}\r\n`, socket, 'away-notify');
             }
@@ -839,9 +840,9 @@ module.exports = {
                 output_lines = [];
                 output_lines.push("You have joined " + ch);
                 output_lines.push("Current channel modes: +" + channelObj.modes.join(''));
-                let isOp = channelObj.ops.has(socket.nickname);
-                let isHalfOp = channelObj.halfops.has(socket.nickname);
-                let isVoice = channelObj.voices.has(socket.nickname);
+                const isOp = channelObj.ops.has(socket.nickname);
+                const isHalfOp = channelObj.halfops.has(socket.nickname);
+                const isVoice = channelObj.voices.has(socket.nickname);
                 if (isOp) {
                     output_lines.push("You are a channel operator (@) in " + ch);
                 } else if (isHalfOp) {
@@ -874,15 +875,15 @@ module.exports = {
             return;
         }
         const multiPrefix = socket.client_caps.includes('multi-prefix');
-        var users = this.getUsersInChannel(channel, multiPrefix);
-        var output_lines = [];
-        var prefixRegex = new RegExp(`^[${this.supported_prefixes[1].replace(/[\]\\-]/g, '\\$&')}]+`);
+        const users = this.getUsersInChannel(channel, multiPrefix);
+        const output_lines = [];
+        const prefixRegex = new RegExp(`^[${this.supported_prefixes[1].replace(/[\]\\-]/g, '\\$&')}]+`);
         if (users.length > 0) {
             if (socket.client_caps.includes('userhost-in-names')) {
                 const userHosts = users.map(user => {
-                    var nick = this.findUser(user.replace(prefixRegex, ''));
-                    var username = this.usernames.get(nick) || 'unknown';
-                    var host = this.hostnames.get(nick) || 'unknown';
+                    const nick = this.findUser(user.replace(prefixRegex, ''));
+                    const username = this.usernames.get(nick) || 'unknown';
+                    const host = this.hostnames.get(nick) || 'unknown';
                     return `${user}!${username}@${host}`;
                 });
                 output_lines.push(`:${this.servername} 353 ${socket.nickname} = ${channel} :${userHosts.join(' ')}\r\n`);
@@ -905,7 +906,7 @@ module.exports = {
         }
         socket.lastspoke = this.getDate();
         if (params.length >= 2) {
-            let reason = this.sanitizeTrailingParam(params.slice(1).join(' ').replace(/^:/, ''));
+            const reason = this.sanitizeTrailingParam(params.slice(1).join(' ').replace(/^:/, ''));
             await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} PART ${channel} :${reason}\r\n`);
             await this.broadcastChannel(channel, `:${socket.nickname}!${socket.username}@${socket.host} PART ${channel} :${reason}\r\n`, socket);
             await this.broadcastToAllServers(`:${socket.uniqueId} PART ${channel} :${reason}\r\n`);
@@ -983,7 +984,7 @@ module.exports = {
             if (!this.channelprefixes.some(prefix => channel.startsWith(prefix))) {
                 continue;
             }
-            var modes = this.channelData.get(channel).modes || [];
+            const modes = this.channelData.get(channel).modes || [];
             if (modes.includes('p') || modes.includes('s')) {
                 if (!this.channelData.get(channel).users.has(socket.nickname)) {
                     continue;
@@ -1006,7 +1007,8 @@ module.exports = {
         }
         const target = this.findChannel(params[0]) || this.findUser(params[0]) || params[0];
 
-        var isChannel = false;
+        let whoisSocket;
+        let isChannel = false;
         for (const prefix of this.channelprefixes) {
             if (target.startsWith(prefix)) {
                 isChannel = true;
@@ -1027,15 +1029,15 @@ module.exports = {
                     if (['@', '%', '+'].includes(cleanUser[0])) {
                         cleanUser = cleanUser.slice(1);
                     }
-                    var hostname = this.hostnames.get(cleanUser);
-                    var username = this.usernames.get(cleanUser) || cleanUser;
-                    var whoisSocket = Array.from(this.nicknames.keys()).find(
+                    const hostname = this.hostnames.get(cleanUser);
+                    const username = this.usernames.get(cleanUser) || cleanUser;
+                    whoisSocket = Array.from(this.nicknames.keys()).find(
                         s => this.nicknames.get(s).toLowerCase() === cleanUser.toLowerCase()
                     ) || this.getRemoteServerUserSocket(cleanUser);
 
-                    var userSecure = whoisSocket ? whoisSocket.secure : false;
+                    const userSecure = whoisSocket ? whoisSocket.secure : false;
                     let prefix = '';
-                    var channelObj = this.channelData.get(target);                              
+                    const channelObj = this.channelData.get(target);                              
                     if (channelObj.ops.has(cleanUser)) {
                         prefix = '@';
                     } else if (channelObj.halfops.has(cleanUser)) {
@@ -1043,15 +1045,15 @@ module.exports = {
                     } else if (channelObj.voices.has(cleanUser)) {
                         prefix = '+';
                     }
-                    var userinfo = this.userinfo.get(cleanUser) || cleanUser;
-                    var flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(userSecure) ? 'z' : ''}`;
-                    var secondsIdle = whoisSocket ? (this.getDate() - whoisSocket.lastspoke) : 0;
+                    const userinfo = this.userinfo.get(cleanUser) || cleanUser;
+                    const flags = `${(this.awaymsgs.has(cleanUser)) ? 'G' : 'H'}${(this.isIRCOp(cleanUser)) ? '*' : ''}${(userSecure) ? 'z' : ''}`;
+                    const secondsIdle = whoisSocket ? (this.getDate() - whoisSocket.lastspoke) : 0;
                     await this.safeWriteToSocket(socket, `:${this.servername} 352 ${socket.nickname} ${target} ${username} ${hostname} ${this.servername} ${cleanUser} ${flags} 0 ${secondsIdle} 0 :${userinfo}\r\n`);
                 }
             }
             await this.safeWriteToSocket(socket, `:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
         } else {
-            var output_lines = [];
+            const output_lines = [];
             if (target.includes('*') || target.includes('?')) {
                 const maskRegex = this.globToRegExp(target);
                 let found = false;
@@ -1074,7 +1076,7 @@ module.exports = {
                 output_lines.push(`:${this.servername} 315 ${socket.nickname} ${target} :End of /WHO list\r\n`);
                 await this.sendThrottled(socket, output_lines);
             } else {
-                var whoisSocket = Array.from(this.nicknames.keys()).find(
+                whoisSocket = Array.from(this.nicknames.keys()).find(
                     s => this.nicknames.get(s).toLowerCase() === target.toLowerCase()
                 );
                 if (whoisSocket) {
@@ -1100,14 +1102,15 @@ module.exports = {
         socket.lastspoke = this.getDate();
         if (params[0]) {
             const target = params[0];
-            let targets = target.includes(',') ? target.split(',') : [target];
+            const targets = target.includes(',') ? target.split(',') : [target];
+            let msg;
             if (targets.length > this.maxtargets) {
                 await this.safeWriteToSocket(socket, `:${this.servername} 407 ${socket.nickname} :Too many targets. Maximum allowed is ${this.maxtargets}\r\n`);
                 return;
             }
-            for (var t of targets) {
+            for (let t of targets) {
                 if (t === this.servername) {
-                    var msg = line.slice(line.indexOf(':', 1) + 1);
+                    msg = line.slice(line.indexOf(':', 1) + 1);
                     if (msg.startsWith("\x01VERSION")) {
                         await this.safeWriteToSocket(socket, `:${this.servername} NOTICE ${socket.nickname} :${this.servername} zefIRCd ${this.version} - zefIRCd IRC server - a part of the zefie minisrv project\r\n`);
                         break;
@@ -1142,8 +1145,8 @@ module.exports = {
                     await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${params[0]} :No such nick/channel\r\n`);
                     continue;
                 }
-                var channelObj = this.channelData.get(t);                            
-                var msg = this.sanitizeTrailingParam(line.slice(line.indexOf(':', 1) + 1));
+                const channelObj = this.channelData.get(t);                            
+                msg = this.sanitizeTrailingParam(line.slice(line.indexOf(':', 1) + 1));
                 if (isChan) {
                     if (!channelObj.users.has(socket.nickname)) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 404 ${socket.nickname} ${t} :Cannot send to channel\r\n`);
@@ -1188,7 +1191,7 @@ module.exports = {
                         continue;
                     }
                     if (this.clientIsWebTV(socket) && msg.startsWith('/') && this.enable_webtv_command_hacks) {
-                        var wtvcmd = msg.slice(1).split(' ');
+                        const wtvcmd = msg.slice(1).split(' ');
                         if (wtvcmd[0].length > 0) {
                             const cmdUpper = wtvcmd[0].toUpperCase();
                             if (this.supported_webtv_command_hacks.includes(cmdUpper)) {
@@ -1210,7 +1213,7 @@ module.exports = {
                     if (this.awaymsgs.has(t)) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 301 ${socket.nickname} ${t} :${this.awaymsgs.get(t)}\r\n`);
                     }
-                    var targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === t.toLowerCase()) || this.getRemoteServerUserSocket(t);
+                    const targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === t.toLowerCase()) || this.getRemoteServerUserSocket(t);
                     if (!targetSock) {
                         await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${t} :No such nick/channel\r\n`);
                         continue;
@@ -1221,8 +1224,8 @@ module.exports = {
                         await this.safeWriteToSocket(targetSock, `:${sender_id} PRIVMSG ${unique_id} :${msg}\r\n`);
                         continue;
                     }
-                    var targetUserModes = this.getUserModes(t) || [];
-                    var usermodes = this.getUserModes(socket.nickname) || [];
+                    const targetUserModes = this.getUserModes(t) || [];
+                    const usermodes = this.getUserModes(socket.nickname) || [];
                     if (targetUserModes.includes('R')) {
                         if (!usermodes.includes('r')) {
                             await this.safeWriteToSocket(socket, `:${this.servername} 447 ${socket.nickname} ${t} :Cannot send to user (+R)\r\n`);
@@ -1253,7 +1256,8 @@ module.exports = {
         socket.lastspoke = this.getDate();
         if (params[0]) {
             const target = params[0];
-            let targets = target.includes(',') ? target.split(',') : [target];
+            const targets = target.includes(',') ? target.split(',') : [target];
+            let msg;
             if (targets.length > this.maxtargets) {
                 await this.safeWriteToSocket(socket, `:${this.servername} 407 ${socket.nickname} :Too many targets. Maximum allowed is ${this.maxtargets}\r\n`);
                 return;
@@ -1261,7 +1265,7 @@ module.exports = {
             for (const t of targets) {
                 let isChan = false;
                 if (t === this.servername) { 
-                    var msg = line.slice(line.indexOf(':', 1) + 1);
+                    msg = line.slice(line.indexOf(':', 1) + 1);
                     if (msg.startsWith('\x01VERSION')) {
                         socket.client_version = msg.replace('\x01VERSION ', '').replace('\x01', '');
                         break;
@@ -1281,8 +1285,8 @@ module.exports = {
                 if (!foundT) {
                     continue;
                 }
-                var channelObj = this.channelData.get(foundT);
-                var msg = this.sanitizeTrailingParam(line.slice(line.indexOf(':', 1) + 1));
+                const channelObj = this.channelData.get(foundT);
+                msg = this.sanitizeTrailingParam(line.slice(line.indexOf(':', 1) + 1));
                 if (isChan) {
                     if (!this.channelData.has(foundT)) {
                         continue;
@@ -1326,7 +1330,7 @@ module.exports = {
                         await this.safeWriteToSocket(socket, noticeLine);
                     }
                 } else {
-                    var targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === foundT.toLowerCase()) || this.getRemoteServerUserSocket(foundT);
+                    const targetSock = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s).toLowerCase() === foundT.toLowerCase()) || this.getRemoteServerUserSocket(foundT);
                     if (!targetSock) {
                         continue;
                     }
@@ -1336,8 +1340,8 @@ module.exports = {
                         await this.safeWriteToSocket(targetSock, `:${sender_id} NOTICE ${unique_id} :${msg}\r\n`);
                         continue;
                     }
-                    var targetUserModes = this.getUserModes(foundT) || [];
-                    var usermodes = this.getUserModes(socket.nickname) || [];
+                    const targetUserModes = this.getUserModes(foundT) || [];
+                    const usermodes = this.getUserModes(socket.nickname) || [];
                     if (targetUserModes.includes('R') && !usermodes.includes('r')) {
                         continue;
                     }
@@ -1347,7 +1351,7 @@ module.exports = {
                     if (usermodes.includes('Z') && !targetUserModes.includes('Z')) {
                         continue;
                     }
-                    var cmd = this.clientIsWebTV(targetSock) ? 'PRIVMSG' : 'NOTICE';
+                    const cmd = this.clientIsWebTV(targetSock) ? 'PRIVMSG' : 'NOTICE';
                     await this.safeWriteToSocket(targetSock, `:${socket.nickname}!${socket.username}@${socket.host} ${cmd} ${targetSock.nickname} :${msg}\r\n`);
                     if (socket.client_caps && socket.client_caps.includes('echo-message')) {
                         await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} NOTICE ${targetSock.nickname} :${msg}\r\n`);
@@ -1366,7 +1370,7 @@ module.exports = {
             this.debugLog('warn', `SYSTEM command attempted by non-IRCOp: ${socket.nickname}`);
             return;
         }
-        var type = params[0] ? params[0].toUpperCase() : '';
+        const type = params[0] ? params[0].toUpperCase() : '';
         const output_lines = [];
         switch (type) {
             case "HELP":
@@ -1440,9 +1444,9 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} KLINE :Not enough parameters\r\n`);
             return;
         }
-        var targetMask = params[0];
-        var expiry = this.getDate() + 3600;
-        var reasonParam = 1;
+        let targetMask = params[0];
+        let expiry = this.getDate() + 3600;
+        let reasonParam = 1;
         if (!isNaN(parseInt(targetMask))) {
             expiry = this.getDate() + parseInt(targetMask);
             targetMask = params[1];
@@ -1452,8 +1456,8 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 200 ${socket.nickname} ${targetMask} :KLINE already exists for this mask\r\n`);
             return;
         }
-        var reason = params.slice(reasonParam).join(' ') || '';
-        var kline = {
+        const reason = params.slice(reasonParam).join(' ') || '';
+        const kline = {
             "mask": targetMask,
             "expiry": expiry,
             "reason": reason
@@ -1481,9 +1485,9 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} UNKLINE :Not enough parameters\r\n`);
             return;
         }
-        var targetMask = params[0];
+        const targetMask = params[0];
         const klineIndex = this.klines.findIndex(k => k.mask === targetMask);
-        if (klineIndex == -1) {
+        if (klineIndex === -1) {
             await this.safeWriteToSocket(socket, `:${this.servername} 200 ${socket.nickname} ${targetMask} :No such KLINE\r\n`);
             return;
         }
@@ -1500,14 +1504,14 @@ module.exports = {
             await this.safeWriteToSocket(socket, `:${this.servername} 461 ${socket.nickname} WHOIS :Not enough parameters\r\n`);
             return;
         }
-        var whoisNick = params[0];
-        var nickCheck = this.findUser(whoisNick);
+        let whoisNick = params[0];
+        const nickCheck = this.findUser(whoisNick);
         if (!nickCheck) {
             await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${whoisNick} :No such nick/channel\r\n`);
             return;
         }
         whoisNick = nickCheck;
-        var whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === whoisNick);
+        const whoisSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === whoisNick);
         if (!whoisSocket) {
             const srvSocket = this.getRemoteServerUserSocket(whoisNick);
             const unique_id = this.getUniqueId(whoisNick);
@@ -1519,7 +1523,7 @@ module.exports = {
             return;
         }
         const whois_username = this.usernames.get(whoisNick) || whoisSocket.username || whoisNick;
-        var userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || 'unknown';
+        const userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || 'unknown';
         const host = this.hostnames.get(whoisNick) || whoisSocket.host || 'unknown';
         await this.safeWriteToSocket(socket, `:${this.servername} 311 ${socket.nickname} ${whoisNick} ${whois_username} ${host} * :${userinfo}\r\n`);
         if (this.awaymsgs.has(whoisNick)) {
@@ -1530,10 +1534,10 @@ module.exports = {
         for (const [ch, channelObj] of this.channelData.entries()) {
             if (channelObj.users.has(whoisNick)) {
                 let prefix = '';
-                var chanops = channelObj.ops;
-                var chanhalfops = channelObj.halfops;
-                var chanvoices = channelObj.voices;
-                var modes = channelObj.modes;
+                const chanops = channelObj.ops;
+                const chanhalfops = channelObj.halfops;
+                const chanvoices = channelObj.voices;
+                const modes = channelObj.modes;
 
                 if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(ch) || !this.channelData.get(ch).users.has(socket.nickname))) {
                     continue;
@@ -1552,7 +1556,7 @@ module.exports = {
         if (this.isIRCOp(whoisNick)) {
             output_lines.push(`:${this.servername} 313 ${socket.nickname} ${whoisNick} :is an IRC operator\r\n`);
         }
-        var usermodes = this.getUserModes(whoisNick);
+        const usermodes = this.getUserModes(whoisNick);
         if ((usermodes && usermodes.includes('z')) || whoisSocket.secure) {
             output_lines.push(`:${this.servername} 671 ${socket.nickname} ${whoisNick} :is using a secure connection\r\n`);
         }
@@ -1593,7 +1597,7 @@ module.exports = {
         }
 
         const cleanKillReason = this.sanitizeTrailingParam(params.slice(1).join(' ').replace(/^:/, ''));
-        var targetSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === target_nick);
+        const targetSocket = Array.from(this.nicknames.keys()).find(s => this.nicknames.get(s) === target_nick);
         if (!targetSocket) {
             await this.safeWriteToSocket(socket, `:${this.servername} 401 ${socket.nickname} ${target_nick} :No such nick/channel\r\n`);
             return;
@@ -1611,7 +1615,7 @@ module.exports = {
             return;
         }
         if (params.length > 0) {
-            let reason = this.sanitizeTrailingParam(params.join(' ').replace(/^:/, ''));
+            const reason = this.sanitizeTrailingParam(params.join(' ').replace(/^:/, ''));
             await this.safeWriteToSocket(socket, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`);
             await this.broadcastUser(socket.nickname, `:${socket.nickname}!${socket.username}@${socket.host} QUIT :${reason}\r\n`, socket);
             await this.broadcastToAllServers(`:${socket.uniqueId} QUIT :${reason}\r\n`);

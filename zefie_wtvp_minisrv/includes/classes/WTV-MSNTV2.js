@@ -131,7 +131,7 @@ class WTVMSNTV2 {
         socket.on('data', socket.rawDataListener);
         socket.on('error', (err) => {
             if (this.service_config.debug) {
-                if (err.message == 'read ECONNRESET') {
+                if (err.message === 'read ECONNRESET') {
                     console.warn('[WTV-MSNTV2] Client disconnected');
                 } else { 
                     console.error('[WTV-MSNTV2] socket error:', err.message);
@@ -1359,7 +1359,7 @@ class WTVMSNTV2 {
             // not all request lines are valid URL objects, so fall back to prefix matching
         }
 
-        for (const entry of interceptUrls) {
+        for (const entry of interceptDomains) {
             if (!entry) continue;
             let match;
             let localDir = '';
@@ -1565,12 +1565,12 @@ class WTVMSNTV2 {
                         debug: require('debug')((debug_name) ? debug_name : 'service_script'),
                         setCookie(name, value, opts) {
                             opts = opts || {};
-                            let s = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
-                            if (opts.path != null)     s += `; Path=${opts.path}`;
-                            if (opts.domain != null)   s += `; Domain=${opts.domain}`;
-                            if (opts.maxAge != null)   s += `; Max-Age=${opts.maxAge}`;
-                            if (opts.expires != null)  s += `; Expires=${new Date(opts.expires).toUTCString()}`;
-                            if (opts.sameSite != null)  s += `; SameSite=${opts.sameSite}`;
+                            let s = `${self.wtvshared.escape(name)}=${self.wtvshared.escape(value)}`;
+                            if (opts.path !== undefined && opts.path !== null)     s += `; Path=${opts.path}`;
+                            if (opts.domain !== undefined && opts.domain !== null)   s += `; Domain=${opts.domain}`;
+                            if (opts.maxAge !== undefined && opts.maxAge !== null)   s += `; Max-Age=${opts.maxAge}`;
+                            if (opts.expires !== undefined && opts.expires !== null)  s += `; Expires=${new Date(opts.expires).toUTCString()}`;
+                            if (opts.sameSite !== undefined && opts.sameSite !== null)  s += `; SameSite=${opts.sameSite}`;
                             if (opts.secure)            s += `; Secure`;
                             if (opts.httpOnly)          s += `; HttpOnly`;
                             responseCookies.push(s);
@@ -1579,25 +1579,25 @@ class WTVMSNTV2 {
                         // opts may include path/domain to match the original cookie's scope.
                         deleteCookie(name, opts) {
                             opts = opts || {};
-                            let s = `${encodeURIComponent(name)}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-                            if (opts.path != null)    s += `; Path=${opts.path}`;
-                            if (opts.domain != null)  s += `; Domain=${opts.domain}`;
+                            let s = `${self.wtvshared.escape(name)}=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+                            if (opts.path !== undefined && opts.path !== null)    s += `; Path=${opts.path}`;
+                            if (opts.domain !== undefined && opts.domain !== null)  s += `; Domain=${opts.domain}`;
                             if (opts.httpOnly)        s += `; HttpOnly`;
                             responseCookies.push(s);
                         },
                         // Update an existing queued cookie's value (and optionally its opts).
                         // If no matching cookie is queued yet, behaves like setCookie.
                         updateCookie(name, value, opts) {
-                            const encoded = encodeURIComponent(name);
+                            const encoded = self.wtvshared.escape(name);
                             const idx = responseCookies.findIndex(c => c.startsWith(encoded + '=') || c.startsWith(encoded + ';'));
                             if (idx !== -1) responseCookies.splice(idx, 1);
                             opts = opts || {};
-                            let s = `${encoded}=${encodeURIComponent(value)}`;
-                            if (opts.path != null)     s += `; Path=${opts.path}`;
-                            if (opts.domain != null)   s += `; Domain=${opts.domain}`;
-                            if (opts.maxAge != null)   s += `; Max-Age=${opts.maxAge}`;
-                            if (opts.expires != null)  s += `; Expires=${new Date(opts.expires).toUTCString()}`;
-                            if (opts.sameSite != null)  s += `; SameSite=${opts.sameSite}`;
+                            let s = `${encoded}=${self.wtvshared.escape(value)}`;
+                            if (opts.path !== undefined && opts.path !== null)     s += `; Path=${opts.path}`;
+                            if (opts.domain !== undefined && opts.domain !== null)   s += `; Domain=${opts.domain}`;
+                            if (opts.maxAge !== undefined && opts.maxAge !== null)   s += `; Max-Age=${opts.maxAge}`;
+                            if (opts.expires !== undefined && opts.expires !== null)  s += `; Expires=${new Date(opts.expires).toUTCString()}`;
+                            if (opts.sameSite !== undefined && opts.sameSite !== null)  s += `; SameSite=${opts.sameSite}`;
                             if (opts.secure)            s += `; Secure`;
                             if (opts.httpOnly)          s += `; HttpOnly`;
                             responseCookies.push(s);

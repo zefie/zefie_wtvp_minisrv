@@ -1,3 +1,6 @@
+const CryptoJS = require('crypto-js');
+const debug = require('debug')('WTVHTTP');
+
 class WTVHTTP {
     constructor(...[minisrv_config, service_name, wtvshared, sendToClient, net, http]) {
         this.minisrv_config = minisrv_config;
@@ -65,16 +68,16 @@ class WTVHTTP {
                 if (request_headers["Content-length"]) options.headers["Content-length"] = request_headers["Content-length"];
             }
 
-            if (request_type == "https" && this.minisrv_config.services[request_type].allow_self_signed_ssl) {
+            if (request_type === "https" && this.minisrv_config.services[request_type].allow_self_signed_ssl) {
                 options.rejectUnauthorized = false;
             }
 
-            if (this.minisrv_config.services[request_type].use_external_proxy && minisrv_config.services[request_type].external_proxy_port) {
+            if (this.minisrv_config.services[request_type].use_external_proxy && this.minisrv_config.services[request_type].external_proxy_port) {
                 // configure connection to an external proxy
                 if (this.minisrv_config.services[request_type].external_proxy_is_socks) {
                     // configure connection to remote socks proxy
                     const { SocksProxyAgent }= require('socks-proxy-agent');
-                    options.agent = new SocksProxyAgent("socks://" + (minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + minisrv_config.services[request_type].external_proxy_port);
+                    options.agent = new SocksProxyAgent("socks://" + (this.minisrv_config.services[request_type].external_proxy_host || "127.0.0.1") + ":" + this.minisrv_config.services[request_type].external_proxy_port);
                 } else {
                     // configure connection to remote http proxy
                     this.proxy_agent = this.http;

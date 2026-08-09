@@ -155,14 +155,14 @@ class WTVIRC {
             if (fs.existsSync(headPath)) {
                 const head = fs.readFileSync(headPath, 'utf8').trim();
                 if (head.startsWith('ref: ')) {
-                    const ref = head.substring(5);
+                    const ref = head.slice(5);
                     const hashPath = path.join(__dirname, '..', '..', '.git', ref);
                     if (fs.existsSync(hashPath)) {
                         const hash = fs.readFileSync(hashPath, 'utf8').trim();
-                        return hash.substring(0, 7);
+                        return hash.slice(0, 7);
                     }
                 } else {
-                    return head.substring(0, 7);
+                    return head.slice(0, 7);
                 }
             }
             return null;
@@ -479,7 +479,7 @@ class WTVIRC {
     }
 
     sanitizeTrailingParam(text) {
-        if (text == null) {
+        if (text === undefined || text === null) {
             return '';
         }
         return String(text).replace(/[\r\n\0]/g, '');
@@ -785,7 +785,7 @@ class WTVIRC {
         }
         const parts = socket._lineBuffer.split(/\r\n|\n/);
         socket._lineBuffer = parts.pop() || '';
-        for (let line of parts) {
+        for (const line of parts) {
             if (!line) {
                 continue;
             }
@@ -888,7 +888,7 @@ class WTVIRC {
             socket.linkState = 'none';
         }
         const parts = line.split(' ');
-        let workingParts = parts.slice();
+        const workingParts = parts.slice();
         let sourcePrefix = null;
         if (workingParts[0] && workingParts[0].startsWith(':')) {
             sourcePrefix = workingParts[0].slice(1);
@@ -940,7 +940,7 @@ class WTVIRC {
         if (typeof this[handlerName] === 'function') {
             await this[handlerName](socket, workingParts, line);
         } else if (sourcePrefix) {
-            var nickname = this.findUserByUniqueId(sourcePrefix);
+            let nickname = this.findUserByUniqueId(sourcePrefix);
             if (!nickname) {
                 // SID-sourced commands (TBURST/TOPIC/MODE/KILL/etc.) — not user UIDs.
                 if (this.linkOwnsSid(socket, sourcePrefix) ||
@@ -951,7 +951,7 @@ class WTVIRC {
                     return;
                 }
             }
-            var srvCommand = workingParts[0];
+            const srvCommand = workingParts[0];
             const srvHandlerName = `handleServerPrefixCommand_${srvCommand}`;
             if (typeof this[srvHandlerName] === 'function') {
                 const prefixParts = [`:${sourcePrefix}`, ...workingParts];
@@ -1817,7 +1817,7 @@ class WTVIRC {
         if (!nickname || typeof nickname !== 'string') {
             return null;
         }
-        let resolved = this.findUser(nickname) || nickname;
+        const resolved = this.findUser(nickname) || nickname;
         const modes = this.usermodes.get(resolved);
         if (!modes || modes === true) {
             // Pure read: do not mutate usermodes map here.
@@ -1827,7 +1827,7 @@ class WTVIRC {
     }
 
     setUserMode(nickname, mode, adding) {
-        let resolved = this.findUser(nickname) || nickname;
+        const resolved = this.findUser(nickname) || nickname;
         let modes = this.usermodes.get(resolved);
         if (!modes || modes === true) {
             modes = [];
@@ -2054,7 +2054,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+b' || mode === '-b') {
-            let channelBans = this.channelData.get(channel).bans;
+            const channelBans = this.channelData.get(channel).bans;
             if (mode === '+b') {
                 if (!channelBans.includes(target)) {
                     channelBans.push(target);
@@ -2067,7 +2067,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+e' || mode === '-e') {
-            let channelExemptions = this.channelData.get(channel).exemptions;
+            const channelExemptions = this.channelData.get(channel).exemptions;
             if (mode === '+e') {
                 if (!channelExemptions.includes(target)) {
                     channelExemptions.push(target);
@@ -2080,7 +2080,7 @@ class WTVIRC {
                 }
             }
         } else if (mode === '+I' || mode === '-I') {
-            let channelInvites = this.channelData.get(channel).inviteexemptions;
+            const channelInvites = this.channelData.get(channel).inviteexemptions;
             if (mode === '+I') {
                 if (!channelInvites.includes(target)) {
                     channelInvites.push(target);
