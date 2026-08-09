@@ -1463,14 +1463,18 @@ class WTVShared {
     }
 
     /**
-     * Strips bad things from paths and keeps two-arg results under base.
+     * Strips shell metacharacters from paths and keeps two-arg results under base.
+     * Do NOT strip path separators (\ or /): the historical regex included \\, but
+     * the replace result was discarded — applying it flattened Windows paths
+     * (e.g. user\store → userstore) and broke ServiceVault / session store lookups.
+     * Traversal is blocked via isPathInside, not by deleting separators.
      * @param {string} base Base path
      * @param {string|null} target Sub path
      * @param {boolean} force_forward_slash
      * @returns {string|null} Sanitized path, or null if target would escape base
      */
     makeSafePath(base, target = null, force_forward_slash = false) {
-        const unsafeChars = /[\|\&\;\$\%\@\"\<\>\+\,\\]/g;
+        const unsafeChars = /[\|\&\;\$\%\@\"\<\>\+\,]/g;
         let output = null;
         if (target !== null && typeof target !== 'undefined') {
             const cleanedTarget = String(target).replace(unsafeChars, "");
