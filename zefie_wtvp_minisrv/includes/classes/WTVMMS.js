@@ -476,7 +476,7 @@ class WTVMMS {
         }
         this.debugLog('open file', session.id, requestedUrl);
 
-        let mediaStem = requestedUrl
+        const mediaStem = requestedUrl
             .replace(/^mms:\/\/[^/]+/i, '')
             .replace(/^\/+/, '');
 

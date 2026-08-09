@@ -22,7 +22,7 @@ class WTVGopher {
             checked++;
             let typeOffset = 0;
             let type = " ";
-            while ((type === " " || type == "\t") && typeOffset <= 10) {
+            while ((type === " " || type === "\t") && typeOffset <= 10) {
                 type = line[typeOffset];
                 typeOffset++;
             }         
@@ -39,7 +39,7 @@ class WTVGopher {
             if (checked >= 5) break;
         }
 
-        return menuLines >= 2 || (lines.length <= 2 && menuLines == 1);
+        return menuLines >= 2 || (lines.length <= 2 && menuLines === 1);
     }
 
     processGopherData(gopherData) {
@@ -64,7 +64,7 @@ class WTVGopher {
             const selector = parts[1];
             const host = parts[2];
             const port = parts[3] || 70;
-            var url = `gopher://${host}:${port}${selector}`;
+            let url = `gopher://${host}:${port}${selector}`;
 
             // determine page title from first line
             const firstline = line[0].slice(1).trim();
@@ -78,7 +78,7 @@ class WTVGopher {
 
                     let typeOffset = 0;
                     let type = " ";
-                    while ((type === " " || type == "\t") && typeOffset <= 10) {
+                    while ((type === " " || type === "\t") && typeOffset <= 10) {
                         type = line[typeOffset];
                         typeOffset++;
                     }
@@ -145,16 +145,16 @@ class WTVGopher {
         const crlf = "0D0A"
         const crlf_bytes = Buffer.from(crlf, 'hex');
         // chunk stuff for gopher-to-html conversion
-        let chunks = [];
+        const chunks = [];
 
-        var request_data = new Array();
+        const request_data = new Array();
         request_data.method = request_headers.request.split(' ')[0];
 
         const rawUrl = decodeURIComponent(request_headers.request.split(' ')[1]).replaceAll('\\', '/');
         const [pathPart, queryPart] = rawUrl.split('?');
-        var request_url_split = pathPart.split('/');
+        const request_url_split = pathPart.split('/');
 
-        let queryParams = {};
+        const queryParams = {};
         if (queryPart) {
             for (const kv of queryPart.split('&')) {
                 const [k, v] = kv.split('=');
@@ -170,7 +170,7 @@ class WTVGopher {
             request_data.port = 70;
         }
 
-        for (var i = 0; i < 3; i++) request_url_split.shift();
+        for (let i = 0; i < 3; i++) request_url_split.shift();
         request_data.path = "/" + request_url_split.join('/');
         // vars for determining if a link is an image
         const imageTypes = ["g", "I", "p"];

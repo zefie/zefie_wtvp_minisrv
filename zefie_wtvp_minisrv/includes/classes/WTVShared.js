@@ -1448,21 +1448,44 @@ class WTVShared {
     }
 
     /**
-     * Strips bad things from paths
+     * Returns true if candidate resolves inside root (or is root itself).
+     * Uses path.relative so prefix traps like /app vs /app-evil are rejected.
+     * @param {string} root
+     * @param {string} candidate
+     * @returns {boolean}
+     */
+    isPathInside(root, candidate) {
+        if (!root || !candidate) return false;
+        const resolvedRoot = this.path.resolve(String(root));
+        const resolvedCandidate = this.path.resolve(String(candidate));
+        const relative = this.path.relative(resolvedRoot, resolvedCandidate);
+        return relative === '' || (!relative.startsWith('..') && !this.path.isAbsolute(relative));
+    }
+
+    /**
+     * Strips bad things from paths and keeps two-arg results under base.
      * @param {string} base Base path
-     * @param {string} target Sub path
+     * @param {string|null} target Sub path
+     * @param {boolean} force_forward_slash
+     * @returns {string|null} Sanitized path, or null if target would escape base
      */
     makeSafePath(base, target = null, force_forward_slash = false) {
+        const unsafeChars = /[\|\&\;\$\%\@\"\<\>\+\,\\]/g;
         let output = null;
-        if (target) {
-            target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-            const targetPath = this.path.posix.normalize(target)
-            output = this.fixPathSlashes(base + this.path.sep + targetPath);
+        if (target !== null && typeof target !== 'undefined') {
+            const cleanedTarget = String(target).replace(unsafeChars, "");
+            const targetPath = this.path.posix.normalize(cleanedTarget);
+            output = this.fixPathSlashes(String(base) + this.path.sep + targetPath);
+            // Reject traversal / absolute-target escapes of the vault/base directory
+            if (!this.isPathInside(base, output)) {
+                return null;
+            }
         } else {
-            base.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-            const targetPath = this.path.posix.normalize(base)
+            const cleanedBase = String(base).replace(unsafeChars, "");
+            const targetPath = this.path.posix.normalize(cleanedBase);
             output = this.fixPathSlashes(targetPath);
         }
+        if (output === null) return null;
         return (force_forward_slash) ? output.replace(this.path.sep, '/') : output;
     }
 

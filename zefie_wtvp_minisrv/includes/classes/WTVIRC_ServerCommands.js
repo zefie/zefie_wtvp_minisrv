@@ -34,7 +34,7 @@ module.exports = {
         socket.is_srv_authorized = true;
         socket.linkState = 'pass';
         socket.serverinfo = { ...matchedServer, name: matchedServer.name || matchedKey };
-        var totalSockets = this.clients.length + this.servers.size;
+        const totalSockets = this.clients.length + this.servers.size;
         this.socketpeak = Math.max(this.socketpeak, totalSockets);
         this.debugLog('info', `Server ${socket.serverinfo.name} authorized via PASS`);
         const ourPass = matchedServer.password;
@@ -52,13 +52,13 @@ module.exports = {
             this.debugLog('warn', 'Invalid CAPAB command from server');
             return;
         }
-        var capabilities = parts.slice(1).join(' ');
+        let capabilities = parts.slice(1).join(' ');
         if (capabilities.startsWith(':')) {
             capabilities = capabilities.slice(1);
         }
         capabilities = capabilities.split(/\s+/).filter(Boolean);
         this.debugLog('info', `Received CAPAB from server: ${capabilities.join(' ')}`);
-        var output_reply = this.supported_server_caps.slice();
+        const output_reply = this.supported_server_caps.slice();
         socket.linkState = 'capab';
         await this.safeWriteToSocket(socket, `CAPAB :${output_reply.join(' ')}\r\n`);
     },
@@ -77,8 +77,8 @@ module.exports = {
             this.debugLog('warn', 'Invalid SERVER command from server');
             return;
         }
-        var serverName = parts[1];
-        var serverId = parts[3];
+        const serverName = parts[1];
+        const serverId = parts[3];
         socket.isserver = true;
         this.clients = this.clients.filter(c => c !== socket);
         socket.registered = true;
@@ -121,12 +121,12 @@ module.exports = {
             if (memberTokens.length === 0 && !channelObj.topic && !(channelObj.bans && channelObj.bans.length)) {
                 continue;
             }
-            let modeStr = modes.join('');
+            const modeStr = modes.join('');
             const modeParams = [];
             if (modes.includes('k') && channelObj.key) {
                 modeParams.push(channelObj.key);
             }
-            if (modes.includes('l') && channelObj.limit != null) {
+            if (modes.includes('l') && channelObj.limit !== undefined && channelObj.limit !== null) {
                 modeParams.push(String(channelObj.limit));
             }
             const ts = channelObj.timestamp || this.getDate();
@@ -243,7 +243,7 @@ module.exports = {
             const sub = (parts[2] || '').toUpperCase();
             if (sub === 'REALHOST' && parts.length >= 4) {
                 const uid = parts[3];
-                let realhost = parts.slice(4).join(' ').replace(/^:/, '');
+                const realhost = parts.slice(4).join(' ').replace(/^:/, '');
                 const nick = this.findUserByUniqueId(uid);
                 if (nick && realhost) {
                     this.realhosts.set(nick, realhost);
@@ -252,7 +252,7 @@ module.exports = {
                 }
             } else if (sub === 'LOGIN' && parts.length >= 4) {
                 const uid = parts[3];
-                let account = parts.slice(4).join(' ').replace(/^:/, '');
+                const account = parts.slice(4).join(' ').replace(/^:/, '');
                 const nick = this.findUserByUniqueId(uid);
                 if (nick) {
                     if (!account || account === '*') {
@@ -379,7 +379,7 @@ module.exports = {
     },
 
     async handleServerCommand_PING(socket, parts) {
-        var pong = parts.slice(1).join(' ');
+        let pong = parts.slice(1).join(' ');
         if (pong.startsWith(':')) {
             pong = pong.slice(1);
         }
@@ -401,7 +401,7 @@ module.exports = {
         const targetMask = parts[1];
         const expiry = parseInt(parts[2]) || 0;
         const reservedNick = parts[3];
-        var reason = parts.slice(4).join(' ') || '';
+        const reason = parts.slice(4).join(' ') || '';
         if (!this.reservednicks.includes(reservedNick)) {
             this.reservednicks.push(reservedNick);
         }
@@ -426,15 +426,15 @@ module.exports = {
             this.debugLog('warn', 'Invalid UID command from server');
             return;
         }
-        var nickname = parts[1];
+        const nickname = parts[1];
         const hops = parts[2];
         const timestamp = parseInt(parts[3], 10) || 0;
         const userModes = (parts[4] || '').replace(/^\+/, '').split('');
-        var username = parts[5];
-        var hostname = parts[6];
+        const username = parts[5];
+        const hostname = parts[6];
         const ipaddress = parts[7];
         const userUniqueId = parts[8];
-        var userinfo = parts.slice(9).join(' ');
+        let userinfo = parts.slice(9).join(' ');
         if (userinfo.startsWith(':')) {
             userinfo = userinfo.slice(1);
         }
@@ -476,17 +476,17 @@ module.exports = {
             this.debugLog('warn', 'Invalid SVSHOST command from server');
             return;
         }
-        var uniqueId = parts[1];
+        const uniqueId = parts[1];
         // Accept SVSHOST uid host  OR  SVSHOST uid ts host
-        var hostname = parts.length >= 4 ? parts[parts.length - 1] : parts[2];
+        let hostname = parts.length >= 4 ? parts[parts.length - 1] : parts[2];
         if (hostname && hostname.startsWith(':')) hostname = hostname.slice(1);
-        var nickname = this.findUserByUniqueId(uniqueId);
+        const nickname = this.findUserByUniqueId(uniqueId);
         if (!nickname) {
             this.debugLog('warn', `No user found for unique ID ${uniqueId}`);
             return;
         }
         this.hostnames.set(nickname, hostname);
-        var targetSocket = this.findLocalSocketByUniqueId(uniqueId);
+        const targetSocket = this.findLocalSocketByUniqueId(uniqueId);
         const chghostLine = `:${nickname}!${this.usernames.get(nickname) || nickname}@${hostname} CHGHOST ${this.usernames.get(nickname) || nickname} ${hostname}\r\n`;
         if (targetSocket) {
             targetSocket.host = hostname;
@@ -511,10 +511,10 @@ module.exports = {
             this.debugLog('warn', 'Invalid SVSACCOUNT command from server');
             return;
         }
-        var uniqueId = parts[1];
-        var accountName = parts[parts.length - 1];
+        const uniqueId = parts[1];
+        let accountName = parts[parts.length - 1];
         if (accountName.startsWith(':')) accountName = accountName.slice(1);
-        var nickname = this.findUserByUniqueId(uniqueId);
+        const nickname = this.findUserByUniqueId(uniqueId);
         if (!nickname) {
             this.debugLog('warn', `No user found for unique ID ${uniqueId}`);
             return;
@@ -547,8 +547,8 @@ module.exports = {
             this.debugLog('warn', 'Invalid SVSNICK command from server');
             return;
         }
-        var oldNick = this.findUserByUniqueId(parts[1]);
-        var newNick = parts[3];
+        const oldNick = this.findUserByUniqueId(parts[1]);
+        const newNick = parts[3];
         if (!oldNick || !newNick) {
             return;
         }
@@ -577,13 +577,13 @@ module.exports = {
             return;
         }
         const channelTs = parseInt(parts[1], 10) || this.getDate();
-        var channel = this.findChannel(parts[2]) || parts[2];
-        var modes = (parts[3] || '').replace(/^\+/, '');
+        const channel = this.findChannel(parts[2]) || parts[2];
+        const modes = (parts[3] || '').replace(/^\+/, '');
         // Collect mode params for k/l then trailing member list
         const rest = parts.slice(4);
         let memberField = '';
         const modeParams = [];
-        let colonIdx = rest.findIndex(p => p.startsWith(':'));
+        const colonIdx = rest.findIndex(p => p.startsWith(':'));
         if (colonIdx === -1) {
             // Entire rest may be members without leading colon on first token only
             memberField = rest.join(' ');
@@ -607,11 +607,11 @@ module.exports = {
                 if (!mc) continue;
                 if (mc === 'k') {
                     if (!channelObj.modes.includes('k')) channelObj.modes.push('k');
-                    if (modeParams[paramIdx] != null) channelObj.key = modeParams[paramIdx];
+                    if (modeParams[paramIdx] !== undefined && modeParams[paramIdx] !== null) channelObj.key = modeParams[paramIdx];
                     paramIdx++;
                 } else if (mc === 'l') {
                     if (!channelObj.modes.includes('l')) channelObj.modes.push('l');
-                    if (modeParams[paramIdx] != null) channelObj.limit = parseInt(modeParams[paramIdx], 10) || null;
+                    if (modeParams[paramIdx] !== undefined && modeParams[paramIdx] !== null) channelObj.limit = parseInt(modeParams[paramIdx], 10) || null;
                     paramIdx++;
                 } else if (!channelObj.modes.includes(mc)) {
                     channelObj.modes.push(mc);
@@ -628,7 +628,7 @@ module.exports = {
                 token = token.slice(1);
             }
             if (!token || /^[0-9]+$/.test(token)) continue; // skip stray numeric mode params
-            var nickname = this.findUserByUniqueId(token);
+            const nickname = this.findUserByUniqueId(token);
             if (!nickname) continue;
             if (!channelObj.users.has(nickname)) {
                 channelObj.users.add(nickname);
@@ -636,8 +636,8 @@ module.exports = {
             if (isOp) channelObj.ops.add(nickname);
             if (isHalf) channelObj.halfops.add(nickname);
             if (isVoice) channelObj.voices.add(nickname);
-            var username = this.usernames.get(nickname) || nickname;
-            var hostname = this.hostnames.get(nickname) || '';
+            const username = this.usernames.get(nickname) || nickname;
+            const hostname = this.hostnames.get(nickname) || '';
             const localSock = this.findLocalSocketByUniqueId(token);
             await this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, localSock);
         }
@@ -656,8 +656,8 @@ module.exports = {
             return;
         }
         // parts: [numeric, targetUid, ...]
-        var targetID = parts[1];
-        var targetSocket = this.findLocalSocketByUniqueId(targetID);
+        const targetID = parts[1];
+        const targetSocket = this.findLocalSocketByUniqueId(targetID);
         if (!targetSocket) {
             this.debugLog('warn', `No local socket found for unique ID ${targetID}`);
             return;
@@ -668,9 +668,9 @@ module.exports = {
 
     // Prefix command handlers (default case in processServerData)
     async handleServerPrefixCommand_QUIT(socket, nickname, sourceUniqueId, parts) {
-        var user_name = this.usernames.get(nickname) || nickname;
-        var hostname = this.hostnames.get(nickname) || this.servername;
-        var message = this.sanitizeTrailingParam(parts.slice(2).join(' ').replace(/^:/, ''));
+        const user_name = this.usernames.get(nickname) || nickname;
+        const hostname = this.hostnames.get(nickname) || this.servername;
+        const message = this.sanitizeTrailingParam(parts.slice(2).join(' ').replace(/^:/, ''));
         await this.broadcastUser(nickname, `:${nickname}!${user_name}@${hostname} QUIT :${message}\r\n`);
         const serverUsers = this.serverusers.get(socket);
         if (serverUsers && typeof serverUsers.delete === 'function') {
@@ -681,11 +681,11 @@ module.exports = {
     },
 
     async handleServerPrefixCommand_JOIN(socket, nickname, sourceUniqueId, parts) {
-        var channelName = parts[2];
+        let channelName = parts[2];
         if (channelName && channelName.startsWith(':')) {
             channelName = channelName.slice(1);
         }
-        var channel = this.findChannel(channelName);
+        let channel = this.findChannel(channelName);
         if (!channel || !this.channelData.has(channel)) {
             channel = channelName;
             this.createChannel(channel);
@@ -693,21 +693,21 @@ module.exports = {
         if (!this.channelData.get(channel).users.has(nickname)) {
             this.channelData.get(channel).users.add(nickname);
         }
-        var username = this.usernames.get(nickname) || nickname;
-        var hostname = this.hostnames.get(nickname) || '';
+        const username = this.usernames.get(nickname) || nickname;
+        const hostname = this.hostnames.get(nickname) || '';
         const localSock = this.findLocalSocketByUniqueId(sourceUniqueId);
         await this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} JOIN ${channel}\r\n`, localSock);
         await this.broadcastToAllServers(`:${sourceUniqueId} JOIN ${channel}\r\n`, socket);
     },
 
     async handleServerPrefixCommand_PART(socket, nickname, sourceUniqueId, parts) {
-        var channel = this.findChannel(parts[2]);
+        const channel = this.findChannel(parts[2]);
         if (!channel) {
             this.debugLog('warn', `No channel found for PART command: ${parts[2]}`);
             return;
         }
-        var username = this.usernames.get(nickname) || nickname;
-        var hostname = this.hostnames.get(nickname) || '';
+        const username = this.usernames.get(nickname) || nickname;
+        const hostname = this.hostnames.get(nickname) || '';
         let reason = parts.slice(3).join(' ');
         if (reason.startsWith(':')) reason = reason.slice(1);
         const partLine = reason
@@ -752,16 +752,16 @@ module.exports = {
             this.debugLog('warn', 'Invalid KICK from server');
             return;
         }
-        var channel = this.findChannel(parts[2]) || parts[2];
-        var targetIdOrNick = parts[3];
-        var targetNick = this.findUserByUniqueId(targetIdOrNick) || this.findUser(targetIdOrNick) || targetIdOrNick;
+        const channel = this.findChannel(parts[2]) || parts[2];
+        const targetIdOrNick = parts[3];
+        const targetNick = this.findUserByUniqueId(targetIdOrNick) || this.findUser(targetIdOrNick) || targetIdOrNick;
         let reason = parts.slice(4).join(' ');
         if (reason.startsWith(':')) reason = reason.slice(1);
         if (!this.channelData.has(channel)) {
             return;
         }
-        var username = this.usernames.get(nickname) || nickname;
-        var hostname = this.hostnames.get(nickname) || '';
+        const username = this.usernames.get(nickname) || nickname;
+        const hostname = this.hostnames.get(nickname) || '';
         const kickLine = reason
             ? `:${nickname}!${username}@${hostname} KICK ${channel} ${targetNick} :${reason}\r\n`
             : `:${nickname}!${username}@${hostname} KICK ${channel} ${targetNick}\r\n`;
@@ -776,7 +776,7 @@ module.exports = {
     },
 
     async handleServerPrefixCommand_GLOBOPS(socket, nickname, sourceUniqueId, parts) {
-        var message = this.sanitizeTrailingParam(parts.slice(2).join(' ').replace(/^:/, ''));
+        const message = this.sanitizeTrailingParam(parts.slice(2).join(' ').replace(/^:/, ''));
         for (const [clientSock, nick] of this.nicknames.entries()) {
             if (this.isIRCOp(nick)) {
                 await this.safeWriteToSocket(clientSock, `:${nickname} NOTICE ${nick} :*** GLOBOPS -- ${nickname}: ${message}\r\n`);
@@ -792,10 +792,10 @@ module.exports = {
             return;
         }
         const channelTs = parts[2];
-        var channel = this.findChannel(parts[3]) || parts[3];
+        const channel = this.findChannel(parts[3]) || parts[3];
         const topicTs = parseInt(parts[4], 10) || 0;
         const setter = parts[5] || nickname;
-        var topic = this.sanitizeTrailingParam(parts.slice(6).join(' ').replace(/^:/, ''));
+        const topic = this.sanitizeTrailingParam(parts.slice(6).join(' ').replace(/^:/, ''));
         if (!this.channelData.has(channel)) {
             this.createChannel(channel);
         }
@@ -815,15 +815,15 @@ module.exports = {
             this.debugLog('warn', `Invalid KILL command from server: ${line}`);
             return;
         }
-        var targetUniqueId = parts[2];
-        var targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
-        var targetNickname = this.findUserByUniqueId(targetUniqueId);
+        const targetUniqueId = parts[2];
+        const targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
+        const targetNickname = this.findUserByUniqueId(targetUniqueId);
         if (!targetNickname) {
             this.debugLog('warn', `KILL for unknown uid ${targetUniqueId}`);
             return;
         }
-        var sourceUsername = this.usernames.get(nickname) || nickname;
-        var reason = parts.slice(3).join(' ');
+        const sourceUsername = this.usernames.get(nickname) || nickname;
+        let reason = parts.slice(3).join(' ');
         if (reason.startsWith(':')) reason = reason.slice(1);
         if (targetSocket) {
             await this.safeWriteToSocket(targetSocket, `:${nickname}!${sourceUsername}@${(socket.serverinfo && socket.serverinfo.name) || socket.servername} KILL ${targetNickname} :${reason}\r\n`);
@@ -840,21 +840,21 @@ module.exports = {
     },
 
     async handleServerPrefixCommand_MODE(socket, nickname, sourceUniqueId, parts) {
-        var targetUniqueId = parts[2];
+        const targetUniqueId = parts[2];
         if (this.channelprefixes.some(prefix => targetUniqueId.startsWith(prefix))) {
-            var targetChannel = this.findChannel(targetUniqueId);
+            const targetChannel = this.findChannel(targetUniqueId);
             if (!targetChannel) {
                 this.debugLog('warn', `No channel found for MODE command: ${parts.join(' ')}`);
                 return;
             }
             if (this.channelData.has(targetChannel)) {
-                var modes = parts[3];
+                const modes = parts[3];
                 await this.processChannelModes(nickname, targetChannel, modes, parts.slice(4), socket);
             }
             return;
         }                        
-        var targetNickname = this.findUserByUniqueId(targetUniqueId);
-        var targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
+        const targetNickname = this.findUserByUniqueId(targetUniqueId);
+        const targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
         if (!targetNickname) {
             this.debugLog('warn', `No user found for target unique ID ${targetUniqueId}`);
             return;
@@ -881,7 +881,7 @@ module.exports = {
             this.debugLog('warn', 'Invalid NICK command from server');
             return;
         }
-        var newNick = parts[2];
+        let newNick = parts[2];
         if (newNick.startsWith(':')) newNick = newNick.slice(1);
         const existing = this.findUser(newNick);
         if (existing && this.casefold(existing) !== this.casefold(nickname)) {
@@ -905,26 +905,26 @@ module.exports = {
             this.debugLog('warn', 'Invalid TOPIC command from server');
             return;
         }
-        var channel = this.findChannel(parts[2]);
+        const channel = this.findChannel(parts[2]);
         if (!channel || !this.channelData.has(channel)) {
             await this.safeWriteToSocket(socket, `:${this.servername} 403 ${nickname} ${parts[2]} :No such channel\r\n`);
             return;
         }                            
-        var topic = this.sanitizeTrailingParam(parts.slice(3).join(' ').replace(/^:/, ''));
+        const topic = this.sanitizeTrailingParam(parts.slice(3).join(' ').replace(/^:/, ''));
         const channelObj = this.channelData.get(channel);
         channelObj.topic = topic;
         channelObj.topicSetter = nickname;
         channelObj.topicTs = this.getDate();
-        var username = this.usernames.get(nickname) || nickname;
-        var hostname = this.hostnames.get(nickname) || '';
+        const username = this.usernames.get(nickname) || nickname;
+        const hostname = this.hostnames.get(nickname) || '';
         await this.broadcastChannel(channel, `:${nickname}!${username}@${hostname} TOPIC ${channel} :${topic}\r\n`, socket);
         await this.broadcastToAllServers(`:${sourceUniqueId} TOPIC ${channel} :${topic}\r\n`, socket);
     },
 
     async handleServerPrefixCommand_PRIVMSG(socket, nickname, sourceUniqueId, parts, line) {
-        var target = parts[2];
-        var message = this.sanitizeTrailingParam(parts.slice(3).join(' ').replace(/^:/, ''));
-        var sourceUsername = this.usernames.get(nickname) || nickname;
+        const target = parts[2];
+        const message = this.sanitizeTrailingParam(parts.slice(3).join(' ').replace(/^:/, ''));
+        const sourceUsername = this.usernames.get(nickname) || nickname;
         const host = this.hostnames.get(nickname) || socket.remoteAddress;
         if (this.channelprefixes.some(prefix => target.startsWith(prefix))) {
             const channel = this.findChannel(target) || target;
@@ -934,8 +934,8 @@ module.exports = {
             await this.broadcastToAllServers(`:${sourceUniqueId} PRIVMSG ${target} :${message}\r\n`, socket);
             return;
         }
-        var targetSocket = this.findLocalSocketByUniqueId(target);
-        var targetNickname = this.findUserByUniqueId(target) || this.getUsernameFromUniqueId(target);
+        const targetSocket = this.findLocalSocketByUniqueId(target);
+        const targetNickname = this.findUserByUniqueId(target) || this.getUsernameFromUniqueId(target);
         if (!targetSocket) {
             this.debugLog('warn', `No local socket for PRIVMSG target ${target}`);
             await this.broadcastToAllServers(`:${sourceUniqueId} PRIVMSG ${target} :${message}\r\n`, socket);
@@ -946,9 +946,9 @@ module.exports = {
     },
 
     async handleServerPrefixCommand_NOTICE(socket, nickname, sourceUniqueId, parts, line) {
-        var target = parts[2];
-        var message = this.sanitizeTrailingParam(parts.slice(3).join(' ').replace(/^:/, ''));
-        var sourceUsername = this.usernames.get(nickname) || nickname;
+        const target = parts[2];
+        const message = this.sanitizeTrailingParam(parts.slice(3).join(' ').replace(/^:/, ''));
+        const sourceUsername = this.usernames.get(nickname) || nickname;
         const host = this.hostnames.get(nickname) || socket.remoteAddress;
         if (this.channelprefixes.some(prefix => target.startsWith(prefix))) {
             const channel = this.findChannel(target) || target;
@@ -958,13 +958,13 @@ module.exports = {
             await this.broadcastToAllServers(`:${sourceUniqueId} NOTICE ${target} :${message}\r\n`, socket);
             return;
         }
-        var targetSocket = this.findLocalSocketByUniqueId(target);
-        var targetNickname = this.findUserByUniqueId(target) || this.getUsernameFromUniqueId(target);
+        const targetSocket = this.findLocalSocketByUniqueId(target);
+        const targetNickname = this.findUserByUniqueId(target) || this.getUsernameFromUniqueId(target);
         if (!targetSocket) {
             await this.broadcastToAllServers(`:${sourceUniqueId} NOTICE ${target} :${message}\r\n`, socket);
             return;
         }
-        var srvCommand = this.clientIsWebTV(targetSocket) ? 'PRIVMSG' : 'NOTICE';
+        const srvCommand = this.clientIsWebTV(targetSocket) ? 'PRIVMSG' : 'NOTICE';
         await this.safeWriteToSocket(targetSocket, `:${nickname}!${sourceUsername}@${host} ${srvCommand} ${targetNickname} :${message}\r\n`);
         await this.broadcastToAllServers(`:${sourceUniqueId} NOTICE ${target} :${message}\r\n`, socket);
     },
@@ -974,13 +974,13 @@ module.exports = {
             this.debugLog('warn', 'Invalid WHOIS command from server');
             return;
         }
-        var targetUniqueId = parts[2];
-        var targetSocket = this.findSocketByUniqueId(targetUniqueId);
+        const targetUniqueId = parts[2];
+        const targetSocket = this.findSocketByUniqueId(targetUniqueId);
         if (!targetSocket) {
             this.debugLog('warn', `No socket found for target unique ID ${targetUniqueId}`);
             return;
         }
-        var whoisNick = this.findUserByUniqueId(targetUniqueId);
+        let whoisNick = this.findUserByUniqueId(targetUniqueId);
         if (!whoisNick) {
             whoisNick = parts[3].slice(1);
         }
@@ -988,7 +988,7 @@ module.exports = {
         if (whoisSocket) {
             whoisNick = whoisSocket.nickname;
             const whois_username = this.usernames.get(whoisNick);
-            var userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || '';
+            const userinfo = this.userinfo.get(whoisNick) || whoisSocket.userinfo || '';
             const output_lines = [];
             output_lines.push(`:${this.serverId} 311 ${targetUniqueId} ${whoisNick} ${whois_username} ${whoisSocket.host} * :${userinfo}\r\n`);
             if (this.awaymsgs.has(whoisNick)) {
@@ -998,9 +998,9 @@ module.exports = {
             for (const [ch, channelObj] of this.channelData.entries()) {
                 if (channelObj.users.has(whoisNick)) {
                     let prefix = '';
-                    var chanops = this.channelData.get(ch).ops;
-                    var chanhalfops = this.channelData.get(ch).halfops;
-                    var chanvoices = this.channelData.get(ch).voices;
+                    const chanops = this.channelData.get(ch).ops;
+                    const chanhalfops = this.channelData.get(ch).halfops;
+                    const chanvoices = this.channelData.get(ch).voices;
                     const modes = this.channelData.get(ch).modes;
                     if ((modes.includes('p') || modes.includes('s')) && (!this.channelData.has(ch) || !this.channelData.get(ch).users.has(socket.nickname))) {
                         continue;
@@ -1019,16 +1019,16 @@ module.exports = {
             if (this.isIRCOp(whoisNick)) {
                 output_lines.push(`:${this.serverId} 313 ${targetUniqueId} ${whoisNick} :is an IRC operator\r\n`);
             }
-            var targetModes = this.getUserModes(whoisNick);
+            const targetModes = this.getUserModes(whoisNick);
             if (targetModes && targetModes.includes('s')) {
                 output_lines.push(`:${this.serverId} 671 ${targetUniqueId} ${whoisNick} :is using a secure connection\r\n`);
             }
             if (targetModes && targetModes.includes('r')) {
                 output_lines.push(`:${this.serverId} 307 ${targetUniqueId} ${whoisNick} :is a registered nick\r\n`);
             }
-            var now = this.getDate();
-            var userTimestamp = whoisSocket.lastspoke || now;
-            var idleTime = now - userTimestamp;
+            const now = this.getDate();
+            const userTimestamp = whoisSocket.lastspoke || now;
+            const idleTime = now - userTimestamp;
             output_lines.push(`:${this.serverId} 317 ${targetUniqueId} ${whoisNick} ${idleTime} ${this.usersignontimestamps.get(whoisNick) || 0} :seconds idle, signon time\r\n`);
             if (userChannels.length > 0) {
                 output_lines.push(`:${this.serverId} 319 ${targetUniqueId} ${whoisNick} :${userChannels.join(' ')}\r\n`);
@@ -1047,15 +1047,15 @@ module.exports = {
             this.debugLog('warn', 'Invalid SVSJOIN command from server');
             return;
         }
-        var targetUniqueId = parts[2];
-        var channelName = this.findChannel(parts[3]);
-        var targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
+        const targetUniqueId = parts[2];
+        let channelName = this.findChannel(parts[3]);
+        const targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
         if (!targetSocket) {
             this.debugLog('warn', `No local socket found for target unique ID ${targetUniqueId}`);
             return;
         }
-        var username = this.usernames.get(targetSocket.nickname) || targetSocket.nickname;
-        var hostname = this.hostnames.get(targetSocket.nickname) || '';
+        const username = this.usernames.get(targetSocket.nickname) || targetSocket.nickname;
+        const hostname = this.hostnames.get(targetSocket.nickname) || '';
         if (!channelName || !this.channelData.has(channelName)) {
             channelName = parts[3];
             this.createChannel(channelName);
@@ -1064,9 +1064,9 @@ module.exports = {
             this.channelData.get(channelName).users.add(targetSocket.nickname);
         }
         await this.broadcastChannelJoin(channelName, targetSocket);
-        var chan_modes = this.channelData.get(channelName).modes;
+        const chan_modes = this.channelData.get(channelName).modes;
         let modeString = '';
-        let modeParams = [];
+        const modeParams = [];
         for (const m of chan_modes) {
             if (m === 'k' && this.channelData.get(channelName).key) {
                 modeString += 'k';
@@ -1097,11 +1097,11 @@ module.exports = {
             this.debugLog('warn', 'Invalid SVSMODE command from server');
             return;
         }
-        var targetUniqueId = parts[2];
-        var modeStr = parts[3] || parts[4] || '';
+        const targetUniqueId = parts[2];
+        let modeStr = parts[3] || parts[4] || '';
         if (modeStr.startsWith(':')) modeStr = modeStr.slice(1);
-        var targetNickname = this.findUserByUniqueId(targetUniqueId);
-        var targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
+        const targetNickname = this.findUserByUniqueId(targetUniqueId);
+        const targetSocket = this.findLocalSocketByUniqueId(targetUniqueId);
         if (!targetNickname) {
             this.debugLog('warn', `No user found for target unique ID ${targetUniqueId}`);
             return;
@@ -1116,8 +1116,8 @@ module.exports = {
                 this.setUserMode(targetNickname, char, adding);
             }
         }
-        var username = this.usernames.get(nickname) || nickname;
-        var hostname = this.hostnames.get(nickname) || '';
+        const username = this.usernames.get(nickname) || nickname;
+        const hostname = this.hostnames.get(nickname) || '';
         if (targetSocket) {
             await this.safeWriteToSocket(targetSocket, `:${nickname}!${username}@${hostname} MODE ${targetNickname} ${modeStr}\r\n`);
         }

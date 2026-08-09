@@ -23,7 +23,7 @@ let subDirPath = '';
 const currentDir = path.dirname(__filename);
 const serviceVaultIdx = currentDir.indexOf('ServiceVault');
 if (serviceVaultIdx !== -1) {
-    const afterVault = currentDir.substring(serviceVaultIdx + 12); // 12 = length of 'ServiceVault'
+    const afterVault = currentDir.slice(serviceVaultIdx + 12); // 12 = length of 'ServiceVault'
     const parts = afterVault.split(path.sep).filter(p => p);
     if (parts.length > 1) {
         // parts[0] is the service name (e.g., 'wtv-music'), parts[1+] are the subdirs
@@ -44,7 +44,7 @@ if (subDirPath) {
     if (remainingPath.startsWith(subDirPath + '/')) {
         // Has something after the subdirectory, e.g., /ragen/classicrom
         strippedSubDir = subDirPath;
-        remainingPath = remainingPath.substring(subDirPath.length);
+        remainingPath = remainingPath.slice(subDirPath.length);
     } else if (remainingPath === subDirPath || remainingPath === subDirPath + '/') {
         // Just the subdirectory itself, e.g., /ragen or /ragen/
         strippedSubDir = subDirPath;
@@ -59,7 +59,7 @@ if (hadTrailingSlash && !remainingPath.endsWith('/')) {
 }
 
 const filename = remainingPath.endsWith('/') ? '' : remainingPath.split('/').pop().replace('.ram', '');
-const directory = remainingPath.endsWith('/') ? remainingPath.replace(/\/$/, '') : remainingPath.substring(0, remainingPath.lastIndexOf('/'));
+const directory = remainingPath.endsWith('/') ? remainingPath.replace(/\/$/, '') : remainingPath.slice(0, remainingPath.lastIndexOf('/'));
 
 let fileFound = false;
 const extensions = ['.ra', '.rm'];
@@ -77,7 +77,7 @@ if (!filename || (request_headers.request_url.endsWith('/') && minisrv_config.se
             files.forEach(file => {
                 const fullPath = path.join(targetDir, file);
                 if (fs.statSync(fullPath).isFile() && (file.endsWith('.ra') || file.endsWith('.rm'))) {
-                    const baseFileName = file.substring(0, file.lastIndexOf('.'));
+                    const baseFileName = file.slice(0, file.lastIndexOf('.'));
                     allFiles.push(baseFileName + '.ram');
                 } else if (fs.statSync(fullPath).isDirectory()) {
                     allFiles.push(file + '/');
