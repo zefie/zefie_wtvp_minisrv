@@ -1,7 +1,7 @@
 const minisrv_service_file = true;
 
 if (!request_headers.query.registering) {
-    const errpage = wtvshared.doErrorPage(400);
+    const errpage = wtvshared.doErrorPage(400, null, "Missing registering parameter");
     headers = errpage[0];
     data = errpage[1];
 } else {

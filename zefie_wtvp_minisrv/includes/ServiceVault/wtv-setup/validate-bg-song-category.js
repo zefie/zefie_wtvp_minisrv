@@ -52,7 +52,7 @@ wtv-backgroundmusic-load-playlist: wtv-setup:/get-playlist`;
 Content-type: text/html`;
     }
 } else {
-    const outdata = wtvshared.doErrorPage();
+    const outdata = wtvshared.doErrorPage(400, null, "Missing query or session data");
     headers = outdata[0];
     data = outdata[1];
 }

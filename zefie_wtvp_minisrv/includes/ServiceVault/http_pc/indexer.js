@@ -86,7 +86,7 @@ try {
     }
 
     if (!vault_found) {
-        const errpage = wtvshared.doErrorPage(404);
+        const errpage = wtvshared.doErrorPage(404, null, "Directory not found in service vaults");
         headers = errpage[0];
         data = errpage[1];
     } else {
@@ -157,7 +157,7 @@ try {
     }
 } catch (err) {
     console.error('Error:', err);
-    const errpage = wtvshared.doErrorPage(404);
+    const errpage = wtvshared.doErrorPage(404, null, "Error generating directory index: " + err.toString());
     headers = errpage[0];
     data = errpage[1];
 }

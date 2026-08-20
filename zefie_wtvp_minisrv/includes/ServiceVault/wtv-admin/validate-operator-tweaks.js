@@ -51,7 +51,7 @@ if (auth === true) {
 }
 
 if (!headers) {
-    const err = wtvshared.doErrorPage();
+    const err = wtvshared.doErrorPage(400, null, "Not authorized or missing operator tweak parameters");
     headers = err[0];
     data = err[1];
 }

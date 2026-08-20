@@ -38,7 +38,7 @@ if (session_data && !session_data.isRegistered()) {
     session_data.setUserPassword(user_password);
 
     if (!session_data.saveSessionData(true, true)) {
-        const errpage = wtvshared.doErrorPage(500);
+        const errpage = wtvshared.doErrorPage(500, null, "Failed to save session data");
         headers = errpage[0];
         data = errpage[1];
         console.error("Failed to save session data for user %s", username);

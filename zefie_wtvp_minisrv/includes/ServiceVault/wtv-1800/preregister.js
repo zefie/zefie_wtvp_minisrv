@@ -35,7 +35,7 @@ if (session_data) {
 	if (request_headers["wtv-incarnation"]) session_data.data_store.wtvsec_login.set_incarnation(request_headers["wtv-incarnation"]);
 } else {
 	console.log(" * Something bad happened (we don't know the client ssid???)");
-	const errpage = wtvshared.doErrorPage(400)
+	const errpage = wtvshared.doErrorPage(400, null, "Client SSID is unknown");
 	headers = errpage[0];
 	data = errpage[1];
 }
@@ -195,7 +195,7 @@ if (session_data.data_store.wtvsec_login) {
 		request_is_async = true;
 		fs.readFile(file_path, null, function (err, file_read_data) {
 			if (err) {
-				const errmsg = wtvshared.doErrorPage(400);
+				const errmsg = wtvshared.doErrorPage(400, null, "Failed to read preregister file: " + err.toString());
 				headers = errmsg[0];
 				file_read_data = errmsg[1] + "\n" + err.toString();
 			}
@@ -211,7 +211,7 @@ if (session_data.data_store.wtvsec_login) {
 		sendToClient(socket, headers, telly.packed_data);
 	}
 } else {
-	const errpage = wtvshared.doErrorPage(400);
+	const errpage = wtvshared.doErrorPage(400, null, "No preregister file or template available");
 	headers = errpage[0];
 	data = errpage[1];
 }

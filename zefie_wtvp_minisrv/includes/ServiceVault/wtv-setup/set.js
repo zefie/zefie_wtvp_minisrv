@@ -12,7 +12,7 @@ if (request_headers.query && session_data) {
     headers = `200 OK
 Content-type: text/html`;
 } else {
-    const errpage = wtvshared.doErrorPage();
+    const errpage = wtvshared.doErrorPage(400, null, "Missing query or session data");
     headers = errpage[0];
     data = errpage[1];
 }

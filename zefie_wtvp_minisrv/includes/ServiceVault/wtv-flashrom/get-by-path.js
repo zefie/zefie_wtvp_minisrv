@@ -29,7 +29,7 @@ if (request_headers.query.raw || bf0app_update) {
 		headers += "Content-type: text/html"
 		data = '';
 	} else {
-		const errpage = wtvshared.doErrorPage(404)
+		const errpage = wtvshared.doErrorPage(404, null, "Missing flashrom path");
 		headers = errpage[0];
 		data = errpage[1];
 	}

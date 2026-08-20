@@ -451,7 +451,7 @@ if (request_headers.query.viewer &&
     const viewer_file = viewers[request_headers.query.viewer];
     const needs_hacktv_mini = (viewer_file === "WebTVIntel--2.5-HE.exe") ? true : false
     if (!viewer_file) {
-        const errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
+        const errpage = wtvshared.doErrorPage(500, null, "Unknown viewer", socket.minisrv_pc_mode)
         headers = errpage[0];
         data = errpage[1];
     } else {
@@ -460,7 +460,7 @@ if (request_headers.query.viewer &&
         const viewer_md5 = crypto.createHash('md5').update(viewer_data).digest("hex");
         if (viewer_md5 !== viewer_stock_md5s[viewer_file]) {
             console.error(viewer_file, "md5sum error. expected:", viewer_stock_md5s[viewer_file], ", got:", viewer_md5)
-            const errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
+            const errpage = wtvshared.doErrorPage(500, null, "Viewer file md5sum mismatch", socket.minisrv_pc_mode)
             headers = errpage[0];
             data = errpage[1];
         } else {
@@ -486,7 +486,7 @@ if (request_headers.query.viewer &&
             }
             
             if (!patchDataObject.patch_data) {
-                const errpage = wtvshared.doErrorPage("500", null, socket.minisrv_pc_mode)
+                const errpage = wtvshared.doErrorPage(500, null, "Failed to generate viewer patch data", socket.minisrv_pc_mode)
                 headers = errpage[0];
                 data = errpage[1];
             } else {

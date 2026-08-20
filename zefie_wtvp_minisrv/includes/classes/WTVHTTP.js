@@ -162,7 +162,7 @@ class WTVHTTP {
                     this.sendToClient(socket, errpage[0], errpage[1]);
                 } else {
                     console.error(" * Unhandled Proxy Request Error:", err);
-                    const errpage = this.wtvshared.doErrorPage(400);
+                    const errpage = this.wtvshared.doErrorPage(400, null, "Unhandled proxy request error: " + err.toString());
                     this.sendToClient(socket, errpage[0], errpage[1]);
                 }
                 

@@ -17,7 +17,7 @@ if (request_headers.post_data) {
 }
 
 if (!headers) {
-    const errpage = wtvshared.doErrorPage(400)
+    const errpage = wtvshared.doErrorPage(400, null, "Missing path, session, or POST data for userstore");
     headers = errpage[0];
     data = errpage[1];
 }

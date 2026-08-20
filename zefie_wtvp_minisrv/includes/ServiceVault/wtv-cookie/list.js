@@ -10,7 +10,7 @@ if (socket.ssid) {
 }
 
 if (!headers) {
-    const errpage = wtvshared.doErrorPage(400)
+    const errpage = wtvshared.doErrorPage(400, null, "No session available to list cookies");
     headers = errpage[0];
     data = errpage[1];
 }

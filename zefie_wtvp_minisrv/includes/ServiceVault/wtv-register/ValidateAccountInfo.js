@@ -1,14 +1,14 @@
 const minisrv_service_file = true;
 
 if (!request_headers.query.registering) {
-    const errpage = wtvshared.doErrorPage(400);
+    const errpage = wtvshared.doErrorPage(400, null, "Missing registering parameter");
     headers = errpage[0];
     data = errpage[1];
 } else {
     const WTVRegister = require(classPath + "/WTVRegister.js")
     const wtvr = new WTVRegister(minisrv_config, SessionStore);
     let errpage = null;
-    if (!request_headers.query.registering) errpage = wtvshared.doErrorPage(400);
+    if (!request_headers.query.registering) errpage = wtvshared.doErrorPage(400, null, "Missing registering parameter");
     else if (!request_headers.query.subscriber_name) errpage = wtvshared.doErrorPage(400, "Please enter your name. This can be your real name, or your well-known online alias.");
     else if (!request_headers.query.subscriber_username) errpage = wtvshared.doErrorPage(400, "Please enter a username.");
     else if (request_headers.query.subscriber_username.length < minisrv_config.config.user_accounts.min_username_length) errpage = wtvshared.doErrorPage(400, "Please choose a username with <b>" + minisrv_config.config.user_accounts.min_username_length + "</b> or more characters.");

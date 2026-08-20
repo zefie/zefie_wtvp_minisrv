@@ -58,7 +58,7 @@ if ((!attachment_id && attachment_id !== 0) || !group || !request_headers.query.
                         sendToClient(socket, errpage[0], errpage[1]);
                     }
                 } else {
-                    errpage = wtvshared.doErrorPage(400);
+                    errpage = wtvshared.doErrorPage(400, null, "Usenet article request failed");
                     sendToClient(socket, errpage[0], errpage[1]);
                 }
             });

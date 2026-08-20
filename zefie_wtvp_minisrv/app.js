@@ -467,7 +467,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     vault = path.resolve(vault);
     if (!wtvshared.isPathInside(SAFE_ROOT, vault)) {
         console.error("Invalid vault path:", vault);
-        const errpage = wtvshared.doErrorPage(403);
+        const errpage = wtvshared.doErrorPage(403, null, "Invalid vault path");
         sendToClient(socket, errpage[0], errpage[1]);
         return;
     }
@@ -592,7 +592,7 @@ async function handleCGI(executable, cgi_file, socket, request_headers, vault, s
     });
     cgi.on('error', function (err) {
         console.error("CGI exec error", err);
-        const errpage = wtvshared.doErrorPage(500);
+        const errpage = wtvshared.doErrorPage(500, null, "CGI exec error");
         sendToClient(socket, errpage[0], errpage[1]);
     });
 }
@@ -729,7 +729,7 @@ function tryHandleVaultInterpreter(ext, socket, request_headers, service_vault_f
 
     if (!enabled) {
         // interpreter not enabled, don't expose source code
-        const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
+        const errpage = wtvshared.doErrorPage(403, null, "Interpreter is not enabled", pc_services);
         sendToClient(socket, errpage[0], errpage[1]);
         return { handled: true, service_vault_found: true, service_vault_file_path };
     }
@@ -747,7 +747,7 @@ function tryHandleVaultInterpreter(ext, socket, request_headers, service_vault_f
         return { handled: true, service_vault_found: true, service_vault_file_path };
     }
     if (service_vault_dir === vaults_to_scan[vaults_to_scan.length - 1]) {
-        const errpage = wtvshared.doErrorPage(404, null, null, pc_services);
+        const errpage = wtvshared.doErrorPage(404, null, "CGI/PHP script not found", pc_services);
         sendToClient(socket, errpage[0], errpage[1]);
         return { handled: true, service_vault_found: false, service_vault_file_path };
     }
@@ -843,7 +843,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                     if (minisrv_catchall) {
                         if (service_path_request_file === minisrv_catchall) {
                             request_is_async = true;
-                            const errpage = wtvshared.doErrorPage(401, null, null, pc_services);
+                            const errpage = wtvshared.doErrorPage(401, null, "Direct access to catchall filename is not allowed", pc_services);
                             sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
@@ -971,7 +971,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                 if (!status) {
                                     if (line.match(/minisrv\_service\_file.*true/i)) {
                                         request_is_async = true;
-                                        const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
+                                        const errpage = wtvshared.doErrorPage(403, null, "Access to Service Vault JS source is denied", pc_services);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                         return;
                                     } else {
@@ -979,7 +979,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                     }
                                 } else {
                                     request_is_async = true;
-                                    const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+                                    const errpage = wtvshared.doErrorPage(400, null, "Failed to read Service Vault JS file", pc_services);
                                     sendToClient(socket, errpage[0], errpage[1]);
                                     return;
                                 }
@@ -991,7 +991,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                 if (!status) {
                                     if (line.match(/^#!minisrv/i)) {
                                         request_is_async = true;
-                                        const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
+                                        const errpage = wtvshared.doErrorPage(403, null, "Access to Service Vault script source is denied", pc_services);
                                         sendToClient(socket, errpage[0], errpage[1]);
                                         return;
                                     } else {
@@ -999,7 +999,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                     }
                                 } else {
                                     request_is_async = true;
-                                    const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+                                    const errpage = wtvshared.doErrorPage(400, null, "Failed to read Service Vault txt file", pc_services);
                                     sendToClient(socket, errpage[0], errpage[1]);
                                     return;
                                 }
@@ -1041,7 +1041,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                             handlePHP(socket, request_headers, catchall_file, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
                                         } else {
                                             // php is not enabled, don't expose source code
-                                            const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
+                                            const errpage = wtvshared.doErrorPage(403, null, "PHP is not enabled", pc_services);
                                             sendToClient(socket, errpage[0], errpage[1]);
                                             return;
                                         }
@@ -1053,7 +1053,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
                                             handleCGI(catchall_file, catchall_file, socket, request_headers, service_vault_dir + path.sep + service_name, (pc_services) ? pc_service_name : service_name, (pc_services) ? null : ssid_sessions[socket.ssid], extra_path)
                                         } else {
                                             // cgi is not enabled, don't expose source code
-                                            const errpage = wtvshared.doErrorPage(403, null, null, pc_services);
+                                            const errpage = wtvshared.doErrorPage(403, null, "CGI is not enabled", pc_services);
                                             sendToClient(socket, errpage[0], errpage[1]);
                                             return;
                                         }
@@ -1072,7 +1072,7 @@ async function processPath(socket, service_vault_file_path, request_headers = []
             // either `request_is_async`, or `headers` and `data` MUST be defined by this point!
         });
     } catch (e) {
-        const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+        const errpage = wtvshared.doErrorPage(400, null, "Scripting error: " + e.toString(), pc_services);
         headers = errpage[0];
         data = errpage[1];
         if (pc_services) {
@@ -1084,12 +1084,12 @@ async function processPath(socket, service_vault_file_path, request_headers = []
     if (!request_is_async) {
         if (!service_vault_found) {
             console.error(" * Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, "").replace(path.sep, '/'));
-            const errpage = wtvshared.doErrorPage(404, null, null, pc_services);
+            const errpage = wtvshared.doErrorPage(404, null, "Could not find a Service Vault for " + service_name + ":/" + service_path.replace(service_name + path.sep, "").replace(path.sep, '/'), pc_services);
             headers = errpage[0];
             data = errpage[1];
         }
         if (headers === null && !request_is_async) {
-            const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+            const errpage = wtvshared.doErrorPage(400, null, "Headers were not defined by script", pc_services);
             headers = errpage[0];
             data = errpage[1];
             console.error(" * Scripting or Data error: Headers were not defined. (headers,data) as follows:")
@@ -1131,7 +1131,7 @@ async function processURL(socket, request_headers, pc_services = false) {
         } catch (err) {
             console.log(" * Invalid URI: %s", request_headers.request_url);
             console.error((err && err.stack) ? err.stack : err);
-            const errpage = wtvshared.doErrorPage(400, null, null, pc_services);
+            const errpage = wtvshared.doErrorPage(400, null, "Invalid URI", pc_services);
             sendToClient(socket, errpage[0], errpage[1]);
             return;
         }
@@ -1257,7 +1257,7 @@ minisrv-no-mail-count: true`;
                         service_name = "wtv-star";
                     } else {
                         // is actually a request on then wrong port
-                        const errpage = wtvshared.doErrorPage(500, null, null, pc_services);
+                        const errpage = wtvshared.doErrorPage(500, null, "Request received on the wrong service port", pc_services);
                         socket_sessions[socket.id].close_me = true;
                         sendToClient(socket, errpage[0], errpage[1]);
                         return
@@ -1300,7 +1300,7 @@ minisrv-no-mail-count: true`;
                 if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming HTTP/1.0 headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
                 else debug(" * Incoming HTTP/1.0 headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
 
-                const errpage = wtvshared.doErrorPage(500, null, null, false, true);
+                const errpage = wtvshared.doErrorPage(500, null, "Client is in HTTP/1.0 mode on WTVP port", false, true);
                 headers = errpage[0];
                 data = ''
                 socket_sessions[socket.id].close_me = true;
@@ -1310,7 +1310,7 @@ minisrv-no-mail-count: true`;
                 if (minisrv_config.config.debug_flags.show_headers) console.debug(" * Incoming Invalid headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
                 else debug(" * Incoming Invalid headers on WTVP socket ID", socket.id, await wtvshared.decodePostData(await wtvshared.filterRequestLog(await wtvshared.filterSSID(request_headers))));
 
-                const errpage = wtvshared.doErrorPage(500, null, null, true, false);
+                const errpage = wtvshared.doErrorPage(500, null, "Invalid or missing request headers on WTVP socket", true, false);
                 headers = errpage[0];
                 data = ''
                 socket_sessions[socket.id].close_me = true;
@@ -1878,7 +1878,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     const enc_data = CryptoJS.enc.Hex.parse(data_hex.slice(header_length * 2));
                     if (enc_data.sigBytes > 0) {
                         if (!socket_sessions[socket.id].wtvsec) {
-                            const errpage = wtvshared.doErrorPage(400);
+                            const errpage = wtvshared.doErrorPage(400, null, "Encrypted request received but WTVSec session is not initialized");
                             sendToClient(socket, errpage[0] + "wtv-visit: client:relog\n", errpage[1]);
                             return;
                         }
@@ -2027,7 +2027,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         if (minisrv_config.config.debug_flags.debug) console.debug(" # Encrypted Request (SECURE ON)", "on", socket.id);
                         if (!secure_headers.request) {
                             socket_sessions[socket.id].secure = false;
-                            const errpage = wtvshared.doErrorPage(400);
+                            const errpage = wtvshared.doErrorPage(400, null, "Encrypted request is missing the request line");
                             sendToClient(socket, errpage[0], errpage[1]);
                             return;
                         }
@@ -2090,7 +2090,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         processURL(socket, headers);
                     } else if (socket_sessions[socket.id].post_data.length > (socket_sessions[socket.id].post_data_length * 2)) {
                         // got too much data ? ... should not ever reach this code (section 2)
-                        const errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request<br>Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length) + " (2)";
+                        const errpage = wtvshared.doErrorPage(400, null, "Received too much data in POST request. Got " + (socket_sessions[socket.id].post_data.length / 2) + ", expected " + socket_sessions[socket.id].post_data_length + " (2)");
                         sendToClient(socket, errpage[0], errpage[1]);
                         return;
                     } else {
@@ -2163,7 +2163,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                             if (socket_sessions[socket.id].expecting_post_data) delete socket_sessions[socket.id].expecting_post_data;
                             socket.setTimeout(minisrv_config.config.socket_timeout * 1000);
                             if (!hasHeaderData(headers)) {
-                                const errpage = wtvshared.doErrorPage(400);
+                                const errpage = wtvshared.doErrorPage(400, null, "POST complete but headers are missing");
                                 sendToClient(socket, errpage[0], errpage[1]);
                                 return;
                             }
@@ -2201,7 +2201,7 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                         let dec_data;
                         if (enc_data.sigBytes > 0) {
                             if (!socket_sessions[socket.id].wtvsec) {
-                                const errpage = wtvshared.doErrorPage(400);
+                                const errpage = wtvshared.doErrorPage(400, null, "Encrypted request received but WTVSec session is not initialized");
                                 sendToClient(socket, errpage[0] + "wtv-visit: client:relog\n", errpage[1]);
                                 return;
                             }
@@ -2248,17 +2248,18 @@ async function processRequest(socket, data_hex, skipSecure = false, encryptedReq
                     }
                 }
             } catch (e) {
-                const errpage = wtvshared.doErrorPage(400);
+                const errpage = wtvshared.doErrorPage(400, null, "Exception while processing request: " + e.toString());
                 socket.close_me = true;
                 sendToClient(socket, errpage[0], errpage[1]);
             }
         } else {
-            const errpage = wtvshared.doErrorPage(400);
+            debug("headers", headers);
+            const errpage = wtvshared.doErrorPage(400, null, "Request could not be processed (missing SSID)");
             socket.close_me = true;
             sendToClient(socket, errpage[0], errpage[1]);
         }
     } else {
-        const errpage = wtvshared.doErrorPage(400);
+        const errpage = wtvshared.doErrorPage(400, null, "Request could not be processed (invalid request data)");
         socket.close_me = true;
         sendToClient(socket, errpage[0], errpage[1]);
     }
