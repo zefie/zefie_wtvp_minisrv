@@ -81,7 +81,23 @@ class WTVClientCapabilities {
             ["client-supports-MSN-chat-findu", "Supports MSN Chat FindU"],
             ["client-supports-MSN-messenger-CVR", "Supports MSN Messenger CVR"],
             ["client-supports-MSN-messenger-MSNP8", "Supports MSN Messenger MSNP8"],
-            ["client-supports-MSN-chat-R9C", "Supports MSN Chat R9C"]
+            ["client-supports-MSN-chat-R9C", "Supports MSN Chat R9C"],
+			['client-cap-bit-61', "Unknown Capability 61"],
+			/* WebTV NXT Capabilities */
+			['client-is-nxt-rom', "Is a WebTV NXT Build"],
+			['client-is-simulator', "Is a WebTV NXT Simulator App"],
+			['client-has-vorbis', "Can play OGG Vorbis"],
+			['client-has-aac', "Can play AAC/M4A"],
+			['client-has-realaudio', "Can play RealAudio from any source"],
+			['client-has-wma', "Can play WMA from any source"],
+			['client-has-mod-player', "Has NXT MOD Player"],
+			['client-has-advanced-adpcm', 'Can play ADPCM, ADP, and ADX'],
+			['client-can-do-transparent-png', "Can do transparent PNG"],
+			['client-has-flac', 'Can play FLAC'],
+			['client-has-opus', 'Can play Ogg Opus'],
+			['client-supports-japanese-fonts', 'Can display Japanese']
+			['client-user-partition-available', 'User partition is formatted and available'],
+			['client-has-user-downloads', 'Can download files to User partition if available'],
         ];
 
         this.capabilities_table = capabilities_table;
@@ -99,7 +115,7 @@ class WTVClientCapabilities {
                     //In case remaining hex length (or initial) is not multiple of 8
                     const blockSize = remainingSize < 8 ? remainingSize : 8;
 
-                    binary += parseInt(hex.slice(p * 8, p * 8 + blockSize), 16).toString(2);
+                    binary += parseInt(hex.slice(p * 8, p * 8 + blockSize), 16).toString(2).padStart(blockSize * 4, "0");
 
                     remainingSize -= blockSize;
                 }
@@ -129,7 +145,7 @@ class WTVClientCapabilities {
                     //console.error(" * Unknown configuration bit", k, "with value", bitfield_result);
                 }
             });
-
+			this.debug("capabilities:", capabilities);
             this.capabilities = capabilities;
         }
     }

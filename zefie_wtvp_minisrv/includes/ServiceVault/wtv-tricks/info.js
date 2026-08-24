@@ -1,6 +1,7 @@
 const minisrv_service_file = true;
 
 let client_caps = null;
+let is_nxt_sim = false;
 
 if (socket.ssid !== null) {
     if (session_data.capabilities) {
@@ -311,14 +312,26 @@ data = `<html>
 
     // start loop
 
-    Object.keys(capabilitiesTable).forEach(function (k) {
-        data += `<tr>
-		<td valign=top align=right>${capabilitiesTable[k][1]}
-		<td width=10>
+	for (const k of Object.keys(capabilitiesTable)) {
+		if (k === "61")
+			continue;
+		
+		data += `<tr>
+			<td valign=top align=right>${capabilitiesTable[k][1]}
+			<td width=10>
 		`;
-        if (client_caps && client_caps[capabilitiesTable[k][0]]) data += "<td valign=top>True\n";
-        else data += "<td valign=top>False\n";
-    });
+
+		if (client_caps && client_caps[capabilitiesTable[k][0]])
+			data += "<td valign=top>True\n";
+		else
+			data += "<td valign=top>False\n";
+
+		if (k === "62" && client_caps && (client_caps[capabilitiesTable[k][0]] === false || typeof client_caps[capabilitiesTable[k][0]] === 'undefined'))
+			break;
+		
+		if (k === "63" && client_caps && client_caps[capabilitiesTable[k][0]] === true)
+			is_nxt_sim = true;
+	}
 
     // end loop
 
@@ -326,7 +339,7 @@ data = `<html>
 </table>
 <pre>`
     // TODO: finish FCS decode
-    if (romType === "bf0app" && sysConfigHex !== "0xNaN") {
+    if (romType === "bf0app" && sysConfigHex !== "0xNaN" && !romType.startsWith("US-NXT")) {
         data += `CPU Clk Mult = 2x Bus Clk, CPU output bufs @ ${outputBufs}%
 ROM Bank 0:  ${bank0Type}, ${bank0Mode}, 120ns/60ns
 ROM Bank 1:  ${bank1Type}, ${bank1Mode}, 150ns/75ns
@@ -334,13 +347,15 @@ SGRAM:  ${getSGSpeed()}MHz
 Audio:  ${audio}, ${audioClk} Clk
 Video:  ${getVideoChip()}, ${videoB}, ${videoClk} Clk
 Board:  ${boardTypeB}, Rev = ${0xf - (boardRevB)} (${boardRevB})`;
-    } else if (sysConfigHex !== "0xNaN") {
+    } else if (sysConfigHex !== "0xNaN" && !romType.startsWith("US-NXT")) {
         data += `Video = ${video}, storage = ${storage}
 CPU type = ${cpu}, ${endianness}-endian
 CPU clock mult = ${cpuMult}x
 SmartCard 0 ${sc0}, SmartCard 1 ${sc1}
 Board type = ${boardType}, board rev = ${boardRev}`;
-    }
+    } else if (is_nxt_sim) {
+			data += `&cpu; (&wtv-arch;)`
+	}
     data += `
 </pre>
 <br>
