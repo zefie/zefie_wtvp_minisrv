@@ -38,17 +38,35 @@ const TellyScriptType = {
 };
 
 const reservedKeywords = new Set([
-    'int', 'char', 'if', 'else', 'while', 'return', 'void', 'for', 'delay', 'flush', 'break',
-    'printf', 'atoi', 'main', 'setprogressmode', 'setprogresstext', 'setworkingnumber',
-    'setprogresspercentage', 'setprogressdirty', 'strcpy', 'strcat', 'setwindowsize',
-    'enablemodem', 'builtin_winkdtr', 'setflowcontrol', 'setbaud', 'setdtr', 'sendstr',
-    'setusername', 'setpassword', 'setpapmode', 'startppp', 'getpppresult', 'ticks',
-    'getpreregnumber', 'getserialnumber', 'getsecret', 'getphonesettings', 'setstatus',
-    'sprintf', 'setconnectionstats', 'setforcehook', 'waitfor', 'setnameservice',
-    'getline', 'connectingwithvideoad', 'version', 'alert', 'system_getboxfeatureflags',
-    'parsesystemtime', 'getdatetimelocal', 'getdayofweek', 'gethour', 'getminute',
-    'getmonth', 'getyear', 'getconnectretrycount', 'dialerror', 'setfullpopnumber',
-    'setconnectretrycount', 'setani', 'setlocalpopcount', 'computefcs', 'modem_parseresult'
+    /* Language */
+    'int', 'char', 'if', 'else', 'while', 'return', 'void', 'for', 'break', 'main',
+    /* LC2 intrinsic table (807262d8) - minify must not rename these */
+    'beep', 'printf', 'sprintf', 'free', 'new', 'stack', 'setabort',
+    'memcmp', 'memmove', 'memset', 'memchr', 'memcpy',
+    'strcat', 'strcmp', 'strncpy', 'strcpy', 'strlen', 'strchr', 'strncmp', 'strstr',
+    'atoi', 'itoa', 'version', 'ticks', 'time', 'delay', 'idle', 'waitfor',
+    'sendbyte', 'sendstr', 'getbytes', 'getline', 'flush', 'countpending',
+    'setdtr', 'getdtr', 'builtin_winkdtr', 'setbaud',
+    'setflowcontrol', 'getflowcontrol', 'setstatus', 'setconnectionstats', 'startppp',
+    'getpapmode', 'setpapmode', 'getusername', 'setusername', 'getpassword', 'setpassword',
+    'getforcehook', 'setforcehook', 'getloopcurrent', 'setwindowsize', 'getwindowsize',
+    'setnameservice', 'getpreregnumber', 'getphonesettings', 'getpppresult', 'getpppresponsetext',
+    'parsesystemtime', 'gettimezone', 'getdatetimegmt', 'getdatetimelocal',
+    'gethour', 'getminute', 'getsecond', 'getday', 'getmonth', 'getyear', 'getdayofweek',
+    'getserialnumber', 'getsecret', 'computefcs', 'enablemodem', 'disablemodem',
+    'setfirmwareversion', 'get56kenabled', 'setworkingnumber', 'getworkingnumber',
+    'setfullpopnumber', 'alert', 'dialerror', 'genericerror',
+    'getconnectretrycount', 'setconnectretrycount',
+    'getprogressmode', 'setprogressmode', 'getprogresstext', 'setprogresstext',
+    'getprogresspercentage', 'setprogresspercentage', 'getprogressdirty', 'setprogressdirty',
+    'setinitialreadtimeout', 'setani', 'getconnectreason', 'connectingwithvideoad',
+    'modem_writemreg', 'modem_readreg', 'modem_prepfordownload', 'modem_directsend',
+    'modem_blastdata', 'modem_delayms', 'modem_parseresult',
+    'debug_setleds', 'system_coldboot', 'system_warmboot', 'system_nvvalid',
+    'system_getfeatureflags', 'system_getboxfeatureflags', 'system_getmaxfeatureflag',
+    'system_getsecretvalid', 'system_getssn', 'system_debugger',
+    'system_openfilestream', 'system_closefilestream', 'system_setcallprereg',
+    'getfilesystemdata', 'setlocalpopcount', 'unimplemented'
 ]);
 
 
@@ -1018,10 +1036,15 @@ class WTVTellyScriptMinifier {
         let counter = 0;
 
         // First pass: Build mapping for each identifier that isn't a reserved keyword.
+        // Skip short names that collide with reserved words (if, for, int, ...).
         tokens.forEach(token => {
             if (token.type === 'IDENTIFIER' && !reservedKeywords.has(token.value)) {
                 if (!(token.value in mapping)) {
-                    mapping[token.value] = this.generateShortName(counter++);
+                    let short;
+                    do {
+                        short = this.generateShortName(counter++);
+                    } while (reservedKeywords.has(short));
+                    mapping[token.value] = short;
                 }
             }
         });

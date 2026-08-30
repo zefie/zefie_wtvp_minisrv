@@ -337,6 +337,7 @@ data = `<html>
 
     data += `
 </table>
+<hr>
 <pre>`
     // TODO: finish FCS decode
     if (romType === "bf0app" && sysConfigHex !== "0xNaN" && !romType.startsWith("US-NXT")) {

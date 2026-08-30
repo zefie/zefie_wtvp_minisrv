@@ -795,6 +795,7 @@ class WTVShared {
     parseSSID(ssid) {
         const boxTypeMapping = {
             "01": "Internal",
+            "61": "NXT Sim",
             "71": "MAME",
             "81": "Retail",
             "91": "Viewer"

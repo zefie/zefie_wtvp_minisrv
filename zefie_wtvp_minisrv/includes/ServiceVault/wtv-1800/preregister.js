@@ -72,71 +72,90 @@ if (session_data.data_store.wtvsec_login) {
 	}
 
 	if (send_tellyscript) {
-		switch (romtype) {
-			case "US-LC2-disk-0MB-8MB":
-			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
-			case "US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230":
-			case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
-			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
-				prereg_contype = "text/tellyscript";
-				// if wtv-open-access: true then client expects OpenISP
-				/*
-				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
-				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
-				*/
-				if (wtvshared.isMiniBrowser(session_data)) {
-					// I think we need an older template
-					//template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
-					//if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
-					//else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
-					send_tellyscript = false;
-				} else {
-					template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
-					if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
-					else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
-				}
-				break;
-
-			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
-				if (wtvshared.isMiniBrowser(session_data)) {
+		if (romtype.startsWith("US-NXT-")) {
+			prereg_contype = "text/tellyscript";
+			// if wtv-open-access: true then client expects OpenISP
+			/*
+			if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
+			else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
+			*/
+			if (wtvshared.isMiniBrowser(session_data)) {
+				// I think we need an older template
+				//template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+				//if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
+				//else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
+				send_tellyscript = false;
+			} else {
+				template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+				if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
+				else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
+			}
+		} else {
+			switch (romtype) {
+				case "US-LC2-disk-0MB-8MB":
+				case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
+				case "US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230":
+				case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
+				case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
 					prereg_contype = "text/tellyscript";
+					// if wtv-open-access: true then client expects OpenISP
+					/*
 					if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
 					else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
-				} else {
-					prereg_contype = "text/dialscript";
-					if (session_data.get("wtv-lan") === "true") {
-						file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_hsd.tok", true);
+					*/
+					if (wtvshared.isMiniBrowser(session_data)) {
+						// I think we need an older template
+						//template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+						//if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
+						//else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
+						send_tellyscript = false;
 					} else {
-						// todo OpenISP telly
-						file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_normal.tok", true);
+						template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+						if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.openisp.template.tsf");
+						else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2.normal.template.tsf");
 					}
-				}
-				break;
+					break;
 
-			case "bf0app":
-				prereg_contype = "text/tellyscript";
-				template_preprocessor.CLASSIC = true;
-				// if wtv-open-access: true then client expects OpenISP
-				template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
-				if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.openisp.template.tsf");
-				else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.normal.template.tsf");
-				break;
+				case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
+					if (wtvshared.isMiniBrowser(session_data)) {
+						prereg_contype = "text/tellyscript";
+						if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_OpenISP_56k.tok", true);
+						else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/LC2/LC2_WTV_18006138199.tok", true);
+					} else {
+						prereg_contype = "text/dialscript";
+						if (session_data.get("wtv-lan") === "true") {
+							file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_hsd.tok", true);
+						} else {
+							// todo OpenISP telly
+							file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_normal.tok", true);
+						}
+					}
+					break;
 
-			// the following are not yet zefie generated and may have an unknown username/password attached
+				case "bf0app":
+					prereg_contype = "text/tellyscript";
+					template_preprocessor.CLASSIC = true;
+					// if wtv-open-access: true then client expects OpenISP
+					template = wtvshared.getServiceDep("/wtv-1800/tellyscripts/base.template.tsf")
+					if (session_data.get("wtv-open-access")) template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.openisp.template.tsf");
+					else template += wtvshared.getServiceDep("/wtv-1800/tellyscripts/bf0app/bf0app.normal.template.tsf");
+					break;
+	
+				// the following are not yet zefie generated and may have an unknown username/password attached
 
-			case "JP-Fiji":
-				prereg_contype = "text/tellyscript";
-				template_preprocessor.FIJI = true;
-				// if wtv-open-access: true then client expects OpenISP
-				if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok", true);
-				else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok", true);
-				break;
+				case "JP-Fiji":
+					prereg_contype = "text/tellyscript";
+					template_preprocessor.FIJI = true;
+					// if wtv-open-access: true then client expects OpenISP
+					if (session_data.get("wtv-open-access")) file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok", true);
+					else file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/FIJI/dc_production_normal.tok", true);
+					break;
 
-			default:
-				data = '';
-				break;
+				default:
+					data = '';
+					break;
+			}
 		}
-
 		if (socket.ssid.slice(0, 8) === "MSTVSIMU") {
 			prereg_contype = "text/dialscript";
 			file_path = wtvshared.getServiceDep("/wtv-1800/tellyscripts/UTV/utv_hsd.tok", true);
