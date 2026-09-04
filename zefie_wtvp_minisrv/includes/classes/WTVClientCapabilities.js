@@ -98,7 +98,10 @@ class WTVClientCapabilities {
 			['client-supports-japanese-fonts', 'Can display Japanese characters'],
 			['client-user-partition-available', 'User partition is formatted and available'],
 			['client-has-user-downloads', 'Can download files to User partition if available'],
-			['client-is-using-tellyscript', 'Is using a tellyscript, not direct networking']
+			['client-is-using-tellyscript', 'Is using a tellyscript, not direct networking'],
+			['client-can-do-atrac3', 'Can play ATRAC3'],
+			['client-can-do-atrac3plus', 'Can play ATRAC3+'],
+			['client-is-ps3', 'Is a PS3 Client'],
         ];
 
         this.capabilities_table = capabilities_table;

@@ -178,6 +178,8 @@ class WTVTellyScriptTokenizer {
                 return String.fromCharCode(0x0C);
             case "r":
                 return String.fromCharCode(0x0D);
+            case "0":
+                return String.fromCharCode(0x00);
             case "x":
             case "X":
                 const digit1 = this.getNextCharacter();

@@ -1051,12 +1051,14 @@ class WTVShared {
     }
 
     /**
-     * Returns the Last-Modified date in a Date object with UTC time
+     * Returns the file mtime as a Date (UTC milliseconds).
+     * Do not stamp "now" and copy only seconds -- that made every WTVP
+     * Last-Modified header look like the current time.
      * @param {string} file Path to a file
-     * @return {Date} Date object with UTC time
+     * @return {Date|false} Date object, or false if the file cannot be stat'd
      */
     getFileLastModifiedUTCObj(file) {
-        return new Date(new Date().setUTCSeconds(this.getFileLastModified(file).getUTCSeconds()));
+        return this.getFileLastModified(file);
     }
 
     /**

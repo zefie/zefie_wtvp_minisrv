@@ -1404,19 +1404,19 @@ async function sendToClient(socket, headers_obj, data = null, throttle = 0) {
             if (socket_sessions[socket.id].request_headers.service_file_path) {
                 // Don't change Last-modified header if provided already
                 if (!headers['Last-Modified'] && !headers['minisrv-no-last-modified']) {
-                    // Only add the header if not a js, php, or cgi file
-                    if (wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "js" ||
-                        wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "php" ||
-                        wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase() !== "cgi" ||
-                        socket_sessions[socket.id].request_headers.raw_file === true) {
+                    const file_ext = wtvshared.getFileExt(socket_sessions[socket.id].request_headers.service_file_path).toLowerCase();
+                    const is_script = (file_ext === "js" || file_ext === "php" || file_ext === "cgi");
+                    if (!is_script || socket_sessions[socket.id].request_headers.raw_file === true) {
                         let last_modified_formatted = null;
                             if (socket.res) {
                                 last_modified_formatted = wtvshared.getFileLastModifiedUTCString(socket_sessions[socket.id].request_headers.service_file_path);
                             } else {
                                 const last_modified = wtvshared.getFileLastModifiedUTCObj(socket_sessions[socket.id].request_headers.service_file_path);
-                                const strftime = require('strftime');
-                                const strf = strftime.timezone(timezone);
-                                last_modified_formatted = strf("%a, %d %b %Y %H:%M:%S", last_modified);
+                                if (last_modified) {
+                                    const strftime = require('strftime');
+                                    const strf = strftime.timezone(timezone);
+                                    last_modified_formatted = strf("%a, %d %b %Y %H:%M:%S", last_modified);
+                                }
                             }
                         if (last_modified_formatted) headers_obj["Last-Modified"] = last_modified_formatted;
                     }
