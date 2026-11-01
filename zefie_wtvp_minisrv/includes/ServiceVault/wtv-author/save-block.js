@@ -47,11 +47,11 @@ Location: ${request_headers.query.returnPageURL + "&numOfBlocks=" + page.blocks.
 					style = null;
 				session_data.pagestore.editTextBlock(docName, title, caption, size, style, position, oldPosition);
 				headers = `300 OK
-	wtv-expire-all: wtv-author:/block-preview
-	wtv-expire-all: wtv-author:/preview
-	wtv-expire-all: wtv-author:/show-blocks
-	wtv-expire-all: wtv-author:/edit-block
-	Location: wtv-author:/show-blocks?docName=${docName}`
+wtv-expire-all: wtv-author:/block-preview
+wtv-expire-all: wtv-author:/preview
+wtv-expire-all: wtv-author:/show-blocks
+wtv-expire-all: wtv-author:/edit-block
+Location: wtv-author:/show-blocks?docName=${docName}`
 			} else {
 				if (size.length === 0)
 					size = null;
@@ -60,10 +60,10 @@ Location: ${request_headers.query.returnPageURL + "&numOfBlocks=" + page.blocks.
 					style = null;
 				session_data.pagestore.createTextBlock(docName, title, caption, size, style, position);
 				headers = `300 OK
-	wtv-expire-all: wtv-author:/block-preview
-	wtv-expire-all: wtv-author:/preview
-	wtv-expire-all: wtv-author:/show-blocks
-	Location: wtv-author:/show-blocks?docName=${docName}`
+wtv-expire-all: wtv-author:/block-preview
+wtv-expire-all: wtv-author:/preview
+wtv-expire-all: wtv-author:/show-blocks
+Location: wtv-author:/show-blocks?docName=${docName}`
 			}
 		}
 		break;

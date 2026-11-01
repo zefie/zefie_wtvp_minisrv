@@ -199,10 +199,9 @@ if (minisrv_config.services["wtv-author"].max_pages) {
 <br><br>
 `
 if (numofpages > 0) {
-`Your published pages are available at<br>
-<a href="http://${site}/${session_data.getSessionData("subscriber_username")}/">http://${site}/${session_data.getSessionData("subscriber_username")}/</a>
-</table>`
-}
+        data += `Your published pages are available at<br>
+<a href="http://${site}/${session_data.getSessionData("subscriber_username")}/">http://${site}/${session_data.getSessionData("subscriber_username")}/</a>`;
+    }
 }
 data += `
 <SCRIPT language=JavaScript>
