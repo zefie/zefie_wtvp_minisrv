@@ -1,0 +1,25 @@
+{# Text block template #}
+{% if state == "editing" %}
+<table href="wtv-author:/edit-block?docName={{ page }}&blockNum={{ number }}">
+{% else %}
+<table>
+{% endif %}
+<tbody>
+    <tr>
+        <td>
+            <font color="{{ headcol }}">
+                <h3 align="left">{{ thisblock.title }}</h3>
+            </font>
+            {% if thisblock.caption %}
+            <p align="left">
+                <font color="{{ text_color }}"{% if thisblock.size %} size="{{ thisblock.size }}"{% endif %}>
+                    {% if thisblock.style %}<{{ thisblock.style }}>{% endif %}
+                    {{ thisblock.caption }}
+                    {% if thisblock.style %}</{{ thisblock.style }}>{% endif %}
+                </font>
+            </p>
+            {% endif %}
+        </td>
+    </tr>
+</tbody>
+</table>

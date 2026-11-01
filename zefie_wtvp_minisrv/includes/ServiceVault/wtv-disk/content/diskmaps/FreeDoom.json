@@ -1,0 +1,195 @@
+{
+  "FreeDoom": {
+    "base": "file://disk/FreeDoom/",
+    "location": "content/FreeDoom/",
+    "partition_size": 44457280,
+	"service_owned": true,
+	"execute_end": "client:boota?partition=DoomROM&action=create&size=5242880&source=file://disk/FreeDoom/DoomWebTVfree.o",
+    "files": [
+      {
+		"display": "FreeDoom Application",
+        "file": "file://disk/FreeDoom/DoomWebTVfree.o.gz"
+      },
+      {
+		"display": "FreeDoom WebTV Data",
+        "file": "file://disk/FreeDoom/WebTV.wad.gz"
+      },
+      {
+		"display": "FreeDoom Game Data",
+        "file": "file://disk/FreeDoom/doom.wad"
+      },
+      {
+		"display": "FreeDoom Music 1 of 43",
+        "file": "file://disk/FreeDoom/music/d_adrian.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 2 of 43",
+        "file": "file://disk/FreeDoom/music/d_ampie.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 3 of 43",
+        "file": "file://disk/FreeDoom/music/d_betwee.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 4 of 43",
+        "file": "file://disk/FreeDoom/music/d_bunny.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 5 of 43",
+        "file": "file://disk/FreeDoom/music/d_countd.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 6 of 43",
+        "file": "file://disk/FreeDoom/music/d_ddtblu.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 7 of 43",
+        "file": "file://disk/FreeDoom/music/d_dead.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 8 of 43",
+        "file": "file://disk/FreeDoom/music/d_dm2ttl.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 9 of 43",
+        "file": "file://disk/FreeDoom/music/d_doom.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 10 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m1.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 11 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m2.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 12 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m3.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 13 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m4.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 14 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m5.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 15 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m6.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 16 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m7.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 17 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m8.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 18 of 43",
+        "file": "file://disk/FreeDoom/music/d_e1m9.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 19 of 43",
+        "file": "file://disk/FreeDoom/music/d_e2m1.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 20 of 43",
+        "file": "file://disk/FreeDoom/music/d_e2m2.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 21 of 43",
+        "file": "file://disk/FreeDoom/music/d_e2m3.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 22 of 43",
+        "file": "file://disk/FreeDoom/music/d_e2m4.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 23 of 43",
+        "file": "file://disk/FreeDoom/music/d_e2m6.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 24 of 43",
+        "file": "file://disk/FreeDoom/music/d_e2m7.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 25 of 43",
+        "file": "file://disk/FreeDoom/music/d_e2m8.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 26 of 43",
+        "file": "file://disk/FreeDoom/music/d_e3m1.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 27 of 43",
+        "file": "file://disk/FreeDoom/music/d_e3m2.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 28 of 43",
+        "file": "file://disk/FreeDoom/music/d_e3m3.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 29 of 43",
+        "file": "file://disk/FreeDoom/music/d_e3m8.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 30 of 43",
+        "file": "file://disk/FreeDoom/music/d_evil.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 31 of 43",
+        "file": "file://disk/FreeDoom/music/d_in_cit.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 32 of 43",
+        "file": "file://disk/FreeDoom/music/d_intro.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 33 of 43",
+        "file": "file://disk/FreeDoom/music/d_messag.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 34 of 43",
+        "file": "file://disk/FreeDoom/music/d_openin.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 35 of 43",
+        "file": "file://disk/FreeDoom/music/d_read_m.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 36 of 43",
+        "file": "file://disk/FreeDoom/music/d_romero.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 37 of 43",
+        "file": "file://disk/FreeDoom/music/d_runnin.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 38 of 43",
+        "file": "file://disk/FreeDoom/music/d_shawn.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 39 of 43",
+        "file": "file://disk/FreeDoom/music/d_stalks.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 40 of 43",
+        "file": "file://disk/FreeDoom/music/d_tense.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 41 of 43",
+        "file": "file://disk/FreeDoom/music/d_the_da.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 42 of 43",
+        "file": "file://disk/FreeDoom/music/d_ultima.mid.gz"
+      },
+      {
+		"display": "FreeDoom Music 43 of 43",
+        "file": "file://disk/FreeDoom/music/d_victor.mid.gz"
+      }
+    ]
+  }
+}

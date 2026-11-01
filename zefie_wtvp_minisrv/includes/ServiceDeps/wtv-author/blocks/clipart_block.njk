@@ -1,0 +1,34 @@
+{# Clipart block template for editing/previewing #}
+<p>
+    {% if state == "editing" %}
+    <TABLE href="wtv-author:/edit-block?docName={{ page }}&blockNum={{ number }}&numOfBlocks={{ numofblocks }}" nocolor width="100%">
+    {% else %}
+    <TABLE nocolor width="100%">
+    {% endif %}
+    {% if thisblock.title %}
+    <TR>
+        <TD align="center">
+            <font color="{{ headcol }}">
+                <H3>{{ thisblock.title }}</H3>
+            </font>
+        </TD>
+    </TR>
+    {% endif %}
+    <TR>
+        <td>
+            <CENTER>
+                <IMG SRC="wtv-author:/{{ thisblock.photo | base64_decode }}">
+            </CENTER>
+        </TD>
+    </TR>
+    <TR>
+        <TD valign="top">
+            {% if state == "editing" and (not thisblock.caption or thisblock.caption.length == 0) %}
+            <i>Choose this to change the image or add an optional caption.</i>
+            {% elif thisblock.caption %}
+            {{ thisblock.caption }}
+            {% endif %}
+        </TD>
+    </TR>
+    </TABLE>
+</p>

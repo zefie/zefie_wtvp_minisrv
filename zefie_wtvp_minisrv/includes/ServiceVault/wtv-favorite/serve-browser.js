@@ -1,18 +1,11 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favoritenum = 0;
-
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var numoffolders = folder_array.length;
-
-favoritenum = Object.keys(favarray).length;
+const foldername = request_headers.query.favorite_folder_name;
+const favarray = session_data.favstore.listFavorites(foldername);
+const folder_array = session_data.favstore.getFolders();
+const folderid = folder_array.indexOf(foldername);
+const numoffolders = folder_array.length;
+const favoritenum = Object.keys(favarray).length;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -210,11 +203,11 @@ if (folderid !== numoffolders - 1)
 
 // favorite loop
 Object.keys(favarray).forEach(function (k) {
-	var url = decodeURIComponent(favarray[k].url);
+	const url = decodeURIComponent(favarray[k].url);
 	data += `</td><td abswidth="139" valign="top">
 <table href="${url}" bgcolor="191919">
 <tbody><tr><td abswidth="139" align="center">`;
-	if (favarray[k].imagetype == "url")
+	if (favarray[k].imagetype === "url")
 		data += `<img src="${favarray[k].image}" width="70" vspace="5" height="52"><br>`;
 	else
 		data += `<img src="get-thumbnail?folder=${favarray[k].folder}&id=${favarray[k].id}" width="70" vspace="5" height="52"><br>`;
@@ -225,7 +218,7 @@ ${favarray[k].title}
 </font>
 </td></tr></tbody></table>
 </td></tr></tbody></table>`;
-	if ((parseInt(k) + 1) % 3 == 0) {
+	if ((parseInt(k) + 1) % 3 === 0) {
 		// every 3 objects
 		data += `</td></tr></tbody></table>
 <table cellspacing="0" cellpadding="0">

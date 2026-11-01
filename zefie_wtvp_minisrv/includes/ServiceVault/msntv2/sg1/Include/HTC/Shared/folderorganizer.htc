@@ -1,0 +1,1019 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2004 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         FolderOrganizer.htc
+//
+//  Description:  The FolderOrganizer behavior implements a folder organizer as a 
+//				  reusable DHTML component. This allows web authors to easily 
+//				  add a folder organizer with scrolling div to their content. 
+//
+//				  For usage details, take a look at :
+//				  private/msntv_core/help/FolderOrganizer/FolderOrganizer.htm	
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="FolderOrganizer" lightweight=true>
+
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+
+<PUBLIC:METHOD NAME="Open" />
+<PUBLIC:METHOD NAME="Close" />
+<PUBLIC:METHOD NAME="GetCheckedItems" />
+<PUBLIC:METHOD NAME="GetObjectArray" />
+<PUBLIC:METHOD NAME="GetHREFS" />
+<PUBLIC:METHOD NAME="GetDisplayNames" />
+
+<PUBLIC:PROPERTY NAME="StorageDevice" value=null />
+<PUBLIC:PROPERTY NAME="InitPath" value="" />
+<PUBLIC:PROPERTY NAME="ShowSelection" value=false />
+<PUBLIC:PROPERTY NAME="MultiSelection" value=true />
+<PUBLIC:PROPERTY NAME="SearchDepth" value=-1 />
+<PUBLIC:PROPERTY NAME="EnableDelete" value=true />
+<PUBLIC:PROPERTY NAME="EnableAddFolder" value=true />
+<PUBLIC:PROPERTY NAME="EnableRename" value=true />
+<PUBLIC:PROPERTY NAME="FolderIconURL" value="msntv:/htc/images/folder.png" />
+<PUBLIC:PROPERTY NAME="FolderNameConvention" value="" />
+<PUBLIC:PROPERTY NAME="MultiItemName" value="files" />
+<PUBLIC:PROPERTY NAME="ItemName" value="file" />
+<PUBLIC:PROPERTY NAME="ValidateNameFunction" value=null />
+<PUBLIC:PROPERTY NAME="ConfirmDeleteFunction" value=null />
+<PUBLIC:PROPERTY NAME="SortNodesFunction" value=null />
+<PUBLIC:PROPERTY NAME="Action" value=null />
+<PUBLIC:PROPERTY NAME="SourceItems" value=null />
+
+<PUBLIC:EVENT ID="onClickBtnID" NAME="onClickBtn" />
+<PUBLIC:EVENT ID="onClickItemID" NAME="onClickItem" />
+
+<PUBLIC:EVENT ID="onFolderFocusInID" NAME="onFolderFocusIn" />
+<PUBLIC:EVENT ID="onFolderFocusOutID" NAME="onFolderFocusOut" />
+
+<PUBLIC:EVENT ID="onAddCompleteID" NAME="onAddComplete" />
+<PUBLIC:EVENT ID="onRenameCompleteID" NAME="onRenameComplete" />
+<PUBLIC:EVENT ID="onRenameOneCompleteID" NAME="onRenameOneComplete" />
+<PUBLIC:EVENT ID="onErrorID" NAME="onError" />
+
+<PUBLIC:EVENT ID="onDeleteCompleteID" NAME="onDeleteComplete" />
+<PUBLIC:EVENT ID="onDeleteOneCompleteID" NAME="onDeleteOneComplete" />
+
+
+
+<PUBLIC:EVENT ID="onNoItemSelectedID" NAME="onNoItemSelected" />
+<PUBLIC:EVENT ID="onInvalidNameID" NAME="onInvalidName" />
+
+
+// Private methods (must still declare public)
+<PUBLIC:METHOD NAME="Cancel" />
+<PUBLIC:METHOD NAME="Delete" />
+<PUBLIC:METHOD NAME="Rename" />
+<PUBLIC:METHOD NAME="AddFolder" />
+<PUBLIC:METHOD NAME="FolderFocusIn" />
+<PUBLIC:METHOD NAME="FolderFocusOut" />
+<PUBLIC:METHOD NAME="RenameInputFocusIn" />
+<PUBLIC:METHOD NAME="RenameInputFocusOut" />
+<PUBLIC:METHOD NAME="SelectionInputFocusIn" />
+<PUBLIC:METHOD NAME="SelectionInputFocusOut" />
+
+<PUBLIC:METHOD NAME="ClickItem" />
+<PUBLIC:METHOD NAME="ClickButton" />
+<PUBLIC:METHOD NAME="OnClickSelectAll" />
+<PUBLIC:METHOD NAME="OnClickSelection" />
+<PUBLIC:METHOD NAME="OnRenameInputBlur" />
+
+<script>
+
+// global variables
+var _opened = false;
+
+var _totalFolderCount=0;
+var _checkedItemCount=0;
+
+var checkedItemsSrc;
+var HREFS=new Array();
+var DisplayNames=new Array();
+
+
+var ERROR_SUCCESS=0;
+
+var _VolumeName;
+
+function GetObjectArray(name)
+{
+  if(_opened)
+  {
+    var objs=element.all(name);
+	if(objs && objs.length)
+	   return objs;
+	else
+	{
+       var objArray= new Array();
+	   objArray[0]=objs;
+	   return objArray;
+	}
+  }
+  else
+    return null;
+}
+
+function GetHREFS()
+{
+  if(_opened)
+  {
+	return HREFS;
+  }
+  else
+    return null;
+}
+function GetDisplayNames()
+{
+  if(_opened)
+  {
+	return DisplayNames;
+  }
+  else
+    return null;
+}
+function Init()
+{	
+  _opened = false;
+  _totalFolderCount=0;
+}
+
+function Open()
+{
+   if(_opened)  // if already opened, do nothing
+     return;
+
+   _VolumeName = StorageDevice?StorageDevice.VolumeName:null;
+
+   var htmlStr="<div id=FolderOrganizerDiv width=100% height=100% style=\"display:none\">"+
+	                "<table id=FolderOrganizerTable style=\"width:100%; height:100%;\" cellspacing=0 cellpadding=0>"+
+					  "<tr>"+
+					    "<td valign=top width=72% height=100%>"+   
+						  "<table id=ListContainerTable width=100% height=100% cellspacing=0 cellpadding=0>"+
+						  "<tr><td colspan=2 height=15></td></tr>"+
+						   "<tr><td colspan=2 width=100% align=left><table width=100%  id=DescriptionTable cellspacing=0 cellpadding=0>"+
+						      "<tr><td width=15>&nbsp</td><td id=DescriptionCell height=30 vAlign=top align=left style='font-family:segoe;font-size:18px;color:#14224b;' ></td></tr>"+
+							  "<tr><td width=15 height=7></td><td></td></tr></table></td></tr>"+
+							"<tr><td colspan=2 style=\"width:100%; height:100%; vertical-align:top;\">"+
+							 "<table style=\"width:100%; height:100%;\" cellspacing=0 cellpadding=0 >"+
+							  "<tr id=SelectAllRow height=15 style='display:none'><td width=100%><table width=100% cellspacing=0 cellpadding=0><tr><td align=right style='font-size:16px;padding-bottom:5px'>Select All &nbsp<input type=checkbox id=SelectAllCheckbox onClick=\""+uniqueID+".OnClickSelectAll();\"></td><td width=7%></td></tr></table></td></tr>"+
+							  "<tr><td id=contentCell valign=top align=center>"+
+							   "<div id=_OrganizerScrollingDiv style='width:100%;height:100%;padding-left:0px;padding-right:20px;overflow: hidden;behavior:url(msntv:/HTC/ScrollingDIV.htc);'>"+
+							     "<table id=_OrganizerScrollingTable cellpadding=0 cellspacing=0 width=100%></table></div>"+
+							  "</td></tr>"+
+							 "</table>"+
+							"</td></tr>"+
+						   "</table>"+
+	                    "</td>"+
+	                    "<td style=\"width:28%\">"+
+						 "<div id=sideBar style='width:100%;height:100%'>"+
+	                     "<table id=ButtonContainerTable style=\"width:100%; height:100%;\" cellspacing=0 cellpadding=0>"+
+	                      "<tr><td height=5></td></tr>"+
+						  "<tr><td style=\"width:100%; vertical-align:top;\">"+
+	                       "<msntv:CustomButton name=OrganizerBtn id=AddFolderBtn style=\"display:none;\" label=\"Add\" onClick=\""+uniqueID+".AddFolder();\" />"+
+	                       "<msntv:CustomButton name=OrganizerBtn id=RenameBtn style=\"display:none;\" label=\"Rename\" onClick=\""+uniqueID+".Rename();\" />"+
+						   "<msntv:CustomButton name=OrganizerBtn id=DeleteBtn style=\"display:none;\" label=\"Delete\" onClick=\""+uniqueID+".Delete();\" />"+
+	                       "<msntv:CustomButton  name=OrganizerBtn id=UserDefinedBtn1 style=\"display:none;\" label=\"UserDefined1\" onClick=\""+uniqueID+".ClickButton('UserDefinedBtn1');\" />"+
+	                       "<msntv:CustomButton  name=OrganizerBtn id=UserDefinedBtn2 style=\"display:none;\" label=\"UserDefined2\" onClick=\""+uniqueID+".ClickButton('UserDefinedBtn2');\" />"+
+						   "<msntv:CustomButton name=OrganizerBtn id=CancelBtn label=\"Done\" onClick=\""+uniqueID+".ClickButton('CancelBtn');\" />"+
+  						  "</td></tr>"+
+	                      "<tr ><td id=TipCell valign=Center height=80% style='padding-left:5px;font-family:segoe;font-size:14px;color:#ffffff'>"+
+	                      "</td></tr>"+						   
+	                     "</table>"+
+						 "</div>"+
+						"</td>"+
+					   "</tr>"+
+					 "</table>"+
+				 "</div>";
+
+	element.innerHTML=htmlStr;
+    
+	_opened=true;
+
+	element.all.FolderOrganizerDiv.style.display="block"
+
+	BuildContent();
+
+	UpdateBtns();
+}
+
+
+function FireOnAddComplete()
+{
+   	oEvent = createEventObject();
+	onAddCompleteID.fire(oEvent);   
+}
+
+function FireOnDeleteComplete()
+{
+   	oEvent = createEventObject();
+	onDeleteCompleteID.fire(oEvent);   
+}
+
+function FireOnDeleteOneComplete(deletedItem)
+{
+   	oEvent = createEventObject();
+	oEvent.deletedItem=deletedItem;
+	onDeleteOneCompleteID.fire(oEvent);   
+}
+
+function FireOnRenameComplete()
+{
+   	oEvent = createEventObject();
+	onRenameCompleteID.fire(oEvent);   
+}
+
+function FireOnRenameOneComplete(oldName, newName)
+{
+   	oEvent = createEventObject();
+	oEvent.oldName=oldName;
+	oEvent.newName=newName;
+	onRenameOneCompleteID.fire(oEvent);   
+}
+
+function FireOnError(code,action)
+{
+   	oEvent = createEventObject();
+	oEvent.code=code;
+	oEvent.action=action;
+	onErrorID.fire(oEvent);   
+}
+
+
+function FireNoItemSelected()
+{
+   	oEvent = createEventObject();
+	onNoItemSelectedID.fire(oEvent);   
+}
+
+function FireOnInvalidName(name)
+{
+   	oEvent = createEventObject();
+	oEvent.result=name;
+	onInvalidNameID.fire(oEvent);   
+}
+
+
+
+function ClickButton(btnID)
+{
+	oEvent = createEventObject();
+	oEvent.result = btnID;
+	onClickBtnID.fire(oEvent);
+}
+
+function ClickItem()
+{
+    var index=event.srcElement.index;
+	if (UNDER_NT)
+		FolderFocusIn();
+	oEvent = createEventObject();
+	var resultArray= new Array();
+    resultArray[0]=HREFS[index]
+    resultArray[1]=DisplayNames[index]
+	oEvent.result = resultArray;
+
+	onClickItemID.fire(oEvent);
+}
+
+
+function GetFileCountInFolder(storageDevice, folderPath, mime)
+{
+   	if(!storageDevice)
+	   return 0;
+	
+	var xmlDoc = new ActiveXObject("Msxml2.DOMDocument");
+	var xmlData;
+	xmlDoc.async = false;
+    var count=0;
+
+ 	xmlData=storageDevice.EnumerateItems(folderPath,mime,1,-1,-1);
+
+	if (xmlData && xmlDoc.loadXML(xmlData)) 
+	{
+	var FileNodes = xmlDoc.selectNodes("//a:response[a:propstat/a:prop/a:iscollection = 0]");
+	count=FileNodes.length;
+	}
+	    
+	delete xmlDoc;
+	return count;
+}
+
+function BuildContent()
+{
+
+
+ _totalFolderCount=0;
+ _checkedItemCount=0;
+
+ ClearList();
+
+ if(Action=="add")
+ {
+	  var htmlStr= 
+		   "<table id=_OrganizerScrollingTable cellpadding=0 cellspacing=0 width=100% >"+
+		   "<tr><td rowspan=2 width=15></td><td width=180 id=AddFolderInputLabel style='font-family:segoe;font-size:18px;color:#000000'>Folder name:</td>"+ 
+		   "<td><input class=inputText type=text size=21 maxlength=30 id='NewFolderTextbox'></td><td rowspan=3 width=2%></tr>"+
+		   "<tr colspan=4><td height=10></td></tr>"+
+		   "<tr><td></td><td colspan=2 style='border:1px solid black;padding:2px;color:#666666;font-family:segoe;font-size:18px;'>"+FolderNameConvention+"</td></tr></table>";
+      
+	  element.all._OrganizerScrollingDiv.innerHTML=htmlStr
+      element.all.NewFolderTextbox.value="";
+
+	  return;
+ }
+
+ 
+ var xmlStr="";
+ 
+ 
+ if(MultiSelection)
+    SelectionInputType="checkbox";
+ else
+    SelectionInputType="radio";   
+
+ if(StorageDevice)
+ {
+	xmlStr=StorageDevice.EnumerateDirectories(InitPath,1);
+ }
+ 
+ if(xmlStr)
+ {
+	var xmlDoc = new ActiveXObject("Msxml2.DOMDocument");
+	xmlDoc.async = false;
+
+	if (xmlDoc.loadXML(xmlStr)) 
+	{
+      
+		  var FolderNodes = xmlDoc.selectNodes("//a:response[a:propstat/a:prop/a:iscollection = 1]");
+          var ItemArray=new Array();
+          
+		  for (i = 0; i < FolderNodes.length; i++)
+		  { 
+		      ItemArray[i]=FolderNodes.item(i);
+   		  }
+           
+          FolderNodes=ItemArray.sort(SortNodesFunction);
+		  delete ItemArray;
+
+          var index=0;
+
+		  for (index = 0; index < FolderNodes.length; index++)
+		  {
+			DisplayNames[index]=FolderNodes[index].selectSingleNode(".//a:displayname").text;
+			HREFS[index]=FolderNodes[index].selectSingleNode(".//a:href").text;
+
+		    var rowObj=element.all._OrganizerScrollingTable.insertRow(-1);
+			rowObj.width="100%";
+			if(FolderIconURL)
+			  rowObj.height=70;
+			else
+			  rowObj.height=45;			  
+			rowObj.align="right";
+			rowObj.id="FolderRow"
+			rowObj.style.paddingTop="6px"
+			rowObj.style.paddingBottom="6px"
+					    
+            var newCell=rowObj.insertCell(-1);
+			if(FolderIconURL)
+			  newCell.height=70;
+			else
+			  newCell.height=45;
+			newCell.width=12;
+			
+			if(ShowSelection)
+			{
+				var inputHTML="<input  name='SelectionInputName' style='position:relative;top:2px' id='ItemSelectionInput' type="+SelectionInputType+
+							  " index="+index+">";
+
+				newCell=rowObj.insertCell(-1);
+				newCell.id="SelectionInputCell";
+				newCell.width="15";
+				newCell.innerHTML=inputHTML;
+
+				newCell.all.ItemSelectionInput.onclick=OnClickSelection
+				newCell.all.ItemSelectionInput.onfocusin=SelectionInputFocusIn
+				newCell.all.ItemSelectionInput.onfocusout=SelectionInputFocusOut
+				
+				newCell.align="center";
+				newCell.vAlign="top";
+				newCell.style.paddingRight="5px"
+				newCell.style.borderTop="1px solid black"
+			}
+			else
+			{
+				var inputHTML="<input  name='SelectionInputName' style='display:none' id='ItemSelectionInput' type=" + SelectionInputType + ">";
+				newCell=rowObj.insertCell(-1);
+				newCell.id="SelectionInputCell";
+				newCell.width=1;
+				newCell.style.display="none";
+				newCell.innerHTML=inputHTML;
+			}
+			
+			var iconCellHTML="";
+			if(FolderIconURL)
+		    {
+				iconCellHTML="<div id=FolderIconDiv style='width:95px;height:70px;behavior:url(#default#alphaImageLoader);src:url("+FolderIconURL+")'><div id=ThumbnailDiv style='height:45px; width:60px; position:relative;left:19;top:10;'></div></div>"
+				newCell=rowObj.insertCell(-1);
+				newCell.innerHTML=iconCellHTML;
+				newCell.width=95;
+				newCell.height=70;
+				newCell.align="left";
+				newCell.vAlign="top";
+				newCell.id="IconCell";
+				newCell.style.borderTop="1px solid black"
+
+			}
+			if(Action!="rename")
+			{		
+				var itemHTML =	"<table width=100%  cellspacing=0 cellpadding=0 style='margin-left:5px'><tr width=100% valign=bottom>"+	
+								"<td id='FolderNameCell' width=100%>";
+
+				if(SearchDepth==0) //SearchDepth could be only 0 or 1
+				{
+					itemHTML +=	 "<span  id='FolderNameSpan' style='width:240px;text-overflow:ellipsis;overflow:hidden;color:#14224b;font-family:segoe;font-size:18px;white-space:nowrap;' >"+DisplayNames[index]+"</span>";
+					itemHTML += "</td>" +
+							"</tr><tr><td colspan=2 valign=top style='padding-left:0px;color:#666666;font-family:segoe;font-size:16px;'>";
+				}
+				else
+				{
+					itemHTML +=	 "<a href=# id=itemLink index="+index;
+					itemHTML +=	 "><span  id='FolderNameSpan' style='width:260px;text-overflow:ellipsis;overflow:hidden;color:#14224b;font-family:segoe;font-size:18px;white-space:nowrap;' >"+DisplayNames[index]+"</span></a>";
+					itemHTML += "</td>" +
+							"</tr><tr><td colspan=2 valign=top style='color:#666666;font-family:segoe;font-size:16px;'>";
+
+				}
+         
+            
+				var childItemCount=GetFileCountInFolder(StorageDevice,HREFS[index],"");
+				
+				itemHTML+=childItemCount+" "+(childItemCount>1?MultiItemName:ItemName);			
+				
+				itemHTML+="</td></tr></table>";
+				newCell=rowObj.insertCell(-1);
+				newCell.innerHTML=itemHTML;
+
+				
+				if(newCell.all.itemLink)
+				{	newCell.all.itemLink.onclick=ClickItem;
+					newCell.all.itemLink.onfocusin=FolderFocusIn;
+					newCell.all.itemLink.onfocusout=FolderFocusOut;
+				}
+
+				newCell.align="left";
+				newCell.vAlign="center";
+				newCell.id="ItemCell";
+				newCell.style.borderTop="1px solid black"
+			}
+			else // action is rename
+			{
+
+				var itemHTML =	"<table width=100%  cellspacing=0 cellpadding=0 style='margin-left:5px'>"+
+								"<tr width=100% valign=top>"+	
+								"<td id='FolderrenameInputCell' width=100% style='padding-top:3px'>"+
+								"<input class=inputText id=FolderRenameInput type=text maxlength=30 style='width:260px;' value='"+DisplayNames[index]+ "' index="+index+
+								"></td></tr></table>";
+
+				newCell=rowObj.insertCell(-1);
+				newCell.innerHTML=itemHTML;
+
+				newCell.all.FolderRenameInput.onblur=OnRenameInputBlur;
+				newCell.all.FolderRenameInput.onfocusin=RenameInputFocusIn;
+				newCell.all.FolderRenameInput.onfocusout=RenameInputFocusOut;
+
+				newCell.align="left";
+				newCell.vAlign="top";
+				newCell.id="ItemCell";
+				newCell.style.borderTop="1px solid black";
+
+			}
+
+		    _totalFolderCount++;
+
+		  } // end of for loop
+
+		  delete FolderNodes;
+	}
+
+  delete xmlDoc;
+
+ }
+
+
+ if(_totalFolderCount>1 && MultiSelection &&Action!="rename" && ShowSelection)
+    SelectAllRow.style.display="block";
+ else
+    SelectAllRow.style.display="none";
+
+}
+
+function OnRenameInputBlur()
+{
+
+  var src=event.srcElement;
+  var oldName=DisplayNames[src.index];
+
+  var rowObj=src.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement;
+
+  var newName=src.value;
+  
+  newName=TrimSpace(newName);
+  src.value=newName;
+
+  if(newName!=oldName)
+  {
+	 if(CallValidateNameFunction(newName)==false)
+     {
+	     
+         FireOnInvalidName(newName);
+		 src.value=oldName;
+		 rowObj.all.ItemSelectionInput.checked=false;
+		 return;
+	 }
+	 else
+	 {   
+	     var i=0;
+	     var count=DisplayNames.length;
+         var duplicateName=false;
+         
+		 var newnames=new Array()
+		 if(count>1)
+		   for(i=0;i<count;i++)
+		     newnames[i]=element.all.FolderRenameInput[i].value
+         else
+		     newnames[0]=element.all.FolderRenameInput.value
+		 
+		 var DisplayNamesCopy=new Array();
+		 
+		 for(i=0;i<count;i++)
+			 DisplayNamesCopy[i]=DisplayNames[i];
+
+         var result=RunRenameCheck(DisplayNamesCopy,newnames)
+		 if(result>=0)
+		 {
+			
+			rowObj.all.ItemSelectionInput.checked=false;
+			alert("There is name conflict. Please type a different name");
+			src.value=oldName;
+            rowObj.all.ItemSelectionInput.checked=false;
+		 }
+
+         else
+			rowObj.all.ItemSelectionInput.checked=true;
+
+		 delete newnames;
+		 delete DisplayNamesCopy;
+	 }
+  }
+  else
+		 rowObj.all.ItemSelectionInput.checked=false;
+   
+
+}
+
+function RunRenameCheck(oldNames, newNames)
+{
+  var count=oldNames.length;
+  for(i=0;i<count;i++)
+  { 
+    for(j=0;j<count;j++)
+	{
+	  if(newNames[i]==oldNames[j]&&j!=i)
+	    return i;
+	}	  
+	oldNames[i]=newNames[i];
+  }
+  return -1;
+}
+
+
+function GetCheckedItems()
+{ 
+
+
+  var items=new Array();
+
+  if(!_opened)
+     return null;
+ 
+  var Selections=element.all._OrganizerScrollingTable.all("SelectionInputName");
+
+  if(Selections && Selections.length)
+  {   
+	  var count=Selections.length;
+	  
+	  var i=0;
+	  var j=0;
+	  for(i=0;i<count;i++)
+	  {
+		 if(Selections[i].checked)
+		 {
+			 items[j]=new Array();
+			 items[j][0]=HREFS[i];
+			 if(Action!="rename")
+				items[j][1]=DisplayNames[i];
+			 else
+				items[j][1]=Selections[i].parentElement.parentElement.all.FolderRenameInput.value;
+				
+			 j++;
+		 }
+  	  } 
+
+  }
+  else if(Selections)
+  { 
+
+	 if(Selections.checked)
+	 {
+		 items[0]=new Array();
+		 items[0][0]=HREFS[0];
+         if(Action!="rename")
+		    items[0][1]=DisplayNames[0];
+		 else
+			items[0][1]=Selections.parentElement.parentElement.all.FolderRenameInput.value;
+
+	 }     
+
+  }
+
+  return items;
+}
+
+function OnClickSelectAll()
+{
+   var objs=GetObjectArray("ItemSelectionInput")
+   var i=0
+   
+   var fAllChecked=window.event.srcElement.checked;
+   for(i=0;i<objs.length;i++)
+   {
+        objs[i].checked=fAllChecked;
+   }
+
+     if(fAllChecked)
+        _checkedItemCount=objs.length;
+     else
+        _checkedItemCount=0;        
+}
+
+
+function OnClickSelection()
+{
+  var eventSrc=window.event.srcElement;
+  var type=eventSrc.type;
+
+  if (UNDER_NT)
+	FolderFocusIn();
+
+  if(type=="radio")
+      _checkedItemCount= (eventSrc.checked?1:0);
+  else if(type=="checkbox")
+  {
+      _checkedItemCount+= (eventSrc.checked?1:-1);
+
+	  if(_checkedItemCount==_totalFolderCount)
+		 SelectAllCheckbox.checked=true;
+	  else
+		 SelectAllCheckbox.checked=false;
+  }
+
+}
+
+
+
+function FolderFocusIn()
+{
+	oEvent = createEventObject();
+	oEvent.result = event.srcElement.index;
+	onFolderFocusInID.fire(oEvent);
+}
+
+function FolderFocusOut()
+{	
+	oEvent = createEventObject();
+	oEvent.result = event.srcElement.index;
+	onFolderFocusOutID.fire(oEvent);
+}
+
+function RenameInputFocusIn()
+{	
+    event.srcElement.select();
+	oEvent = createEventObject();
+	oEvent.result = event.srcElement.index;
+	onFolderFocusInID.fire(oEvent);
+}
+function RenameInputFocusOut()
+{	
+	oEvent = createEventObject();
+	oEvent.result = event.srcElement.index;
+	onFolderFocusOutID.fire(oEvent);
+}
+
+function SelectionInputFocusIn()
+{	
+	oEvent = createEventObject();
+	oEvent.result = event.srcElement.index;
+	onFolderFocusInID.fire(oEvent);
+}
+function SelectionInputFocusOut()
+{	
+	oEvent = createEventObject();
+	oEvent.result = event.srcElement.index;
+	onFolderFocusOutID.fire(oEvent);
+}
+
+function ClearList()
+{
+
+ if(_opened)
+ { 
+   // Clear Div.
+   if(element.all._OrganizerScrollingTable)
+   {
+       while(element.all._OrganizerScrollingTable.rows && element.all._OrganizerScrollingTable.rows[0])
+	      element.all._OrganizerScrollingTable.deleteRow(0);
+   }
+
+ }
+
+}
+
+
+
+function AddFolder()
+{
+  if(Action=="add")
+     DoAddFolder();
+  else
+     ClickButton("AddFolderBtn");
+}
+
+function DoAddFolder()
+{
+  
+
+     var newName=TrimSpace(NewFolderTextbox.value);
+	 
+
+	 if(CallValidateNameFunction(newName)==false)
+     {
+	     
+         FireOnInvalidName(newName);
+		 return;
+	 }
+	
+
+	 var errorCode=StorageDevice.CreateDirectory(InitPath, newName);
+
+	 if(errorCode==ERROR_SUCCESS)
+	    FireOnAddComplete();
+	 else
+		HandleError(errorCode,"create");
+
+}
+
+
+function Rename()
+{
+ if(Action=="rename")
+     DoRename();
+  else
+     ClickButton("RenameBtn");
+}
+
+function DoRename()
+{
+   var errorCode
+   
+   checkedItemsSrc=GetCheckedItems();
+   count = checkedItemsSrc.length;
+   var error = false;
+
+   if(count<1)
+   {
+     FireNoItemSelected();
+	 return;
+   }	
+  
+
+
+   for(i=0;i<count;i++)
+   {
+	  if((errorCode=StorageDevice.RenameFile(checkedItemsSrc[i][0],checkedItemsSrc[i][1]))!=ERROR_SUCCESS)
+	  {  
+		 if(HandleError(errorCode,"rename")==false)
+		 {
+			error=true;
+			break;
+		 }
+	  }
+	  else
+	  {
+			FireOnRenameOneComplete(checkedItemsSrc[i][0], checkedItemsSrc[i][1]);
+	  }
+	}
+
+	FireOnRenameComplete();	
+
+}
+
+
+function Delete()
+{
+  if(Action=="delete")
+     DoDelete();
+  else
+     ClickButton("DeleteBtn");
+
+}
+
+function DoDelete()
+{
+   checkedItemsSrc=GetCheckedItems();
+
+   var count=checkedItemsSrc.length;
+
+   if(count>0)
+   { 
+	 var NoConfirm=false;
+
+     if(count==1)
+	 {    
+          var result=CallConfirmDeleteFunction(checkedItemsSrc[0][1],false)
+		  if(result==0)
+		  {
+				 errorCode=StorageDevice.DeleteDirectory(checkedItemsSrc[0][0],false);
+			 					 
+				 if(errorCode!=ERROR_SUCCESS)
+				 {  
+					HandleError(errorCode, "delete");
+				 }
+				 else
+				 {	
+	                FireOnDeleteOneComplete(checkedItemsSrc[0]);
+					FireOnDeleteComplete();
+				 }
+
+
+		  }
+	 }
+     else
+	 {
+	     var deleted=false;
+		 for(i=0;i<count;i++)
+		 {
+			 var errorCode;
+
+			 var ExecuteDelete=false;
+
+			 if(!NoConfirm)
+			 {  
+			 
+                var result=CallConfirmDeleteFunction(checkedItemsSrc[i][1],true);
+				if(result==2)
+				{
+				    ExecuteDelete=false;
+					break;
+				}
+				else
+					ExecuteDelete=true;	
+					
+				if(result==1)
+					NoConfirm=true;		    
+			 }
+			 else
+				ExecuteDelete=true;
+
+			 if(ExecuteDelete)
+			 {
+				 errorCode=StorageDevice.DeleteDirectory(checkedItemsSrc[i][0],false);
+			 					 
+				 if(errorCode!=ERROR_SUCCESS)
+				 {  
+					if(HandleError(errorCode,"delete")==false)
+					  break;
+				 }
+				 else
+				 {
+				   deleted=true;
+	               if(!NoConfirm)
+				      FireOnDeleteOneComplete(checkedItemsSrc[i]);
+				    
+				 }
+			 }
+		 }
+
+		 if(deleted)
+		   FireOnDeleteComplete()
+	 }
+
+
+   }
+   else
+   {
+      FireNoItemSelected();
+   }
+
+}
+
+
+function HandleError(errorCode, action)
+{
+    var info="Error code: "+ errorCode;
+
+	FireOnError(errorCode, action);
+
+	return false; // true means continue, false means stop
+}
+
+function CallValidateNameFunction(name)
+{
+  var result=false;
+  var code= "result="+ValidateNameFunction+"(name)";
+  eval(code);
+  return result;
+}
+
+function CallConfirmDeleteFunction(item,multipleSelected)
+{
+  var result=false;
+  var code= "result="+ConfirmDeleteFunction+"(item,multipleSelected)";
+  eval(code);
+  return result;
+}
+
+function UpdateBtns()
+{
+
+
+  if(!StorageDevice)
+  {
+	DeleteBtn.style.display="none";	
+	AddFolderBtn.style.display="none";		
+	RenameBtn.style.display="none";
+	UserDefinedBtn1.style.display="none";
+	UserDefinedBtn2.style.display="none";
+	CancelBtn.label="Done";
+
+	return;
+  }
+
+  AddFolderBtn.style.display= EnableAddFolder?"block":"none";    
+  DeleteBtn.style.display= EnableDelete?"block":"none";
+  RenameBtn.style.display= EnableRename?"block":"none";
+  CancelBtn.label="Done";
+
+  if(Action=="add")
+  {
+	 DeleteBtn.style.display="none";	
+     RenameBtn.style.display="none";
+	 AddFolderBtn.focus();
+     CancelBtn.label="Cancel";
+  }
+  else  if(Action=="rename")
+  {
+	 DeleteBtn.style.display="none";	
+     AddFolderBtn.style.display="none";
+     CancelBtn.label="Cancel";
+  }
+
+  if(_totalFolderCount==0)
+  {
+	 DeleteBtn.style.display="none";	
+     RenameBtn.style.display="none";
+  }
+
+}
+
+
+function TrimSpace(str)
+{
+   while(str.charAt(0)==' ')
+      str=str.substr(1);
+   while(str.charAt(str.length-1)==' ')
+      str=str.substr(0,str.length-1);
+
+	return str;
+}
+
+
+
+function OnDeviceRemove(RemovedDevice)
+{
+  if(_opened && RemovedDevice.VolumeName==_VolumeName)
+  {
+  	ClearList();  
+  }
+}
+
+function OnDeviceAdd(NewDevice)
+{
+  if(_opened && NewDevice.VolumeName==_VolumeName)
+  	BuildContent();   
+}
+
+var Sink = new ActiveXObject("MSNTV.MultipleEventSink");
+Sink.AttachEvent(TVShell.StorageManager,"OnDeviceRemove" , OnDeviceRemove);
+Sink.AttachEvent(TVShell.StorageManager,"OnDeviceAdd" , OnDeviceAdd);	
+
+</script>

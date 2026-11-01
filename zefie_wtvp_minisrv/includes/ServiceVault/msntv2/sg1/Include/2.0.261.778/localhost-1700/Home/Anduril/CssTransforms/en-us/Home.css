@@ -1,0 +1,444 @@
+body {
+    font-family: Segoe;
+    margin: 0px;
+}
+
+td {
+    padding: 0px;
+}
+
+table {
+    border-collapse: collapse;
+    border: 0px;
+    border-spacing: 0px;
+    padding: 0px;
+}
+
+@media all {
+    IE\:CLIENTCAPS {
+        behavior: url(#default#clientCaps)
+    }
+}
+
+div.textMenu {
+    position: absolute;
+    left: 0;
+    top: 0px;
+    width: 560;
+    height: 34px;
+    background-color: #4F91D9;
+}
+
+table.textMenuTbl {
+    width: 560px;
+    height: 34px;
+}
+
+#helpIcon {
+    position: relative;
+    top: 0px;
+    left: 4px;
+    margin-left: 4px;
+    behavior: url(#default#alphaImageLoader);
+    width: 20px;
+    height: 20px;
+}
+
+.TextMenuLink {
+    font-size: 16px;
+}
+
+a.TextMenuLink:link,
+a.TextMenuLink:visited,
+a.TextMenuLink:hover {
+    color: #d2e4ee;
+}
+
+.TextMenuLinkSimulation {
+    font-size: 16px;
+    display: inline-block;
+    color: #d2e4ee;
+}
+
+td.leftGradientTD {
+    width: 280px;
+    height: 34px;
+    behavior: url(#default#gradient);
+    startColor: #1b5bb3;
+    endcolor: #4f91d9;
+    angle: 90;
+}
+
+td.rightGradientTD {
+    width: 280px;
+    height: 34px;
+    behavior: url(#default#gradient);
+    startcolor: #4f91d9;
+    endColor: #1b5bb3;
+    angle: 90;
+}
+
+div.infoPaneDiv {
+    position: absolute;
+    z-index: 1;
+    left: 0px;
+    top: 37px;
+    width: 100%;
+    height: 242px;
+    background-image: url(/Images/Home/HomeBG.jpg);
+    background-repeat: no-repeat;
+}
+
+div.promoImgDiv {
+    position: absolute;
+    top: 0px;
+    width: 178px;
+    height: 135px;
+    background-color: transparent;
+}
+
+div.personalPanelDiv {
+    position: absolute;
+    top: 135px;
+    left: 3px;
+    width: 178px;
+    height: 99px;
+    behavior: url(#default#gradient);
+    starttransparency: 100%;
+    endtransparency: 100%;
+    angle: 0;
+}
+
+div.promoPanelDiv {
+    position: absolute;
+    left: 189px;
+    top: 136px;
+}
+
+table.wthrTbl {
+    width: 174px;
+    height: 104px;
+}
+
+td.wthrCityCell {
+    width: 160px;
+    height: 18px;
+    text-align: left;
+}
+
+.wthrCityText {
+    font-size: 18px;
+    zoom: 95%;
+    font-weight: bold;
+    color: #020e29;
+    width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+td.wthrTempCond {
+    width: 85px;
+    height: 61px;
+    text-align: left;
+}
+
+td.wthrTempCell {
+    height: 22px;
+    text-align: left;
+}
+
+.wthrTempTxt {
+    font-size: 21px;
+    font-weight: bold;
+    color: #14224b;
+}
+
+td.wthrCondCell {
+    height: 39px;
+    text-align: left;
+}
+
+.wthrCondTxt {
+    font-size: 18px;
+    zoom: 95%;
+    color: #14224b;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 85px;
+    text-overflow: ellipsis
+}
+
+td.wthrCondIcon {
+    width: 65px;
+    height: 61px;
+}
+
+td.wthrProvider {
+    width: 160px;
+    height: 21px;
+    font-size: 18px;
+    zoom: 70%;
+}
+
+.stocksTbl {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 178px;
+    height: 102px;
+    table-layout: fixed;
+}
+
+.stocksRow {
+    height: 25px;
+}
+
+.stocksCell {
+    font-size: 18px;
+    zoom: 95%;
+    color: #14224b;
+}
+
+.stocksRule {
+    background-color: #6eb695;
+    height: 2px;
+}
+
+.critPxTbl {
+    margin: 0px;
+    width: 178px;
+    height: 107px;
+    table-layout: fixed;
+}
+
+.critPxHeading {
+    font-size: 18px;
+    zoom: 95%;
+    color: #020e29;
+    font-weight: bold;
+}
+
+.critPxShowTitle {
+    font-size: 18px;
+    zoom: 95%;
+    color: #14224b;
+    width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.critPxTime {
+    font-size: 18px;
+    zoom: 90%;
+    color: #14224b;
+}
+
+div.newsHdlnTitleDiv {
+    position: absolute;
+    left: 0px;
+    top: -28px;
+    width: 265px;
+    height: 22px;
+}
+
+span.newsHdlnTitleText {
+    font-size: 21px;
+    color: #824107;
+    font-weight: bold;
+    vertical-align: middle;
+}
+
+div.clockDiv {
+    position: absolute;
+    left: 350px;
+    top: 10px;
+    width: 200px;
+    height: 21px;
+    text-align: right;
+    font-size: 16px;
+}
+
+a.clockLink {
+    font-size: 16px;
+}
+
+    a.clockLink:link,
+    a.clockLink:visited,
+    a.clockLink:hover {
+        color: #020e29;
+    }
+
+div.newsHdlnDiv {
+    position: absolute;
+    left: 189px;
+    top: 33px;
+    width: 355px;
+    height: 78px;
+}
+
+td.newsHdlnCell {
+    height: 24px;
+}
+
+a.newsHdlnLink {
+    font-size: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 347px;
+}
+
+    a.newsHdlnLink:link,
+    a.newsHdlnLink:visited,
+    a.newsHdlnLink:hover {
+        color: #020e29;
+    }
+
+a.newsHdlnLinkShort {
+    font-size: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 337px;
+}
+
+    a.newsHdlnLinkShort:link,
+    a.newsHdlnLinkShort:visited,
+    a.newsHdlnLinkShort:hover {
+        color: #020e29;
+    }
+
+div.moreNewsDiv {
+    position: absolute;
+    left: 161px;
+    top: 71px;
+    width: 200px;
+}
+
+a.moreNewsLink,
+a.moreNewsLink:link,
+a.moreNewsLink:visited,
+a.moreNewsLink:hover {
+    font-size: 18px;
+    color: #0b1d60;
+}
+
+table.MoreUsingLinkTable {
+    height: 26px;
+}
+
+td.promoHdlnTitle {
+    font-size: 21px;
+    font-weight: bold;
+}
+
+td.promoHdlnCell {
+    height: 26px;
+}
+
+a.promoHdlnLink {
+    font-size: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 357px;
+}
+
+    a.promoHdlnLink:link,
+    a.promoHdlnLink:visited,
+    a.promoHdlnLink:hover {
+        color: #020e29;
+    }
+
+div.searchDiv {
+    position: absolute;
+    top: 275px;
+    left: 0px;
+    width: 100%;
+    height: 39px;
+}
+
+div.searchCenterDiv {
+    position: absolute;
+    top: 4px;
+    left: 0px;
+    width: 560x;
+    height: 33px;
+    background-color: #1381e0;
+}
+
+table.searchTbl {
+    width: 560px;
+    height: 33px;
+    background-color: transparent;
+}
+
+a.searchLink {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+    a.searchLink:link,
+    a.searchLink:visited,
+    a.searchLink:hover {
+        color: #f2f2f2;
+    }
+
+.searchLabelText {
+    font-size: 18px;
+    color: #f2f2f2;
+}
+
+input.searchField {
+    background-color: #485364;
+    color: white;
+}
+
+.searchFieldText {
+    font-size: 14px;
+    color: #f2f2f2;
+}
+
+.searchTopRule {
+    position: absolute;
+    left: 0;
+    top: 0px;
+    width: 560;
+    height: 2px;
+    background-color: #0c7faa;
+}
+
+.searchBotRule {
+    position: absolute;
+    top: 308;
+    left: 0;
+    width: 560;
+    height: 2px;
+    background-color: #1c4373;
+}
+
+div.iconNavBar {
+    position: absolute;
+    top: 314px;
+    left: 0;
+    width: 100%;
+    height: 70px
+}
+
+table.iconNavBarMasterTbl {
+    width: 560px;
+    height: 70px;
+    background-image: url(/Images/Home/HomeLaunchBarBG.jpg);
+}
+
+table.iconNavBarTbl {
+    height: 70px;
+    background-color: transparent;
+}
+
+td.iconNavBarTblFrameCell {
+    width: 560px;
+    height: 61px;
+}

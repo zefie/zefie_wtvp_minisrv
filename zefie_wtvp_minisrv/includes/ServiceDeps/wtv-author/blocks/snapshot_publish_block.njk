@@ -1,0 +1,28 @@
+{# Snapshot block template for publishing #}
+<p>
+    <TABLE nocolor width="100%">
+        {% if thisblock.title %}
+        <TR>
+            <TD align="center">
+                <font color="{{ headcol }}">
+                    <H3>{{ thisblock.title }}</H3>
+                </font>
+            </TD>
+        </TR>
+        {% endif %}
+        <TR>
+            <TD>
+                <CENTER>
+                    <IMG SRC="media/captureA{{ number }}.jpg">
+                </CENTER>
+            </TD>
+        </TR>
+        <TR>
+            <TD valign="top">
+                {% if thisblock.caption %}
+                {{ thisblock.caption }}
+                {% endif %}
+            </TD>
+        </TR>
+    </TABLE>
+</p>

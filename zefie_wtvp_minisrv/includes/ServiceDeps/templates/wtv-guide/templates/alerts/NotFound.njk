@@ -1,0 +1,17 @@
+{% set title = "Page was not found" %}
+{% set heading = "Page was not found" %}
+{% set error_code = "404 Not Found" %}
+{% set error_description = "a server result" %}
+{% set content %}
+This message means that
+the publisher could not find
+a particular page that was requested.
+<p>
+If you were typing in a Web address, you
+can check the address to make sure it is accurate.
+<p>
+This message also appears if a page's author
+mistyped the address of another page.
+{% endset %}
+
+{% include "error_base.njk" %}

@@ -1,0 +1,48 @@
+<PUBLIC:COMPONENT lightweight="true">
+<PUBLIC:ATTACH EVENT="oncontentready" HANDLER="Init" />
+</PUBLIC:COMPONENT>
+
+<SCRIPT>
+function Init()
+{
+	var bgTopDiv = element.document.createElement("DIV");
+	var bgMidDiv = element.document.createElement("DIV");
+	var bgBottomDiv = element.document.createElement("DIV");
+	var url = "";
+
+	bgTopDiv.style.position = bgMidDiv.style.position = bgBottomDiv.style.position = "absolute";
+	bgTopDiv.style.pixelLeft = bgMidDiv.style.pixelLeft = bgBottomDiv.style.pixelLeft = 0;
+	bgTopDiv.style.pixelRight = bgMidDiv.style.pixelRight = bgBottomDiv.style.pixelRight =
+		-parseInt(currentStyle.marginLeft) - parseInt(currentStyle.marginRight);
+	bgTopDiv.style.pixelTop = 0;
+	bgMidDiv.style.pixelTop = 15;
+	bgBottomDiv.style.pixelBottom = 0;
+	bgTopDiv.style.pixelHeight = bgBottomDiv.style.pixelHeight = 15;
+	bgMidDiv.style.height = element.clientHeight-30;
+	bgMidDiv.style.zIndex = bgTopDiv.style.zIndex = bgBottomDiv.style.zIndex=-1;
+	
+	if (element.clientHeight >= 270) {
+		url = "url(msntv:/Panels/Images/ErrorDialogLargeBG.jpg)";
+	}	
+	else {
+		if (element.clientWidth >= 340)
+			url = "url(msntv:/Panels/Images/ErrorDialogSmallBG.jpg)";
+		else
+			url = "url(msntv:/Panels/Images/ErrorAnimationBG.jpg)";
+	}		
+	
+	bgTopDiv.innerHTML = "<img src='msntv:/Panels/Images/ErrorPanelTopLeftCorner.jpg' style='width:15px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/ErrorPanelTopStretch.jpg' style='width:" + (element.clientWidth-30) + "px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/ErrorPanelTopRightCorner.jpg' style='width:15px;height:15px'>";	
+	bgMidDiv.innerHTML = "<img src='msntv:/Panels/Images/ErrorPanelLeftStretch.jpg' style='vertical-align:top;width:15px;height:100%' >" +
+					 	"<span style='background:#87B8EA " + url + " no-repeat top center; width:" + (element.clientWidth-30) + "px;height:100%;'></span>" +
+						"<img src='msntv:/Panels/Images/ErrorPanelRightStretch.jpg' style='vertical-align:top;width:15px;height:100%' >";
+	bgBottomDiv.innerHTML = "<img src='msntv:/Panels/Images/ErrorPanelBottomLeftCorner.jpg' style='width:15px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/ErrorPanelBottomStretch.jpg' style='width:" + (element.clientWidth-30) + "px;height:15px'>" +
+						"<img src='msntv:/Panels/Images/ErrorPanelBottomRightCorner.jpg' style='width:15px;height:15px'>";	
+	
+	element.document.body.appendChild(bgMidDiv);
+	element.document.body.appendChild(bgTopDiv);
+	element.document.body.appendChild(bgBottomDiv);
+}
+</SCRIPT>

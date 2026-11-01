@@ -218,7 +218,7 @@ for(var loop = 0; loop < vCount; loop++) {
 				<!-- draw Try It button if the info has been passed from the service -->
 				appUrl = document.formInfo.tryItUrl.value;
 				if (appUrl != "" ) {
-					if ( appUrl.substring(0,10) == "wtv-tricks" ) {
+					if ( appUrl.slice(0,10) == "wtv-tricks" ) {
 						if ( document.formInfo.tryItLabel.value.length == 4 ) {
 							document.write("<input onclick='tryApp()' value='Try " +  document.formInfo.tryItLabel.value + "' borderimage='file://ROM/Borders/ButtonBorder2.bif' type=button usestyle width=110>");
 						} else {

@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 // max of 6, any more will be ignored
 
@@ -108,8 +108,8 @@ Featured discussions
 <td>
 <td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>`;
 
-var featuredGroups = minisrv_config.services[service_name].featuredGroups;
-var limit = 6;
+const featuredGroups = minisrv_config.services[service_name].featuredGroups;
+const limit = 6;
 while (featuredGroups.length > limit) featuredGroups.pop(); // remove anything passing our limit
 
 function printGroup(group) {
@@ -117,12 +117,12 @@ function printGroup(group) {
 }
 
 // evens
-Object.keys(featuredGroups).forEach((k) => { if (k % 2 == 0) { data += printGroup(featuredGroups[k]); } });
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 === 0) { data += printGroup(featuredGroups[k]); } });
 
 if (featuredGroups.length > 1) data += `<td WIDTH=20><td WIDTH=198 HEIGHT=220 VALIGN=top ALIGN=left>`;
 
 // odds
-Object.keys(featuredGroups).forEach((k) => { if (k % 2 != 0) data += printGroup(featuredGroups[k]); });
+Object.keys(featuredGroups).forEach((k) => { if (k % 2 !== 0) data += printGroup(featuredGroups[k]); });
 
 
 data += `

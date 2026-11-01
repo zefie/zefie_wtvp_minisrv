@@ -1,15 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 wtv-noback-all: wtv-
 wtv-expire-all: wtv-
 Content-type: text/html
 wtv-service: reset
-`+getServiceString('wtv-1800');
+`+wtvshared.getServiceString('wtv-1800');
 
 
 // HackTV Homepage is default
-var url="file://Disk/Browser/Games/Games.html"; 
+let url="file://Disk/Browser/Games/Games.html";
 
 if (request_headers.query.url) {
 	url = request_headers.query.url;

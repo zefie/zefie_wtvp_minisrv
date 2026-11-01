@@ -57,7 +57,7 @@ To write an e-mail message, follow these steps:
 		<spacer type=vertical height=20>
 	
 First, if you're not already in Mail, choose <b>Mail</b> from `;
-if (session_data.hasCap("client-has-tv-experience"))
+if (session_data.capabilities.get("client-has-tv-experience"))
 	data += "Web Home"
 else
 	data += "Home"
@@ -66,7 +66,7 @@ data += ` or press the <b>Mail</b> key on your keyboard.
 			<td width=10>
 			<td width=267 valign=top>
 				<table align=right cellpadding=0 cellspacing=0 background="`;
-if (session_data.hasCap("client-has-tv-experience"))
+if (session_data.capabilities.get("client-has-tv-experience"))
 	data += "wtv-guide:/images/home-plus.jpg"
 else
 	data += "wtv-guide:/images/home-classic.jpg"

@@ -1,14 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31424.327
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "zefie_wtvp_minisrv", "zefie_wtvp_minisrv\zefie_wtvp_minisrv.njsproj", "{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{43F45808-5970-4BB5-8226-A7E4540BA531}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "zefie_wtvp_minisrv", "zefie_wtvp_minisrv\zefie_wtvp_minisrv.esproj", "{644B4471-7FDD-4624-AED8-FC0C118182F2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,10 +16,12 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{31B77D0C-F03D-43A7-BF7F-FAD7174728BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{644B4471-7FDD-4624-AED8-FC0C118182F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{644B4471-7FDD-4624-AED8-FC0C118182F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{644B4471-7FDD-4624-AED8-FC0C118182F2}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{644B4471-7FDD-4624-AED8-FC0C118182F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{644B4471-7FDD-4624-AED8-FC0C118182F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{644B4471-7FDD-4624-AED8-FC0C118182F2}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

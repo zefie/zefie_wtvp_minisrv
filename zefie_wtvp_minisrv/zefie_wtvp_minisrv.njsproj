@@ -202,6 +202,8 @@
     <Content Include="includes\ServiceVault\http_pc\favicon.ico" />
     <Content Include="includes\ServiceVault\http_pc\index.js" />
     <Content Include="includes\ServiceVault\http_pc\viewergen\index.js" />
+    <Content Include="includes\ServiceVault\SharedROMCache\h.js" />
+    <Content Include="includes\ServiceVault\SharedROMCache\n.js" />
     <Content Include="includes\ServiceVault\wtv-author\add-block.js" />
     <Content Include="includes\ServiceVault\wtv-author\add-media-to-block.js" />
     <Content Include="includes\ServiceVault\wtv-author\block-preview.js" />

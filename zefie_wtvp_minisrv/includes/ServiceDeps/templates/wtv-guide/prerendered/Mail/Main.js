@@ -224,11 +224,11 @@ document.indexForm.indexSubcat.value = "0";
 drawAll();
 }
 function goToPage(a,b) {	str = subCatUrl[a][b];
-if (str.substring(0,4) == "faq:") {	goToStr = str.substring(4,str.length);
+if (str.slice(0,4) == "faq:") {	goToStr = str.slice(4,str.length);
 goToHelpCenter(goToStr);
-} else if (str.substring(0,9) == "non-help:") {	goToStr = str.substring(9,str.length);
+} else if (str.slice(0,9) == "non-help:") {	goToStr = str.slice(9,str.length);
 goToUrl(goToStr);
-} else if (str.substring(0,7) == "newFAQ:") {	goToStr = str.substring(7,str.length);
+} else if (str.slice(0,7) == "newFAQ:") {	goToStr = str.slice(7,str.length);
 goToFAQURL(goToStr);
 } else {	goToStr = ('wtv-guide:/help?' + str);
 goToUrl(goToStr);
@@ -279,13 +279,13 @@ go back to it. If not, just go to it. If wholeString is
 specified, it looks for perfect matches of the whole string.
 */
 ind = gvnStr.indexOf("wtv-token");
-if (ind > -1) {	gvnStr = gvnStr.substring(0,ind);
+if (ind > -1) {	gvnStr = gvnStr.slice(0,ind);
 }
 window.message("gvnStr=" + gvnStr);
 foundInBackList = false;
 for (i=history.length; i--; i>0 ) {	if ( wholeString != null ) {	testStr = history[i];
 } else {	str = history[i];
-testStr = str.substring(0, gvnStr.length);
+testStr = str.slice(0, gvnStr.length);
 }
 if ( testStr == gvnStr ) {	i++;
 foundInBackList = true;

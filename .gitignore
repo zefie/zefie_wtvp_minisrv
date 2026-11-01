@@ -372,3 +372,10 @@ FodyWeavers.xsd
 !/zefie_wtvp_minisrv/PageBuilderVault/http_pb/clipart
 !*.gitkeep
 /user_config.json
+
+# CodeQL
+codeql-custom-queries-javascript/
+codeql/
+/zefie_wtvp_minisrv/test_prereg.js
+/zefie_wtvp_minisrv/test_telly.js
+/zefie_wtvp_minisrv/test_telly2.js

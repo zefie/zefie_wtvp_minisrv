@@ -1,17 +1,16 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 Content-Type: text/html`;
 
-var WTVRegister = require(classPath + "/WTVRegister.js");
-var wtvr = new WTVRegister(minisrv_config);
-var namerand = Math.floor(Math.random() * 100000);
-var nickname = (minisrv_config.config.service_name + '_' + namerand)
-var human_name = nickname;
-var isOldBuild = wtvshared.isOldBuild(session_data);
-var form_data = `<input type=button action="ValidateAgreement?registering=true&subscriber_name=${human_name}&subscriber_username=${nickname}" text="#dddddd" Value="Quick Reg" name="speedyreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" width=130>`;
-if (minisrv_config.config.allow_guests) form_data += `<input type=button text="#dddddd" action="BeMyGuest" Value="Sign in as Guest" name="noreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" width=170 >`;
-var main_data = `<form action="ValidateAgreement"
+const WTVRegister = require(classPath + "/WTVRegister.js");
+const wtvr = new WTVRegister(minisrv_config);
+const namerand = Math.floor(Math.random() * 100000);
+const nickname = (minisrv_config.config.service_name + '_' + namerand)
+const human_name = nickname;
+const isOldBuild = wtvshared.isOldBuild(session_data);
+let form_data = `<input type=button action="ValidateAgreement?registering=true&subscriber_name=${human_name}&subscriber_username=${nickname}" text="#dddddd" Value="Quick Reg" name="speedyreg" borderimage="file://ROM/Borders/ButtonBorder2.bif" width=130>`;
+const main_data = `<form action="ValidateAgreement"
 ENCTYPE="x-www-form-encoded" METHOD="POST">
 <input type=hidden name=registering value="true">
 Welcome to the ${minisrv_config.config.service_name} Mini Service, operated by ${minisrv_config.config.service_owner}.

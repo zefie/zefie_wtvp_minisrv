@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName;
-var page = session_data.pagestore.loadPage(docName)
-var site = session_data.pagestore.getPublishDomain();
+const docName = request_headers.query.docName;
+const page = session_data.pagestore.loadPage(docName)
+const site = session_data.pagestore.getPublishDomain();
 
 
 headers = `200 OK
@@ -109,7 +109,7 @@ Would you like to:
 <tr>
 <td>
 <img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0>
-<a href=wtv-setup:/appendto-mail-signature?appendstringURL=http%3A%2F%2F${encodeURIComponent(site)}%3A1640%2F${session_data.getSessionData("subscriber_username")}%2F${page.publishname}%2F&appendstring=${page.title}&alert=The%20address%20has%20been%20added%20to%20your%20mail%20signature.
+<a href=wtv-setup:/appendto-mail-signature?appendstringURL=http%3A%2F%2F${wtvshared.escape(site)}%3A1640%2F${session_data.getSessionData("subscriber_username")}%2F${page.publishname}%2F&appendstring=${page.title}&alert=The%20address%20has%20been%20added%20to%20your%20mail%20signature.
 ><font effect=shadow><B>add its address to your mail signature?</B></font></a>
 <tr>
 <td>

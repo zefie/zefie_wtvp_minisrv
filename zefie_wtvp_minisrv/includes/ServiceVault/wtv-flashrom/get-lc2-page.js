@@ -1,13 +1,13 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 request_is_async = true;
 
 if (!request_headers.query.path) {
-	var errpage = wtvshared.doErrorPage(400);
+	const errpage = wtvshared.doErrorPage(400, null, "Missing flashrom path");
 	headers = errpage[0];
 	data = errpage[1];
 } else {
-	if (request_headers.Referer == service_name + ":/lc2-download-complete?") {
+	if (request_headers.Referer === service_name + ":/lc2-download-complete?") {
 		headers = `200 OK
 Content-type: text/html
 minisrv-no-mail-count: true
@@ -16,8 +16,8 @@ Location: ${service_name}:/lc2-download-complete?`
 		data = '';
 		sendToClient(socket, headers, data);
 	} else {
-		var wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, (minisrv_config.services[service_name].debug ? false : true));
-		var request_path = request_headers.query.path;
+		const wtvflashrom = new WTVFlashrom(minisrv_config, service_vaults, service_name, minisrv_config.services[service_name].use_zefie_server, false, (minisrv_config.services[service_name].debug ? false : true));
+		const request_path = request_headers.query.path;
 
 		// read flashrom header info into array using WTVFlashrom class	
 		wtvflashrom.getFlashromMeta(request_path, function (data, headers) {
@@ -34,20 +34,52 @@ async function processLC2DownloadPage(flashrom_info, headers, numparts = null) {
 		sendToClient(socket, headers, data);
 		return false;
 	}
-	if (numparts != null) flashrom_info.part_count = parseInt(numparts);
-	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.substring(flashrom_info.message.length - 4).replace(/\D/g, ''));
+	if (numparts !== null) flashrom_info.part_count = parseInt(numparts);
+	if (!flashrom_info.part_count) flashrom_info.part_count = parseInt(flashrom_info.message.slice(flashrom_info.message.length - 4).replace(/\D/g, ''));
 	if (parseInt(flashrom_info.part_number) >= 0 && flashrom_info.rompath && flashrom_info.next_rompath) {
 		if (!flashrom_info.message && flashrom_info.is_bootrom) {
+			flashrom_info.part_count = 16;
 			flashrom_info.message = "BootRom Part " + (flashrom_info.part_number + 1) + " of " + flashrom_info.part_count;
 		}
 
 		if (!flashrom_info.is_last_part) {
-			flashrom_info.next_rompath = request_headers.request_url.replace(escape(request_headers.query.path), escape(flashrom_info.next_rompath.replace(service_name+":/","")));
+			flashrom_info.next_rompath = service_name + ":/get-lc2-page?path=" + wtvshared.escape(flashrom_info.next_rompath.replace(service_name + ":/", ""));
 		}
+
+		console.log(flashrom_info.next_rompath);
+		const romtype = ssid_sessions[socket.ssid].get("wtv-client-rom-type");
+		let defaultDownloadTime;
+		switch (romtype) {
+			case "US-LC2-disk-0MB-8MB":
+			case "US-LC2-disk-0MB-8MB-softmodem-CPU5230":
+			case "US-LC2-flashdisk-0MB-16MB-softmodem-CPU5230":
+			case "US-WEBSTAR-disk-0MB-16MB-softmodem-CPU5230":
+			case "US-DTV-disk-0MB-32MB-softmodem-CPU5230":
+				defaultDownloadTime = 30;
+				break;
+			case "US-BPS-flashdisk-0MB-8MB-softmodem-CPU5230":
+				defaultDownloadTime = 20;
+				break;
+			default:
+				defaultDownloadTime = 15;
+				break;
+		}
+		let downloadTime = defaultDownloadTime;
+		const session = ssid_sessions[socket.ssid];
+		const now = Date.now();
+		if (session.lastDownloadTime) {
+			const elapsedMinutes = Math.ceil((now - session.lastDownloadTime) / 60000);
+			const remainingParts = flashrom_info.part_count - flashrom_info.part_number - 1;
+			downloadTime = elapsedMinutes * remainingParts;
+		}
+		session.lastDownloadTime = now;
+
+		if (isNaN(downloadTime) || downloadTime < 1) downloadTime = 1;
+		
 
 		headers = `200 OK
 Content-type: text/html
-minisrv-no-mail-count: true`
+minisrv-no-mail-count: true`;
 
 		data = `<html>
 <head>
@@ -98,16 +130,16 @@ Updating now
 <font size=+1>
 Your ${session_data.getBoxName()} is being<br>updated automatically.
 <p> <font size=+1>
-This will take a while, and<br>then you can use your ${session_data.getBoxName()} again.
+This will take about ${downloadTime} minute${downloadTime !== 1 ? "s" : ""} and<br>then you can use your ${session_data.getBoxName()} again.
 `;
-		if (flashrom_info.is_bootrom && flashrom_info.part_number == (flashrom_info.part_count - 1)) {
+		if (flashrom_info.is_bootrom && flashrom_info.part_number === (flashrom_info.part_count - 1)) {
 			data += `<p>
 	The system will pause for about 30 seconds at the end of this
 	update.  Please <strong>do not</strong> interrupt the system
 	during this time.
 	`
 		}
-data += `
+		data += `
 </font>
 <br><br><br><br><br>
 <upgradeblock width=250 height=15
@@ -158,10 +190,10 @@ ${flashrom_info.message}
 </body>
 </html>`;
 	} else {
-		var errpage = wtvshared.doErrorPage(400)
+		const errpage = wtvshared.doErrorPage(400, null, "Invalid or incomplete flashrom metadata");
 		headers = errpage[0];
 		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
 		data = errpage[1];
-    }
+	}
 	sendToClient(socket, headers, data);
 }

@@ -61,7 +61,7 @@ message will be sent.
 			<td width=10>
 			<td width=267 valign=top>
 				<table align=right cellpadding=0 cellspacing=0 background="`;
-if (session_data.hasCap("client-has-tv-experience"))
+if (session_data.capabilities.get("client-has-tv-experience"))
 	data += "wtv-guide:/images/help/mail/sendmail-plus.jpg"
 else
 	data += "wtv-guide:/images/help/mail/sendmail-classic.jpg"

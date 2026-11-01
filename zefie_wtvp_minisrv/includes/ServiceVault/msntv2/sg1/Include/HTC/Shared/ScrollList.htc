@@ -1,0 +1,161 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2003 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         ScrollList.htc
+//
+//  Description:  The ScrollList behavior implements a scrolling list as a 
+//				  reusable DHTML component. This allows web authors to easily 
+//				  add a list (table) with a scrollbar to their content. 
+
+//				  For usage details, take a look at :
+//				  private/msntv_core/help/ScrollList/ScrollList.htm	
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="scrollList" lightweight=true>
+
+<PUBLIC:ATTACH EVENT="oncontentready" ONEVENT="Init()" />
+
+<PUBLIC:METHOD NAME="InsertRow" />
+<PUBLIC:METHOD NAME="InsertCellHTML" />		
+
+<PUBLIC:PROPERTY ID="ScrollListTableID" NAME="ScrollListTable" GET="get_ScrollListTable"  /> 
+<PUBLIC:PROPERTY ID="ScrollListDiv"   NAME="ScrollListDiv" GET="get_ScrollListDiv"  /> 
+<PUBLIC:PROPERTY NAME="disableHTC" />	<!-- use when already inside a scrolling DIV-->
+
+<PUBLIC:DEFAULTS style="{color:black; font-family: Arial; font-size: 16pt; cursor:hand; overflow-y:auto; overflow-x:auto;}" />
+
+<SCRIPT LANGUAGE="JScript">
+
+//+----------------------------------------------------------------------------
+//
+//  Global Variables       
+//
+//-----------------------------------------------------------------------------
+
+var _scrollListTable;
+var _scrollListDiv;
+var lastRow;
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       Init()
+//
+//  Description:    Called during the initialization of the behavior.
+//
+//  Arguments:      none
+//
+//  Returns:        nothing
+//
+//-----------------------------------------------------------------------------
+
+function Init()
+{	
+	var str="";
+	if ( disableHTC == "" || disableHTC == "true" )
+		str+="<div id=contentDiv style='overflow-y:auto; height:100%;'>";
+	else
+		str+="<div id=contentDiv style='overflow-y:auto; height:100%; padding-right:23px; behavior: url(../HTC/ScrollingDIV.htc);' preemptivescroll='false'>";
+	str+="<table id=contentTable  cellspacing=0 cellpadding=0 border=0px >";	
+	str+="</table>";
+	str+="</div>";
+		
+	innerHTML = str;
+
+	_scrollListDiv  = all["contentDiv"];
+	_scrollListTable  = all["contentTable"];
+
+	if (currentStyle.scrollincrement)
+			_scrollListDiv.scrollincrement=currentStyle.scrollincrement;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       scrollListTable
+//
+//  Description:    Handles scrollListTable property.
+//
+//  Arguments:      none
+//
+//  Returns:        The scrollList table object
+//
+//-----------------------------------------------------------------------------
+
+function get_ScrollListTable()
+{
+	return _scrollListTable;
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       scrollListDiv
+//
+//  Description:    Handles scrollListDiv property.
+//
+//  Arguments:      none
+//
+//  Returns:        The scrollList DIV object
+//
+//-----------------------------------------------------------------------------
+
+function get_ScrollListDiv()
+{
+	return _scrollListDiv;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       InsertRow
+//
+//  Description:    Inserts a row into the scrollList table
+//
+//  Arguments:      none
+//
+//  Returns:        The inserted row object
+//
+//-----------------------------------------------------------------------------
+
+function InsertRow(index)
+{	
+	lastRow = _scrollListTable.insertRow();
+	var rowheight=currentStyle.rowheight;
+	if (rowheight)
+	{
+		lastRow.style.height=rowheight;
+		if (!currentStyle.scrollincrement)
+			_scrollListDiv.scrollincrement=rowheight;
+	}
+	return lastRow;
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Function:       InsertCellHTML
+//
+//  Description:    Inserts a cell and fills its content
+//
+//  Arguments:      none
+//
+//  Returns:        The inserted cell object
+//
+//-----------------------------------------------------------------------------
+
+function InsertCellHTML(cellHTML)
+{ 		
+	if(lastRow)
+	{
+		var oCell = lastRow.insertCell();
+		oCell.innerHTML = cellHTML;
+		oCell.style.overflow = "hidden";
+		oCell.style.textOverflow = "ellipsis";
+		oCell.style.whiteSpace = "nowrap";
+		if (currentStyle.cellcolor)
+			oCell.style.color=currentStyle.cellcolor;
+		
+		return oCell;
+	}
+}
+
+</SCRIPT>
+</PUBLIC:COMPONENT>

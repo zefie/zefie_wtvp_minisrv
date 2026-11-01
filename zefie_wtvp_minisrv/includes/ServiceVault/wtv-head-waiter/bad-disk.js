@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 // remove restrictions once this page is shown, since the user will be 'trapped' anyway
 session_data.disableLockdown();
@@ -68,7 +68,7 @@ switch (wtvshared.getManufacturer(session_data.ssid, true)) {
         data += `Call RCA/Thomson customer service at 1-800-722-9599.`;
         break;
     case "AE":
-        data += `Contact zefie or MattMan on Discord (zefie#0573 or MattMan#2790)`
+        data += `Contact zefie or MattMan on Discord (zefie or mattman69)`
         break;
     default:
         data += `Contact the manufacturer's customer service department.`

@@ -7,7 +7,7 @@ class WTVTemplate {
     }
 
     getTemplatePage() {
-        var data = `<html>
+        let data = `<html>
 <head>
 <title>Web words: Index</title>
 <display
@@ -57,14 +57,14 @@ Web words&nbsp;
 Choose the first letter of the word you are looking for.
 <spacer type=vertical height=20><br>
 <tr><td height=32>`;
-        var i = 0;
-        var j = 0;
-        var self = this;
+        let i = 0;
+        let j = 0;
+        const self = this;
         Object.keys(this.page_args.letters).forEach(function (k) {
             data += `<td width=40>\n<a href="wtv-guide:/help?topic=Glossary&subtopic=${self.page_args.letters[k]}" selected><blackface>${self.page_args.letters[k]}</blackface></a>\n`
             i++;
             j++;
-            if (i == 8 && self.page_args.letters.length != (j + 1)) {
+            if (i === 8 && self.page_args.letters.length !== (j + 1)) {
                 // add new <tr> every 8 entries, but only if its not the last entry
                 i = 0;
                 data += `<tr><td height=32>\n`;

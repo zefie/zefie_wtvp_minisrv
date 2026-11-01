@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"codeQL.createQuery.qlPackLocation": "/home/zefie/dev/zefie_wtvp_minisrv"
+	}
+}

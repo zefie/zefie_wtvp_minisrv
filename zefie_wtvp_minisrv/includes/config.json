@@ -18,6 +18,10 @@
       "UserServiceDeps",
       "includes/ServiceDeps"
     ],
+    "enable_prealpha_workaround": false, // Allows prealpha to minimally connect, but may cause security issues
+    "cgi_enabled": false, // Disable CGI by default
+    "php_enabled": false, // Disable PHP by default
+    "php_binpath": "php-cgi",
     "SessionStore": "SessionStore", // Where we store account (session) data. Best left unchanged.
     "SharedROMCache": "SharedROMCache", // Shared ROMCache (wtv-service:/ROMCache/, where wtv-service is any configured service). Found under service vault. Best left unchanged.
     "enable_shared_romcache": true, // Disabling this will cause a lot of problems without manual intervention. Best left unchanged.
@@ -31,40 +35,48 @@
     "service_splash_logo": "splash_minisrv.gif", // The logo shown on the splash screen. Can be absolute path or the name of a file in the SharedROMCache.
     "hide_ssid_in_logs": true, // Filter SSIDs with asterisks to prevent accidently leaking user SSIDs when debugging.
     "filter_passwords_in_logs": true, // Filter passwords (form fields containing "pass") to prevent accidently leaking user passwords when debugging.
-    "post_percentages": [ 0, 25, 50, 100 ], // When recieving POST data from the client, we display the progress of the transfer in the console log if the verbosity is high enough. Here you can show more or less updates.
+    "post_percentages": [
+      0,
+      25,
+      50,
+      100
+    ], // When recieving POST data from the client, we display the progress of the transfer in the console log if the verbosity is high enough. Here you can show more or less updates.
     "verbosity": 2, // 0 thru 4, lowest is quietest, higher is more verbose. Best set to 4 if something is going wrong.
     "socket_timeout": 86400, // How long after we last gotten a request from a client before we clean up its data. The client can always restore it with the ticket.
     "post_data_socket_timeout": 30, // How long until we give up waiting for data from the client in a POST transfer. Too little and POSTs will fail when dialup retrains. Too much and the server may stall waiting.
     "error_log_file": "errors.log", // Where to write errors to disk
     "catchall_file_name": "catchall.js", // default catchall filename
-    "hide_incomplete_features": true, // this is barely used and being phase out. leave it unchanged.
+    "hide_minisrv_version": true, // hide or show the minisrv version (eg like Apache version, can be hidden to hide known exploits for older version)
     "enable_lzpf_compression": true, // Toggle LZPF (old classic) compression. Best left unchanged.
     "enable_gzip_compression": true, // Toggle GZIP (all other boxes) compression. Best left unchanged.
     "show_detailed_splash": true, // Shows the service name, server version, and user connect speed on the splash page
     "show_diskmap": false, // Useful for debugging custom Diskmaps
     "unauthorized_url": "wtv-1800:/unauthorized?", // Where to send unauthorized users
     "enable_port_isolation": true, // Only respond to services on their correct ports
-    "allow_guests": true, // Allow users to experience the server without registering
-    "domain_name": "wtv.zefie.com", // For usenet and future stuff, no need to change just yet,
-    "max_post_length": 20, // in megabytes
+    "domain_name": "minisrv.local", // For personalizing mail and MSNTV2
     "require_valid_ssid": false, // require a valid SSID (with valid CRC)
     "user_accounts": { // user account settings
       "max_users_per_account": 6, // Max total users (including primary) per account
       "min_username_length": 5, // minimum username length
       "max_username_length": 18, // maximum username length
-      "reserved_names": [
-        // reserved account names, users (nor admins) can register these
-        "AccountDisabled",
-        "Demo",
-        "abuse",
-        "support",
-        "registration",
-        "null"
-      ]
+      "reserved_names_files": [
+        "includes/badWords.json",
+        "includes/reservedWords.json"
+      ],
+      "filestore_storage": 16, // Megabytes
+      "scrapbook_storage": 8 // Megabytes
+    },
+    "pc_admin": {
+      "enabled": false,
+      "ip_whitelist": [
+        "192.168.1.0/24",
+        "127.0.0.1"
+      ],
+      "password": "MySeqRetKey1" // change this in user_config.json
     },
     "keys": {
-      "initial_shared_key": "CC5rWmRUE0o=", // Used for the initial RC4 rolling key. Changing this is untested and unsupported.
-      "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords in configs. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
+      "initial_shared_key": "bWluaXNydiE=", // Used for the initial RC4 rolling key. 8 bytes base64 encode. If you intend to link multiple minisrv's together, they must all share the same Initial Shared Key.
+      "user_data_key": "PNa$WN7gz}!T=t6X7^=|Ii##CEB~p\\EP" // Currently used to cipher user passwords, recommended to change before hosting your minisrv for others to use. Changing this while there are registered accounts will make it impossible to decrypt existing account passwords
     },
     "passwords": {
       // password configuration
@@ -86,34 +98,83 @@
       "wtv-1800:/preregister",
       "wtv-1800:/noflash",
       "wtv-flashrom:/*",
+      "wtv-register:/*",
+      "wtv-head-waiter:/images/*",
+      "wtv-head-waiter:/ROMCache/*",
       "wtv-head-waiter:/login",
       "wtv-head-waiter:/ValidateLogin",
       "wtv-head-waiter:/login-stage-two",
+      "wtv-head-waiter:/complete-account-transfer",
+      "wtv-head-waiter:/cancel-account-transfer",
       "wtv-head-waiter:/relogin",
-      "wtv-head-waiter:/ROMCache/Spacer.gif",
-      "wtv-head-waiter:/ROMCache/NameStrip.gif",
-      "wtv-head-waiter:/images/PasswordBanner.gif",
-      "wtv-head-waiter:/ROMCache/UtilityBullet.gif",
-      "wtv-head-waiter:/images/NameBanner.gif",
       "wtv-head-waiter:/bad-disk",
-      "wtv-head-waiter:/images/signin_new_mail.gif",
-      "wtv-head-waiter:/images/signin_no_mail.gif",
       "wtv-log:/log"
     ],
     /* shenanigans: this allows you to intentionally enable old minisrv bugs, as well as official WebTV Networks exploits 
-       Each level of shenanigans includes the previous level (eg 5 will also disable filters like 4)
+       Shenanigans is a bitwise flag, where each bit corresponds to a different bug or exploit.
+       Enabling a flag will re-enable the corresponding bug or exploit in the minisrv.
+       This is intended for educational purposes to study how these exploits work.
+       However, enabling shenanigans may cause security issues, so it should be used with caution and only if you understand what each flag does.
+       Shenanigans should be left disabled.
        See WTVShenanigans.js for more info.
     */
-    "shenanigans": false
+    "shenanigans": false,
+    "image_decoder": {
+      "enabled": true,
+      "gif_type": "ALP", // "ALP" or "ALF", see WTVImage.js for details.
+      "jpg_quality": 75,
+      "image_formats": [
+        "image/png",
+        "image/svg+xml",
+        "image/avif",
+        "image/tiff",
+        "image/webp"
+      ],
+      "image_options": {
+        "compressionLevel": 0, // for png, anything higher than 0 is just wasting CPU time for minisrv's use case
+        "adaptiveFiltering": true,
+        "dither": 1,
+        "colors": 256,
+        "effort": 10
+      },
+      "max_height": 2048,
+      "max_width": 640,
+      "max_file_size": 524288,
+      "jpeg_interval": 5, // lower quality by this amount to try to lower filesize
+      "max_quality_tries": 5 // try to decode up to this many times, reducing quality each time, until the file is under the max_file_size. After this many tries, it will error out rather than sending an oversized file to the client.
+    },
+    "audio_proxy": {
+      "enabled": false,
+      "types": [
+        "audio/mpeg",
+        "audio/mp3",
+        "audio/wav",
+        "audio/ogg",
+        "audio/x-wav",
+        "audio/flac",
+        "audio/x-flac",
+        "audio/aac",
+        "audio/mp4",
+        "audio/x-m4a",
+        "audio/x-ms-wma"
+      ],
+      "bitrate": "32k",
+      "sampleRate": 22050,
+      "channels": 1,
+      "maxDurationSeconds": 480,
+      "ffmpegPath": "ffmpeg"
+    }
   },
   "services": {
     // service definitions
-
     "wtv-head-waiter": {
       // wtv-head-waiter handles logins
       "port": 1601,
       "connections": 1,
-      "privileged": true
+      "privileged": true,
+      "modules": [
+        "WTVSSL"
+      ]
     },
     "wtv-tricks": {
       // wtv-tricks
@@ -128,6 +189,7 @@
     "wtv-news": {
       // Usenet
       "port": 1605,
+      "local_nntp_enabled": true,
       "local_nntp_port": 5730, // Port for internal NNTP
       "local_nntp_requires_auth": true, // Needs to be enabled for posting
       "modules": [
@@ -161,7 +223,6 @@
     "news": {
       // for news:group.name urls
       "port": 1605,
-      "nobind": true,
       "flags": "0x00000004"
     },
     "wtv-register": {
@@ -169,11 +230,32 @@
       "port": 1607,
       "privileged": true
     },
+    "wtv-mail": {
+      // wtv-mail
+      "port": 1608,
+      "connections": 3,
+      "modules": [
+        "WTVNews"
+      ]
+    },
+    "mailto": {
+      "port": 1608
+    },
     "wtv-log": {
       // wtv-log
       "port": 1609,
       "connections": 1,
-      "write_logs_to_disk": false // set this to true to save logs to the error_log_file set above
+      "write_logs_to_disk": true, // set this to false to not save logs the ServiceLogPost folder
+      "dont_save_chat_logs": true, // They just take up space unless you want to monitor your user's joins and disconnects, doesn't log messages either way
+      "max_logs_per_ssid": 50
+    },
+    "wtv-favorite": {
+      // wtv-favorite
+      "port": 1611,
+      "connections": 3,
+      "enable_multi_query": true,
+      "max_folders": 14,
+      "max_favorites_per_folder": 18
     },
     "wtv-home": {
       // wtv-home
@@ -185,7 +267,14 @@
       "connections": 1,
       "flags": "0x00000001",
       "privileged": true,
-      "send_tellyscripts": true // Best left untouched
+      "send_tellyscripts": true, // Best left untouched
+      "send_tellyscript_to_mame": true,
+      "dialin_number": 18006138199,
+      "dns1ip": "10.0.0.50",
+      "dns2ip": "8.8.8.8",
+      "modules": [
+        "WTVTellyScript"
+      ]
     },
     "wtv-flashrom": {
       // wtv-flashrom
@@ -194,7 +283,11 @@
       "debug": false,
       "use_zefie_server": true, // access zefie's repository of flashroms, local roms will still be used if they exist. Best left unchanged.
       "bf0app_default_rom": "content/artemis-webtv-000/build7377/internal-nondebug/bf0app-part000.rom", // Can change the default build for bf0app
-      "catchall_file_name": "content-serve.js" // catchall for ROM part files. Best left untouched
+      "catchall_file_name": "content-serve.js", // catchall for ROM part files. Best left untouched
+      "modules": [
+        "WTVFlashrom"
+      ],
+      "is_flashrom_service": true
     },
     "wtv-setup": {
       // wtv-setup
@@ -208,16 +301,18 @@
         "WTVRegister"
       ]
     },
-    "wtv-music": {
-      // wtv-music
-      "port": 1656,
-      "connections": 3,
-      "flags": "0x00000004"
-    },
     "wtv-cookie": {
       // wtv-cookie (used for http(s) cookies)
       "port": 1619,
       "connections": 1
+    },
+    "wtv-guide": {
+      // wtv-guide (not yet complete)
+      "port": 1621,
+      "connections": 3,
+      "modules": [
+        "WTVGuide"
+      ]
     },
     "wtv-chat": {
       // wtv-chat (used for IRC)
@@ -227,14 +322,12 @@
     "wtvchat": {
       // wtvchat://server:port/channel passthrough (wni official)
       "port": 1630,
-      "nobind": true,
       "flags": "0x00000004",
       "allow_double_slash": true // allows service:// .. don't enable on http or https
     },
     "irc": {
       // irc://server:port/channel passthrough (something wni should have had...)
       "port": 1630,
-      "nobind": true,
       "flags": "0x00000004",
       "servicevault_dir": "wtvchat", // share service_vault with wtvchat
       "allow_double_slash": true // allows service:// .. don't enable on http or https
@@ -247,41 +340,6 @@
         "WTVDisk"
       ]
     },
-    "wtv-guide": {
-      // wtv-guide (not yet complete)
-      "port": 1621,
-      "connections": 3,
-      "modules": [
-        "WTVGuide"
-      ]
-    },
-    "wtv-mail": {
-      // wtv-mail
-      "port": 1608,
-      "connections": 3,
-      "modules": [
-        "WTVNews"
-      ]
-    },
-    "wtv-passport": {
-      // wtv-password (for messenger)
-      "port": 1654
-    },
-    "wtv-favorite": {
-      // wtv-favorite
-      "port": 1611,
-      "connections": 3,
-      "enable_multi_query": true,
-      "max_folders": 14,
-      "max_favorites_per_folder": 18
-    },
-    "wtv-admin": {
-      // wtv-admin
-      "port": 1698,
-      "enable_multi_query": true,
-      "privileged": true,
-      "password": "viRak-7" // change to something more unique
-    },
     "wtv-author": {
       "port": 1643,
       "connections": 3,
@@ -289,8 +347,18 @@
       "max_pages": 4,
       "publish_mode": "service", // "service" or "directory"
       "publish_dest": "pb_services", // service name, or directory path
+      "powered_by_url": null, // Set to a URL to have a custom "Powered by" link. If null, it will use the publish domain.
       "modules": [
         "WTVAuthor"
+      ]
+    },
+    "ftp": {
+      "port": 1650,
+      "connections": 3,
+      "max_response_size": 8, // Megabytes      
+      "handler_module": "WTVFTP",
+      "handler_extra_vars": [
+        "wtvmime"
       ]
     },
     "http": {
@@ -301,18 +369,34 @@
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16, // Megabytes
+      "disallow_no_slash": true,
+      "handler_module": "WTVHTTP",
+      "handler_extra_vars": [
+        "http"
+      ]
     },
     "https": {
+      // https upstream
       "port": 1650,
       "connections": 3,
       "use_external_proxy": false, // use an external proxy (WebONE or some other minifying proxy is recommended)
       "external_proxy_is_socks": false, // use a socks proxy
       "external_proxy_host": "127.0.0.1", // IP address or hostname of proxy
       "external_proxy_port": 1080, // Port of proxy
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16, // Megabytes
+      "disallow_no_slash": true,
+      "handler_module": "WTVHTTP",
+      "handler_extra_vars": [
+        "http"
+      ],
+      "allow_self_signed_ssl": false, // If true, will allow self-signed SSL certificates via the proxy.
+      "support_bitdefender_self_signed_proxy": true // If the user has bitdefender installed, it is intercepting SSL connections and re-signing them with its own self-signed certificate. Enabling this will add the Bitdefender certificate to the trusted store for the https service, allowing it to proxy https connections without errors.
     },
     "proto": {
+      // ProtoWeb Proxy
       "port": 1650,
       "connections": 3,
       "use_external_proxy": true,
@@ -321,26 +405,71 @@
       "external_proxy_host": "wayback.protoweb.org",
       "external_proxy_port": 7851,
       "external_proxy_is_http1": true,
-      "flags": "0x00000001"
+      "flags": "0x00000001",
+      "max_response_size": 16, // Megabytes
+      "disallow_no_slash": true,
+      "handler_module": "WTVHTTP",
+      "handler_extra_vars": [
+        "http"
+      ]
     },
-
+    "gopher": {
+      // Gopher processor
+      "port": 1651,
+      "connections": 3,
+      "allow_double_slash": true,
+      "flags": "0x00000001",
+      "uses_service_vault": false, // For custom services that use modules instead of service vaults
+      "disallow_no_slash": true,
+      "log_raw_gopher": false, // set to true to log raw gopher responses to the console for debugging
+      "handler_module": "WTVGopher",
+      "handler_extra_vars": [
+        "wtvmime"
+      ]
+    },
+    "wtv-passport": {
+      // wtv-passport (for messenger)
+      "port": 1654
+    },
+    "wtv-music": {
+      // wtv-music
+      "port": 1656,
+      "connections": 3,
+      "flags": "0x00000004"
+    },
+    "wtv-search": {
+      "disabled": true,
+      "port": 1695
+      // "searxng_url": "" // replace with your own searxng instance
+    },
+    "wtv-proxy": {
+      "port": 1696
+      // "wrp_url": "" // replace with your own tenox9/wrp
+    },
     "pb_services": {
       // PC Services for PageBuilder
       "port": 1697,
-      "pc_services": true, // defines service as a PC service
-      "hide_minisrv_version": true, // hide or show the minisrv version (eg like Apache version, can be hidden to hide known exploits for older version)
+      "pc_services": true, // defines service as a PC service      
       "servicevault_dir": "http_pb", // The service vault dir for the PC Services for PageBuilder
-      "service_vaults": [ "PageBuilderVault" ], // additional service vaults for this service
+      "service_vaults": [
+        "PageBuilderVault"
+      ], // additional service vaults for this service
       "drop_connection_on_wrong_port": true, // If true, resets connection if the PC browser connects to a port that is not PC Services enabled
       "show_verbose_errors": false, // extra debugging
       "allow_https": false, // for future use with LetsEncrypt
       "force_https": false // for future use with LetsEncrypt
     },
+    "wtv-admin": {
+      // wtv-admin
+      "port": 1698,
+      "enable_multi_query": true,
+      "privileged": true,
+      "password": "viRak-7" // change to something more unique
+    },
     "pc_services": {
       // PC Services
       "port": 1699,
       "pc_services": true, // defines service as a PC service
-      "hide_minisrv_version": true, // hide or show the minisrv version (eg like Apache version, can be hidden to hide known exploits for older version)
       "disabled": true, // disabled by default, set disabled: false in user_config.json for this service to enable.
       "servicevault_dir": "http_pc", // The service vault dir for the PC Services
       "drop_connection_on_wrong_port": false, // If true, resets connection if the PC browser connects to a port that is not PC Services enabled
@@ -348,12 +477,143 @@
       "privileged": true,
       "use_https": false,
       "force_https": false,
+      "catchall_file_name": "indexer.js",
       "https_cert": {
         /* self-signed, can be replaced with another cert */
         // "domain": "mycooldomain.com",
         "cert": "%ServiceDeps%/https/selfsigned_cert.pem",
         "key": "%ServiceDeps%/https/selfsigned_key.pem"
       }
+    },
+    "mms": {
+      "port": 1755,
+      "udp_port": 1755,
+      "enable_udp": true,
+      "protocol": "mms",
+      "pacing_multiplier": 0.9,
+      "enable_burst": true,
+      "burst_multiplier": 4.0,
+      "burst_prestart_ms": 15000,
+      "allow_indexing": true,
+      "debug": false,
+      "handler_module": "WTVMMS",
+      "handler_handles_port": true
+    },
+    "pnm": {
+      "port": 7070,
+      "protocol": "pnm",
+      "udp_bind_port_min": 57361,
+      "udp_bind_port_max": 57391,
+      "descriptor_after_hello_ms": 85,
+      "burst_prestart_ms": 5000,
+      "allow_indexing": true,
+      "debug": false,
+      "handler_module": "WTVPNM",
+      "handler_handles_port": true,
+      "handler_extra_vars": [
+        "crypto"
+      ]
+    },
+    "msntv2": {
+      "port": 1694,
+      "disabled": true,
+      "connections": 3,
+      "flags": "0x00000001",
+      "protocol": "HTTPS",
+      "privileged": true,
+      "handler_module": "WTV-MSNTV2",
+      "handler_handles_port": true,
+      "servicevault_dir": "msntv2",
+      "max_response_size": 64, // Megabytes
+      "intercept_domains": [
+        {
+          "match": "headwaiter.trusted.msntv.msn.com",
+          "local_dir": "headwaiter"
+        },
+        {
+          "match": "sg1.trusted.msntv.msn.com",
+          "local_dir": "sg1"
+        },
+        {
+          "match": "login.live.com",
+          "local_dir": "passport"
+        },
+        {
+          "match": "c.msn.com",
+          "local_dir": "cmsn"
+        }
+      ],
+      "handler_extra_vars": [
+        "runScriptInVM",
+        "handlePHP",
+        "handleCGI",
+        "ssid_sessions",
+        "WTVClientSessionData",
+        "socket_sessions"
+      ],
+      "show_verbose_errors": false,
+      "ssl": {
+        "cert": "%ServiceDeps%/msntv2/minisrv.crt",
+        "key": "%ServiceDeps%/msntv2/minisrv.key"
+      },
+      "modules": [
+        "WTVRegister",
+        "WTVNews"
+      ],
+      "usenet_service": "wtv-news"
+    },
+    "ircserver": {
+      "protocol": "IRC",
+      "disabled": true,
+      "handler_module": "WTVIRC",
+      "handler_handles_port": true,
+      "port": 1667,
+      "oper_username": "minisrv",
+      "oper_password": "changeme573",
+      "oper_enabled": false, // Don't enable with default credentials!
+      "channel_limit": 10,
+      "enable_ssl": true,
+      "ssl_cert": {
+          /* self-signed, can be replaced with another cert */
+          "cert": "%ServiceDeps%/irc/selfsigned_cert.pem",
+          "key": "%ServiceDeps%/irc/selfsigned_key.pem"
+      },
+      "channels": [
+        {
+          "name": "#general",
+          "modes": ["n","t"],
+          "topic": "General Chat Channel",
+          "intro": [
+            "Welcome to the general chat channel!"
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        { 
+          "name": "#WebTV",
+          "modes": ["n", "t", "c", "C", "T"],
+          "topic": "Welcome to the WebTV channel",
+          "intro": [
+            "Welcome to the WebTV channel!"
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        },
+        {
+          "name": "#secure",
+          "modes": ["n", "t", "S", "Z"],
+          "topic": "SSL only chat",
+          "intro": [
+            "Welcome to zefie's secure hangout",
+            "Here, all traffic is SSL encrypted."
+          ],
+          "ops": [
+            "*!*@127.0.0.1"
+          ]
+        }
+      ]
     }
   },
   "favorites": {

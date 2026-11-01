@@ -1,14 +1,12 @@
-var minisrv_service_file = true;
-
-var mailstore_exists = false;
+const minisrv_service_file = true;
 
 function mail_end_error(msg) {
-    var errpage = doErrorPage("400", msg);
+    const errpage = wtvshared.doErrorPage("400", msg);
     headers = errpage[0];
     data = errpage[1];
 }
 
-var intro_seen = session_data.mailstore.checkMailIntroSeen();
+const intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
@@ -16,13 +14,13 @@ if (!intro_seen && !request_headers.query.intro_seen) {
     if (!request_headers.query.message_id) {
         mail_end_error("Message ID Required");
     } else {
-        var messageid = request_headers.query.message_id;
-        var message = session_data.mailstore.getMessageByID(messageid);
+        const messageid = request_headers.query.message_id;
+        const message = session_data.mailstore.getMessageByID(messageid);
         if (!message) {
             mail_end_error("Invalid Message ID");
         } else {
             session_data.mailstore.setMessageReadStatus(messageid);
-            var notImplementedAlert = new clientShowAlert({
+            const notImplementedAlert = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "This feature is not available.",
                 'buttonlabel1': "Okay",
@@ -33,7 +31,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             if (request_headers.query.message_delete) {
                 session_data.mailstore.deleteMessage(messageid);
                 headers = `300 OK
-wtv-expire: wtv-mail:/listmail
+wtv-expire-all: wtv-mail:/listmail
 Location: wtv-mail:/listmail`;
             } else {
 
@@ -41,15 +39,15 @@ Location: wtv-mail:/listmail`;
 Content-type: text/html`;
 
 
-                var message_colors = null;
-
-                if (message.body.indexOf("<body")) {
-                    var default_colors = session_data.mailstore.defaultColors;
-                    var message_colors = session_data.mailstore.getSignatureColors(message.body);
+                let message_colors = session_data.mailstore.defaultColors;
+                if (message.body) {
+                    if (message.body.indexOf("<body")) {
+                        message_colors = session_data.mailstore.getSignatureColors(message.body);
+                    }
                 }
                 if (message.signature) message_colors = session_data.mailstore.getSignatureColors(message.signature);
 
-                if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
+                if (typeof message.subject === "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
                 data = `<wtvnoscript>
 <sendpanel
 action	= "wtv-mail:/sendmail?message_forward_id=14&mailbox_name=inbox"
@@ -245,8 +243,8 @@ E-mail message
 From:
 <td width=10>
 <td>`;
-                if (message.from_name != message.from_addr) {
-                    data += `${wtvshared.htmlEntitize(message.from_addr)} <a href="client:showalert?sound=none&message=To%20add%20%3Cblackface%3E${escape(escape(message.from_name))}%3C%2Fblackface%3E%20to%20your%20Address%20book,%20choose%20%3Cb%3EAdd%3C%2Fb%3E.&buttonlabel2=Cancel&buttonaction2=client:donothing&buttonlabel1=Add&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">(${wtvshared.htmlEntitize(message.from_name)})</a>`;
+                if (message.from_name !== message.from_addr) {
+                    data += `${wtvshared.htmlEntitize(message.from_addr)} <a href="client:showalert?sound=none&message=To%20add%20%3Cblackface%3E${wtvshared.escape(wtvshared.escape(message.from_name))}%3C%2Fblackface%3E%20to%20your%20Address%20book,%20choose%20%3Cb%3EAdd%3C%2Fb%3E.&buttonlabel2=Cancel&buttonaction2=client:donothing&buttonlabel1=Add&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${wtvshared.escape(wtvshared.escape(message.from_name))}%26address%3D${wtvshared.escape(wtvshared.escape(message.from_addr))}%26new_address%3Dtrue">(${wtvshared.htmlEntitize(message.from_name)})</a>`;
                 } else {
                     data += `${wtvshared.htmlEntitize(message.from_addr)}`;
                 }
@@ -282,13 +280,14 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
                 if (typeof message.body === "object" && message.body) {
                     message.body = wtvshared.decodeBufferText(message.body);
                 }
-                if (message.body) message.body = message.body.replace(/\n/g, "<br><br>");
-                if (message.body.indexOf("<html>") >= 0) {
-                    message.allow_html = true;
+                if (message.body) {
+                    message.body = message.body.replace(/\n/g, "<br><br>");
+                    if (message.body.indexOf("<html>") >= 0) {
+                        message.allow_html = true;
+                    }                
+                    data += `${(message.allow_html) ? wtvshared.sanitizeSignature(message.body) : wtvshared.htmlEntitize(message.body, true)}`
                 }
-                data += `${(message.allow_html) ? wtvshared.sanitizeSignature(message.body) : wtvshared.htmlEntitize(message.body, true)}
-<br>
-<br>`;
+                data += "<br><br>";
                 if (message.signature) {
                     data += wtvshared.sanitizeSignature(message.signature);
                 }
@@ -296,8 +295,7 @@ ${(message.subject) ? wtvshared.htmlEntitize(message.subject) : '(No subject)'}
 `;
                 if (Array.isArray(message.attachments)) {
                     message.attachments.forEach((v, k) => {
-                        if (v) {
-                            console.log("*****************", v['Content-Type']);
+                        if (v) {                            
                             switch (v['Content-Type']) {
                                 case "image/jpeg":
                                     data += `<img border=2 src="wtv-mail:/get-attachment?message_id=${messageid}&attachment_id=${k}&wtv-title=Video%20Snapshot" width="380" height="290"><br><br>`;

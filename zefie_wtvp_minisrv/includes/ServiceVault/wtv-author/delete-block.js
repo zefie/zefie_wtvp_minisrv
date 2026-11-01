@@ -1,7 +1,7 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName;
-var position = request_headers.query.blockNum
+const docName = request_headers.query.docName;
+const position = request_headers.query.blockNum
 
 	session_data.pagestore.deleteBlock(docName, position);
 	headers = `300 OK

@@ -1,9 +1,9 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 const wtvnews = new WTVNews(minisrv_config, service_name);
-var service_config = minisrv_config.services[service_name];
+const service_config = minisrv_config.services[service_name];
 if (service_config.local_nntp_port && wtvnewsserver) {
-    var tls_options = {
+    const tls_options = {
         ca: this.wtvshared.getServiceDep('wtv-news/localserver_ca.pem'),
         key: this.wtvshared.getServiceDep('wtv-news/localserver_key.pem'),
         cert: this.wtvshared.getServiceDep('wtv-news/localserver_cert.pem'),
@@ -22,37 +22,37 @@ if (service_config.local_nntp_port && wtvnewsserver) {
  
 async function throwError(e) {
     console.log(e);
-    var errpage = wtvshared.doErrorPage(400, null, e.toString());
+    const errpage = wtvshared.doErrorPage(400, null, e.toString());
     sendToClient(socket, errpage[0], errpage[1]);
 }
 
 function isToday (chkdate) {
     const today = new Date()
-    return chkdate.getDate() == today.getDate() &&
-        chkdate.getMonth() == today.getMonth() &&
-        chkdate.getFullYear() == today.getFullYear()
+    return chkdate.getDate() === today.getDate() &&
+        chkdate.getMonth() === today.getMonth() &&
+        chkdate.getFullYear() === today.getFullYear()
 }
 
 async function WebTVListGroup(group) {
-    var page_limit_default = 100;
+    const page_limit_default = 100;
     wtvnews.connectUsenet().then(() => {
         wtvnews.selectGroup(group).then((response) => {
-            var limit_per_page = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : page_limit_default;
-            var page = (request_headers.query.chunk) ? parseInt(request_headers.query.chunk) : 0;
-            console.log(response);
-            var page_start = (limit_per_page * page) + 1;
-            var page_end = (page + 1) * limit_per_page;
+            let limit_per_page = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : page_limit_default;
+            const page = (request_headers.query.chunk) ? parseInt(request_headers.query.chunk) : 0;
+            let page_start = (limit_per_page * page) + 1;
+            let page_end = (page + 1) * limit_per_page;
             if (page_end > response.group.high) {
                 page_end = response.group.high;
                 limit_per_page = (page_end - (limit_per_page / (page + 1))) + limit_per_page;
             }
             wtvnews.listGroup(group, page, limit_per_page).then((response) => {
-                if (response.code == 211) {
-                    NGCount = response.group.number;
-                    NGArticles = response.group.articleNumbers;
+                if (response.code === 211) {
+                    let NGCount = response.group.number;
+                    const NGArticles = response.group.articleNumbers;
                     page_start = (limit_per_page * page) + 1;
                     page_end = (page + 1) * limit_per_page;
                     wtvnews.getHeaderObj(NGArticles).then((messages) => {
+                        NGCount = NGArticles.length;
                         messages = wtvnews.sortByResponse(messages);
                         wtvnews.quitUsenet();
                         headers = `200 OK
@@ -193,11 +193,11 @@ Group: ${request_headers.query.group}
 <td height=33 width=256 valign=bottom>
 <font size=4>
 `
-                        if (NGCount == 0) {
+                        if (NGCount === 0 || isNaN(NGCount)) {
                             data += `This group has no postings`;
                         } else {
                             data += NGCount + " posting";
-                            if (NGCount != 1)
+                            if (NGCount !== 1)
                                 data += "s"
                         }
                         data += `
@@ -210,7 +210,7 @@ Group: ${request_headers.query.group}
 <td width=180 valign=bottom align=right>
 <table cellspacing=0 cellpadding=0>
 <td rowspan=4 height=26 width=30>
-${(page > 0) ? `<a href="wtv-news:/news?group=${group}&chunk=${page - 1}${(limit_per_page != page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListPrevious.gif"></a>` : `<img src="wtv-news:/images/ListPrevious_D.gif">`}
+${(page > 0) ? `<a href="wtv-news:/news?group=${group}&chunk=${page - 1}${(limit_per_page !== page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListPrevious.gif"></a>` : `<img src="wtv-news:/images/ListPrevious_D.gif">`}
 <td rowspan=4 height=26 width=11>
 <img src="wtv-news:/images/ListLeftEdge.gif">
 <td height=2 valign=top align=left bgcolor="2b2b2b">
@@ -218,7 +218,7 @@ ${(page > 0) ? `<a href="wtv-news:/news?group=${group}&chunk=${page - 1}${(limit
 <td rowspan=4 height=26 width=11>
 <img src="wtv-news:/images/ListRightEdge.gif">
 <td rowspan=4 height=26 width=30>
-${(page_end < NGCount) ? `<a href="wtv-news:/news?group=${group}&chunk=${page + 1}${(limit_per_page != page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListNext.gif"></a>` : `<img src="wtv-news:/images/ListNext_D.gif">`}
+${(page_end < NGCount) ? `<a href="wtv-news:/news?group=${group}&chunk=${page + 1}${(limit_per_page !== page_limit_default) ? `&limit=${limit_per_page}` : ''}"><img src="wtv-news:/images/ListNext.gif"></a>` : `<img src="wtv-news:/images/ListNext_D.gif">`}
 <td rowspan=4 width=5>
 <tr>
 <td height=2 valign=top align=left>
@@ -251,10 +251,10 @@ ${page_start}-${page_end}
 </TABLE>`
                         if (NGCount > 0) {
                             Object.keys(messages).forEach(function (k) {
-                                var message = messages[k].article;
-                                var has_relation = (messages[k].relation !== null) ? true : false;
-                                var date_obj = new Date(Date.parse(message.headers.DATE));
-                                var date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d", date_obj)
+                                const message = messages[k].article;
+                                const has_relation = (messages[k].relation !== null) ? true : false;
+                                const date_obj = new Date(Date.parse(message.headers.DATE));
+                                const date = (isToday(date_obj)) ? strftime("%I:%M %p", date_obj) : strftime("%b %d '%y", date_obj)
                                 data += `
 <table cellspacing=0 cellpadding=0>
 <tr>
@@ -304,11 +304,11 @@ ${(message.headers.FROM.indexOf(' ') > 0) ? message.headers.FROM.split(' ')[0] :
                 }
             }).catch((e) => {
                 // listGroup error
-                throwError(e)
-            });;
+                throwError("No such group");
+            });
         }).catch((e) => {
             // selectGroup error
-            throwError(e)
+            throwError("No such group")
         });
     }).catch((e) => {
         // connect error
@@ -317,27 +317,27 @@ ${(message.headers.FROM.indexOf(' ') > 0) ? message.headers.FROM.split(' ')[0] :
 }
 
 async function WebTVShowMessage(group, article) {
-    var article = parseInt(article);
+    const theArticle = parseInt(article);
     wtvnews.connectUsenet().then(() => {
         wtvnews.selectGroup(group).then((response) => {
-            wtvnews.getArticle(article).then((response) => {
+            wtvnews.getArticle(theArticle).then((response) => {
                 wtvnews.quitUsenet();
                 headers = `200 OK
 Content-type: text/html
 wtv-expire-all: wtv-news:/news?group=${group}&article=`;
-                var signature = null;
-                var message_colors = session_data.mailstore.defaultColors;
-                var display_signature = true; // todo make a toggle
-                var message = wtvnews.parseAttachments(response);
-                var message_body = message.text;
-                var attachments = null;
-                var signature_index = null;
+                let signature = null;
+                let message_colors = session_data.mailstore.defaultColors;
+                const display_signature = true; // todo make a toggle
+                const message = wtvnews.parseAttachments(response);
+                const message_body = message.text;
+                let attachments = null;
+                let signature_index = null;
                 wtvnews.debug(message);
                 if (message.attachments) attachments = message.attachments;
                 if (attachments) {
                     if (Object.keys(attachments).length > 0) {
                         Object.keys(attachments).forEach((k) => {
-                            if (attachments[k].filename == "wtv_signature.html" && attachments[k].content_type.match(/text\/html/)) {
+                            if (attachments[k].filename === "wtv_signature.html" && attachments[k].content_type.match(/text\/html/)) {
                                 signature = attachments[k].data;
                                 signature_index = k;
                                 return false;
@@ -348,9 +348,9 @@ wtv-expire-all: wtv-news:/news?group=${group}&article=`;
                 }
 
                 if (message_body.indexOf("<body")) {
-                    var default_colors = session_data.mailstore.defaultColors;
-                    var message_colors = session_data.mailstore.getSignatureColors(message_body);
-                    if ((message_colors == default_colors) && signature) message_colors = null;
+                    const default_colors = session_data.mailstore.defaultColors;
+                    message_colors = session_data.mailstore.getSignatureColors(message_body);
+                    if ((message_colors === default_colors) && signature) message_colors = null;
                 }
                 if (!message_colors && signature) message_colors = session_data.mailstore.getSignatureColors(signature);
 
@@ -509,7 +509,7 @@ cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=6>
 <td abswidth=93 absheight=26>
-<table href="wtv-mail:/sendmail?discuss=true&message_subject=${encodeURIComponent("Re: " + response.article.headers.SUBJECT)}&group=${response.article.headers.NEWSGROUPS}&discuss-prefix=${service_name}&article=${request_headers.query.article}"
+<table href="wtv-mail:/sendmail?discuss=true&message_subject=${wtvshared.escape("Re: " + response.article.headers.SUBJECT)}&group=${response.article.headers.NEWSGROUPS}&discuss-prefix=${service_name}&article=${request_headers.query.article}"
 cellspacing=0 cellpadding=0>
 <tr>
 <td abswidth=5>
@@ -591,11 +591,11 @@ ${strftime("%a, %b %e, %Y, %I:%M%P", new Date(Date.parse(response.article.header
 <td valign=top>
 From:
 <td>`;
-                //              if (message.from_name != message.from_addr) {
-                //                    data += `<a href="client:showalert?sound=none&message=Would%20you%20like%20to%20add%20%3Cblackface%3E${wtvshared.htmlEntitize(message.from_name)}%3C%2Fblackface%3E%20to%20your%20address%20list%3F&buttonlabel2=No&buttonaction2=client:donothing&buttonlabel1=Yes&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${escape(escape(message.from_name))}%26address%3D${escape(escape(message.from_addr))}%26new_address%3Dtrue">${wtvshared.htmlEntitize(message.from_addr)} </a>`;
-                //                } else {
+                              if (message.from_name !== message.from_addr) {
+                                    data += `<a href="client:showalert?sound=none&message=Would%20you%20like%20to%20add%20%3Cblackface%3E${wtvshared.htmlEntitize(message.from_name)}%3C%2Fblackface%3E%20to%20your%20address%20list%3F&buttonlabel2=No&buttonaction2=client:donothing&buttonlabel1=Yes&buttonaction1=wtv-mail:/addressbook%3Faction%3Deditfromheader%26noresponse%3Dtrue%26nickname%3D${wtvshared.escape(wtvshared.escape(message.from_name))}%26address%3D${wtvshared.escape(wtvshared.escape(message.from_addr))}%26new_address%3Dtrue">${wtvshared.htmlEntitize(message.from_addr)} </a>`;
+                                } else {
                 data += `${wtvshared.htmlEntitize(response.article.headers.FROM)}`;
-                //                }
+                                }
 
                 data += `<tr>
 <td nowrap valign=top>
@@ -612,10 +612,10 @@ From:
 <tr>
 <td>
 `;
-                var allow_html = false;
-                var body_data = '';
-                var attachment_data = '';
-                var signature_data = '';
+                let allow_html = false;
+                let body_data = '';
+                let attachment_data = '';
+                let signature_data = '';
 
                 if (message_body) {
                     if (message_body.indexOf("<html>") >= 0) {
@@ -630,19 +630,19 @@ From:
 
                 if (attachments) {
                     if (attachments[0]) {
-                        if (attachments[0].filename == "message.html") {
+                        if (attachments[0].filename === "message.html") {
                             body_data += wtvshared.sanitizeSignature(attachments[0].data);
                             delete attachments[0];
                         }
                     }
-                    var supported_images = /image\/(jpe?g|png|gif|x-wtv-bitmap)/;
-                    var supported_audio = /audio\/(mp[eg|2|3]|midi?|wav|x-wav|mod|x-mod)/;
+                    const supported_images = /image\/(jpe?g|png|gif|x-wtv-bitmap)/;
+                    const supported_audio = /audio\/(mp[eg|2|3]|midi?|wav|x-wav|mod|x-mod)/;
                     attachments.forEach((v, k) => {
                         if (v.content_type) {
                             if (v.content_type.match(supported_images))
                                 attachment_data += `<img border=2 src="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=Video%20Snapshot"><br><br>`;
                             else if (v.content_type.match(supported_audio))
-                                attachment_data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? encodeURIComponent(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
+                                attachment_data += `<table href="wtv-news:/get-attachment?group=${group}&article=${article}&attachment_id=${k}&wtv-title=${(v.filename) ? wtvshared.escape(v.filename) : "Audio%20file"}" width=386 cellspacing=0 cellpadding=0>
     <td align=left valign=middle><img src="wtv-news:/ROMCache/FileSound.gif" align=absmiddle><font color="#189CD6">&nbsp;&nbsp;${(v.filename) ? (v.filename) : "Audio file"} (${v.content_type.split('/')[1]} attachment)</font>
     <td align=right valign=middle>
     </table><br><br>`;
@@ -666,7 +666,7 @@ From:
 
             }).catch((e) => {
                 // no such article
-                var post_unavailable_file = this.wtvshared.getServiceDep('wtv-news/post-unavailable.html');
+                const post_unavailable_file = this.wtvshared.getServiceDep('wtv-news/post-unavailable.html');
                 console.log(e);
                 if (fs.existsSync(post_unavailable_file)) {
                     headers = "200 OK\nContent-type: text/html";
@@ -697,7 +697,7 @@ wtv-expire-all: wtv-news:/news?search=`;
             data = `<HTML>
 <HEAD>
 <DISPLAY fontsize=medium>
-<TITLE>${(response.length == 0) ? "No " : ""}Discussion groups found</TITLE>
+<TITLE>${(response.length === 0) ? "No " : ""}Discussion groups found</TITLE>
 </HEAD>
 <sidebar width=114 height=420 align=left>
 <table cellspacing=0 cellpadding=0 bgcolor=3d2f3a>
@@ -789,14 +789,14 @@ vspace=0>
 <tr>
 <td valign=center absheight=80>
 <font size="+2" color="E7CE4A"><blackface><shadow>
-${(response.length == 0) ? "No " : ""}Discussion groups found
+${(response.length === 0) ? "No " : ""}Discussion groups found
 </table>
 <td abswidth=20>
 <tr>
 <td>
 <td WIDTH=198 HEIGHT=200 VALIGN=top ALIGN=left>`;
 
-            if (response.length == 0) {
+            if (response.length === 0) {
                 data += `There are no discussion groups that match your request. Do you want to look for something else?`;
             } else {
                 response.forEach((group) => {
@@ -865,11 +865,11 @@ Do you want to look for something else?<br>
 
 
 if (!wtvnews.client) {
-    var errpage = doErrorPage();
+    const errpage = wtvshared.doErrorPage(400, null, "Usenet client is not initialized");
     headers = errpage[0];
     data = errpage[1];
 } else {
-    var request_is_async = true;
+    request_is_async = true;
     if (request_headers.query.search) {
         WebTVSearchGroups(request_headers.query.search)
     } else if (request_headers.query.group) {

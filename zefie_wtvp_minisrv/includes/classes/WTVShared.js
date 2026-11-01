@@ -3,6 +3,7 @@
  */
 const CryptoJS = require('crypto-js');
 const WTVShenanigans = require('./WTVShenanigans.js');
+const e = require('express');
 
 class WTVShared {
 
@@ -15,35 +16,187 @@ class WTVShared {
     sanitizeHtml = require('sanitize-html');
     iconv = require('iconv-lite');
     parentDirectory = process.cwd()
-    extend = require('util')._extend;
+    util = require('util');
     debug = require('debug')('WTVShared')
     process = require('process');
     shenanigans = null;
+    appdir = this.path.resolve(__dirname + this.path.sep + ".." + this.path.sep + "..");
+    tokens = {};
 
     minisrv_config = [];
     
+    /**
+     * Constructor for WTVShared class
+     * @param {object} minisrv_config The configuration object for the minisrv
+     * @param {boolean} quiet If true, suppresses console output
+     * @notice If minisrv_config is null, it will attempt to read the configuration from the minisrv_config.json file
+     * */
     constructor(minisrv_config, quiet = false) {
-        if (minisrv_config == null) this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
+        if (minisrv_config === null || typeof minisrv_config === 'undefined') this.minisrv_config = this.readMiniSrvConfig(true, !quiet);
         else this.minisrv_config = minisrv_config;
+
         this.shenanigans = new WTVShenanigans(this.minisrv_config);
        
         if (!String.prototype.reverse) {
             String.prototype.reverse = function () {
-                var splitString = this.split("");
-                var reverseArray = splitString.reverse();
-                var joinArray = reverseArray.join("");
-                return joinArray;
+                const splitString = this.split("");
+                const reverseArray = splitString.reverse();
+                return reverseArray.join("");
             }
         }
         if (!String.prototype.hexEncode) {
             String.prototype.hexEncode = function () {
-                var result = '';
-                for (var i = 0; i < this.length; i++) {
+                let result = '';
+                for (let i = 0; i < this.length; i++) {
                     result += this.charCodeAt(i).toString(16);
                 }
                 return result;
             }
         }
+    }
+
+    escape(string) {
+        return encodeURIComponent(string).replace(/'/g, "%27").replace(/"/g, "%22");
+    }
+
+    unescape(string) {
+        return decodeURIComponent(string.replace(/\+/g, " "));
+    }
+
+    /**
+     * convert a CryptoJS.lib.WordArray to a Javascript Buffer
+     * @param {CryptoJS.lib.WordArray} wordArray
+     * @returns {Buffer} JS Buffer object
+     */
+    wordArrayToBuffer(wordArray) {
+        if (wordArray) return Buffer.from(wordArray.toString(CryptoJS.enc.Hex), 'hex');
+        else return null;
+    }
+
+    /**
+     * Converts an IP address to a hexadecimal string (WTV)
+     * @param {string} ip The IP address to convert
+     * @returns {string} The hexadecimal representation of the IP address
+     * @throws {Error} If the IP address is invalid
+     */
+    ipToHex(ip) {
+        const parts = ip.split('.');
+        if (parts.length !== 4) {
+            throw new Error('Invalid IP address');
+        }
+        let num = 0;
+        for (let i = 0; i < 4; i++) {
+            const part = parseInt(parts[i], 10);
+            if (part < 0 || part > 255) {
+                throw new Error('Invalid IP address');
+            }
+            num = (num << 8) | part;
+        }
+        // Convert to unsigned 32-bit number before converting to hex
+        return "0x" + (num >>> 0).toString(16).toUpperCase();
+    }
+
+    /**
+     * Converts an IP address to a long integer
+     * @param {string} ip The IP address to convert
+     * @returns {number} The long integer representation of the IP address, or -1 if the IP address is invalid
+     */
+    ip2long(ip) {
+        let components;
+        if (components = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)) {
+            let iplong = 0;
+            let power = 1;
+            for (let i = 4; i >= 1; i -= 1) {
+                iplong += power * parseInt(components[i], 10);
+                power *= 256;
+            }
+            return iplong;
+        }
+        else return -1;
+    }
+
+    /**
+     * Checks if an IP address is in a given subnet.
+     * @param {string} ip The IP address to check
+     * @param {string} subnet The subnet in CIDR notation
+     * @returns {boolean} True if the IP address is in the subnet, false otherwise
+     */
+    isInSubnet(ip, subnet) {
+        if (!subnet.includes('/')) {
+            const long_ip = this.ip2long(ip);
+            const long_subnet = this.ip2long(subnet);
+            return long_ip === long_subnet;
+        } else {
+            const long_ip = this.ip2long(ip);            
+            const mask = subnet.match(/^(.*?)\/(\d{1,2})$/);
+            if (mask && mask[1]) {
+                const base_ip = this.ip2long(mask[1]);
+                if (base_ip >= 0) {
+                    const freedom = 2 ** (32 - parseInt(mask[2], 10));
+                    return (long_ip >= base_ip) && (long_ip <= base_ip + freedom - 1);
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+      * Moves an array element from one index to another
+      * @param {Array} array The array to modify
+      * @param {number} from The index of the element to move 
+      * @param {number} to The index to move the element to
+      * @return {Array} The modified array with the element moved
+      * @notice This function modifies the original array and also returns it for convenience
+      */
+    moveArrayKey(array, from, to) {
+        array.splice(to, 0, array.splice(from, 1)[0]);
+        return array;
+    };
+
+    /**
+     * Converts a byte array to a 32-bit unsigned integer (big-endian)
+     * @param {Uint8Array} bytes The byte array
+     * @param {number} offset The offset within the byte array
+     * @returns {number} The 32-bit unsigned integer
+     */
+    toUint32(bytes, offset) {
+        return (
+            (bytes[offset] << 24) >>> 0 |
+            (bytes[offset + 1] << 16) |
+            (bytes[offset + 2] << 8) |
+            (bytes[offset + 3])
+        ) >>> 0;
+    }
+
+    /**
+     * Converts a 32-bit unsigned integer to a byte array (big-endian)
+     * @param {number} num The 32-bit unsigned integer
+     * @returns {number[]} The byte array representation
+     * @notice The output is an array of 4 bytes, each byte is an unsigned integer (0-255)
+     */
+    uint32ToBytes(num) {
+        return [
+            (num >>> 24) & 0xff,
+            (num >>> 16) & 0xff,
+            (num >>> 8) & 0xff,
+            num & 0xff,
+        ];
+    }
+
+    /**
+     * Tries to decode a JSON string
+     * @param {String} json_string
+     * @returns {Object} The decoded JSON object, or an empty object if decoding fails.
+     */
+    tryDecodeJSON(json_string) {
+        let out;
+        try {
+            out = JSON.parse(json_string);
+        } catch (e) {
+            console.log(e);
+            out = {};
+        }
+        return out;
     }
 
     /**
@@ -55,11 +208,11 @@ class WTVShared {
         let crc = 0;
 
         for (let i = 0; i < 14; i += 2) {
-            let inbyte = parseInt(ssid.substring(i, i + 2), 16);
+            let inbyte = parseInt(ssid.slice(i, i + 2), 16);
             if (isNaN(inbyte)) return '00';
 
             for (let ii = 0; ii < 8; ii++) {
-                let mix = (crc ^ inbyte) & 1;
+                const mix = (crc ^ inbyte) & 1;
                 crc >>= 1;
                 if (mix) crc ^= 0x8C;
                 inbyte >>= 1;
@@ -69,20 +222,27 @@ class WTVShared {
         return crc.toString(16).padStart(2, '0');
     }
 
-    // check if the SSID has a valid checksum
+    /**
+     * Checks if the SSID has a valid checksum
+     * @param {string} ssid The SSID to check
+     * @return {boolean} true if the SSID is valid, false if not
+     */
     checkSSID(ssid) {
-        if (ssid.slice(-2) == this.getSSIDCRC(ssid))
+        if (ssid.slice(-2) === this.getSSIDCRC(ssid))
             return true;
         return false;
     }
 
-
+    /**
+     * Parses variables in a string, replacing %ServiceDeps% with the service dependencies
+     * @param {string} s The string to parse
+     * @returns {string} The parsed string
+     */
     parseConfigVars(s) {
-        if (s.indexOf("%ServiceDeps%") >= 0) {
+        if (s.includes("%ServiceDeps%"))
             return this.getServiceDep(s.replace("%ServiceDeps%", ""), true);
-        } else {
+        else
             return s;
-        }
     }
 
     /**
@@ -117,18 +277,19 @@ class WTVShared {
             return new RegExp(src);
         } else if (src instanceof Date) {
             return new Date(src.getTime());
-        } else if (Array.isArray(src)) {
-            return src.map(item => this.cloneObj(item));
         } else if (typeof src === 'object' && src !== null) {
-            const clone = {};
-            Object.keys(src).forEach(k => {
-                clone[k] = this.cloneObj(src[k]);
+            let clone = null;
+            if (Array.isArray(src)) clone = [];
+            else clone = {};
+
+            const self = this;
+            Object.keys(src).forEach((k) => {
+                clone[k] = self.cloneObj(src[k]);
             });
             return clone;
         }
         return src;
     }
-
 
     /**
      * Checks if the user has been whitelisted for wtv-admin
@@ -136,13 +297,17 @@ class WTVShared {
      * @param {string} service_name (optional) Service to check
      */
     isAdmin(wtvclient, service_name = "wtv-admin") {
-        var  WTVAdmin = require("./WTVAdmin.js");
-        var wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
-        var result = wtva.isAuthorized(true);
-        wtva, WTVAdmin = null;
+        const WTVAdmin = require("./WTVAdmin.js");
+        const wtva = new WTVAdmin(this.minisrv_config, wtvclient, service_name);
+        const result = wtva.isAuthorized(true);
         return result;
     }
 
+    /**
+     * Parses a JSON string, removing unsupported comments
+     * @param {string} json JSON string to parse
+     * @returns {object} Parsed JSON object
+     */
     parseJSON(json) {
         if (typeof json !== 'string') json = json ? json.toString() : '';
         let result = '';
@@ -180,7 +345,6 @@ class WTVShared {
         return JSON.parse(result);
     }
 
-
     /**
      * Attempts to convert val into a boolean
      * @param {string,int,boolean} val 
@@ -194,7 +358,7 @@ class WTVShared {
         // for easy retrofitting old code to work with the webtvism of allowing multiple of the same query name
         // pass it the query, and it will return a string regardless. if its a string it just sends it back
         // if its an array we just pull the last object
-        if (typeof (query) === "object")
+        if (typeof query === "object")
             return query[(Object.keys(query).length - 1)];
         else
             return query
@@ -213,7 +377,7 @@ class WTVShared {
         }
 
         // Directly replace &, <, >, ", and ' characters
-        let entitized = string.replace(/[&<>"]/g, function (match) {
+        let entitized = string.replace(/[&<>"]/g, (match) => {
             switch (match) {
                 case '&': return '&amp;';
                 case '<': return '&lt;';
@@ -232,18 +396,17 @@ class WTVShared {
         return entitized;
     }
 
-
     /**
      * Attempts to sanitize HTML code to remove possible exploits when embedded in a WebTV Service
      * @param {string} string The string to sanitize
      * @returns {string} Sanitized string
      */
     sanitizeSignature(string) {
-        var allowedSchemes = ['http', 'https', 'ftp', 'mailto'];
-        var self = this;
+        const allowedSchemes = ['http', 'https', 'ftp', 'mailto'];
+        const self = this;
          // allow links to services flagged as "wideopen"
         Object.keys(this.minisrv_config.services).forEach((k) => {
-            var flag = parseInt(this.minisrv_config.services[k].flags, 16);
+            const flag = parseInt(this.minisrv_config.services[k].flags, 16);
             if (flag === 4 || flag === 7) {
                 if (!allowedSchemes.includes(k)) allowedSchemes.push(k);
             }
@@ -262,19 +425,19 @@ class WTVShared {
                 a: ['href', 'name', 'target'],
                 audioscope: ['align', 'bgcolor', 'border', 'gain', 'height', 'leftcolor', 'leftoffset', 'maxlevel', 'rightcolor', 'rightoffset', 'width' ],
                 bgsound: ['src', 'loop'],
-                img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+                img: ['src', 'alt', 'title', 'width', 'height', 'loading'], // ?? What is 'loading'?
                 font: ['size', 'name', 'color'],
                 marquee: ['aign', 'behavior', 'direction', 'height', 'hspace', 'loop', 'scrollamount', 'scrolldelay', 'transparency', 'vspace', 'width'],
             },
             allowedSchemes: allowedSchemes,
             allowedSchemesByTag: {},
             allowedSchemesAppliedToAttributes: ['href', 'src', 'cite'],
-            exclusiveFilter: function (frame) {
-                var allowed = true;
+            exclusiveFilter: (frame) => {
+                let allowed = true;
                 Object.keys(frame.attribs).forEach((k) => {
-                    if (k == "href" || k == "background" || k == "src") {
-                        allowed = false;    
-                        var value = frame.attribs[k];
+                    if (k === "href" || k === "background" || k === "src") {
+                        allowed = false;
+                        const value = frame.attribs[k];
 
                         if (frame.tag !== "a") {
                             // check everything except normal links
@@ -302,6 +465,93 @@ class WTVShared {
     }
 
     /**
+     * Converts a header string into an object
+     * @param {string} headers Header string to convert
+     * @param {boolean} response If true, the headers are a response, otherwise they are a request
+     * @return {object} Headers object
+     */
+    headerStringToObj(headers, response = false) {
+        const headers_obj = {};
+        headers_obj.raw_headers = headers;
+        const headers_obj_pre = headers.split("\n");
+        headers_obj_pre.forEach((d) => {
+            if (/^SECURE ON/.test(d) && !response) {
+                headers_obj.secure = true;
+            } else if (/^([0-9]{3}) $/.test(d.slice(0, 4)) && response && !headers_obj.Status) {
+                d.s
+                headers_obj.Status = d.trim("\r");
+            } else if (/^(GET |PUT |POST)$/.test(d.slice(0, 4)) && !response) {
+                headers_obj.request = d.trim("\r");
+                let request_url = d.split(' ');
+                if (request_url.length > 2) {
+                    request_url.shift();
+                    request_url = request_url.join(" ");
+                    if (request_url.indexOf("HTTP/") > 0) {
+                        const index = request_url.indexOf(" HTTP/");
+                        request_url = request_url.slice(0, index);
+                    }
+                } else {
+                    request_url = request_url[1];
+                }
+                headers_obj.request_url = decodeURI(request_url).trim("\r");
+            } else if (d.indexOf(":") > 0) {
+                const d_split = d.split(':');
+                const header_name = d_split[0];
+                if (typeof headers_obj[header_name] === 'string') {
+                    headers_obj[header_name] = [headers_obj[header_name]];
+                    headers_obj[header_name].push((d_split.slice(1).join(':')).trim("\r"));
+                } else if (typeof headers_obj[header_name] === 'object') {
+                    headers_obj[header_name].push((d_split.slice(1).join(':')).trim("\r"));
+                } else {
+                    d_split.shift();
+                    d = d_split.join(':');
+                    headers_obj[header_name] = (d).trim("\r");
+                    if (headers_obj[header_name].startsWith(" ")) {
+                        headers_obj[header_name] = headers_obj[header_name].slice(1);
+                    }
+                }
+            }
+        });
+        return headers_obj;
+    }
+
+    /**
+     * Strips headers not in the whitelist
+     * @param {object} headers_obj // Headers object to strip
+     * @param {Array<string>} whitelist // Array of header names to keep, case insensitive
+     * @returns {object} // Headers object with only whitelisted headers
+     */
+    stripHeaders(headers_obj, whitelist) {
+        const whitelisted_headers = [];
+        const out_headers = [];
+        out_headers.Status = headers_obj.Status;
+        if (headers_obj['wtv-connection-close']) out_headers['wtv-connection-close'] = headers_obj['wtv-connection-close'];
+
+        // compare regardless of case
+        Object.keys(whitelist).forEach((k) => {
+            Object.keys(headers_obj).forEach((j) => {
+                if (whitelist[k].toLowerCase() === j.toLowerCase()) {
+                    // if header = connection, strip 'upgrade'
+                    if (j.toLowerCase() === "connection") {
+                        headers_obj[j] = headers_obj[j].replace("Upgrade", "").replace(",", "").trim();
+                    }
+                    whitelisted_headers[j.toLowerCase()] = [whitelist[k], j, headers_obj[j]];
+                }
+            });
+        });
+
+        // restore original header order
+        Object.keys(headers_obj).forEach((k) => {
+            if (whitelisted_headers[k.toLowerCase()]) {
+                if (whitelisted_headers[k.toLowerCase()][1] === k) out_headers[whitelisted_headers[k.toLowerCase()][0]] = whitelisted_headers[k.toLowerCase()][2];
+            }
+        });
+
+        // return
+        return out_headers;
+    }
+
+    /**
      * Attempts to determine if the string is ASCII
      * @param {string} str
      * @returns {boolean} true if ASCII only, otherwise false
@@ -309,7 +559,6 @@ class WTVShared {
     isASCII(str) {
         return typeof str === 'string' && /^[\x00-\x7F]*$/.test(str);
     }
-
 
     /**
      * Attempts to determine if the string contains HTML
@@ -320,7 +569,6 @@ class WTVShared {
         const pattern = /<([A-Za-z][A-Za-z0-9]*)\b[^>]*>(.*?)<\/\1>/;
         return typeof str === 'string' && pattern.test(str);
     }
-
 
     /**
      * Attempts to determine if the string is Base64 or not
@@ -344,21 +592,27 @@ class WTVShared {
         return new RegExp(regex, 'gi').test(str);
     }
 
-
+    /**
+     * Decodes a UTF-8 string to a regular string
+     * @param {string} utf8String The UTF-8 encoded string to decode
+     * @returns {string} The decoded string
+     * */
     utf8Decode(utf8String) {
         if (typeof utf8String !== 'string') {
-            throw new TypeError('parameter ‘utf8String’ is not a string');
+            throw new TypeError("parameter 'utf8String' is not a string");
         }
         const textDecoder = new TextDecoder('utf-8');
         const bytes = new Uint8Array(utf8String.split('').map(c => c.charCodeAt(0)));
         return textDecoder.decode(bytes);
     }
 
-
+    /**
+     * Decodes a buffer containing ISO-8859-1 encoded text to a UTF-8 string
+     * @param {Buffer} buf The buffer to decode
+     * @returns {string} The decoded string
+     */
     decodeBufferText(buf) {
-        var out = "";
-        out = this.utf8Decode(this.iconv.decode(Buffer.from(buf),'ISO-8859-1'));
-        return out;
+        return this.utf8Decode(this.iconv.decode(Buffer.from(buf),'ISO-8859-1'));;
     }
 
     /**
@@ -370,10 +624,117 @@ class WTVShared {
         // Assuming this.path.sep is a slash (/ or \) and this.parentDirectory is set correctly
         if (!/^(?:[a-zA-Z]:)?[\\/]/.test(check_path)) {
             // It's a relative path
-            check_path = this.parentDirectory + this.path.sep + check_path;
+            check_path = this.path.resolve(this.parentDirectory + this.path.sep + check_path);
         }
         // Use the fixPathSlashes method to normalize the slashes
         return this.fixPathSlashes(check_path);
+    }
+
+    /**
+     * Get the session data (email, creation time, expiry) associated with a given token, also deletes the token if expired.
+     * @param {string} token The token to retrieve data for
+     * @return {object|null} { token, created, expires } for the token, or null if token is invalid/expired
+     */
+    getTokenData(token) {
+        const session = this.tokens[token];
+        if (session && session.expires > Date.now()) {
+            return { email: session.email, token: session.token, created: session.timestamp, expires: session.expires };
+        }
+        this.deleteToken(token);
+        return null;
+    }
+
+    /**
+     * Checks if a token is valid (exists and not expired)
+     * @param {string} token The token to check
+     * @returns {boolean} true if valid, false if not
+     */
+    isTokenValid(token) {
+        const session = this.tokens[token];
+        if (session && session.expires > Date.now()) {
+            return true;
+        }
+        this.deleteToken(token);
+        return false;
+    }
+
+    /**
+     * Deletes a token from the token store.
+     * @param {string} token The token to delete
+     */
+    deleteToken(token) {
+        if (this.tokens[token]) {
+            delete this.tokens[token];
+            this.saveTokens();
+        }
+    }
+
+    /**
+     * Deletes all tokens associated with a given email.
+     * @param {string} email The email to delete tokens for
+     */
+    deleteTokenByEmail(email) {
+        let deleted = false;
+        Object.keys(this.tokens).forEach((k) => {
+            if (this.tokens[k].email === email) {
+                delete this.tokens[k];
+                deleted = true;
+            }
+        });
+        if (deleted) this.saveTokens();
+    }
+
+    mkdirRecursive(dirPath) {
+        if (!this.path.isAbsolute(dirPath)) {
+            dirPath = this.getAbsolutePath(this.parentDirectory + this.path.sep + dirPath);
+        }
+        const parts = dirPath.split(this.path.sep);
+        let currentPath = '';
+        for (const part of parts) {
+            if (part) {
+                if (currentPath === '') {
+                    currentPath = part;
+                } else {
+                    currentPath += this.path.sep + part;
+                }
+                if (!this.fs.existsSync(currentPath)) {
+                    try {
+                        this.fs.mkdirSync(currentPath);
+                    } catch (e) {
+                        if (e.code !== 'EEXIST') {
+                            throw e;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    saveTokens() {
+        const session_store = this.minisrv_config.config.SessionStore + this.path.sep + "msntv2";
+        if (!this.fs.existsSync(session_store)) {
+            this.mkdirRecursive(session_store);
+        }
+        const tokenFile = this.getAbsolutePath(this.path.join(session_store, `tokens.json`));
+        this.fs.writeFile(tokenFile, JSON.stringify(this.tokens), (err) => {
+            if (err) {
+                console.error('[WTV-MSNTV2] Error writing token file:', err);
+            }
+        });
+    }
+
+    /**
+     * Store a token with its associated email.
+     * @param {string} userid The user ID associated with the token
+     * @param {string} email The email associated with the token
+     * @param {string} token The token to store
+     * @param {string|null} expiresTime - Optional expiration time for the token, otherwise uses server config defaults
+     */
+    storeToken(userid, email, token, expiresTime = null) {
+        this.deleteToken(token); // ensure any existing token with the same value is removed before storing new data
+        this.tokens[token] = { userid, email, token, timestamp: Date.now(), expires: expiresTime ? new Date(expiresTime).getTime() : Date.now() + (this.minisrv_config.services[this.service_name]?.token_expiry || 3600) * 1000 }; // 1 hour expiry
+        this.saveTokens();
+        this.debug(" * MSNTV2 stored token for account %s, token expires in %d seconds", email, (this.tokens[token].expires - Date.now()) / 1000);
     }
 
 
@@ -396,19 +757,23 @@ class WTVShared {
         return (this.isMiniBrowser(ssid_session) || parseInt(ssid_session.get("wtv-system-version")) < minBuild) ? true : false;
     }
 
+    /**
+     * Gets the user configuration from the user_config.json file
+     * @returns {object} User configuration object
+     * @notice If the file does not exist, it will return an empty object
+     * @notice If the file exists but cannot be parsed, it will terminate the process with an error message
+     */
     getUserConfig() {
+        let minisrv_user_config = {};
+        const user_config_filename = this.getAbsolutePath("user_config.json", this.appdir);
         try {
-            var user_config_filename = this.getAbsolutePath("user_config.json", this.parentDirectory);
-
             if (this.fs.lstatSync(user_config_filename)) {
                 try {
-                    var minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
+                    minisrv_user_config = this.parseJSON(this.fs.readFileSync(user_config_filename));
                 } catch (f) {
                     console.error("ERROR: Could not read user_config.json", "\n\nReason:\n\n", f);
                     this.process.exit(1);
                 }
-            } else {
-                var minisrv_user_config = {}
             }
             return minisrv_user_config;
         } catch (e) {
@@ -430,6 +795,7 @@ class WTVShared {
     parseSSID(ssid) {
         const boxTypeMapping = {
             "01": "Internal",
+            "61": "NXT Sim",
             "71": "MAME",
             "81": "Retail",
             "91": "Viewer"
@@ -452,21 +818,20 @@ class WTVShared {
         };
 
         const ssid_obj = {
-            boxType: boxTypeMapping[ssid.substring(0, 2)],
-            unique_id: ssid.substring(2, 8),
-            region: regionMapping[ssid.substring(10, 14).toUpperCase()],
-            manufacturer: manufacturerMapping[ssid.substring(8, 10).toUpperCase()],
-            crc: ssid.substring(14)
+            boxType: boxTypeMapping[ssid.slice(0, 2)],
+            unique_id: ssid.slice(2, 8),
+            region: regionMapping[ssid.slice(10, 14).toUpperCase()],
+            manufacturer: manufacturerMapping[ssid.slice(8, 10).toUpperCase()],
+            crc: ssid.slice(14)
         };
 
         // Special case for manufacturer based on region
-        if (ssid_obj.region === "Japan" && ssid.substring(8, 10).toUpperCase() === "00") {
+        if (ssid_obj.region === "Japan" && ssid.slice(8, 10).toUpperCase() === "00") {
             ssid_obj.manufacturer = "Panasonic";
         }
 
         return ssid_obj;
     }
-
 
     /**
      * Alias for parseSSID, but just the manufacture info
@@ -475,62 +840,19 @@ class WTVShared {
      * @return {string}
      */
     getManufacturer(ssid, bit = false) {
-        if (bit) return ssid.substring(8, 10).toUpperCase();
+        if (bit) return ssid.slice(8, 10).toUpperCase();
         else return this.parseSSID(ssid).manufacturer || null;
     }
 
     /**
-     * Moves an object to the desired location in the object (reorder)
-     * @param {string} currentKey Name of the object Key to move
-     * @param {string} afterKey  Name of the object key to place currentKey after
-     * @param {object} obj The object to work on
-     * @param {boolean} caseInsensitive
-     * @returns {object} The modified object
+     * Reads the MiniSrv configuration files
+     * @param {boolean} user_config If true, also read user_config.json
+     * @param {boolean} notices If true, show notices
+     * @param {boolean} reload_notice If true, show reload notice
+     * @returns {object} The MiniSrv configuration object
      */
-    moveObjectElement(currentKey, afterKey, obj, caseInsensitive = false) {
-        let keys = Object.keys(obj);
-        let values = Object.values(obj);
-
-        if (caseInsensitive) {
-            const lowerCurrentKey = currentKey.toLowerCase();
-            const foundKey = keys.find(k => k.toLowerCase() === lowerCurrentKey);
-            currentKey = foundKey || currentKey;
-        }
-
-        const afterKeyIndex = typeof afterKey === 'string' ?
-            keys.findIndex(k => caseInsensitive ? k.toLowerCase() === afterKey.toLowerCase() : k === afterKey)
-            : -1;
-
-        if (afterKeyIndex === -1) {
-            // If afterKey is not found or not defined, don't move the element
-            return obj;
-        }
-
-        const currentIndex = keys.indexOf(currentKey);
-        if (currentIndex === -1) {
-            // If currentKey is not found, don't move the element
-            return obj;
-        }
-
-        // Remove the current element from keys and values
-        const [currentKeyValue] = values.splice(currentIndex, 1);
-        keys.splice(currentIndex, 1);
-
-        // Insert the current element after the afterKey position
-        keys.splice(afterKeyIndex + 1, 0, currentKey);
-        values.splice(afterKeyIndex + 1, 0, currentKeyValue);
-
-        // Reconstruct the object with the new order
-        const result = {};
-        keys.forEach((key, index) => {
-            result[key] = values[index];
-        });
-
-        return result;
-    }
-
-
     readMiniSrvConfig(user_config = true, notices = true, reload_notice = false) {
+        let minisrv_config = {};
         const log = (msg) => {
             if (notices || reload_notice) console.log(msg);
         };
@@ -544,8 +866,8 @@ class WTVShared {
         };
 
         log(" *** Reading global configuration...");
-        try {
-            var minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath(".." + this.path.sep + "config.json", __dirname)));
+        try {            
+            minisrv_config = this.parseJSON(this.fs.readFileSync(this.getAbsolutePath("includes" + this.path.sep + "config.json", this.appdir)));
         } catch (e) {
             throw new Error("ERROR: Could not read config.json", e);
         }
@@ -553,7 +875,7 @@ class WTVShared {
         if (user_config) {
             log(" *** Reading user configuration...");
             try {
-                let minisrv_user_config = this.getUserConfig();
+                const minisrv_user_config = this.getUserConfig();
                 minisrv_config = this.integrateConfig(minisrv_config, minisrv_user_config);
             } catch (e) {
                 logError("ERROR: Could not integrate user_config.json", e);
@@ -570,12 +892,12 @@ class WTVShared {
 
         if (minisrv_config.config.verbosity >= 0 && minisrv_config.config.verbosity <= 3) {
             debugFlags.quiet = minisrv_config.config.verbosity < 2;
-            debugFlags.show_headers = minisrv_config.config.verbosity % 2 === 1;
-            debugFlags.debug = minisrv_config.config.verbosity === 2 || minisrv_config.config.verbosity === 3;
-            log(` * Console Verbosity level ${minisrv_config.config.verbosity}`);
+            debugFlags.show_headers = minisrv_config.config.verbosity === 2
+            debugFlags.debug = minisrv_config.config.verbosity === 3;
+            log(` *** Console Verbosity level ${minisrv_config.config.verbosity}`);
         } else {
             Object.assign(debugFlags, { debug: true, quiet: false, show_headers: true });
-            log(" * Console Verbosity level 4 (debug verbosity)");
+            log(" *** Console Verbosity level 4 (debug verbosity)");
         }
 
         minisrv_config.config.debug_flags = debugFlags;
@@ -583,8 +905,15 @@ class WTVShared {
         log(" *** Configuration successfully read.");
         this.minisrv_config = minisrv_config;
         return this.minisrv_config;
-}
+    }
 
+    /**
+     * Integrates the user configuration into the main configuration object
+     * @param {object} main The main configuration object
+     * @param {object} user The user configuration object
+     * @returns {object} The integrated configuration object
+     * @notice This will overwrite any existing keys in the main configuration with the user configuration
+     * */
     integrateConfig(main, user) {
         for (const key in user) {
             if (typeof user[key] === 'object' && user[key] !== null && !Array.isArray(user[key])) {
@@ -596,18 +925,22 @@ class WTVShared {
         return main;
     }
 
-
+    /**
+     * Writes the user configuration to the user_config.json file
+     * @param {object} config Configuration object to write
+     * @returns {boolean} true if successful, false if not
+     */
     writeToUserConfig(config) {
         if (config) {
             try {
-                var minisrv_user_config = this.getUserConfig();
+                const minisrv_user_config = this.getUserConfig();
 
                 // write back
                 try {
-                    var new_user_config = {};
+                    const new_user_config = {};
                     Object.assign(new_user_config, minisrv_user_config, config);
                     if (this.minisrv_config.config.debug_flags.debug) console.log(" * Writing new user configuration...");
-                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.parentDirectory), JSON.stringify(new_user_config, null, "\t"));
+                    this.fs.writeFileSync(this.getAbsolutePath("user_config.json", this.appdir), JSON.stringify(new_user_config, null, "\t"));
                     return true;
                 }
                 catch (e) {
@@ -624,7 +957,6 @@ class WTVShared {
         }
         return false;
     }
-
 
     /**
      * Generates a random string
@@ -659,7 +991,6 @@ class WTVShared {
         return result;
     }
 
-
     /**
      * Any alias of generateString with optional special characters enabled as well
      * @param {string} len desired generated string length
@@ -667,7 +998,7 @@ class WTVShared {
      * @returns {string} Random string
      */
     generatePassword(len, simple = false) {
-        return this.generateString(len, (simple) ? null : '!@#$%&()[]-_+=?.');
+        return this.generateString(len, (simple) ? '' : '!@#$%&()[]-_+=?.');
     }
 
     /**
@@ -678,6 +1009,13 @@ class WTVShared {
         return this.minisrv_config;
     }
 
+    /**
+     * Wraps a string to a specified length, breaking at whitespace
+     * @param {string} string The string to wrap
+     * @param {number} len The maximum line length
+     * @param {string} join The string to join the wrapped lines with (default is "\n")
+     * @returns {string} The wrapped string
+     */
     lineWrap(string, len = 72, join = "\n") {
         if (string.length <= len) return string;
 
@@ -699,7 +1037,7 @@ class WTVShared {
      * @param {string} file Path to a file
      */
     getFileLastModified(file) {
-        var stats = this.fs.lstatSync(file);
+        const stats = this.fs.lstatSync(file);
         if (stats) return new Date(stats.mtimeMs);
         return false;
     }
@@ -710,6 +1048,15 @@ class WTVShared {
      */
     getFileLastModifiedUTCString(file) {
         return this.getFileLastModified(file).toUTCString();
+    }
+
+    /**
+     * Returns the Last-Modified date in a Date object with UTC time
+     * @param {string} file Path to a file
+     * @return {Date} Date object with UTC time
+     */
+    getFileLastModifiedUTCObj(file) {
+        return new Date(new Date().setUTCSeconds(this.getFileLastModified(file).getUTCSeconds()));
     }
 
     /**
@@ -749,6 +1096,22 @@ class WTVShared {
         return encoded.toUpperCase();
     }
 
+    /**
+     * Converts a bytes value into a human-readable string (KB, MB, GB)
+     * @param {number} bytes The number of bytes
+     * @param {number} decimals The number of decimal places to include in the output (default is 2)
+     * @returns {string} Human-readable string with 2 decimal places
+     */
+    formatBytes(bytes, decimals = 2) {
+        if (typeof bytes !== 'number' || isNaN(bytes)) return '0 Bytes';
+        const units = ['B', 'KB', 'MB'];
+        let i = 0;
+        while (bytes >= 1024 && i < units.length - 1) {
+            bytes /= 1024;
+            i++;
+        }
+        return `${bytes.toFixed(decimals)} ${units[i]}`;
+    }
 
     /**
      * Decodes a urlencoded string into a binary buffer
@@ -765,12 +1128,12 @@ class WTVShared {
         }
 
         // Allocate a buffer of the correct size
-        let decoded = Buffer.alloc(bufferLength);
+        const decoded = Buffer.alloc(bufferLength);
         let bufferIndex = 0;
 
         for (let i = 0; i < encoded.length; i++) {
             if (encoded[i] === '%') {
-                decoded[bufferIndex++] = parseInt(encoded.substr(i + 1, 2), 16);
+                decoded[bufferIndex++] = parseInt(encoded.slice(i + 1, i + 3), 16);
                 i += 2; // Skip the next two characters
             } else {
                 decoded[bufferIndex++] = encoded.charCodeAt(i);
@@ -780,6 +1143,11 @@ class WTVShared {
         return decoded;
     }
 
+    /**
+     * Censors the SSID by replacing parts of it with asterisks
+     * @param {string} ssid The SSID to censor
+     * @returns {string} Censored SSID
+     * */
     censorSSID(ssid) {
         if (ssid) {
             if (ssid.slice(0, 8) === "MSTVSIMU") {
@@ -787,7 +1155,7 @@ class WTVShared {
             } else if (ssid.slice(0, 5) === "1SEGA") {
                 return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
             }
-            return ssid.slice(0, 6) + ('*').repeat(9);
+            return ssid.slice(0, 4) + ('*').repeat(9) + ssid.slice(-2);
         } else {
             return "????????????????";
         }
@@ -798,8 +1166,8 @@ class WTVShared {
     * @param {string|Array} obj SSID String or Headers Object
     */
     filterSSID(obj) {
-        var new_obj = false;
-        if (this.minisrv_config && this.minisrv_config.config.hide_ssid_in_logs) {
+        let new_obj = false;
+        if (this.minisrv_config.config.hide_ssid_in_logs) {
             if (typeof obj === "string") {
                 return this.censorSSID(obj);
             } else if (typeof obj === "object" && obj !== null) {
@@ -807,45 +1175,47 @@ class WTVShared {
                     new_obj = this.cloneObj(obj)
                     new_obj["wtv-client-serial-number"] = this.censorSSID(new_obj["wtv-client-serial-number"]);
                 }
-                // Assuming cloneObj is necessary for other reasons
-                return this.cloneObj((new_obj != false) ? new_obj : obj);
+                return (new_obj !== false) ? new_obj : obj;
             }
         }
         return obj;
     }
 
-
+    /**
+     * Filters sensitive information from request logs
+     * @param {object} obj The request log object to filter
+     * @returns {object} Filtered request log object
+     * */
     filterRequestLog(obj) {
-        if (this.minisrv_config.config.filter_passwords_in_logs && obj.query) {
-            const passwordRegex = /(^pass$|passw(or)?d)/i;
-            let newobj = this.cloneObj(obj); // Clone the object once at the beginning
+        const passwordRegex = /(^pass$|passw(or)?d)/i;
+        const newobj = this.cloneObj(obj); // Clone the object once at the beginning
 
-            if (newobj.query) {
-                Object.keys(newobj.query).forEach((k) => {
-                    if (passwordRegex.test(k)) {
-                        newobj.query[k] = '*'.repeat(newobj.query[k].length);
-                    }
-                });
-            }
-
-            return newobj;
+        if (newobj.query) {
+            Object.keys(newobj.query).forEach((k) => {
+                if (passwordRegex.test(k)) {
+                    newobj.query[k] = '*'.repeat(newobj.query[k].length);
+                }
+            });
         }
-
-        return obj;
+        delete newobj.raw_headers;
+        return newobj;
     }
 
-
-
+    /**
+     * Decodes post data from a request log object
+     * @param {object} obj The request log object
+     * @returns {object} The request log object with decoded post data
+     */
     decodePostData(obj) {
         if (obj.post_data) {
             const filterPasswords = this.minisrv_config.config.filter_passwords_in_logs === true;
             try {
                 // Assuming CryptoJS.enc.Utf8 exists and has a stringify method
-                let post_text = CryptoJS.enc.Utf8.stringify(obj.post_data);
-                let params = new URLSearchParams(post_text);
+                const post_text = CryptoJS.enc.Utf8.stringify(obj.post_data);
+                const params = new URLSearchParams(post_text);
 
                 if (filterPasswords) {
-                    for (let [key, value] of params) {
+                    for (const [key, value] of params) {
                         const lowerKey = key.toLowerCase();
                         if (/passw(or)?d|^pass$/.test(lowerKey)) {
                             params.set(key, '*'.repeat(value.length));
@@ -867,48 +1237,60 @@ class WTVShared {
         return obj;
     }
 
-
     // DON'T USE THIS
     // Saved for reference until I come up with a better way
     // If used, this will exceed the stack limit over time
+    /*
     unloadModule(moduleName) {
+        // Prevent usage
+        return;
         // Search for the module in the require cache
-        let resolvedPath = require.resolve(moduleName);
+        const resolvedPath = require.resolve(moduleName);
 
         // Remove the module from the cache
         if (require.cache[resolvedPath]) {
             delete require.cache[resolvedPath];
         }
     }
-
+    */
+   
     /**
-    * Returns an absolute path
+    * Returns an absolute path without an trailing path seperator
     * @param {string} path 
     * @param {string} directory Root directory
     */
-    getAbsolutePath(path, directory = '') {
-        const pathModule = require('path');
+    getAbsolutePath(path = '', directory = '.') {
+        // Check if directory is already an absolute path
+        if (directory.length > 0 && (directory[0] === "/" || (directory.length >= 3 && directory[1] === ':' && directory[2] === this.path.sep))) {
+            return this.path.resolve(directory + this.path.sep + path);
+        }
         try {
-            // If the directory is a valid directory, prepend it to the path
-            if (directory && !path.startsWith(directory)) {
-                const fs = require('fs');
-                if (fs.lstatSync(directory).isDirectory()) {
-                    // Ensure directory has trailing separator
-                    if (!directory.endsWith(pathModule.sep)) {
-                        directory += pathModule.sep;
-                    }
-                    path = directory + path;
-                }
+            // start with our absolute path (of app.js)
+            const appdir = this.path.resolve(__dirname + this.path.sep + '..' + this.path.sep + '..')
+
+            if (path === '' && directory === '.') {
+                return appdir;
             }
+            // If the directory is a valid directory, prepend it to the path
+            let resolvedDirectory = this.path.resolve(appdir + this.path.sep + directory);
+            if (!path) {
+                return resolvedDirectory;
+            }
+            if (resolvedDirectory && !path.startsWith(resolvedDirectory)) {
+                if (!resolvedDirectory.endsWith(this.path.sep)) {
+                    resolvedDirectory += this.path.sep;
+                }
+                path = resolvedDirectory + path;
+            }
+            // The path.resolve method will take care of normalizing slashes
+            return this.path.resolve(path);
         } catch (e) {
             // If there's an error accessing the directory, log it or handle as needed
             console.error('Error resolving directory:', e);
+            // Fallback to basic path resolution
+            return this.path.resolve(path);
         }
-        // The path.resolve method will take care of normalizing slashes
-        return pathModule.resolve(path);
     }
-
-
 
     /**
      * Returns a percentage
@@ -926,9 +1308,9 @@ class WTVShared {
      * @return {string} path without gz, or unmodified path if it isnt a gz
      */
     getFilePath(path) {
-        var path_split = path.split('/');
+        const path_split = path.split(this.path.sep);
         path_split.pop();
-        return path_split.join('/');
+        return path_split.join(this.path.sep);
     }
 
     /**
@@ -940,6 +1322,12 @@ class WTVShared {
         return path.reverse().split(".")[0].reverse();
     }
 
+    /**
+     * Gets a line from a file by line number
+     * @param {string} filename The file to read
+     * @param {number} lineNo The line number to read (0-indexed)
+     * @param {function} callback Callback function to call with the line or an error
+     * */
     getLineFromFile(filename, lineNo, callback) {
         let lineCount = 0;
         const lineReader = this.readline.createInterface({
@@ -969,8 +1357,6 @@ class WTVShared {
         });
     }
 
-
-
     /**
      * Checks if service is enabled or disabled in the config
      * @param {string} service Service Name
@@ -992,15 +1378,15 @@ class WTVShared {
     getServiceString(service, overrides = {}) {
         // used externally by service scripts
         if (service === "all") {
-            var self = this;
-            var out = "";
-            Object.keys(this.minisrv_config.services).sort().forEach(function (k) {
+            const self = this;
+            let out = "";
+            Object.keys(this.minisrv_config.services).sort().forEach((k) => {
                 if (!self.isConfiguredService(k)) return true;
                 if (self.minisrv_config.services[k].pc_services) return true;
 
                 if (overrides.exceptions) {
-                    Object.keys(overrides.exceptions).forEach(function (j) {
-                        if (k != overrides.exceptions[j]) out += self.minisrv_config.services[k].toString(overrides) + "\n";
+                    Object.keys(overrides.exceptions).forEach((j) => {
+                        if (k !== overrides.exceptions[j]) out += self.minisrv_config.services[k].toString(overrides) + "\n";
                     });
                 } else {
                     out += self.minisrv_config.services[k].toString(overrides) + "\n";
@@ -1009,7 +1395,7 @@ class WTVShared {
             return out;
         } else {
             if (!this.minisrv_config.services[service]) {
-                throw ("SERVICE ERROR: Attempted to provision unconfigured service: " + service)
+                throw new Error("SERVICE ERROR: Attempted to provision unconfigured service: " + service);
             } else {
                 return this.minisrv_config.services[service].toString(overrides);
             }
@@ -1017,53 +1403,93 @@ class WTVShared {
     }
 
     /**
-     * Creates an error message and sends it to the client
+     * Creates a 302 redirect and returns the headers/data
+     * @param {any} url
+     * @returns [headers, data]
+     */
+    doRedirect(url) {
+        const headers = [];
+        headers['Status'] = "302 Moved";
+        headers["Location"] = url;
+        headers["wtv-visit"] = url;
+        const data = '';
+        return [headers, data];
+    }
+
+    /**
+     * Creates an error message and returns the headers/data
      * @param {number} code HTTP Error Code
-     * @param {string} data Optinal Custom Error Message
-     * @param {string} details Optional extra error information
+     * @param {string} data Optional custom error message shown to the client. If omitted, a generic configured message is used.
+     * @param {string} details Operator-only reason logged to the console; not sent to the client
      * @param {boolean} pc_mode If true, sends response formatted for PCs instead of WebTV
      * @param {boolean} wtv_reset if true, tells the WebTV box to reset the service list and reconnect
      */
-     doErrorPage(code, data = null, details = null, pc_mode = false, wtv_reset = false) {
+    doErrorPage(code, data = null, details = null, pc_mode = false, wtv_reset = false) {
         const minisrv_config = this.minisrv_config;
         const errorMessage = minisrv_config.config.errorMessages[code] || "";
         const message = data || errorMessage.replace(/\$\{(\w+)\}/g, (match, p1) => minisrv_config.config[p1] || '');
 
-        if (details && [400, 500].includes(code)) {
-            data += "<br>Details:<br>" + details;
-        }
+        const reason = (details != null && details !== "" && typeof details !== "boolean")
+            ? details
+            : (data != null && data !== "" ? data : "(no reason provided)");
+        const prefix = (wtv_reset && !pc_mode) ? " ! doErrorPage Called (sent wtv-reset):" : " * doErrorPage Called:";
+        console.error(prefix, code, reason);
 
-        let headers = `${code} ${message}\n`;
+        let headers = `Status: ${(pc_mode) ? 'HTTP/1.1' : ''} ${code} ${message}\n`;
         headers += "Content-Type: text/html\n";
 
         if (wtv_reset && !pc_mode) {
             headers += "wtv-service: reset\n";
             headers += this.getServiceString('wtv-1800') + "\n";
             headers += "wtv-visit: wtv-1800:/preregister?scriptless-visit-reason=999\n";
-            console.error(" * doErrorPage Called (sent wtv-reset):", code, message);
-        } else {
-            console.error(" * doErrorPage Called:", code, message);
         }
 
         return [headers, message];
     }
 
+    /**
+     * Returns true if candidate resolves inside root (or is root itself).
+     * Uses path.relative so prefix traps like /app vs /app-evil are rejected.
+     * @param {string} root
+     * @param {string} candidate
+     * @returns {boolean}
+     */
+    isPathInside(root, candidate) {
+        if (!root || !candidate) return false;
+        const resolvedRoot = this.path.resolve(String(root));
+        const resolvedCandidate = this.path.resolve(String(candidate));
+        const relative = this.path.relative(resolvedRoot, resolvedCandidate);
+        return relative === '' || (!relative.startsWith('..') && !this.path.isAbsolute(relative));
+    }
 
     /**
-     * Strips bad things from paths
+     * Strips shell metacharacters from paths and keeps two-arg results under base.
+     * Do NOT strip path separators (\ or /): the historical regex included \\, but
+     * the replace result was discarded â€” applying it flattened Windows paths
+     * (e.g. user\store â†’ userstore) and broke ServiceVault / session store lookups.
+     * Traversal is blocked via isPathInside, not by deleting separators.
      * @param {string} base Base path
-     * @param {string} target Sub path
+     * @param {string|null} target Sub path
+     * @param {boolean} force_forward_slash
+     * @returns {string|null} Sanitized path, or null if target would escape base
      */
     makeSafePath(base, target = null, force_forward_slash = false) {
-        if (target) {
-            target.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-            var targetPath = this.path.posix.normalize(target)
-            var output = this.fixPathSlashes(base + this.path.sep + targetPath);
+        const unsafeChars = /[\|\&\;\$\%\@\"\<\>\+\,]/g;
+        let output = null;
+        if (target !== null && typeof target !== 'undefined') {
+            const cleanedTarget = String(target).replace(unsafeChars, "");
+            const targetPath = this.path.posix.normalize(cleanedTarget);
+            output = this.fixPathSlashes(String(base) + this.path.sep + targetPath);
+            // Reject traversal / absolute-target escapes of the vault/base directory
+            if (!this.isPathInside(base, output)) {
+                return null;
+            }
         } else {
-            base.replace(/[\|\&\;\$\%\@\"\<\>\+\,\\]/g, "");
-            var targetPath = this.path.posix.normalize(base)
-            var output = this.fixPathSlashes(targetPath);
+            const cleanedBase = String(base).replace(unsafeChars, "");
+            const targetPath = this.path.posix.normalize(cleanedBase);
+            output = this.fixPathSlashes(targetPath);
         }
+        if (output === null) return null;
         return (force_forward_slash) ? output.replace(this.path.sep, '/') : output;
     }
 
@@ -1090,7 +1516,6 @@ class WTVShared {
         return pathModule.normalize(normalizedPath);
     }
 
-
     /**
      * Makes sure an SSID is clean, and doesn't contain any exploitable characters
      * @param {string} ssid
@@ -1098,22 +1523,36 @@ class WTVShared {
      */
     makeSafeSSID(ssid = "") {
         ssid = ssid.replace(/[^a-zA-Z0-9]/g, "");
-        if (ssid.length == 0) ssid = null;
+        if (ssid.length === 0) ssid = null;
         return ssid;
     }
 
+    /**
+     * Makes sure a string path is clean, and doesn't contain any exploitable characters
+     * @param {string} path
+     * @returns {string|null} Sanitized Path
+     * */
     makeSafeStringPath(path = "") {
         path = path.replace(/[^\w]/g, "").replace(/\.\./g, "");
-        if (path.length == 0) path = null;
+        if (path.length === 0) path = null;
         return path;
     }
 
-
+    /**
+     * Unpacks a base64 compressed string
+     * @param {string|Buffer} data Base64 encoded compressed data
+     * @returns {string} Uncompressed string
+     * */
     unpackCompressedB64(data) {        
-        var data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
+        const data_buf = (typeof data === 'object') ? Buffer.from(data.toString('ascii'), 'base64') : Buffer.from(data, 'base64');
         return this.zlib.inflateSync(data_buf, { finishFlush: this.zlib.Z_SYNC_FLUSH }).toString('ascii');
     }
 
+    /**
+     * Compresses data and converts it to a base64 string
+     * @param {any} data
+     * @returns {string} base64 string
+     */
     packCompressedB64(data) {
         return this.zlib.deflateSync(data, { 'level': 9 }).toString('base64');
     }
@@ -1125,14 +1564,14 @@ class WTVShared {
      * @param {boolean} template If true, looks under templates subdir.
      */
     getServiceDep(file, path_only = false, template = false) {
-        var self = this;
-        var outdata = null;
-        var found = false
-        this.minisrv_config.config.ServiceDeps.forEach(function (dep_vault_dir) {
+        const self = this;
+        let outdata = null;
+        let found = false
+        this.minisrv_config.config.ServiceDeps.forEach((dep_vault_dir) => {
             if (found) return;
             if (template) dep_vault_dir += self.path.sep + "templates";
 
-            var search = self.getAbsolutePath(dep_vault_dir + self.path.sep + file);
+            const search = self.getAbsolutePath(file, dep_vault_dir);
             if (self.fs.existsSync(search)) {
                 if (path_only) outdata = search;
                 else outdata = self.fs.readFileSync(search);
@@ -1152,6 +1591,73 @@ class WTVShared {
     getTemplate(service_name, path, path_only = false) {
         return this.getServiceDep(service_name + this.path.sep + path, path_only, true);
     }
+
+
+    /**
+     * Finds a key in an object
+     * @param {string} key The key to find
+     * @param {object} obj The object to search
+     * @param {boolean} case_insensitive Search case insensitive
+     * @returns 
+     */
+    findObjectKeyIndex(key, obj, case_insensitive = false) {
+        const keys = Object.keys(obj);
+        if (case_insensitive) {
+            return keys.findIndex(k => k.toLowerCase() === key.toLowerCase());
+        }
+        return keys.indexOf(key);
+    }
+
+    /**
+     * Moves an object to the desired location in the object (reorder)
+     * @param {string|int} currentKey Name of the object Key to move or the index to move
+     * @param {string|int} destKey Name of the object key to place currentKey after or the index to place it at
+     * @param {object} obj The object to work on
+     * @param {boolean} case_insensitive Search case insensitive
+     * @returns {object} The modified object
+     */
+    moveObjectKey(currentKey, destKey, obj, case_insensitive = false) {
+        const keys = Object.keys(obj);
+        const values = Object.values(obj);
+
+        const currentIndex = typeof currentKey === 'string' ? this.findObjectKeyIndex(currentKey, obj, case_insensitive) : +currentKey;
+        if (currentIndex === -1) return obj;
+
+        let destIndex = typeof destKey === 'string' ? this.findObjectKeyIndex(destKey, obj, case_insensitive) : +destKey;
+
+        // Bump by one if the destKey is a string (put after the key)
+        if (typeof destKey === 'string' && destIndex !== -1) destIndex++;
+
+        // If destKey is not found or not defined, don't move the element
+        if (isNaN(destIndex)) return obj;
+
+        // Remove the current element from keys and values
+        const [currentKeyValue] = values.splice(currentIndex, 1);
+        const [currentKeyName] = keys.splice(currentIndex, 1);
+
+        // Insert the current element after the destKey position
+        keys.splice(destIndex, 0, currentKeyName);
+        values.splice(destIndex, 0, currentKeyValue);
+
+        // Reconstruct the object with the new order
+        const result = {};
+        keys.forEach((key, index) => {
+            result[key] = values[index];
+        });
+
+        return result;
+    }
+
+    /**
+     * Find a key in an object regardless of its case
+     * @param {string} key Key to find
+     * @param {obj} obj Object to search
+     * @returns {string|null} The found key or null if not found
+     */
+    getCaseInsensitiveKey(key, obj) {
+        const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+        return foundKey || null;
+    }
 }
 
 class clientShowAlert {
@@ -1163,6 +1669,17 @@ class clientShowAlert {
     noback = null;
     image = null;
 
+    /**
+     * User-friendly client:showalert generation
+     * @param {string} image Image URL
+     * @param {string} message Alert Message (HTML Allowed)
+     * @param {string} buttonlabel1 Button 1 Label
+     * @param {string} buttonaction1 Button 1 Action
+     * @param {string} buttonlabel2 Button 2 Label
+     * @param {string} buttonaction2 Button 2 Action
+     * @param {string} noback If true, disables the back button
+     * @param {string} sound Sound to play when showing the alert (default is "none")
+     */
     constructor(image = null, message = null, buttonlabel1 = null, buttonaction1 = null, buttonlabel2 = null, buttonaction2 = null, noback = null, sound = null) {
         this.message = message;
         this.buttonlabel1 = buttonlabel1;
@@ -1176,25 +1693,29 @@ class clientShowAlert {
 
         if (typeof image === 'object') {
             this.image = null;
-            Object.keys(image).forEach(function (k) {
+            Object.keys(image).forEach((k) => {
                 if (this[k] === null) this[k] = image[k];
-            }, this);
+            });
         } else {
             this.image = image;
         }
     }
 
+    /**
+     * Get the client:showalert URL from the helper class
+     * @returns {string} client:showalert URL
+     */
     getURL() {
-        var url = "client:ShowAlert?";
-        if (this.message) url += "message=" + escape(this.message) + "&";
-        if (this.buttonlabel1) url += "buttonlabel1=" + escape(this.buttonlabel1) + "&";
-        if (this.buttonaction1) url += "buttonaction1=" + escape(this.buttonaction1) + "&";
-        if (this.buttonlabel2) url += "buttonlabel2=" + escape(this.buttonlabel2) + "&";
-        if (this.buttonaction2) url += "buttonaction2=" + escape(this.buttonaction2) + "&";
-        if (this.image) url += "image=" + escape(this.image) + "&";
-        if (this.sound) url += "sound=" + escape(this.sound) + "&";
+        let url = "client:ShowAlert?";
+        if (this.message) url += `message=${encodeURIComponent(this.message)}&`;
+        if (this.buttonlabel1) url += `buttonlabel1=${encodeURIComponent(this.buttonlabel1)}&`;
+        if (this.buttonaction1) url += `buttonaction1=${encodeURIComponent(this.buttonaction1)}&`;
+        if (this.buttonlabel2) url += `buttonlabel2=${encodeURIComponent(this.buttonlabel2)}&`;
+        if (this.buttonaction2) url += `buttonaction2=${encodeURIComponent(this.buttonaction2)}&`;
+        if (this.image) url += `image=${encodeURIComponent(this.image)}&`;
+        if (this.sound) url += `sound=${encodeURIComponent(this.sound)}&`;
         if (this.noback) url += "noback=true&";
-        return url.substring(0, url.length - 1);
+        return url.slice(0, -1);
     }
 }
 

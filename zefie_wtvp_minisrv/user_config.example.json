@@ -15,6 +15,12 @@
 			"C:/Users/zefie/webtv/ServiceVault2",
 			"/home/zefie/webtv/ServiceVault"
 		],
+		"keys": {
+			"user_data_key": "SOMETHING_RANDOM_AND_SECRET" // this can be any string, but should be changed to a random value before registering any users.
+		},
+		"php_enabled": true, // enables PHP CGI support
+		"php_binpath": "/usr/bin/php-cgi", // path to PHP CGI binary
+		"cgi_enabled": true, // enables CGI Support
 		"ssid_block_list": [
 			// list of SSID's to block
 			"8100000000000000",
@@ -30,6 +36,13 @@
 			]
 		},
 		"hide_ssid_in_logs": true,
+		"pc_admin": {
+			"ip_whitelist": [
+				"192.168.20.0/24", // your subnet
+				"127.0.0.1"
+			],
+			"password": "MyEvEnMoReSeqRetKey1!11!" // change this
+		},
 		"verbosity": 2,
 		"errorMessages": {
 			"999": "My Custom Error Code Message",
@@ -60,8 +73,8 @@
 	"services": {
 		"wtv-1800": {
 			"send_tellyscripts": true,
-			"send_tellyscript_ssid_whitelist": [
-				// send only these SSIDs a tellyscript
+			"tellyscript_ssid_blacklist": [
+				// do not send these SSIDs a tellyscript
 				"8100000000000000",
 				"8120000000000000"
 			]
@@ -118,6 +131,11 @@
 				"username": "mylocaluser",
 				"password": "mylocalpass"
 			}
+		},
+		"pnm": {
+			// optional UDP source-port range used by WTVPNM
+			"udp_bind_port_min": 6656,
+			"udp_bind_port_max": 6911
 		},
 		// the following uses zefie's public proxy with webone for web surfing and image scaling
 		"services": {

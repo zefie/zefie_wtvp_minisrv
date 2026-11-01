@@ -1,29 +1,29 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var WTVAdmin = require(classPath + "/WTVAdmin.js");
-var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
-var auth = wtva.isAuthorized();
+const WTVAdmin = require(classPath + "/WTVAdmin.js");
+const wtva = new WTVAdmin(minisrv_config, session_data, service_name);
+const auth = wtva.isAuthorized();
 if (auth === true) {
-    var password = null;
+    let user_info, ssid, password;
+    let ssid_match = false;
     if (request_headers.Authorization) {
-        var authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        const authheader = request_headers.Authorization.split(' ');
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
     }
     if (wtva.checkPassword(password)) {
         if (request_headers.query.ssid) {
-            var ssid_match = false;
-            var ssid = request_headers.query.ssid.toLowerCase();
-            var user_info = wtva.getAccountInfoBySSID(ssid);
+            ssid = request_headers.query.ssid.toLowerCase();
+            user_info = wtva.getAccountInfoBySSID(ssid);
             if (request_headers.query.confirm_delete) {
                 user_info = null;
-                if (ssid == socket.ssid) {
+                if (ssid === socket.ssid) {
                     ssid_match = true;
                 } else {
                     // delete
-                    var userAccount = wtva.getAccountBySSID(ssid);
+                    const userAccount = wtva.getAccountBySSID(ssid);
                     userAccount.unregisterBox();
                 }
             }
@@ -63,7 +63,7 @@ wtv-noback-all: wtv-admin:/deleteaccount`;
                     if (Object.keys(user_info.account_users).length > 1) {
                         data += `<tr><td>Additional Users:</td><td>`;
                         Object.keys(user_info.account_users).forEach(function (k) {
-                            if (k == "subscriber") return;
+                            if (k === "subscriber") return;
                             data += user_info.account_users[k].subscriber_username + "<br>";
                         })
                         data += `</td></tr>`
@@ -101,12 +101,12 @@ wtv-noback-all: wtv-admin:/deleteaccount`;
 </html>
 `;
     } else {
-        var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
+        const errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(403, auth);
+    const errpage = wtvshared.doErrorPage(403, auth);
     headers = errpage[0];
     data = errpage[1];
 }

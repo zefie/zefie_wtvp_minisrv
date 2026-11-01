@@ -1,7 +1,7 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var folder_array = session_data.favstore.getFolders();
-var totalfavorites = folder_array.length;
+const folder_array = session_data.favstore.getFolders();
+const totalfavorites = folder_array.length;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -120,7 +120,7 @@ data += `<tr><td width=225>
 </table>
 </table>`
 }
-if (totalfavorites == 1)
+if (totalfavorites === 1)
 	data += `<tr><td align=left valign=top>	</table>
 <td valign=top align=left>
 <table cellspacing=0 cellpadding=0 width=115><tr><td width=227 height=20 bgcolor=#2b2b2b>
@@ -175,7 +175,7 @@ data += `
 </table>
 </table>
 </form>`
-if (totalfavorites == 1)
+if (totalfavorites === 1)
 	data += "<i>&nbsp;&nbsp;&nbsp;You cannot delete your last folder.</i>"
 data += `
 <hr width=420>

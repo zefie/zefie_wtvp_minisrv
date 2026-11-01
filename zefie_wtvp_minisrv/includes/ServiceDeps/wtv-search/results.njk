@@ -1,0 +1,36 @@
+<html>
+<head>
+    <title>Web Search Proxy</title>
+</head>
+<body bgcolor="#191919" text="#44cc55" link="36d5ff" vlink="36d5ff">
+    <form method="POST" action="{{ service_name }}:/search">
+        <label for="q">Query:</label>
+        <input type="text" id="q" name="q" value="{{ request_headers.query.q }}" size=30>
+        <select name="categories">
+            {% if request_headers.query.categories == 'general' %}
+            <option value="general" selected>General</option>
+            {% else %}
+            <option value="general">General</option>
+            {% endif %}
+
+            {% if request_headers.query.categories == 'images' %}
+            <option value="images" selected>Images</option>
+            {% else %}
+            <option value="images">Images</option>
+            {% endif %}
+        </select>
+        <input type="submit" value="Search">
+    </form>
+    <h1>Search Results</h1>
+    {% if request_headers.query.categories == 'general' %}
+        {% for result in content %}
+        <p><font color="gold">{{ result.title }}</font><br><a href="{{ result.url }}" target="_blank">Direct</a> - <a href="wtv-proxy:/proxy?url={{ result.encodedurl }}">Proxy</a><br>{{ result.content }}</p><br>
+        {% endfor %}
+    {% else %}
+        {% for result in content %}
+        <a href="{{ result.img_src }}"><img src="{{ result.thumbnail_src }}" width="50"></a>
+        {% endfor %}
+    {% endif %}
+
+</body>
+</html>

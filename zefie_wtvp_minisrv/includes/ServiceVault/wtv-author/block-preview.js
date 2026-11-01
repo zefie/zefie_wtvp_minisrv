@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName
+const docName = request_headers.query.docName
 
 headers = `200 OK
 Connection: Keep-Alive

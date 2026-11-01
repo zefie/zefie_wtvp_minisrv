@@ -1,0 +1,93 @@
+body.stretchyBackground
+{
+	behavior: url(msntv:/htc/StretchyBackground.htc);
+	margin: 0px;
+	border-width: 0px;
+}
+
+body, td
+{
+	font-family: segoe tv;
+	font-size: 18px;
+}
+
+.ellipsis
+{
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.inputText, .inputPwd
+{
+	background-color:#485464;
+	color:#F2F2F2;
+	border-style:window-inset;
+	border-width: 4px;
+	border-color: #9297A1;
+	border-right-color: #6F7783;
+	padding-left:3px;
+	padding-right:4px;
+}
+
+.inputPwd
+{
+	behavior: url(msntv:/htc/PasswordField.htc);
+}
+
+.scroller
+{
+	height: 100%;
+	width: 100%;
+	overflow-y: hidden;
+	behavior:url(../HTC/ScrollingDIV.htc);
+}
+
+em
+{
+	font-weight: bold;
+	font-style: normal;
+}
+
+p
+{
+	margin-top: 0px;
+	margin-bottom: 13px;
+}
+
+ul
+{
+	margin-top:-7px;
+	margin-bottom:15px;
+}
+ul li
+{
+	margin-left:-24px;
+	margin-bottom:5px;
+}
+ul li span.li
+{
+	position:relative;
+	top:2px;
+	left:-4px;
+}
+
+ul.links
+{
+	list-style:none;
+}
+
+ul.links li
+{
+	position:relative;
+	top:2px;
+	left:-15px;
+	padding-left:13px;
+	background:url(msntv:/Shared/images/BulletCustom.gif) no-repeat;
+	background-position-y:3px;
+}
+ul.links li a
+{
+	display:inline-block;
+}
+

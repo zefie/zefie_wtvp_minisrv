@@ -1,15 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 if (!request_headers.query.registering) {
-    var errpage = wtvshared.doErrorPage(400);
+    const errpage = wtvshared.doErrorPage(400, null, "Missing registering parameter");
     headers = errpage[0];
     data = errpage[1];
 } else {
     const WTVRegister = require(classPath + "/WTVRegister.js")
-    var wtvr = new WTVRegister(minisrv_config);
+    const wtvr = new WTVRegister(minisrv_config);
     headers = `200 OK
 Content-Type: text/html`;
-    var main_data = `<form action="ValidateAccountInfo"
+    const main_data = `<form action="ValidateAccountInfo"
 ENCTYPE="x-www-form-encoded" METHOD="POST">
 <input type=hidden name=registering value="true">
 Please set up your account:<br><br>
@@ -33,21 +33,21 @@ AutoCaps selected>
 <INPUT NAME="subscriber_contact"
 ID="subscriber_contact"
 bgcolor=#444444 text=#ffdd33 cursor=#cc9933
-VALUE="" TYPE="text" SIZE="19"
+TYPE="text" SIZE="19"
 MAXLENGTH="64"
-AutoCaps selected>
+AutoCaps selected value="${request_headers.query.subscriber_contact || ""}">
 <p>
 <font size="-2"><b>CONTACT INFO TYPE:</b></font><img src="ROMCache/spacer.gif" width="7">
 <img src="ROMCache/spacer.gif" width="3"><select usestyle id="subscriber_contact_method" name="subscriber_contact_method">
 <option value="">Type</option>
-<option>E-Mail</option>
-<option>Discord</option>
-<option>Twitter</option>
-<option>Telegram</option>
-<option>Instagram</option>
+<option value="E-Mail"${(request_headers.query.subscriber_contact_method === "E-Mail") ? " selected" : ""}>E-Mail</option>
+<option value="Discord"${(request_headers.query.subscriber_contact_method === "Discord") ? " selected" : ""}>Discord</option>
+<option value="Twitter"${(request_headers.query.subscriber_contact_method === "Twitter") ? " selected" : ""}>Twitter</option>
+<option value="Telegram"${(request_headers.query.subscriber_contact_method === "Telegram") ? " selected" : ""}>Telegram</option>
+<option value="Instagram"${(request_headers.query.subscriber_contact_method === "Instagram") ? " selected" : ""}>Instagram</option>
 </select>
 `;
-    var form_data = `<shadow>
+    const form_data = `<shadow>
 <input type=submit Value=Continue name="Continue" borderimage="file://ROM/Borders/ButtonBorder2.bif" text="#dddddd" width=110>
 </shadow>
 </font>

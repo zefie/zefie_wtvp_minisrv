@@ -1,0 +1,118 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2004 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:		Navigation.htc
+//
+//  Description:	The Navigation HTML behavior grabs the
+//	  left, right, up, down keys and handle the nextLeft/nextRight/nextUp/nextDown HTML attributes.
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT lightweight="true">
+<PUBLIC:ATTACH EVENT="onkeydown" HANDLER="KeydownHandler" />
+</PUBLIC:COMPONENT>
+
+<SCRIPT>
+
+function KeydownHandler()
+{
+	var handled = false;
+	var srcElem = event.srcElement;
+	var selnRange = null;
+	var txtAreaRange = null;
+
+	// If the selection is editable text, only handle keys when the caret
+	// is at the appropriate edge
+	if (srcElem && srcElem.isContentEditable)
+	{
+	 	selnRange = element.document.selection.createRange();
+		txtAreaRange = srcElem.createTextRange();
+	}
+	switch (event.keyCode)
+	{
+		case 37:	// left
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the beginning or this is a repeat
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextLeft = srcElem.attributes.getNamedItem("nextleft");
+			if (nextLeft)
+			{
+				element.document.all[nextLeft.value].focus();
+				handled = true;
+			}
+			break;
+
+		case 39:	// right
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the end or this is a repeat
+				txtAreaRange.collapse(false);	// move to the end
+				if (selnRange.boundingWidth != 0 || 
+					txtAreaRange.boundingLeft != selnRange.boundingLeft ||
+					txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextRight = srcElem.attributes.getNamedItem("nextright");
+			if (nextRight)
+			{
+				element.document.all[nextRight.value].focus();
+				handled = true;
+			}
+			break;
+			
+		case 38:	// up
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the top or this is a repeat
+				if (txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextUp = srcElem.attributes.getNamedItem("nextup");
+			if (nextUp)
+			{
+				element.document.all[nextUp.value].focus();
+				handled = true;
+			}
+			break;
+
+		case 40:	// down
+			if (selnRange && txtAreaRange)
+			{	// don't do anything unless the caret is at the bottom or this is a repeat
+				txtAreaRange.collapse(false);	// move to the end
+				if (txtAreaRange.boundingTop != selnRange.boundingTop ||
+					event.repeat)
+					break;
+			}
+			
+			var nextDown = srcElem.attributes.getNamedItem("nextdown");
+			if (nextDown)
+			{
+				element.document.all[nextDown.value].focus();
+				handled = true;
+			}
+			break;		
+	}
+		
+	if (handled)
+	{
+		event.returnValue=false;
+		event.cancelBubble=true;
+	}
+
+	//pass on to next handler only if handled == false
+	return handled == false; 
+}
+
+</SCRIPT>
+
+
+

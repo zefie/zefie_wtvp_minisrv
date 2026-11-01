@@ -1,38 +1,21 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var WTVAdmin = require(classPath + "/WTVAdmin.js");
-var wtva = new WTVAdmin(minisrv_config, session_data, service_name);
-var auth = wtva.isAuthorized();
+const WTVAdmin = require(classPath + "/WTVAdmin.js");
+const wtva = new WTVAdmin(minisrv_config, session_data, service_name);
+const auth = wtva.isAuthorized();
 if (auth === true) {
-    var password = null;
+    let result, ssid, password;
     if (request_headers.Authorization) {
-        var authheader = request_headers.Authorization.split(' ');
-        if (authheader[0] == "Basic") {
+        const authheader = request_headers.Authorization.split(' ');
+        if (authheader[0] === "Basic") {
             password = Buffer.from(authheader[1], 'base64').toString();
             if (password) password = password.split(':')[1];
         }
     }
     if (wtva.checkPassword(password)) {
         if (request_headers.query.ssid) {
-            var ssid = request_headers.query.ssid.toLowerCase();
-            if (ssid == socket.ssid) {
-                var nobanself = true;
-            } else {
-                var fake_config = wtvshared.getUserConfig();
-                if (!fake_config.config) fake_config.config = {};
-                if (!fake_config.config.ssid_block_list) fake_config.config.ssid_block_list = [];
-                var entry_exists = false;
-                Object.keys(fake_config.config.ssid_block_list).forEach(function (k) {
-                    if (fake_config.config.ssid_block_list[k] == ssid) {
-                        entry_exists = true;
-                    }
-                });
-                if (!entry_exists) {
-                    fake_config.config.ssid_block_list.push(ssid);
-                    wtvshared.writeToUserConfig(fake_config);
-                    reloadConfig();
-                }
-            }
+            ssid = request_headers.query.ssid.toLowerCase();
+            result = wtva.banSSID(ssid, socket.ssid);
         }
         headers = `200 OK
 Content-Type: text/html
@@ -61,13 +44,16 @@ wtv-expire-all: wtv-admin:/ban`;
 <input type="submit" value="Ban SSID">
 </form><br><br>`
         if (request_headers.query.ssid) {
-            if (nobanself) {
+            if (result === wtva.REASON_SELF) {
                 data += "<strong>Cannot ban yourself.</strong>"
             } else {
-                if (entry_exists) {
+                if (result === wtva.REASON_EXISTS) {
                     data += "<strong>SSID " + request_headers.query.ssid + " is already in the ban list.</strong><br><br>";
-                } else {
+                } else if (result === wtva.SUCCESS) {
+                    reloadConfig();
                     data += "<strong>SSID " + request_headers.query.ssid + " added to the ban list.</strong><br><br>";
+                } else {
+                    data += "<strong>Unexpected response "+result.toString()+".</strong><br><br>";
                 }
             }
         }
@@ -83,12 +69,12 @@ wtv-expire-all: wtv-admin:/ban`;
 </html>
 `;
     } else {
-        var errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
+        const errpage = wtvshared.doErrorPage(401, "Please enter the administration password, you can leave the username blank.");
         headers = errpage[0];
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(403, auth);
+    const errpage = wtvshared.doErrorPage(403, auth);
     headers = errpage[0];
     data = errpage[1];
 }

@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var error = '';
+let error = '';
 if (request_headers.query.error) {
     switch (request_headers.query.error) {
         case "1":
@@ -34,9 +34,8 @@ if (request_headers.query.error) {
 }
 
 
-var try_again_url = service_name + ":/willie";
-var try_again_url_path = ''
-var try_again_url_start_time = parseInt(new Date().toUTCString()) / 1000;
+const try_again_url = service_name + ":/willie";
+const try_again_url_start_time = parseInt(new Date().toUTCString()) / 1000;
 
 headers = `200 OK
 Content-type: text/html`

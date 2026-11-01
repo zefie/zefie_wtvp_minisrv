@@ -1,18 +1,11 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favoritenum = 0;
-
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var numoffolders = folder_array.length;
-
-favoritenum = Object.keys(favarray).length;
+const foldername = request_headers.query.favorite_folder_name;
+const favarray = session_data.favstore.listFavorites(foldername);
+const folder_array = session_data.favstore.getFolders();
+const folderid = folder_array.indexOf(foldername);
+const numoffolders = folder_array.length;
+const favoritenum = Object.keys(favarray).length;
 
 
 headers = `200 OK
@@ -133,7 +126,7 @@ Rename favorites
 <input type=hidden name=favorite_folder_name value="${foldername}">
 <tbody><tr><spacer type=block WIDTH=199 HEIGHT=0><td width="5" height="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="199" height="1">
 </td></tr></tbody></table></table>`
-if (favoritenum == 0)
+if (favoritenum === 0)
 {
 	data += "<font size=2>&nbsp;&nbsp;&nbsp;<i>There are no favorites to rename in this folder.</i></font>";
 } else {
@@ -141,7 +134,7 @@ for (let i = 0; i < favoritenum; i++) {
 data += `<tr><table cellspacing=0 cellpadding=0>
 <td abswidth=15><img src="wtv-home:/ROMCache/Spacer.gif" width=1 height=1>
 <td abswidth=75 height=52 align=center valign=center>`
-if (favarray[i].imagetype == "url")
+if (favarray[i].imagetype === "url")
 	data += `<img src="${favarray[i].image}" width="70" vspace="5" height="52"><br>`
 else
 	data += `<img src="get-thumbnail?folder=${favarray[i].folder}&id=${favarray[i].id}" width="70" vspace="5" height="52"><br>`

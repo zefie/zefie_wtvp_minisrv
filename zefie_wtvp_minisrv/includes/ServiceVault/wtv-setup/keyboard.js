@@ -1,6 +1,6 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var settings_obj = session_data.getSessionData("wtv-setup");
+let settings_obj = session_data.getSessionData("wtv-setup");
 if (settings_obj === null) settings_obj = {};
 
 headers = `200 OK
@@ -96,7 +96,7 @@ appear on your screen.
 <BR>
 <BR>
 `;
-if (settings_obj['setup-keyboard'] == "standard") {
+if (settings_obj['setup-keyboard'] === "standard") {
     data += '<INPUT TYPE="radio" id="standard" NAME="setup-keyboard" VALUE="standard" selected>';
 } else {
     data += '<INPUT TYPE="radio" id="standard" NAME="setup-keyboard" VALUE="standard">';

@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -9,16 +9,16 @@ wtv-expire-all: wtv-mail:/sendmail
 wtv-expire-all: http
 Content-Type: text/html`
 
-var signature = session_data.getSessionData("subscriber_signature");
+let signature = session_data.getSessionData("subscriber_signature");
 
 if (request_headers.query.mail_signature) {
-    if (signature != request_headers.query.mail_signature) {
+    if (signature !== request_headers.query.mail_signature) {
         session_data.setSessionData("subscriber_signature", (request_headers.query.mail_signature) ? request_headers.query.mail_signature : "");
         session_data.saveSessionData();
         signature = request_headers.query.mail_signature;
     }
 } 
-var message_colors = session_data.mailstore.getSignatureColors(signature)
+const message_colors = session_data.mailstore.getSignatureColors(signature)
 
 data = `<HTML>
 <HEAD>

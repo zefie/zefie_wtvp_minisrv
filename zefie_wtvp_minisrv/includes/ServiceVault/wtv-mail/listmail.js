@@ -1,14 +1,14 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var mailstore_exists = false;
+let mailstore_exists = false;
 
 function mail_end_error(msg) {
-    var errpage = doErrorPage("400", msg);
+    const errpage = wtvshared.doErrorPage("400", msg);
     headers = errpage[0];
     data = errpage[1];
 }
 
-var intro_seen = session_data.mailstore.checkMailIntroSeen();
+const intro_seen = session_data.mailstore.checkMailIntroSeen();
 if (!intro_seen && !request_headers.query.intro_seen) {
     // user is trying to bypass the intro screen
     headers = "300 OK\nLocation: wtv-mail:/DiplomaMail";
@@ -17,23 +17,23 @@ if (!intro_seen && !request_headers.query.intro_seen) {
         // User has come from intro 
         session_data.mailstore.setMailIntroSeen(true);
     }
-    // check if mailstore exists (returns null if guest)
+    // check if mailstore exista
     mailstore_exists = session_data.mailstore.mailstoreExists();
 
-    // create mailstore if it doesnt exist (also returns null if guest)
+    // create mailstore if it doesnt exist
     if (!mailstore_exists) mailstore_exists = session_data.mailstore.createMailstore();
 
     if (mailstore_exists) {
-        // mailstore exists and user is not guest
+        // mailstore exists
 
-        var default_limit = (minisrv_config.services[service_name].messages_per_page) ? minisrv_config.services[service_name].messages_per_page : 25; // user config or 25
-        var mailbox = (request_headers.query.mailbox) ? parseInt(request_headers.query.mailbox) : 0;
-        var limit = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : default_limit;
-        var reverse_sort = (request_headers.query.reverse_sort) ? true : false;
-        var page = (request_headers.query.page) ? parseInt(request_headers.query.page) : 0;
+        const default_limit = (minisrv_config.services[service_name].messages_per_page) ? minisrv_config.services[service_name].messages_per_page : 25; // user config or 25
+        const mailbox = (request_headers.query.mailbox) ? parseInt(request_headers.query.mailbox) : 0;
+        const limit = (request_headers.query.limit) ? parseInt(request_headers.query.limit) : default_limit;
+        const reverse_sort = (request_headers.query.reverse_sort) ? true : false;
+        const page = (request_headers.query.page) ? parseInt(request_headers.query.page) : 0;
 
         // get mailbox name
-        var mailbox_name = session_data.mailstore.getMailboxById(parseInt(mailbox));
+        const mailbox_name = session_data.mailstore.getMailboxById(parseInt(mailbox));
 
         // if false or null, then mailbox is invalid
         if (!mailbox_name) {
@@ -42,7 +42,7 @@ if (!intro_seen && !request_headers.query.intro_seen) {
             // mailboxid is ok
             if (!session_data.mailstore.mailboxExists(mailbox)) {
                 // mailbox does not yet exist, create it
-                var mailbox_exists = session_data.mailstore.createMailbox(mailbox);
+                const mailbox_exists = session_data.mailstore.createMailbox(mailbox);
                 if (!mailbox_exists) {
                     // failed to create mailbox for some reason
                     mail_end_error();
@@ -53,24 +53,24 @@ if (!intro_seen && !request_headers.query.intro_seen) {
                     }
                 }
             }
-            var message_list = session_data.mailstore.listMessages(mailbox, limit, reverse_sort, (page * limit))
-            var total_message_count = session_data.mailstore.countMessages(mailbox);
-            var total_unread_message_count = session_data.mailstore.countUnreadMessages(mailbox);
+            const message_list = session_data.mailstore.listMessages(mailbox, limit, reverse_sort, (page * limit))
+            const total_message_count = session_data.mailstore.countMessages(mailbox);
+            const total_unread_message_count = session_data.mailstore.countUnreadMessages(mailbox);
 
-            var message_list_string = null;
-            if (total_message_count == 0) {
+            let message_list_string = null;
+            if (total_message_count === 0) {
                 message_list_string = "No new mail messages for ";
             } else {
                 if (total_unread_message_count > 0) {
-                    message_list_string = total_unread_message_count + " new mail message" + ((total_message_count != 1) ? 's' : '');
-                    if (total_message_count - total_unread_message_count > 0) message_list_string += ", " + (total_message_count - total_unread_message_count) + " mail message" + (((total_message_count - total_unread_message_count) != 1) ? 's' : '') + " for ";
-                } else {                   
-                    message_list_string = total_message_count + " mail message" + ((total_message_count != 1) ? 's' : '') + " for ";
+                    message_list_string = total_unread_message_count + " new mail message" + ((total_message_count !== 1) ? 's' : '');
+                    if (total_message_count - total_unread_message_count > 0) message_list_string += ", " + (total_message_count - total_unread_message_count) + " mail message" + (((total_message_count - total_unread_message_count) !== 1) ? 's' : '') + " for ";
+                } else {
+                    message_list_string = total_message_count + " mail message" + ((total_message_count !== 1) ? 's' : '') + " for ";
                 }
             }
 
-            var username = session_data.getSessionData("subscriber_username");
-            var notImplementedAlert = new clientShowAlert({
+            const username = session_data.getSessionData("subscriber_username");
+            const notImplementedAlert = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "This feature is not available.",
                 'buttonlabel1': "Okay",
@@ -143,7 +143,7 @@ label="View saved e-mail messages">
 <tr>
 <td width=10 height=26>
 <td width=89 valign=middle>
-<table cellspacing=0 cellpadding=0 href="${notImplementedAlert}"
+<table cellspacing=0 cellpadding=0 href="wtv-mail:/addressbook"
 >
 <tr>
 <td height=1>
@@ -201,23 +201,23 @@ label="View saved e-mail messages">
 <td height=80>
 <img src="wtv-mail:/content/images/Mail.gif" width=87 height=45>
 `;
-            var icon_image = null;
-            switch (mailbox_name) {
-                case "Inbox":
-                    icon_image = session_data.mailstore.getMailboxIcon();
-                    break;
-                case "Sent":
-                    icon_image = "MailboxSent.gif";
-                    break;
-                case "Trash":
-                    icon_image = "MailboxDiscard.gif";
-                    break;
-                default:
-                    icon_image = "MailboxStorage.gif";
-                    break;
-            }
+        let icon_image = null;
+        switch (mailbox_name) {
+            case "Inbox":
+                icon_image = session_data.mailstore.getMailboxIcon();
+                break;
+            case "Sent":
+                icon_image = "MailboxSent.gif";
+                break;
+            case "Trash":
+                icon_image = "MailboxDiscard.gif";
+                break;
+            default:
+                icon_image = "MailboxStorage.gif";
+                break;
+        }
 
-            data += `
+        data += `
 <img src="wtv-mail:/content/images/${icon_image}" width=74 height=45 >
 <td width=250 align=left><font sizerange=small>
 </table>
@@ -256,13 +256,13 @@ label="View saved e-mail messages">
 <spacer type=horizontal size=13>
 <td bgcolor=#171726 width="438" valign="top">
 <spacer type=vertical size=13><br>`;
-            if (message_list) {
+        if (message_list) {
 
-                data += `
+            data += `
 <font sizerange=medium> ${message_list_string}
 <table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
-${username}@${minisrv_config.config.service_name}
+${username}@${minisrv_config.config.domain_name}
 </TD></TR>
 </TABLE>
 </font><br>
@@ -279,16 +279,17 @@ ${username}@${minisrv_config.config.service_name}
 <spacer type=vertical size=1>
 <hr width=422 align=left>
 `;
-                Object.keys(message_list).forEach(function (k) {
-                    var message = message_list[k];
-                    if (typeof message.subject == "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
-                    var message_font_open = "<font color=#7A9FCC>";
-                    var message_font_close = "</font>";
-                    if (message.unread) {
-                        message_font_open = `<b><font color=#99E6FF>`;
-                        message_font_close = "</font></b>"
-                    }
-                    data += `<spacer type=vertical size=5>
+            Object.keys(message_list).forEach(function (k) {
+                const message = message_list[k];
+                if (typeof message.subject === "object" && message.subject) message.subject = wtvshared.decodeBufferText(message.subject);
+                message.known_sender = session_data.isAddressInAddressBook(message.from_addr);
+                let message_font_open = "<font color=#7A9FCC>";
+                let message_font_close = "</font>";
+                if (message.unread) {
+                    message_font_open = `<b><font color=#99E6FF>`;
+                    message_font_close = "</font></b>"
+                }
+                data += `<spacer type=vertical size=5>
 <table cellspacing=0 cellpadding=0 border=0>
 <tr>
 <td href="readmail?message_id=${message.id}#next" id="id${message.id}" selected>
@@ -308,25 +309,25 @@ ${message_font_close}
 <td abswidth=47 maxlines=1>
 ${message_font_open}
 `;
-                    var message_date = new Date(message.date * 1000);
-                    data += (message_date.getMonth() + 1) + "/" + message_date.getDate() + "\n";
-                    data += `
+                const message_date = new Date(message.date * 1000);
+                data += (message_date.getMonth() + 1) + "/" + message_date.getDate() + "\n";
+                data += `
 ${message_font_close}
 </table>
 <tr>
 <td height=5>`;
-                });
-            } else {
-                data += `
-<font sizerange=medium> No ${(mailbox_name == "Inbox") ? `new e-mail messages for<table cellspacing=0 cellpadding=0 border=0>
+            });
+        } else {
+            data += `
+<font sizerange=medium> No ${(mailbox_name === "Inbox") ? `new e-mail messages for<table cellspacing=0 cellpadding=0 border=0>
 <TR><TD maxlines="1">
-${username}@${minisrv_config.config.service_name}
+${username}@${minisrv_config.config.domain_name}
 </TD></TR>
 </TABLE>` : 'e-mail messages in mailbox ' + mailbox_name}
 </font><br>
 `;
-            }
-            data += `
+        }
+        data += `
 <spacer type=vertical size=6>
 </table>
 </body>

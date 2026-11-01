@@ -1,13 +1,13 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName;
-var page = session_data.pagestore.loadPage(docName);
+const docName = request_headers.query.docName;
+const page = session_data.pagestore.loadPage(docName);
 
 headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`
 
-if (request_headers.query.publishing == "true") {
+if (request_headers.query.publishing === "true") {
 	data = `<HTML>
 <HEAD>
 <DISPLAY fontsize=medium>
@@ -110,7 +110,7 @@ cols=45 rows=4 MAXLENGTH=128></TEXTAREA>
 </BODY>
 </HTML>
 `
-} else if (request_headers.query.titleOnly == "true") {
+} else if (request_headers.query.titleOnly === "true") {
 	data = `<HTML>
 <HEAD>
 <DISPLAY fontsize=medium>
@@ -194,7 +194,7 @@ as well as in the list of your pages.
 <tr><td colspan=2>
 <input type=hidden name="hideTitle" value="">
 <input type=checkbox value=${!page.showtitle} `
-if (page.showtitle == true)
+if (page.showtitle === true)
 	data += "checked"
 data += `
 onChange="SetHideTitle(this.checked)">

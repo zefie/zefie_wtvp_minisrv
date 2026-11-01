@@ -1,0 +1,865 @@
+<!-- ---------------------------------------------------------------------
+//
+//  Copyright 2004 Microsoft Corporation.  All Rights Reserved.
+//
+//  File:         Slideshow.htc
+//
+//  Description:  
+//
+//-------------------------------------------------------------------- -->
+
+<PUBLIC:COMPONENT tagname="MSNSlideShow" lightweight=true>
+
+	<PUBLIC:PROPERTY NAME="BgColor" />
+	<PUBLIC:PROPERTY NAME="TextColor" />
+	<PUBLIC:PROPERTY NAME="SlideInterval" />
+
+	<PUBLIC:METHOD NAME="Init"/>
+	<PUBLIC:METHOD NAME="SetDataSource" />
+	<PUBLIC:METHOD NAME="SetDimensions" />
+	<PUBLIC:METHOD NAME="LoadPlaylist"/>
+	<PUBLIC:METHOD NAME="Start"/>
+	<PUBLIC:METHOD NAME="FocusOnPlay"/>
+	
+	<PUBLIC:EVENT NAME="OnLoadPlaylist" ID="loadPlaylistEvent" />
+	<PUBLIC:EVENT NAME="OnClickPlay" ID="clickPlayEvent" />
+	<PUBLIC:EVENT NAME="OnError" ID="errorEvent" />
+
+	<SCRIPT LANGUAGE="jscript">
+	
+		// ------- globals ------ //
+		var gViewInIE = false;
+		var gDataUrl;
+	
+		// ------- constants ------ //
+		var kOverlayRow = 26;
+		var kTextRow = 26;
+		var kButtonRow = 48;
+		var kPlayButtonW = 120;
+
+		// ------ objects -------- //
+		var oMain;
+		var oControls;
+		var oDataFetcher;
+		var oMetadata;
+		var oPlaylist;
+		var oSlideshow;
+		var oUtils;
+
+		// --------------------------------------- //
+		// -------------- PUBLIC ----------------- //
+		// --------------------------------------- //
+
+		function Init(ie)
+		{
+			if (ie=="y")
+				gViewInIE = true;
+		
+			// load stylesheet
+			element.document.createStyleSheet();
+			element.document.styleSheets[element.document.styleSheets.length-1].cssText = initCss();
+
+			// draw html elements
+			element.innerHTML = initHtml();
+
+			// construct objects
+			oMain = new Main(mainDiv);
+			oControls = new Controls(vcDiv, vcNxtBtn, vcPlyBtn);
+			oDataFetcher = new DataFetcher();
+			oMetadata = new Metadata(mdDiv, mdTxt);
+			oPlaylist = new Playlist();
+			oSlideshow = new Slideshow(ssDiv, ssImgA, ssImgB, ssOvr);
+			oUtils = new Utils();
+
+			// initialize objects
+			oSlideshow.Init(SlideInterval);
+		}
+
+		function Start()
+		{
+			if (oPlaylist.Items.length == 0)
+			{
+				oMain.Error("Playlist is empty", 1);
+				return;
+			}
+			
+			oSlideshow.Start();  // NOTE: show slideshow last so metadata is properly refreshed
+
+			oSlideshow.Show();
+			oMetadata.Show();
+			oControls.Show();
+		}
+
+		function SetDataSource(url)
+		{
+			gDataUrl = url;
+		}
+
+		function LoadPlaylist()
+		{
+			oDataFetcher.GetData(gDataUrl, "_OnLoadPlaylist()", "_OnLoadPlaylistFail()", "g_scGuids");
+		}
+
+		function FocusOnPlay()
+		{
+			oControls.PlayButton.focus();
+		}
+		
+		function SetDimensions(left, top, width, height)
+		{
+			// oMain.Debug("SetDims: " + left + "-" + top + "-" + width + "-" + height + "-" + toFullScreen);
+
+			// ------- parse params to integers ----------- //
+			var l = parseInt(left);
+			var t = parseInt(top);
+			var w = parseInt(width);
+			var h = parseInt(height);
+
+			// ------- calculate dimensions ----------- //
+			var iSlideWidth = w;
+			var iSlideHeight = h - kButtonRow - kTextRow;
+			var iButtonsTop = h - kButtonRow;
+			var iTextTop = iSlideHeight;
+
+			// ------- make sure video width:height aspect ratio is 4:3 ----------- //
+			var tmpW = iSlideWidth/4;
+			var tmpH = iSlideHeight/3;
+			if (tmpW > tmpH)
+			{
+				// wider than 4x3; make it narrower
+				iSlideWidth = Math.floor(tmpH)*4;
+				iSlideHeight = Math.floor(tmpH)*3;
+			}
+			else if (tmpW < tmpH)
+			{
+				// taller than 4x3; make it shorter
+				iSlideWidth = Math.floor(tmpW)*4;
+				iSlideHeight = Math.floor(tmpW)*3;
+			}
+
+			// ------- set dimensions of divs ------ //
+			oUtils.SetObDims(oMain.Div, l, t, w, h)
+			oUtils.SetObDims(oMetadata.Div, 0, iTextTop, w, "");
+			oUtils.SetObDims(oMetadata.TextSpan, "", "", w-16, "");  // width for text should allow for margins
+			oUtils.SetObDims(oSlideshow.Div, 0, 0, iSlideWidth, iSlideHeight);
+			oUtils.SetObDims(oSlideshow.Overlay, 1, iSlideHeight-kOverlayRow, iSlideWidth, kOverlayRow);
+			oUtils.SetObDims(oControls.Div, 0, iButtonsTop, w, "");
+			oUtils.SetObDims(oControls.PlayButton, iSlideWidth-kPlayButtonW-4, "", kPlayButtonW, "");
+		}
+
+		// --------------------------------------- //
+		// -------------- PRIVATE ---------------- //
+		// --------------------------------------- //
+		
+		function _OnLoadPlaylist()
+		{
+			// evaluate data to get playlist arrays
+			try
+			{
+				eval(oDataFetcher.Data);
+
+				// build out playlist object
+				oPlaylist.RemoveAll();
+				oPlaylist.AddAll(g_scGuids, g_scVideoUrls, g_scHeadlines, g_scCaptions, g_scImageUrls, g_scSources, g_scRelatedLinkUrls, g_scRelatedLinkText, g_scPGs, g_scPSs, g_scIDs);
+				oPlaylist.MoveTo(0);
+
+				// fire event indicating whether or not playlist has loaded
+				var e = createEventObject();
+				loadPlaylistEvent.fire(e);
+			}
+			catch (e)
+			{
+				_OnLoadPlaylistFail();
+			}
+
+		}
+
+		function _OnLoadPlaylistFail()
+		{
+			oMain.Error("Playlist failed to load", 0);
+		}
+		
+
+
+	/*  
+	=========================================
+	-----------------------------------------
+				PRIVATE OBJECTS 
+	-----------------------------------------
+	=========================================
+	*/
+
+		/* 
+		----------------------------------------------------------------------------
+
+		Object:       Main
+
+		----------------------------------------------------------------------------- 
+		*/
+		
+		function Main(div)
+		{
+			this.Div = div;
+		
+			// functions
+			this.PlayAll = _mnPlayAll;
+			this.Error = _mnError;
+//			this.Debug = _mnDebug;
+
+			// events
+			this.OnPlaylistChange = _mnOnPlaylistChange;
+		}
+		
+/*
+		function _mnDebug(s)
+		{
+			var e = createEventObject();
+			e.result = s;
+			debugEvent.fire(e);
+		}
+*/		
+		function _mnOnPlaylistChange()
+		{
+			// oMain.Debug("playist position = " + oPlaylist.Position);
+		}
+		
+		function _mnPlayAll()
+		{
+			// build playlist of comma-delimited GUIDs, putting clicked-on one first
+			var j = oSlideshow.CurrentSlide;
+			var p = "i=" + oPlaylist.Items[j].GUID;
+			for (var i=0; i<oPlaylist.Items.length; i++)
+			{
+				if (i!=j)
+				{
+					p += "," + oPlaylist.Items[i].GUID;
+				}
+			}
+
+			// fire event
+			var e = createEventObject();
+			e.guids = p;
+			clickPlayEvent.fire(e);
+		}
+
+		function _mnError(m, c)
+		{
+			errorTxt.innerHTML = "We're currently unable to connect to MSN Video. Please try again later.";
+			
+			var e = createEventObject();
+			e.message = m;
+			e.code = c;
+			errorEvent.fire(e);
+		}
+
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       Playlist
+
+		----------------------------------------------------------------------------- 
+		*/
+
+		function Playlist() 
+		{
+			// methods
+			this.PutNext = _plPutNext;
+			this.Insert = _plInsert;
+			this.Remove = _plRemove;
+			this.AddAll = _plAddAll;
+			this.RemoveAll = _plRemoveAll;
+			this.IndexOf = _plIndexOf;
+			this.GetCurrent = _plGetCurrent;
+			this.MoveNext = plMoveNext;
+			this.MoveTo = plMoveTo;
+			
+			// constants
+			this.OK = 0;
+			this.DUPE = 1;
+			this.MAX = 2;
+			this.MaxLength = 100;
+
+			this.Items = new Array();
+			this.Position = -1;
+		}
+
+		function plMoveNext()
+		{
+			if (this.Position < this.Items.length-1)
+			{
+				this.Position++;
+			}
+		}
+		
+		function plMoveTo(ind)
+		{
+			if (ind <= this.Items.length)
+			{
+				this.Position = ind;
+			}
+		}
+
+		function _plPutNext(guid, url, title, caption, thumb, source, linkUrls, linkText, pageGroup, ps, id)
+		{
+			var item = new PlaylistItem(guid, url, title, caption, thumb, source, linkUrls, linkText, pageGroup, ps, id);
+			return (this.Insert(item, this.Position+1) == this.OK);
+		}
+		
+		function _plAddAll(guids, urls, titles, captions, thumbs, sources, linkUrls, linkText, pageGroups, pss, ids)
+		{
+			if (guids.length == 0)
+				throw "trying to add empty guids array";
+		
+			var item;
+			for (var i=guids.length-1; i>=0 ; i--)
+			{
+				item = new PlaylistItem(guids[i], urls[i], titles[i], captions[i], thumbs[i], sources[i], linkUrls[i], linkText[i], pageGroups[i], pss[i], ids[i]);
+				if (this.Insert(item, this.Position+1) == this.MAX) // --- bail out if you reach the limit */
+					return;
+			}
+		}
+		
+		// --- note: don't call onPlayListChange() for every insert; it slows things down when there are lots at once */
+		function _plInsert(item, ind)
+		{
+			if (this.Items.length >= this.MaxLength)
+				return this.MAX;
+
+			var inPlaylistAtPos = this.IndexOf(item.GUID);
+
+			// push the rest down
+			for (var i=this.Items.length; i>ind; i--)
+			{
+				this.Items[i] = this.Items[i-1];
+			} 
+
+			// insert the new one
+			this.Items[ind] = item;
+			
+			// if the item was already in the playlist, remove the dupe
+			if (inPlaylistAtPos != -1)
+			{
+				if (inPlaylistAtPos < ind)
+				{
+					this.Remove(inPlaylistAtPos);
+					this.Position = this.Position-1;
+				}
+				else
+				{
+					this.Remove(inPlaylistAtPos+1);
+				}
+			}
+			
+			return this.OK;
+		}
+		
+		function _plRemove(ind)
+		{
+			var tmpArr = new Array();
+			var tmpInd = 0;
+			
+			for (var i=0; i<this.Items.length; i++)
+			{
+				if (i!=ind)
+				{
+					tmpArr[tmpInd++] = this.Items[i];
+				}
+			} 
+			this.Items = tmpArr;
+			oMain.OnPlaylistChange();
+		}
+		
+		function _plRemoveAll()
+		{
+			this.Items = new Array();
+			this.Position = -1;
+			oMain.OnPlaylistChange();
+		}
+		
+		function _plIndexOf(guid)
+		{
+			for(var i=0;i<this.Items.length;i++)
+			{
+				var testGuid = this.Items[i].GUID;
+				if (testGuid !== null && testGuid==guid)
+					return i;
+			}
+			return -1;
+		}
+		
+		function _plGetCurrent()
+		{
+			try
+			{
+				return this.Items[this.Position];
+			}
+			catch (e)
+			{
+				return null;
+			}
+		}
+
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       PlaylistItem
+
+		----------------------------------------------------------------------------- 
+		*/
+
+		function PlaylistItem(guid, url, title, caption, thumb, source, linkUrls, linkText, pageGroup, ps, id)
+		{
+			this.GUID = guid;
+			this.URL = url;
+			this.Title = title;
+			this.Caption = caption;
+			this.Thumb = thumb;
+			this.Source = source;
+			this.LinkUrls = linkUrls;
+			this.LinkText = linkText;
+			this.PageGroup = pageGroup;
+			this.PS = ps;
+			this.ID = id;
+		}
+
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       Slideshow
+
+		----------------------------------------------------------------------------- 
+		*/
+		
+		function Slideshow(div, imgA, imgB, overlay)
+		{
+			this.Div = div;
+			this.ImgA = imgA;
+			this.ImgB = imgB;
+			this.Overlay = overlay;
+
+			this.Init = _ssInit;
+			this.Start = _ssStart;
+			this.Play = _ssPlay;
+			this.Pause = _ssPause;
+			this.Next = _ssNext;
+			this.Show = _ssShow;
+		}
+		
+		function _ssShow()
+		{
+			this.Div.style.display = "inline";
+		}
+
+		function _ssInit(interval)
+		{
+			this.SlideInterval = interval;
+			this.Div.onclick = oMain.PlayAll;
+		}
+		
+		function _ssStart()
+		{
+			// build slide list 
+			this.Slides = new Array();
+			for (var i=0; i<oPlaylist.Items.length; i++)
+			{
+				var item = oPlaylist.Items[i];
+				var largeImg = oUtils.GetLargeImgUrl(item.Thumb);
+				this.Slides[i] = new Slide(i, largeImg, item.Title, item.GUID);
+			}
+
+			this.CurrentSlide = -1;
+			this.Next(false);
+		}
+
+
+		function _ssPause()
+		{
+			if (this.Paused != true)
+			{
+				window.clearTimeout(oSlideshow.DisplayTimer);
+				this.Paused = true;
+			}
+		}
+		
+		function _ssPlay()
+		{
+			if (this.Paused == true)
+			{
+				oSlideshow.DisplayTimer = window.setTimeout(function(){oSlideshow.Next(true);}, 500);
+				this.Paused = false;
+			}
+		}
+		
+		function _ssNext(transition)
+		{
+			// if you're doing a transition, swap slides 
+			var oldImg;
+			var newImg
+			if ( this.ImgA.style.display != "none" )
+			{
+				oldImg = this.ImgA;
+				newImg = this.ImgB;
+			}
+			else 
+			{
+				oldImg = this.ImgB;
+				newImg = this.ImgA;
+			}
+
+			// get next slide 
+			this.CurrentSlide = (this.CurrentSlide + 1 + this.Slides.length) % this.Slides.length;
+
+			// display next slide
+			newImg.src = this.Slides[this.CurrentSlide].Image;
+
+			// refresh metadata
+			oMetadata.Refresh();
+
+			// display next slide (with transition, if specified) 
+			if (transition) this.Div.filters[0].apply();
+			oldImg.style.display = "none";
+			newImg.style.display = "inline";
+			if (transition) this.Div.filters[0].play();
+
+			// set timer for the next slide 
+			if (this.Paused != true)
+			{
+				window.clearTimeout(this.DisplayTimer);
+				oSlideshow.DisplayTimer = window.setTimeout(function(){oSlideshow.Next(true);}, this.SlideInterval);
+			}
+		}
+		
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       Slide
+
+		----------------------------------------------------------------------------- 
+		*/
+		
+		function Slide(ind, image, title, guid)
+		{
+			this.PlaylistInd = ind;
+			this.Image = image;
+			this.Title = title;
+			this.GUID = guid;
+		}
+		
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       Utils
+
+		----------------------------------------------------------------------------- 
+		*/
+
+		function Utils()
+		{
+			this.SetObDims = _utSetObDims;
+			this.GetAppLoc = _utGetAppLoc;
+			this.ParseSeconds = _utParseSeconds;
+			this.GetLargeImgUrl = _utGetLargeImgUrl;
+		}
+	
+		function _utSetObDims(ob, l, t, w, h)
+		{
+			if (l!="") { ob.style.left = l; }
+			if (t!="") { ob.style.top = t; }
+			if (w!="") { ob.style.width = w; }
+			if (h!="") { ob.style.height = h; }
+		}
+
+		function _utGetAppLoc()
+		{
+			var a = location.href;
+			var b = a.substring(0,a.indexOf('://')+3);
+			var c = a.substring(b.length, a.length);
+			var d = c.substring(0,c.indexOf('/'));
+			return b + d;
+		}
+		
+		function _utParseSeconds(sec)
+		{
+			var mm = Math.floor(sec/60);
+			var ss = sec - mm*60;
+			
+			if (mm == -1)
+				return "00:00";
+			else
+				return ((mm < 10) ? "0" + mm : mm) + ":" + ((ss < 10) ? "0" + ss : ss);
+		}
+		
+		// HACK: modify the URL to the slideshow thumb to get the large version of the image
+		function _utGetLargeImgUrl(url)
+		{
+			var i = url.indexOf(".vmod.jpg");
+			if (i != -1)
+			{
+				url = url.substring(0,i) + ".hlarge.jpg";
+			}
+			return url;
+		}
+		
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       Controls
+
+		----------------------------------------------------------------------------- 
+		*/
+
+		function Controls(div, nextBtn, playBtn)
+		{
+			this.Div = div;
+			this.NextButton = nextBtn;
+			this.PlayButton = playBtn;
+			this.NextButton.onclick = _vcOnClickNext;
+			this.PlayButton.onclick = oMain.PlayAll;
+			this.Show = _vcShow;
+		}
+		
+		function _vcOnClickNext()
+		{
+			oSlideshow.Next(true);
+		}
+
+		function _vcShow()
+		{
+			this.NextButton.style.display = "inline";
+			this.PlayButton.style.display = "inline";
+		}
+
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       Metadata
+
+		----------------------------------------------------------------------------- 
+		*/
+
+		function Metadata(div, txtSpan)
+		{
+			this.Div = div;
+			this.TextSpan = txtSpan;
+			this.Refresh = _mdRefresh;
+			this.Show = _mdShow;
+		}
+		
+		function _mdShow()
+		{
+			this.Div.style.display = "inline";
+		}
+
+		function _mdRefresh()
+		{
+			var txt = oSlideshow.Slides[oSlideshow.CurrentSlide].Title;
+			this.TextSpan.innerText = txt;
+		}
+
+
+		/* 
+		----------------------------------------------------------------------------
+		
+		Object:       DataFetcher
+
+		----------------------------------------------------------------------------- 
+		*/
+
+		function DataFetcher()
+		{
+			this.GetData = _dfGetData;
+		}
+		
+		function _dfGetData(url, onSucceed, onFail, requiredResponse)
+		{
+			var f = onSucceed;
+			try
+			{
+				// get response from URL
+				var xmlDoc = new ActiveXObject("MSXML2.XMLHTTP");
+				xmlDoc.open("GET", url, false);
+				xmlDoc.send();
+				var response = xmlDoc.responseText;
+
+				// check response for required string
+				if (response.indexOf(requiredResponse) != -1)
+					this.Data = response;
+				else
+					f = onFail;
+			}
+			catch (er)
+			{
+				f = onFail;
+			}
+			
+			// call success or failure function when action is completed
+			eval(f);
+		}
+		
+		/* 
+		----------------------------------------------------------------------------
+		
+		Function:       initHtml
+
+		----------------------------------------------------------------------------- 
+		*/
+
+		function initHtml()
+		{
+			/* 
+			--------------
+			INITIAL HTML
+			--------------
+			*/
+
+			var html = '<div id="mainDiv">';
+
+			// -------- slideshow --------- //
+			html += '<div id="ssDiv">'
+				+ '<img id="ssImgA" class="ssImg"></img>'
+				+ '<img id="ssImgB" class="ssImg"></img>'
+				+ '<div id="ssOvr">Now on MSN Video</div>'
+				+ '</div>'
+				;
+				
+			// -------- controls + branding --------- //
+			html += '<div id="vcDiv">'
+				+ '<span id="vcNxtBtn"><span id="vcNxtBtnImg"></span><span id="vcNxtBtnTxt">NEXT</span></span>'
+				+ ((gViewInIE) ? '<input id="vcPlyBtn" type="button" value="Play Videos"></input>' : '<msntv:CustomButton id="vcPlyBtn" label="Play Videos" />')
+				+ '</div>'
+				;
+				
+			// -------- metadata area --------- //
+			html += '<div id="mdDiv">'
+				+ '<span id="mdTxt"></span>'
+				+ '</div>'
+				;
+				
+			// -------- error text --------- //
+			html += '<div id="errorTxt"></div>';
+				
+			html += '</div>';
+			
+			return html;
+		}
+		
+
+		/* 
+		----------------------------------------------------------------------------
+		
+		Function:       initCss
+
+		----------------------------------------------------------------------------- 
+		*/
+		/*
+			Defines the styles that don't depend on the component's position or dimensions
+		*/
+		function initCss()
+		{
+			
+			// -------- MAIN CONTAINER  ------------- //
+			var css = " \
+				#mainDiv \
+				{ \
+					position:absolute; \
+					font:18 Segoe; \
+					background:" + BgColor + "; \
+				} \
+				#ssDiv \
+				{ \
+					position:absolute; \
+					z-index:2; \
+					filter:progid:DXImageTransform.Microsoft.Fade(duration=1,overlap=.1); \
+					overflow:hidden; \
+					display:none; \
+				} \
+				.ssImg \
+				{ \
+					width:100%; \
+					height:100% \
+				} \
+				#ssOvr  \
+				{ \
+					position:absolute; \
+					text-align:right; \
+					padding:4 4 0 0; \
+					color:868485; \
+					font-size:16; \
+					behavior:url(#default#gradient); \
+					startcolor:#000000; \
+					endcolor:#000000; \
+					starttransparency:100%; \
+					endtransparency:0%;  \
+				} \
+				#mdDiv \
+				{ \
+					position:absolute; \
+					height:" + kTextRow + "; \
+					display:none; \
+				} \
+				#mdTxt \
+				{ \
+					position:absolute; \
+					top:3; \
+					left:8; \
+					height:" + kTextRow + "; \
+					overflow:hidden; \
+					text-overflow:ellipsis; \
+					white-space:nowrap; \
+					color:" + TextColor + "; \
+				} \
+				#vcDiv \
+				{ \
+					position:absolute; \
+					height:" + kButtonRow + " \
+				} \
+				#vcNxtBtn \
+				{ \
+					position:absolute; \
+					left:6; \
+					top:14; \
+					width:63; \
+					height:24; \
+					display:none; \
+				} \
+				#vcNxtBtnTxt \
+				{ \
+					position:absolute; \
+					top:3; \
+					left:24; \
+					color:E6E6E6; \
+					font-size:14px; \
+				} \
+				#vcNxtBtnImg \
+				{ \
+					position:absolute; \
+					top:2; \
+					width:20px; \
+					visiblity:inherit; \
+					height:20px; "
+
+				+ ((gViewInIE) ? "background-repeat:no-repeat;background-image:url(/Shared/Anduril/Images/en-us/_debugNxtBtn.jpg)" : "behavior:url(#default#alphaImageLoader);src:url(msntv:/Music/Images/NextBtn.png)") + "}"
+				
+				+ "#vcPlyBtn \
+				{ \
+					position:absolute; \
+					display:none; \
+					top:13; \
+				} \
+				#errorTxt \
+				{ \
+					width:100%; \
+					height:100%; \
+					padding-top:35%; \
+					padding-left:18%; \
+					padding-right:12%; \
+					color:" + TextColor + " \
+				} \
+				";
+			
+			return css;
+		}
+
+	</SCRIPT>
+
+</PUBLIC:COMPONENT>

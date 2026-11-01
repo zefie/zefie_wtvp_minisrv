@@ -1,9 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var with_pictures = request_headers.query.with_pictures
+const with_pictures = request_headers.query.with_pictures
 
-if (with_pictures = "on")
-{
+if (with_pictures === "on") {
 	session_data.setSessionData("subscriber_fav_images", true)
 } else {
 	session_data.setSessionData("subscriber_fav_images", false)

@@ -1,13 +1,13 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers =`200 OK
 Connection: Keep-Alive
 wtv-expire-all: wtv-home:/splash
 Content-type: text/html`
 
-var cryptstatus = (wtv_encrypted ? "Encrypted" : "Not Encrypted")
-var comp_type = wtvmime.shouldWeCompress(socket.ssid,'text/html');
-var compstatus = "uncompressed";
+const cryptstatus = (socket.secure ? "Encrypted" : "Not Encrypted")
+const comp_type = wtvmime.shouldWeCompress(socket.ssid,'text/html');
+let compstatus = "uncompressed";
 switch (comp_type) {
 	case 1:
 		compstatus = "wtv-lzpf";
@@ -17,11 +17,10 @@ switch (comp_type) {
 		break;
 }
 
-var wtv_system_sysconfig = session_data.get("wtv-system-sysconfig");
-var wtv_client_bootrom_version = session_data.get("wtv-client-bootrom-version");
-var wtv_system_chipversion_str = session_data.get("wtv-system-chipversion");
-
-var notImplementedAlert = new clientShowAlert({
+const wtv_system_sysconfig = session_data.get("wtv-system-sysconfig");
+const wtv_client_bootrom_version = session_data.get("wtv-client-bootrom-version");
+const wtv_system_chipversion_str = session_data.get("wtv-system-chipversion");
+const notImplementedAlert = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
 	'message': "This feature is not available.",
 	'buttonlabel1': "Okay",
@@ -29,7 +28,7 @@ var notImplementedAlert = new clientShowAlert({
 	'noback': true,
 }).getURL();
 
-var ownMinisrv = new clientShowAlert({
+const ownMinisrv = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
 	'message': "To run your own minisrv, please visit the following link on your PC:<br><br><strong>https://zef.pw/minisrv</strong>",
 	'buttonlabel1': "Okay",
@@ -37,7 +36,7 @@ var ownMinisrv = new clientShowAlert({
 	'noback': true,
 }).getURL();
 
-var supportZefieAlert = new clientShowAlert({
+const supportZefieAlert = new clientShowAlert({
 	'image': minisrv_config.config.service_logo,
 	'message': "If you would like to support zefie or minisrv, please visit the following link on your PC:<br><br><font size=-1><strong>https://zef.pw/helpminisrv</strong></font>",
 	'buttonlabel1': "Okay",
@@ -50,14 +49,14 @@ if (ssid_sessions[socket.ssid].get("wtv-used-8675309") || ssid_sessions[socket.s
 data =`<html>
 <head>
 <title>MiniBrowser Home</title>
-<body background=Themes/Pattern.gif text=cbcbcb bgcolor=4c5a67 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
+<body text=cbcbcb bgcolor=4c5a67 vlink=dddddd link=dddddd hspace=0 vspace=0 fontsize=medium>
 <table cellspacing=0 cellpadding=0>
 <tr><td>
-<td width=100% height=80 valign=top align=left background=Themes/ShadowLogo.gif novtilebg>
+<td width=100% height=80 valign=top align=left novtilebg>
 <spacer type=block width=11 height=11><br>
 <spacer type=block width=10 height=1>
 <img src=file://ROM/Cache/WebTVLogoJewel.gif width=90 height=69>
-<td width=100% height=80 valign=top background=Themes/ShadowLogo.gif novtilebg><td abswidth=460 height=54 valign=top background=Themes/ShadowLogo.gif align=right novtilebg><spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
+<td width=100% height=80 valign=top novtilebg><td abswidth=460 height=54 valign=top align=right novtilebg><spacer height=32 type=block><b><shadow><blackface><font color=cbcbcb>MiniBrowser Home &nbsp; </font></blackface></shadow></b>
 </td></tr></table>
 <table>
 <tr align=top>
@@ -83,8 +82,7 @@ data =`<html>
 </form>
 `
 } else {
-data =`<html>
-<head>
+data = `<html><head>
 <display hspace=0 vspace=0 fontsize=small noscroll showwhencomplete>
 <title>
 Home for ${session_data.getSessionData("subscriber_username") || "minisrv"} 

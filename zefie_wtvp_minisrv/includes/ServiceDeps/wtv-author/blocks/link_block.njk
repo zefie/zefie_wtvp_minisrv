@@ -1,0 +1,52 @@
+{# Link block template #}
+<center>
+    {% if state == "editing" %}
+    <table nocolor="" cellspacing="0" cellpadding="0" href="wtv-author:/edit-block?docName={{ page }}&blockNum={{ number }}&numOfBlocks={{ numofblocks }}">
+    {% else %}
+    <table nocolor="" cellspacing="0" cellpadding="0">
+    {% endif %}
+    <tbody>
+        <tr>
+            <td>
+                <font color="{{ headcol }}">
+                    <h3>{{ thisblock.title }}</h3>
+                </font>
+            </td>
+        </tr>
+        <tr>
+            <td height="0">
+                <spacer type="block" width="80">    </spacer>
+            </td>
+        </tr>
+        {% for item in thisblock.items %}
+        <tr>
+            {% if listcol1 %}
+                {% if loop.index0 % 2 == 0 %}
+            <td bgcolor="{{ listcol1 }}">
+                {% else %}
+                    {% if listcol2 %}
+            <td bgcolor="{{ listcol2 }}">
+                    {% else %}
+            <td bgcolor="{{ listcol1 }}">
+                    {% endif %}
+                {% endif %}
+            {% else %}
+            <td>
+            {% endif %}
+                <ul type="DISC">
+                    <li>
+                        <a href="{{ item.url }}">
+                            {% if item.name and item.name != "" %}
+                            {{ item.name }}
+                            {% else %}
+                            {{ item.url }}
+                            {% endif %}
+                        </a>
+                    </li>
+                </ul>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</center>

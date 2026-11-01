@@ -1,22 +1,13 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favoritenum = 0;
-
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var favid = request_headers.query.favoriteid;
-
-var numoffolders = folder_array.length;
-
-favoritenum = Object.keys(favarray).length;
-
-var favoritedata = session_data.favstore.getFavorite(foldername, favid);
+const foldername = request_headers.query.favorite_folder_name;
+const favarray = session_data.favstore.listFavorites(foldername);
+const folder_array = session_data.favstore.getFolders();
+const folderid = folder_array.indexOf(foldername);
+const favid = request_headers.query.favoriteid;
+const numoffolders = folder_array.length;
+const favoritenum = Object.keys(favarray).length;
+const favoritedata = session_data.favstore.getFavorite(foldername, favid);
 
 
 headers = `200 OK
@@ -116,264 +107,64 @@ Choose a shortcut label for <b>${favoritedata.title}</b>, then choose <b>Done</b
 <table cellspacing="0" cellpadding="0" bgcolor="191919">
 <tbody><tr><td width="13">
 </td><td>
-<form action="wtv-favorite:/commit-shortcuts-favorites">
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="wtv-home:/ROMCache/Spacer.gif" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-Not assigned<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">
-<input type="radio" NAME="Choose" VALUE=F1 > &nbsp;F1
-</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td height="4">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td width="5" height="1">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td height="4">
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td width="13">
-</td><td>
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="wtv-home:/ROMCache/Spacer.gif" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-Not assigned<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">
-<input type="radio" NAME="Choose" VALUE=F2 > &nbsp;F2
-</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td height="4">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td width="5" height="1">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td height="4">
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td width="13">
-</td><td>
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="wtv-home:/ROMCache/Spacer.gif" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-Not assigned<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">
-<input type="radio" NAME="Choose" VALUE=F3 > &nbsp;F3
-</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td height="4">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td width="5" height="1">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td height="4">
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td width="13">
-</td><td>
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="wtv-home:/ROMCache/Spacer.gif" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-Not assigned<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">
-<input type="radio" NAME="Choose" VALUE=F4 > &nbsp;F4
-</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td height="4">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td width="5" height="1">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td height="4">
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td width="13">
-</td><td>
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="wtv-home:/ROMCache/Spacer.gif" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-Not assigned<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">
-<input type="radio" NAME="Choose" VALUE=F5 > &nbsp;F5
-</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td height="4">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td width="5" height="1">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td height="4">
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td width="13">
-</td><td>
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="wtv-home:/ROMCache/Spacer.gif" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-Not assigned<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">
-<input type="radio" NAME="Choose" VALUE=F6 > &nbsp;F6
-</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
-</td></tr></tbody></table>
-</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td height="4">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td width="5" height="1">
-</td></tr><tr><td width="15">
-</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
-</td></tr><tr><td height="4">
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-<table cellspacing="0" cellpadding="0" bgcolor="191919">
-<tbody><tr><td width="13">
-</td><td>
-<table cellspacing="0" cellpadding="0">
-<tbody><tr><td><table cellspacing="0" cellpadding="0">
-<tbody><tr><td abswidth="70" valign="center" align="center">
-<table bgcolor="000000">
-<tbody><tr><td><img src="wtv-home:/ROMCache/Spacer.gif" width="70" height="52">
-</td></tr></tbody></table>
-</td><td width="10">
-</td><td width="279" valign="center" align="left">
-<font size="-1" color="#42BC52">
-Not assigned<br>
-</font>
-</td></tr></tbody></table>
-</td><td abswidth="5">
-</td><td>
-<font size="-2" color="#F1F1F1">
-<input type="radio" NAME="Choose" VALUE=F7 > &nbsp;F7
-</font>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
-</td></tr></tbody></table>
+<form action="wtv-favorite:/commit-shortcuts-favorites">`
+let fav;
+for (let i = 1; i <= 8; i++) {
+    const key = "F" + i;
+    const scfav = session_data.favstore.getShortcutKey(key);
+    if (scfav && scfav.id !== "none") {
+        fav = session_data.favstore.getFavorite(scfav.folder, scfav.id);
+    } else {
+        fav = { image: "wtv-home:/ROMCache/Spacer.gif", title: "Not assigned" };
+    }
 
+data += `
+<table cellspacing="0" cellpadding="0">
+<tbody><tr><td><table cellspacing="0" cellpadding="0">
+<tbody><tr><td abswidth="70" valign="center" align="center">
+<table bgcolor="000000">
+<tbody><tr><td><img src="${fav.image}" width="70" height="52">
+</td></tr></tbody></table>
+</td><td width="10">
+</td><td width="279" valign="center" align="left">
+<font size="-1" color="#42BC52">
+${fav.title}<br>
+</font>
+</td></tr></tbody></table>
+</td><td abswidth="5">
+</td><td>
+<font size="-2" color="#F1F1F1">`;
+
+if (fav.title !== favoritedata.title) {
+    data += `<input type="radio" NAME="Choose" VALUE=${key} > &nbsp;${key}`
+}
+
+data += `</font>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+<table cellspacing="0" cellpadding="0" bgcolor="191919">
+<tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
+<tbody><tr><td absheight="13"><img src="wtv-home:/ROMCache/Spacer.gif" width="1" height="1">
+</td></tr></tbody></table>
+</td><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
+<tbody><tr><td height="4">
+</td></tr><tr><td width="15">
+</td><td absheight="2" valign="middle" bgcolor="1E1E1E" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
+</td></tr><tr><td width="5" height="1">
+</td></tr><tr><td width="15">
+</td><td absheight="2" valign="middle" bgcolor="121212" align="center"><img src="wtv-home:/ROMCache/Spacer.gif" width="100%" height="1">
+</td></tr><tr><td height="4">
+</td></tr></tbody></table>
+</td></tr></tbody></table>
+<table cellspacing="0" cellpadding="0" bgcolor="191919">
+<tbody><tr><td width="13">
+</td><td>`
+}
+
+data += `
 <table cellspacing="0" cellpadding="0">
 <tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">
 <tbody><tr><td><table cellspacing="0" cellpadding="0" bgcolor="191919">

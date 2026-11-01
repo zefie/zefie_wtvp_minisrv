@@ -1,11 +1,12 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
+let redirect, message;
 
 headers = `200 OK
 Content-Type: text/html`;
 
 if (session_data.getSessionData("registered")) {
-    var redirect = [10, "client:goback?"];
-    var message = "Error: Your box is already registered. If you would like to re-register, you must first unregister.";
+    redirect = [10, "client:goback?"];
+    message = "Error: Your box is already registered. If you would like to re-register, you must first unregister.";
 } else if (request_headers.query.confirm_register) {
     headers += `
 wtv-noback-all: wtv-
@@ -13,8 +14,8 @@ wtv-expire-all: wtv-
 wtv-relogin-url: wtv-1800:/preregister?relogin=true
 wtv-reconnect-url: wtv-1800:/preregister?reconnect=true
 wtv-boot-url: wtv-1800:/preregister?relogin=true`;
-    var redirect = [3, "client:relog?"];
-    var message = "You will now be be redirected to registration.<br><br>";
+    redirect = [3, "client:relog?"];
+    message = "You will now be be redirected to registration.<br><br>";
     message += `<a href="${redirect[1]}">Click here if you are not automatically redirected.</a>`;
 } else {
     message = `Are you ready to register your box with ${minisrv_config.config.service_name}?

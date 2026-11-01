@@ -1,17 +1,23 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var irc_nick = "";
+let irc_nick = "";
+const default_server = "irc.libera.chat";
+const default_port = 6667;
+let server = (minisrv_config.services['ircserver'].disabled) ? default_server : minisrv_config.config.service_ip;
+let port = (minisrv_config.services['ircserver'].disabled) ? default_port : minisrv_config.services['ircserver'].port;
+
+
 headers = "200 OK";
 if (request_headers.query.nick) headers += "\n" + session_data.setIRCNick(request_headers.query.nick);
-else if (!session_data.getSessionData("subscriber_irc_nick")) session_data.getSessionData("subscriber_username") || session_data.setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).substring(0, 16);
+else if (!session_data.getSessionData("subscriber_irc_nick")) session_data.getSessionData("subscriber_username") || session_data.setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).slice(0, 16);
 headers += "\nContent-Type: text/html";
 
-var irc_nick = session_data.getSessionData("subscriber_irc_nick") || session_data.getSessionData("subscriber_username");
+irc_nick = session_data.getSessionData("subscriber_irc_nick") || session_data.getSessionData("subscriber_username");
 
 data = `<html>
 <head>
 <title>
-Chat Home (Testing)
+Chat Home
 </title>
 </head>
 <body bgcolor="#101C1E" text="#A2ACB5" link="#CFC382" vlink="#E1EOE3" fontsize="medium" vspace=0 hspace=0>
@@ -109,12 +115,12 @@ Chat Home (Testing)
 <table>
 <tr>
 <td abswidth="120">Server:</td>
-<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || "irc.libera.chat"}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || server}"></td>
 </tr>
 
 <tr>
 <td>Port:</td>
-<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="port" value="${request_headers.query.port || 6667}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="port" value="${request_headers.query.port || port}"></td>
 </tr>
 
 <tr>

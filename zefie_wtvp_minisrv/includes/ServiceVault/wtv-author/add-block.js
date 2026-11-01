@@ -1,8 +1,8 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var docName = request_headers.query.docName
-var blockNum = request_headers.query.blockNum
-var blockClass = request_headers.query.blockClass
+const docName = request_headers.query.docName
+let blockNum = request_headers.query.blockNum
+const blockClass = request_headers.query.blockClass
 
 blockNum = parseInt(blockNum) + 1
 
@@ -361,7 +361,7 @@ document.theForm.submit();
 </SCRIPT>
 <input type=file device=video name=photoBlockPhoto src="cache:snapshot.jpg" invisible disabled=true>
 `
-if (session_data.hasCap("client-can-do-av-capture")) {
+if (session_data.capabilities.get("client-can-do-av-capture")) {
 	data += `<tr>
 <td height=32>
 <img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0>
@@ -373,7 +373,7 @@ data += `
 <tr>
 <td height=32>
 <img src=wtv-author:/ROMCache/pointer.gif align=absmiddle width=13 height=22 hspace=0>
-<a href=wtv-author:/scrapbook?addMediaURL=wtv-author%3A%2Fadd-media-to-block%3FdocName%3D${docName}%26blockNum%3D9%26blockClass%3D23
+<a href=wtv-author:/scrapbook?addMediaURL=wtv-author%3A%2Fadd-media-to-block%3FdocName%3D${docName}%26blockNum%3D${blockNum - 1}%26blockClass%3D23
 ><font effect=shadow><B>Your scrapbook</B></font></a>
 <tr>
 <td height=32>

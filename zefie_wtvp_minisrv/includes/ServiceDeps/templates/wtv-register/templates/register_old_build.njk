@@ -1,0 +1,52 @@
+<html>
+<head>
+   <title>
+      {{ title }}
+   </title>
+   <display nooptions>
+</head>
+<body bgcolor=#191919 text=#42CC55 fontsize=large hspace=0 vspace=0>
+   <table cellspacing=0 cellpadding=0>
+      <tr>
+         <td width=104 height=74 valign=middle align=center bgcolor=#3B3A4D>
+            <img src="{{ service_logo }}" width=86 height=64>
+         <td width=20 valign=top align=left bgcolor=#3B3A4D>
+            <spacer>
+         <td colspan=2 width=100% align=left bgcolor=#3B3A4D>
+            <font color=D6DFD0 size=+2>
+               <blackface>
+                  <shadow>
+                     <spacer type=block width=1 height=4>
+                     <br>
+                     {{ title }}
+                  </shadow>
+               </blackface>
+            </font>
+      </tr>
+      </td>
+   </table>
+   <table width=520 align=center cellspacing=0 cellpadding=0>
+      <tr>
+         <td height=242>
+            <font size=+1>
+               {{ main_content | safe }}
+               <p>
+            </font>
+         </td>
+     </tr>
+   </table>
+   <hr>
+   <p>
+   <table align=right cellspacing=0 cellpadding=0>
+      <tr>
+         <td>
+            <spacer type=block height=10>
+            {{ form_buttons | safe }}
+         </td>
+         <td>
+            &nbsp; &nbsp;
+         </td>
+      </tr>
+   </table>
+</body>
+</html>

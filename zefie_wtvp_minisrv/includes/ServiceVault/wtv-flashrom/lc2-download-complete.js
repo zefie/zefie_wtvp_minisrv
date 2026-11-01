@@ -1,9 +1,15 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 headers = `200 OK
 Content-type: text/html
 wtv-expire-all: wtv-flashrom:
 minisrv-no-mail-count: true`
+
+if (socket.ssid && ssid_sessions[socket.ssid]) {
+    // Clear minibrowser flags, if set. Should prevent the service thinking the box is still in minibrowser mode after the update.
+    ssid_sessions[socket.ssid].delete("wtv-need-upgrade")
+    ssid_sessions[socket.ssid].delete("wtv-used-8675309")
+}
 
 data = `<html>
 

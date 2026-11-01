@@ -1,4 +1,4 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 if (request_headers.query) {
     if (request_headers.query.shade) {
@@ -6,12 +6,12 @@ if (request_headers.query) {
 Location: wtv-setup:/screen
 wtv-visit: client:setscreenborder?shade=${request_headers.query.shade}`;
     } else {
-        var errpage = wtvshared.doErrorPage(400);
+        const errpage = wtvshared.doErrorPage(400, null, "Missing shade parameter");
         headers = errpage[0];
         data = errpage[1];
     }
 } else {
-    var errpage = wtvshared.doErrorPage(400);
+    const errpage = wtvshared.doErrorPage(400, null, "Missing query");
     headers = errpage[0];
     data = errpage[1];
 }

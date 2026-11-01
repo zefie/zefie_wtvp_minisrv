@@ -1,7 +1,7 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
 
-var fast_splash = wtvshared.parseBool(request_headers.query.fast_splash);
+const fast_splash = wtvshared.parseBool(request_headers.query.fast_splash);
 session_data.setSessionData("fast_splash", fast_splash);
 session_data.saveSessionData();
 

@@ -1,18 +1,11 @@
-var minisrv_service_file = true;
+const minisrv_service_file = true;
 
-var favoritenum = 0;
-
-var foldername = request_headers.query.favorite_folder_name;
-
-var favarray = session_data.favstore.listFavorites(foldername);
-
-var folder_array = session_data.favstore.getFolders();
-
-var folderid = folder_array.indexOf(foldername);
-
-var numoffolders = folder_array.length;
-
-favoritenum = Object.keys(favarray).length;
+const foldername = request_headers.query.favorite_folder_name;
+const favarray = session_data.favstore.listFavorites(foldername);
+const folder_array = session_data.favstore.getFolders();
+const folderid = folder_array.indexOf(foldername);
+const numoffolders = folder_array.length;
+const favoritenum = Object.keys(favarray).length;
 
 
 headers = `200 OK
@@ -120,7 +113,7 @@ Assign shortcut to favorite
 </td></tr><tr><td width="15">
 </td><td valign="middle" align="left">
 <font size="-1" color="#42BC52">`
-if (favoritenum == 0)
+if (favoritenum === 0)
 {
 	data += "<font size=2>&nbsp;&nbsp;&nbsp;<i>There are no favorites to move in this folder.</i></font>";
 } else {
@@ -148,7 +141,7 @@ for (let i = 0; i < favoritenum; i++) {
 <table bgcolor="191919">
 <tbody><tr><td abswidth="70" valign="center" align="center">
 `
-if (favarray[i].imagetype == "url")
+if (favarray[i].imagetype === "url")
 	data += `<img src="${favarray[i].image}" width="70" vspace="5" height="52"><br>`
 else
 	data += `<img src="get-thumbnail?folder=${favarray[i].folder}&id=${favarray[i].id}" width="70" vspace="5" height="52"><br>`
@@ -162,7 +155,14 @@ ${favarray[i].title}<br>
 </td><td>	<table bgcolor="191919">
 <tbody><tr><td abswidth="62" valign="center" align="center">
 <table absheight="38" href="wtv-favorite:/serve-choose-shortcut-favorites?favorite_folder_name=${foldername}&amp;favoriteid=${favarray[i].id}" width="53" cellspacing="0" cellpadding="0">
-<tbody><tr><td valign="middle" background="images/FKey.gif" align="left">
+<tbody><tr><td valign="middle" background="images/FKey.gif" absheight=38 align="center">
+`
+const scdata = session_data.favstore.isFavoriteAShortcut(favarray[i].id);
+if (scdata) {
+	data += `<font size="-2" color="#F1F1F1">${scdata.key}</font>`;
+}
+
+data += `
 <table cellspacing="0" cellpadding="0">
 <tbody><tr><td width="8">
 </td><td absheight="38" width="44" valign="center" align="center">
