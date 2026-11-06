@@ -132,6 +132,15 @@
 				"password": "mylocalpass"
 			}
 		},
+		"http": {
+			// fetch printer driver from the wtv-content ServiceVault instead of the web
+			//"overrides": [
+			//	{
+			//		"match": "http://www.best.com/~dontv/debug_drivers/",
+			//		"replacement": "wtv-content:/pdrivers/"
+			//	}
+			//]
+		},
 		"pnm": {
 			// optional UDP source-port range used by WTVPNM
 			"udp_bind_port_min": 6656,
