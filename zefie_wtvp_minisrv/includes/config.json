@@ -110,6 +110,10 @@
       "wtv-head-waiter:/bad-disk",
       "wtv-log:/log"
     ],
+    // Local Lock: stops the web proxy (WTVHTTP.js) being used to reach private addresses on your network
+    "proxy_block_private_addresses": true,
+    "proxy_allow_private_for_local_clients": true,
+
     /* shenanigans: this allows you to intentionally enable old minisrv bugs, as well as official WebTV Networks exploits 
        Shenanigans is a bitwise flag, where each bit corresponds to a different bug or exploit.
        Enabling a flag will re-enable the corresponding bug or exploit in the minisrv.
