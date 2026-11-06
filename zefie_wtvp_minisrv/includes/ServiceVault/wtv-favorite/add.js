@@ -116,7 +116,7 @@ async function saveFavorite(favstore, title, folder, imagetype, favurl) {
 				headers = `200 OK
 wtv-expire: wtv-favorite:/serve-browser?favorite_folder_name=${folder}`
 			} else {
-				const err = wtvshared.doErrorPage(500);
+				const err = wtvshared.doErrorPage(500, null, "Failed to create favorite");
 				headers = err[0];
 				data = err[1];
             }
@@ -124,7 +124,7 @@ wtv-expire: wtv-favorite:/serve-browser?favorite_folder_name=${folder}`
 			sendToClient(socket, headers, data);
 		}
 	} else {
-		const err = wtvshared.doErrorPage(500);
+		const err = wtvshared.doErrorPage(500, null, "Favorite store does not exist");
 		headers = err[0];
 		data = err[1];
 		sendToClient(socket, headers, data);

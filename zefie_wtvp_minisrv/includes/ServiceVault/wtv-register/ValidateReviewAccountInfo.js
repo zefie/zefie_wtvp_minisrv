@@ -10,7 +10,7 @@ if (!request_headers.query.registering ||
     !session_data ||
     !socket.ssid
 ) {
-    const errpage = wtvshared.doErrorPage(400);
+    const errpage = wtvshared.doErrorPage(400, null, "Missing required registration fields");
     headers = errpage[0];
     data = errpage[1];
 } else {
@@ -53,7 +53,7 @@ if (!request_headers.query.registering ||
                 }
             }
             if (!session_data.saveSessionData(true, true)) {
-                const errpage = wtvshared.doErrorPage(400);
+                const errpage = wtvshared.doErrorPage(400, null, "Failed to save session data");
                 headers = errpage[0];
                 data = errpage[1];
             } else {

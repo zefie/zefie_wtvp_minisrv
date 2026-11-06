@@ -22,7 +22,7 @@ if (service_config.local_nntp_port && wtvnewsserver) {
  
 async function throwError(e) {
     console.log(e);
-    const errpage = wtvshared.doErrorPage(400 + " " + e.toString(), null, e.toString());
+    const errpage = wtvshared.doErrorPage(400, null, e.toString());
     sendToClient(socket, errpage[0], errpage[1]);
 }
 
@@ -479,7 +479,7 @@ Do you want to look for something else?<br>
 
 
 if (!wtvnews.client) {
-    const errpage = wtvshared.doErrorPage();
+    const errpage = wtvshared.doErrorPage(400, null, "Usenet client is not initialized");
     headers = errpage[0];
     data = errpage[1];
 } else {

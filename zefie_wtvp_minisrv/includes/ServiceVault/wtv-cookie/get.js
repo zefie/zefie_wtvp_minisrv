@@ -13,7 +13,7 @@ if (request_headers.post_data) {
 }
 
 if (!headers) {
-    const errpage = wtvshared.doErrorPage(400)
+    const errpage = wtvshared.doErrorPage(400, null, "Missing domain, path, session, or POST data");
     headers = errpage[0];
     data = errpage[1];
 }

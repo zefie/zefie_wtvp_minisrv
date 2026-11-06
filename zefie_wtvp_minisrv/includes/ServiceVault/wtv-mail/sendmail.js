@@ -257,7 +257,7 @@ wtv-expire-all wtv-mail:/sendmail
 Location: wtv-news:/news?group=${newsgroup}`;
                         sendToClient(socket, headers, '');
                     }).catch((e) => {
-                        const err = this.wtvshared.doErrorPage(500, null, e.toString())
+                        const err = this.wtvshared.doErrorPage(500, null, "Failed to post to newsgroup: " + e.toString())
                         sendToClient(socket, err[0], err[1]);
                     });
 

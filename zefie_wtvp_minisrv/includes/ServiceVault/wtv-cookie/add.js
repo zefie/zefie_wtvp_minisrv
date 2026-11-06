@@ -11,7 +11,7 @@ if (socket.ssid) {
 } 
 
 if (!headers) {
-    const errpage = wtvshared.doErrorPage(400)
+    const errpage = wtvshared.doErrorPage(400, null, "Missing session or POST data to add cookie");
     headers = errpage[0];
     data = errpage[1];
 }

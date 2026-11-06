@@ -21,7 +21,7 @@ Redirecting shortly... <a href="client:goback">Go Back</a>
 }
 
 if (!headers) {
-    const errpage = wtvshared.doErrorPage(400)
+    const errpage = wtvshared.doErrorPage(400, null, "No session available to reset cookies");
     headers = errpage[0];
     data = errpage[1];
 }

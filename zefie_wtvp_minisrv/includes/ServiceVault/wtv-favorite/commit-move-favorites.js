@@ -35,7 +35,7 @@ Content-Type: text/html
 wtv-expire-all: wtv-favorite:
 Location: ${gourl}`
 	} else {
-		const err = wtvshared.doErrorPage(500);
+		const err = wtvshared.doErrorPage(500, null, "Error occurred while moving favorites");
 		headers = err[0];
 		data = err[1];
     }

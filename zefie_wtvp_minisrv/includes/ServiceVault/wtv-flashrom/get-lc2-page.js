@@ -3,7 +3,7 @@ const minisrv_service_file = true;
 request_is_async = true;
 
 if (!request_headers.query.path) {
-	const errpage = wtvshared.doErrorPage(400);
+	const errpage = wtvshared.doErrorPage(400, null, "Missing flashrom path");
 	headers = errpage[0];
 	data = errpage[1];
 } else {
@@ -190,7 +190,7 @@ ${flashrom_info.message}
 </body>
 </html>`;
 	} else {
-		const errpage = wtvshared.doErrorPage(400);
+		const errpage = wtvshared.doErrorPage(400, null, "Invalid or incomplete flashrom metadata");
 		headers = errpage[0];
 		headers += "\nminisrv-no-mail-count: true\nwtv-expire-all: wtv-flashrom:/get-lc2-page?";
 		data = errpage[1];

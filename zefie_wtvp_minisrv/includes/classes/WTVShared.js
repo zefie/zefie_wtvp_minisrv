@@ -795,6 +795,7 @@ class WTVShared {
     parseSSID(ssid) {
         const boxTypeMapping = {
             "01": "Internal",
+            "61": "NXT Sim",
             "71": "MAME",
             "81": "Retail",
             "91": "Viewer"
@@ -1050,12 +1051,14 @@ class WTVShared {
     }
 
     /**
-     * Returns the Last-Modified date in a Date object with UTC time
+     * Returns the file mtime as a Date (UTC milliseconds).
+     * Do not stamp "now" and copy only seconds -- that made every WTVP
+     * Last-Modified header look like the current time.
      * @param {string} file Path to a file
-     * @return {Date} Date object with UTC time
+     * @return {Date|false} Date object, or false if the file cannot be stat'd
      */
     getFileLastModifiedUTCObj(file) {
-        return new Date(new Date().setUTCSeconds(this.getFileLastModified(file).getUTCSeconds()));
+        return this.getFileLastModified(file);
     }
 
     /**
@@ -1154,7 +1157,7 @@ class WTVShared {
             } else if (ssid.slice(0, 5) === "1SEGA") {
                 return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
             }
-            return ssid.slice(0, 4) + ('*').repeat(9) + ssid.slice(-2);
+            return ssid.slice(0, 2) + ('*').repeat(7) + ssid.slice(9,14) + "**";
         } else {
             return "????????????????";
         }
@@ -1418,8 +1421,8 @@ class WTVShared {
     /**
      * Creates an error message and returns the headers/data
      * @param {number} code HTTP Error Code
-     * @param {string} data Optinal Custom Error Message
-     * @param {string} details Optional extra error information
+     * @param {string} data Optional custom error message shown to the client. If omitted, a generic configured message is used.
+     * @param {string} details Operator-only reason logged to the console; not sent to the client
      * @param {boolean} pc_mode If true, sends response formatted for PCs instead of WebTV
      * @param {boolean} wtv_reset if true, tells the WebTV box to reset the service list and reconnect
      */
@@ -1428,9 +1431,11 @@ class WTVShared {
         const errorMessage = minisrv_config.config.errorMessages[code] || "";
         const message = data || errorMessage.replace(/\$\{(\w+)\}/g, (match, p1) => minisrv_config.config[p1] || '');
 
-        if (details && [400, 500].includes(code)) {
-            data += `<br>Details:<br>${details}`;
-        }
+        const reason = (details != null && details !== "" && typeof details !== "boolean")
+            ? details
+            : (data != null && data !== "" ? data : "(no reason provided)");
+        const prefix = (wtv_reset && !pc_mode) ? " ! doErrorPage Called (sent wtv-reset):" : " * doErrorPage Called:";
+        console.error(prefix, code, reason);
 
         let headers = `Status: ${(pc_mode) ? 'HTTP/1.1' : ''} ${code} ${message}\n`;
         headers += "Content-Type: text/html\n";
@@ -1439,9 +1444,6 @@ class WTVShared {
             headers += "wtv-service: reset\n";
             headers += this.getServiceString('wtv-1800') + "\n";
             headers += "wtv-visit: wtv-1800:/preregister?scriptless-visit-reason=999\n";
-            console.error(" * doErrorPage Called (sent wtv-reset):", code, message);
-        } else {
-            console.error(" * doErrorPage Called:", code, message);
         }
 
         return [headers, message];

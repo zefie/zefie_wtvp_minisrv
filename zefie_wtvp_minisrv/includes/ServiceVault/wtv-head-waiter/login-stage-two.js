@@ -28,7 +28,7 @@ else {
 	if (session_data.lockdown) {
 		home_url = minisrv_config.config.unauthorized_url;
 	} else if (!session_data.getSessionData("registered")) {
-		const errpage = wtvshared.doErrorPage(400);
+		const errpage = wtvshared.doErrorPage(400, null, "Session is not registered");
 		headers = errpage[0];
 		data = errpage[1];
 	} else {

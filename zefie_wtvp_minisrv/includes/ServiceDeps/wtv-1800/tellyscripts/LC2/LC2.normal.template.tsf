@@ -7,10 +7,10 @@ InitGeneratedValues()
 		gDisguiseRate = 1;
 
 		gUsingOpenISP = 0;
-		gEnable56K = UnknownFunc(1);
-        if (gEnable56K = 0x42554646 /* BUFF */) {
-                gEnable56K = 1;
-        }
+		gEnable56K = get56kenabled(1);
+		if (gEnable56K == 0x42554646) {
+			gEnable56K = 1;
+		}
 		printf("TS: Setting NameServers: %DNSIP1%, %DNSIP2%");
 		setnameservice(%DNS1%, %DNS2%);
 		gBlock911 = 1;

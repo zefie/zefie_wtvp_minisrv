@@ -28,7 +28,7 @@ class WTVFlashrom {
 		try {
 			this.fs.readFile(flashrom_file_path, null, function (err, data) {
 				if (err) {
-					const errpage = self.wtvshared.doErrorPage(400);
+					const errpage = self.wtvshared.doErrorPage(400, null, "Failed to read local flashrom file: " + err.toString());
 					callback(err.toString(), errpage[0]);
 				} else {
 					if (info_only) {
@@ -169,7 +169,7 @@ class WTVFlashrom {
 						headers = errpage[0];
 						data = errpage[1];
 					} else {
-						const errpage = self.wtvshared.doErrorPage(400)
+						const errpage = self.wtvshared.doErrorPage(400, null, "Unexpected status from flashrom server: " + res.statusCode)
 						headers = errpage[0];
 						data = errpage[1];
 					}

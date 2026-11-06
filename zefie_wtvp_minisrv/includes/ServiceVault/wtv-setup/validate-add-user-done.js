@@ -55,7 +55,7 @@ if (errpage) {
             }
         }
         if (!userSession.saveSessionData(true, true)) {
-            errpage = wtvshared.doErrorPage(400);
+            errpage = wtvshared.doErrorPage(400, null, "Failed to save user session data");
             headers = errpage[0];
             data = errpage[1];
         } else {

@@ -1,6 +1,12 @@
 const minisrv_service_file = true;
 
 let irc_nick = "";
+const default_server = "irc.libera.chat";
+const default_port = 6667;
+let server = (minisrv_config.services['ircserver'].disabled) ? default_server : minisrv_config.config.service_ip;
+let port = (minisrv_config.services['ircserver'].disabled) ? default_port : minisrv_config.services['ircserver'].port;
+
+
 headers = "200 OK";
 if (request_headers.query.nick) headers += "\n" + session_data.setIRCNick(request_headers.query.nick);
 else if (!session_data.getSessionData("subscriber_irc_nick")) session_data.getSessionData("subscriber_username") || session_data.setIRCNick(minisrv_config.config.service_name + '_' + Math.floor(Math.random() * 100000)).slice(0, 16);
@@ -109,12 +115,12 @@ Chat Home
 <table>
 <tr>
 <td abswidth="120">Server:</td>
-<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || "irc.libera.chat"}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="host" value="${request_headers.query.host || server}"></td>
 </tr>
 
 <tr>
 <td>Port:</td>
-<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="port" value="${request_headers.query.port || 6667}"></td>
+<td><input width="240" bgcolor=262626 text=D6D6D6 cursor=cc9933 font=proportional type="text" name="port" value="${request_headers.query.port || port}"></td>
 </tr>
 
 <tr>

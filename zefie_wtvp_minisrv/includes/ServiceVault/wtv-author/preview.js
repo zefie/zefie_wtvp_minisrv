@@ -6,4 +6,5 @@ headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`
 
-data = session_data.pagestore.generatePage("previewing", docName, request_headers.query.pageNum);
+const pageNum = parseInt(request_headers.query.pageNum) || 1;
+data = session_data.pagestore.generatePage("previewing", docName, pageNum);

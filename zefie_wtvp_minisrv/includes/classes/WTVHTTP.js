@@ -1,5 +1,53 @@
 const CryptoJS = require('crypto-js');
 const debug = require('debug')('WTVHTTP');
+const dns = require('dns');
+const nodeNet = require('net');
+
+// === PRIVATE ADDRESS BLOCK START MATTMAN EDIT ===
+// Stops people using this proxy to reach things inside your network (your router at 192.168.1.1,
+// pages on this PC at localhost, and so on). Only addresses on the public internet are allowed.
+// Settings (put them in the "config" section of user_config.json; both default to true if left out):
+//   "proxy_block_private_addresses": true         - set to false to turn this protection off
+//   "proxy_allow_private_for_local_clients": true - WebTVs on your own network (or this PC) may still reach private addresses
+
+function isPrivateAddress(ip) {
+    ip = String(ip || '').toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
+    // IPv4 inside IPv6, written like ::ffff:192.168.1.1
+    const mapped_dotted = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (mapped_dotted) ip = mapped_dotted[1];
+    if (nodeNet.isIPv4(ip)) {
+        const p = ip.split('.').map(Number);
+        const a = p[0], b = p[1];
+        return a === 0 || a === 10 || a === 127 || a >= 224 ||
+            (a === 100 && b >= 64 && b <= 127) ||    // carrier-grade NAT
+            (a === 169 && b === 254) ||              // link-local
+            (a === 172 && b >= 16 && b <= 31) ||
+            (a === 192 && b === 168) ||
+            (a === 192 && b === 0 && p[2] === 0) ||
+            (a === 198 && (b === 18 || b === 19));
+    }
+    if (nodeNet.isIPv6(ip)) {
+        let norm;
+        try {
+            norm = new URL('http://[' + ip + ']/').hostname.slice(1, -1);
+        } catch (e) {
+            return true;
+        }
+        // IPv4 inside IPv6, written in hex like ::ffff:c0a8:101
+        const mapped_hex = norm.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+        if (mapped_hex) {
+            const hi = parseInt(mapped_hex[1], 16), lo = parseInt(mapped_hex[2], 16);
+            return isPrivateAddress([hi >> 8, hi & 255, lo >> 8, lo & 255].join('.'));
+        }
+        return norm === '::' || norm === '::1' || /^f[cd]/.test(norm) || /^fe[89ab]/.test(norm) || /^ff/.test(norm);
+    }
+    return false;
+}
+
+function clientIsLocal(socket) {
+    return isPrivateAddress(String(socket.remoteAddress || '').replace(/^::ffff:/, ''));
+}
+// === PRIVATE ADDRESS BLOCK END ===
 
 class WTVHTTP {
     constructor(...[minisrv_config, service_name, wtvshared, sendToClient, net, http]) {
@@ -45,6 +93,31 @@ class WTVHTTP {
         for (let i = 0; i < 3; i++) request_url_split.shift();
         request_data.path = "/" + request_url_split.join('/');
         if (request_data.method && request_data.host && request_data.path) {
+
+            // === PRIVATE ADDRESS BLOCK: CHECK DESTINATION ===
+            const block_private_setting = this.minisrv_config.config.proxy_block_private_addresses !== false;
+            const allow_local_setting = this.minisrv_config.config.proxy_allow_private_for_local_clients !== false;
+            const check_private = block_private_setting && !(allow_local_setting && clientIsLocal(socket));
+            if (check_private) {
+                let blocked = false;
+                if (nodeNet.isIP(request_data.host)) {
+                    blocked = isPrivateAddress(request_data.host);
+                } else {
+                    try {
+                        const found = await dns.promises.lookup(request_data.host, { all: true });
+                        blocked = found.some(f => isPrivateAddress(f.address));
+                    } catch (e) {
+                        // can't be looked up from here, so the request itself will fail with the normal "publisher is unknown" page
+                    }
+                }
+                if (blocked) {
+                    console.warn("\x1b[31m * [minisrv Blocked] Proxy request to private address " + request_data.host + " from " + socket.remoteAddress + " on socket ID " + socket.id + "\x1b[0m");
+                    const errpage = this.wtvshared.doErrorPage(400, "The address <b>" + request_data.host + "</b> is not allowed on this server.");
+                    this.sendToClient(socket, errpage[0], errpage[1]);
+                    return;
+                }
+            }
+            // === END PRIVATE ADDRESS BLOCK: CHECK DESTINATION ===
 
             const options = {
                 host: request_data.host,
@@ -112,6 +185,18 @@ class WTVHTTP {
                     console.warn(" * Failed to load Bitdefender CA certificate:", err.message);
                 }
             }            
+            // === PRIVATE ADDRESS BLOCK: CHECK AGAIN AT CONNECT TIME (stops sites that change their DNS answer between checks, and redirects) ===
+            if (check_private && !(this.minisrv_config.services[request_type].use_external_proxy && this.minisrv_config.services[request_type].external_proxy_port)) {
+                options.lookup = (hostname, lookup_options, callback) => {
+                    dns.lookup(hostname, lookup_options, (err, address, family) => {
+                        if (err) return callback(err);
+                        const list = Array.isArray(address) ? address.map(a => a.address) : [address];
+                        if (list.some(isPrivateAddress)) return callback(new Error('BLOCKED_PRIVATE_ADDRESS'));
+                        callback(null, address, family);
+                    });
+                };
+            }
+            // === END ===
             const req = this.proxy_agent.request(options, (res) => {
                 let total_data = 0;
                 let abortedBySize = false;
@@ -157,12 +242,16 @@ class WTVHTTP {
                 });
             }).on('error', (err) => {
                     // severe errors, such as unable to connect.
-                if (err.code === "ENOTFOUND" || err.message.indexOf("HostUnreachable") > 0) {
+                if (err.message === "BLOCKED_PRIVATE_ADDRESS") {
+                    console.warn("\x1b[31m * [minisrv Blocked] Proxy connection to private address for " + request_data.host + " from " + socket.remoteAddress + " on socket ID " + socket.id + "\x1b[0m");
+                    const errpage = this.wtvshared.doErrorPage(400, "The address <b>" + request_data.host + "</b> is not allowed on this server.");
+                    this.sendToClient(socket, errpage[0], errpage[1]);
+                } else if (err.code === "ENOTFOUND" || err.message.indexOf("HostUnreachable") > 0) {
                     const errpage = this.wtvshared.doErrorPage(400, `The publisher <b>${request_data.host}</b> is unknown.`);
                     this.sendToClient(socket, errpage[0], errpage[1]);
                 } else {
                     console.error(" * Unhandled Proxy Request Error:", err);
-                    const errpage = this.wtvshared.doErrorPage(400);
+                    const errpage = this.wtvshared.doErrorPage(400, null, "Unhandled proxy request error: " + err.toString());
                     this.sendToClient(socket, errpage[0], errpage[1]);
                 }
                 

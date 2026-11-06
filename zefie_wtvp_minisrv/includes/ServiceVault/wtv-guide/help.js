@@ -7,8 +7,7 @@ if (data) {
 Connection: Keep-Alive
 Content-Type: text/html`
 } else {
-    const err = wtvshared.doErrorPage(500);
-    console.log(" * wtv-guide error: no implementation for selected for topic/subtopic, or an error occured during generation")
+    const err = wtvshared.doErrorPage(500, null, "No implementation for selected topic/subtopic, or an error occurred during generation");
     headers = err[0];
     data = err[1];
 }

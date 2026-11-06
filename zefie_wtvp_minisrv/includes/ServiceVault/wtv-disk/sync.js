@@ -298,7 +298,7 @@ if (request_headers['wtv-request-type'] === 'download') {
 
                     headers = "200 OK\nContent-Type: wtv/download-list";
                 } catch (e) {
-                    const errpage = wtvshared.doErrorPage(400);
+                    const errpage = wtvshared.doErrorPage(400, null, "Error generating disk sync download list: " + e.toString());
                     headers = errpage[0];
                     data = errpage[1];
                     console.error(" # " + service_name+":/sync error", e);
@@ -310,7 +310,7 @@ if (request_headers['wtv-request-type'] === 'download') {
             if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name +":/sync error", "could not find diskmap");
         }
     } else {
-        const errpage = wtvshared.doErrorPage(400);
+        const errpage = wtvshared.doErrorPage(400, null, "Missing query arguments");
         headers = errpage[0];
         data = errpage[1];
         if (minisrv_config.config.debug_flags.debug) console.error(" # " + service_name + ":/sync error", "missing query arguments");
