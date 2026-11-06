@@ -1112,6 +1112,30 @@ function getDirectoryIndex(svpath) {
     else return svpath;
 }
 
+function getHTTPOverride(url) {
+    const overrides = (minisrv_config.services.http && minisrv_config.services.http.overrides) || [];
+
+    for (const override of overrides) {
+        // Skip improperly configured overrides
+        if (!override?.match || !override?.replacement)
+            continue;
+
+        // Skip overrides that don't match
+        if (!url.startsWith(override.match))
+            continue;
+
+        // Make sure the override service is available.
+        if (!minisrv_config.services[override.replacement.split(':/')[0]])
+            return null;
+
+        const rest = url.slice(override.match.length);
+
+        return override.replacement + rest;
+    }
+
+    return null;
+}
+
 async function processURL(socket, request_headers, pc_services = false) {
     let shortURL, headers, data, service_name;
     let original_service_name = "";
@@ -1275,7 +1299,25 @@ minisrv-no-mail-count: true`;
             socket_sessions[socket.id].request_headers = request_headers;
             processPath(socket, urlToPath, request_headers, service_name, shared_romcache, pc_services);
         } else if (handlerModules["wtvhttp"] && ((shortURL.includes('http://') || shortURL.includes('https://')) || (use_external_proxy === true && shortURL.includes(service_name + "://")) && !pc_services)) {
-            handlerModules["wtvhttp"].doHTTPProxy(socket, request_headers);
+            const override_url = getHTTPOverride(shortURL);
+            if (override_url) {
+                const [override_scheme, override_body] = override_url.split(':/');
+
+                console.log(` * HTTP override for ${shortURL} -> ${override_url}`);
+
+                if (override_scheme === "http" || override_scheme === "https") {
+                    request_headers.request_url = override_url;
+                    request_headers.request = request_headers?.request?.replace(shortURL, override_url);
+                    request_headers.raw_headers = request_headers?.raw_headers?.replace(shortURL, override_url);
+                    handlerModules["wtvhttp"]?.doHTTPProxy(socket, request_headers);
+                } else {
+                    const new_path = override_scheme + path.sep + override_body;
+                    socket_sessions[socket.id].request_headers = request_headers;
+                    processPath(socket, wtvshared.fixPathSlashes(new_path), request_headers, override_scheme, null, pc_services);
+                }
+            } else {
+                handlerModules["wtvhttp"]?.doHTTPProxy(socket, request_headers);
+            }
         } else if (handlerModules["wtvgopher"] && shortURL.startsWith("gopher://")) {
             handlerModules["wtvgopher"].handleGopherRequest(socket, request_headers);
         } else if (handlerModules["wtvftp"] &&shortURL.startsWith('ftp://')) {
@@ -1808,7 +1850,7 @@ function isUnencryptedString(string) {
     // in unencrypted headers, and returns true only if every character in the string matches
     // the regex. Once we know the string is binary, we can better process it with the
     // raw base64 or hex data in processRequest() below.
-    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*\@\#\\\!]{8,})$/.test(string);
+    return /^([A-Za-z0-9\+\/\=\-\.\,\ \"\;\:\?\&\r\n\(\)\%\<\>\_\~\*\@\#\\\!\^]{8,})$/.test(string);
 }
 
 /** True if hex buffer contains a WTVP/HTTP header terminator. */
