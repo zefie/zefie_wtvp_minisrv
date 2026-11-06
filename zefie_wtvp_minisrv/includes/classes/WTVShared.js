@@ -1157,7 +1157,7 @@ class WTVShared {
             } else if (ssid.slice(0, 5) === "1SEGA") {
                 return ssid.slice(0, 6) + ('*').repeat(6) + ssid.slice(12);
             }
-            return ssid.slice(0, 4) + ('*').repeat(9) + ssid.slice(-2);
+            return ssid.slice(0, 2) + ('*').repeat(7) + ssid.slice(9,14) + "**";
         } else {
             return "????????????????";
         }
