@@ -4,7 +4,7 @@ const docName = request_headers.query.docName
 const blockNum = request_headers.query.blockNum
 const blockClass = request_headers.query.blockClass
 const category = request_headers.query.mediaCategoryID ? parseInt(request_headers.query.mediaCategoryID) : null;
-const page = request_headers.query.pageNum ? parseInt(request_headers.query.pageNum) : 0;
+const page = Math.max(0, request_headers.query.pageNum ? (parseInt(request_headers.query.pageNum) || 0) : 0);
 const itemsPerPage = 12;
 
 const clipart = {
@@ -1023,7 +1023,7 @@ const clipart = {
 			"pe00964_.gif",	"pe00965_.gif"
 		]
 	},
-	52: {
+	89: {
 		"name": "Rogers Cable",
 		"categories": [
 			[53, "Flags"],
@@ -1592,7 +1592,9 @@ Connection: Keep-Alive
 Content-Type: text/html`
 
 function hasImages(i) {
-	return (clipart[i].images) ? true : false;
+	// FIX: an unknown/out-of-range category used to throw here
+	// (clipart[i] is undefined), before data was set.
+	return !!(clipart[i] && clipart[i].images);
 }
 
 
@@ -1679,7 +1681,7 @@ vspace=0
 <tr>
 <td colspan=2 height=5>
 <font color=AEBFD1> Choose a category of
-${(category !== null) ? `<b>${clipart[category].name}</b>` : 'art'} </font>
+${(category !== null && clipart[category]) ? `<b>${clipart[category].name}</b>` : 'art'} </font>
 <tr><td absheight=6>
 <tr><td valign=top>
 <table cellspacing=0 cellpadding=1>
@@ -1687,7 +1689,9 @@ ${(category !== null) ? `<b>${clipart[category].name}</b>` : 'art'} </font>
 let cat;
 	if (category !== null) {
 		cat = clipart[category];
-		if (cat.categories) {
+		// FIX: an unknown category has no entry at all; fall through to
+		// the top-level list instead of throwing on cat.categories.
+		if (cat && cat.categories) {
 			let i = 0;
 			Object.keys(cat.categories).forEach(function (k) {
 				i++;
@@ -1817,7 +1821,7 @@ vspace=0
 >
 <form action="wtv-author:/clipbook-setLastPage">
 <input type=hidden name="pageNum" value="${page}" autosubmit=onEnter>
-<input type=hidden name=mediaCategoryID value="0">
+<input type=hidden name=mediaCategoryID value="${category}">
 </form>
 <table cellspacing=0 cellpadding=0 width=100%>
 <tr>

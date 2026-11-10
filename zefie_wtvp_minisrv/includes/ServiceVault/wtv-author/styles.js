@@ -5,7 +5,7 @@ Connection: Keep-Alive
 Content-Type: text/html`;
 
 const styleName = request_headers.query.styleName;
-let page = (request_headers.query.pageNum) ? parseInt(request_headers.query.pageNum) : 0
+let page = (request_headers.query.pageNum) ? (parseInt(request_headers.query.pageNum) || 0) : 0
 const docName = request_headers.query.docName;
 
 const pages = [
@@ -22,7 +22,6 @@ const pages = [
 		["Blue", "Blue", "blue"],
 		["Green", "Green", "green"],
 		["Red", "Red", "red"],
-		["Brown Spots", "Brown_Spots", "brown_spots"],
 		["Grey", "Grey", "grey"],
 		["Rivets", "Rivets", "rivets"]
 	],
@@ -45,7 +44,7 @@ const pages = [
 	[
 		["New Wave", "1983", "1983"],
 		["Eyeballs", "Eyeballs", "eyeballs"],
-		["America", "usflag", "us_flag"],
+		["American", "usflag", "us_flag"],
 		["South Beach", "southbeach", "south_beach"],
 		["Paisley", "paisley", "spirals"],
 		["Green Paper", "Green_Paper", "light_green_paper"]

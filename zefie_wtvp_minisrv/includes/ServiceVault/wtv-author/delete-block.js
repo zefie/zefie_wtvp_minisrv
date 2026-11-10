@@ -10,3 +10,4 @@ wtv-expire-all: wtv-author:/preview
 wtv-expire-all: wtv-author:/show-blocks
 wtv-expire-all: wtv-author:/edit-block
 Location: wtv-author:/show-blocks?docName=${docName}`
+data = "";

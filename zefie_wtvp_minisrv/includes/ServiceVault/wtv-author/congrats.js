@@ -2,6 +2,11 @@ const minisrv_service_file = true;
 
 const docName = request_headers.query.docName;
 const page = session_data.pagestore.loadPage(docName)
+if (!page) {
+	headers = `300 OK
+Location: wtv-author:/documents`
+	data = "";
+} else {
 const site = session_data.pagestore.getPublishDomain();
 
 
@@ -137,3 +142,4 @@ Would you like to:
 </BODY>
 </HTML>
 `;
+}

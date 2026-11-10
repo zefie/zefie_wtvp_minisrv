@@ -1,6 +1,22 @@
 const minisrv_service_file = true;
 request_is_async = true;
 
+// FIXED 2026-11-10 (see CHANGES.txt):
+// - This file is async (request_is_async = true), so it must answer with
+//   sendToClient() on every path. Two paths set headers/data instead and
+//   returned, so the client hung until the socket timed out.
+// - handleError() could fire twice for one request (e.g. oversize, then
+//   the stream 'error' event). It now sends once.
+// - ?confirm=false used to fetch anyway ("false" is a truthy string).
+// - The server fetched any user-supplied URL with no timeout and no
+//   private-IP block (SSRF: it could be made to fetch 127.0.0.1 / LAN
+//   hosts). Now http/https only, literal private/loopback/link-local
+//   hosts and localhost are rejected, and the fetch times out in 15s.
+// - isValidImageType() could throw on an array mediaPath, and the
+//   extension check was case-sensitive (.JPG failed).
+
+let responded = false;
+
 function addToScrapbook(id, contentType, data) {
     const result = session_data.addToScrapbook(id, contentType, data);
     if (result) {
@@ -24,22 +40,41 @@ function addToScrapbook(id, contentType, data) {
 }
 
 function handleError(reason) {
+    if (responded) return;
+    responded = true;
     const errpage = wtvshared.doErrorPage(400, reason);
     sendToClient(socket, errpage[0], errpage[1]);
 }
-if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
-    const errpage = wtvshared.doErrorPage(400, "Bad Request", "Missing mediaData or mediaPath parameter.");
-    headers = errpage[0];
-    data = errpage[1];    
+
+function isPrivateHost(host) {
+    const h = (host || "").toLowerCase().replace(/^\[|\]$/g, '');
+    if (h === "localhost" || h === "::1") return true;
+    const parts = h.split('.');
+    if (parts.length === 4 && parts.every((p) => /^\d+$/.test(p))) {
+        const a = parseInt(parts[0], 10), b = parseInt(parts[1], 10);
+        if (a === 10) return true;
+        if (a === 127) return true;
+        if (a === 172 && b >= 16 && b <= 31) return true;
+        if (a === 192 && b === 168) return true;
+        if (a === 169 && b === 254) return true;
+    }
+    return false;
+}
+
+const mediaPath = Array.isArray(request_headers.query.mediaPath)
+    ? request_headers.query.mediaPath[0]
+    : request_headers.query.mediaPath;
+if (!request_headers.query.mediaData && !mediaPath) {
+    handleError("Missing mediaData or mediaPath parameter.");
 } else {
     const id = session_data.getFreeScrapbookID();
-    if (request_headers.query.mediaPath) {
-        if (!request_headers.query.confirm) {
+    if (mediaPath) {
+        if (request_headers.query.confirm !== 'true') {
             const confirmScrapbook = new clientShowAlert({
                 'image': minisrv_config.config.service_logo,
                 'message': "You are about to add an image to your scrapbook.<br><br>Do you wish to continue?",
                 'buttonlabel1': "Continue",
-                'buttonaction1': "wtv-author:/scrapbook-add?confirm=true&mediaPath=" + wtvshared.escape(request_headers.query.mediaPath || ''),
+                'buttonaction1': "wtv-author:/scrapbook-add?confirm=true&mediaPath=" + wtvshared.escape(mediaPath || ''),
                 'buttonlabel2': "Cancel",
                 'buttonaction2': "client:donothing"
             }).getURL();
@@ -48,16 +83,24 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
             function isValidImageType(contentType, url) {
                 // Check content-type header or file extension
                 if (contentType) {
-                    return contentType === 'image/jpeg' || contentType === 'image/jpg' || contentType === 'image/gif';
+                    const ct = String(contentType).toLowerCase().split(';')[0].trim();
+                    return ct === 'image/jpeg' || ct === 'image/jpg' || ct === 'image/gif';
                 }
-                return url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.gif');
+                const u = String(url || "").toLowerCase();
+                return u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.gif');
             }
 
             try {
-                const parsedUrl = new URL(request_headers.query.mediaPath);
+                const parsedUrl = new URL(mediaPath);
+                if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                    throw new Error('Only http and https URLs are allowed.');
+                }
+                if (isPrivateHost(parsedUrl.hostname)) {
+                    throw new Error('That URL points at a private address.');
+                }
                 const protocol = parsedUrl.protocol === 'https:' ? https : http;
 
-                protocol.get(request_headers.query.mediaPath, (res) => {
+                const req = protocol.get(mediaPath, (res) => {
                     if (res.statusCode !== 200) {
                         handleError('URL does not exist or returned status ' + res.statusCode);
                         res.resume();
@@ -67,7 +110,7 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
                     const contentType = res.headers['content-type'];
                     const contentLength = parseInt(res.headers['content-length'], 10);
 
-                    if (!isValidImageType(contentType, request_headers.query.mediaPath)) {
+                    if (!isValidImageType(contentType, mediaPath)) {
                         handleError('URL is not a JPEG or GIF image');
                         res.resume();
                         return;
@@ -118,7 +161,12 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
                     res.on('error', (err) => {
                         handleError('Error downloading image');
                     });
-                }).on('error', (err) => {
+                });
+                req.setTimeout(15000, () => {
+                    req.destroy();
+                    handleError('Fetching the image timed out.');
+                });
+                req.on('error', (err) => {
                     handleError('Failed to fetch URL');
                 });
             } catch (e) {
@@ -128,11 +176,10 @@ if (!request_headers.query.mediaData && !request_headers.query.mediaPath) {
     } else {
         const result = session_data.addToScrapbook(id, "image/jpg", request_headers.query.mediaData);
         if (result) {
-            headers = `300 OK
-Content-Type: text/html
-wtv-expire-all: wtv-author:/scrapbook
-Location: wtv-author:/scrapbook
-wtv-visit: wtv-author:/scrapbook`;
+            // FIX: was headers/data on an async script, so this response
+            // was never delivered. Answer with sendToClient like the
+            // other success path.
+            sendToClient(socket, {'Status': 302, 'wtv-expire-all': 'wtv-author:/scrapbook', 'Location': 'wtv-author:/scrapbook', 'wtv-visit': 'wtv-author:/scrapbook'}, '');
         } else {
             handleError('Failed to add image to scrapbook');
         }

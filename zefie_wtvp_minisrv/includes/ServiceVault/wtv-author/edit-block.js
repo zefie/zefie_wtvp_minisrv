@@ -2,6 +2,13 @@ const minisrv_service_file = true;
 
 const docName = request_headers.query.docName
 const pagedata = session_data.pagestore.loadPage(docName);
+// FIX: a missing page or block used to throw on pagedata.blocks.length /
+// .type before headers were set.
+if (!pagedata || !Array.isArray(pagedata.blocks) || !pagedata.blocks[request_headers.query.blockNum]) {
+	headers = `300 OK
+Location: wtv-author:/documents`
+	data = "";
+} else {
 const blockNum = pagedata.blocks.length
 const oldBlockNum = request_headers.query.blockNum
 
@@ -952,7 +959,7 @@ var kNumToStart = 4;
 function SetListItems()
 {`
 
-	for (let i = 0; i < pagedata.blocks[oldBlockNum].items.length; i++) {
+	for (let i = 0; i < (pagedata.blocks[oldBlockNum].items || []).length; i++) {
 		data += `ListElements[${i}] = "${pagedata.blocks[oldBlockNum].items[i]}";
 `
 	}
@@ -1202,7 +1209,7 @@ function SetListItems()
 {
 `
 
-	for (let i = 0; i < pagedata.blocks[oldBlockNum].items.length; i++) {
+	for (let i = 0; i < (pagedata.blocks[oldBlockNum].items || []).length; i++) {
 		data += `ListElements[${i}] = new Object;`
 		if (typeof pagedata.blocks[oldBlockNum].items[i].name === 'undefined')
 			data += `ListElements[${i}].desc = "";`
@@ -1613,4 +1620,5 @@ setTimeout(tempStr, 500);
 </HTML>
 `
 	break;
+}
 }
