@@ -1,12 +1,15 @@
 const minisrv_service_file = true;
 
 const docName = request_headers.query.docName;
-const docTitle = request_headers.query.docTitle;
+const docTitle = request_headers.query.docTitle || "";
 
 if (docTitle.length === 0) {
 	headers = "400 You must enter a title for your page. Please enter a title and try again."
 } else {
 	const pagedata = session_data.pagestore.loadPage(docName);
+	if (!pagedata) {
+		headers = "400 Page not found."
+	} else {
 	const description = request_headers.query.docDesc
 	const showtitle = request_headers.query.hideTitle
 
@@ -18,5 +21,6 @@ wtv-expire-all: wtv-author:/show-blocks
 wtv-expire-all: wtv-author:/edit-title
 wtv-expire-all: wtv-author:/documents
 wtv-expire-all: wtv-author:/doc-info
-Location: ${request_headers.query.returnPageURL}`
+Location: ${request_headers.query.returnPageURL || "wtv-author:/show-blocks?docName=" + docName}`
+}
 }

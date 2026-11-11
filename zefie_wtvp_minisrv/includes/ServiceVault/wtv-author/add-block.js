@@ -4,12 +4,18 @@ const docName = request_headers.query.docName
 let blockNum = request_headers.query.blockNum
 const blockClass = request_headers.query.blockClass
 
-blockNum = parseInt(blockNum) + 1
+blockNum = (parseInt(blockNum) || 0) + 1
 
 headers = `200 OK
 Connection: Keep-Alive
 Content-Type: text/html`
 
+// FIX: an unknown blockClass used to fall through the switch with data
+// left undefined (blank page). Known cases are 21, 23, 24, 25, 26, 27.
+if (!["21", "23", "24", "25", "26", "27"].includes(blockClass)) {
+	headers = `400 Unknown block type.`
+	data = "";
+} else {
 switch(blockClass) {
 	case "21":
 
@@ -1286,4 +1292,5 @@ setTimeout(tempStr, 500);
 </HTML>
 `
 	break;
+}
 }

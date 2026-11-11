@@ -12,3 +12,4 @@ wtv-expire-all: wtv-author:/preview
 wtv-expire-all: wtv-author:/edit-title
 wtv-expire-all: wtv-author:/block-preview
 Location: wtv-author:/documents`
+data = "";

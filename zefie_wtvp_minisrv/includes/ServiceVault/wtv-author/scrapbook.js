@@ -2,7 +2,7 @@ const minisrv_service_file = true;
 
 const files = session_data.listScrapbook();
 const dir = session_data.scrapbookDir()
-const pageNum = parseInt(request_headers.query.pageNum || 1);
+const pageNum = Math.max(1, parseInt(request_headers.query.pageNum || 1) || 1);
 const start = (pageNum - 1) * 6;
 
 headers = `200 OK
@@ -77,12 +77,6 @@ cellspacing=0 cellpadding=0>
 <tr>
 <td>
 <td abswidth=93 absheight=26 >
-<table href="wtv-author:/scrapbook-cleanup"
-cellspacing=0 cellpadding=0>
-<tr>
-<td abswidth=5>
-<td abswidth=90 valign=middle align=left><table cellspacing=0 cellpadding=0><tr><td maxlines=1><font sizerange=medium color="C2CCD7">Clean up</font></table>
-</table>
 <TR>
 <td colspan=5 absheight=2 valign=middle align=center bgcolor=#8A99B0>&nbsp;
 <tr>
@@ -116,7 +110,7 @@ function StorageWarning() {	}
 </SCRIPT>
 <form name=onlyOnce><input type=hidden name=didIt value=0></form>
 <form action="wtv-author:/scrapbook-setLastPage">
-<input type=hidden name="pageNum" value="1" autosubmit=onEnter>
+<input type=hidden name="pageNum" value="${pageNum}" autosubmit=onEnter>
 </form>
 <table cellspacing=0 cellpadding=0 width=100%>
 <tr>
@@ -214,7 +208,7 @@ if (files.length > 0) {
     for (let i = start; i < Math.min(files.length, start + 6); i++) {
         let url = "wtv-tricks:/view-scrapbook-image?id=" + files[i];
         if (request_headers.query.addMediaURL) {
-            url = decodeURIComponent(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i];
+            try { url = decodeURIComponent(request_headers.query.addMediaURL) + "&scrapbookID=" + files[i]; } catch (e) { url = "wtv-tricks:/view-scrapbook-image?id=" + files[i]; }
         }
 data += `
 <td align=center valign=middle>

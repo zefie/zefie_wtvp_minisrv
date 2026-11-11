@@ -2,6 +2,10 @@ const minisrv_service_file = true;
 
 const docName = request_headers.query.docName;
 const page = session_data.pagestore.loadPage(docName);
+if (!page) {
+	headers = `400 Page not found.`
+	data = "";
+} else {
 const site = session_data.pagestore.getPublishDomain();
 
 if (request_headers.query.publishStage === "1") {
@@ -127,9 +131,12 @@ Include in public list
 	if (result === true) {
 	headers = `300 OK
 wtv-expire-all: wtv-author:/documents
+wtv-expire-all: wtv-author:/doc-info
+wtv-expire-all: wtv-author:/congrats
 Location: wtv-author:/congrats?docName=${docName}`
+	data = ""
 	} else {
-		headers = `400 ${result}`
+		headers = `400 ${String(result)}`
 	}
 } else if (request_headers.query.unpublish === "1") {
 	const result = session_data.pagestore.unpublishPage(docName);
@@ -139,7 +146,7 @@ wtv-expire-all: wtv-author:/documents
 wtv-expire-all: wtv-author:/doc-info
 Location: wtv-author:/doc-info?docName=${docName}`
 	} else {
-		headers = `400 ${result}`
+		headers = `400 ${String(result)}`
 	}
 } else {
 	headers = `300 OK
@@ -147,4 +154,5 @@ wtv-expire-all: wtv-author:/block-preview
 wtv-expire-all: wtv-author:/preview
 wtv-expire-all: wtv-author:/show-blocks
 Location: wtv-author:/edit-title?docName=${docName}&publishing=true`
-} 
+}
+}

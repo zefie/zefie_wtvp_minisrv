@@ -2,6 +2,11 @@ const minisrv_service_file = true;
 
 const docName = request_headers.query.docName;
 const page = session_data.pagestore.loadPage(docName);
+if (!page) {
+	headers = `300 OK
+Location: wtv-author:/documents`
+	data = "";
+} else {
 
 headers = `200 OK
 Connection: Keep-Alive
@@ -297,7 +302,7 @@ pages.
 <tr>
 <td valign=top align=left colspan=2>
 <input name=docName type=hidden value=${docName}>
-<input name=returnPageURL type=hidden value="${request_headers.query.returnPageURL}">
+<input name=returnPageURL type=hidden value="${request_headers.query.returnPageURL || "wtv-author:/show-blocks?docName=" + docName}">
 <font color=AEBFD1>Type your page's title:</font><spacer type=vertical size=3><br></spacer>
 <input type=text name="docTitle" bgcolor=192133 text=CACA4A font=proportional value="${page.title}" SIZE=28 MAXLENGTH=64 COLS=45 autoactivate selected>
 <tr><td height=0>
@@ -337,4 +342,5 @@ Include this page in your public list of pages
 </BODY>
 </HTML>
 `
+}
 }

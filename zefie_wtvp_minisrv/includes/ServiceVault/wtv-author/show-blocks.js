@@ -2,8 +2,13 @@ const minisrv_service_file = true;
 
 const docName = request_headers.query.docName;
 const page = session_data.pagestore.loadPage(docName);
-const numOfBlocks = page.blocks.length
-const style = page.style.replace ('_', ' ')
+if (!page) {
+	headers = `300 OK
+Location: wtv-author:/documents`
+	data = "";
+} else {
+const numOfBlocks = (page.blocks || []).length
+const style = (page.style || "").replace(/_/g, ' ')
 console.log(numOfBlocks)
 
 headers = `200 OK
@@ -180,7 +185,7 @@ vspace=0
 <TD height=8></TD>
 </TR>
 </TABLE>`
-for (let i = 0; i < page.pagebreaks.length; i++) {
+for (let i = 0; i < (page.pagebreaks || []).length; i++) {
 	data += `<CENTER>
 <A href="wtv-author:/edit-block?docName=${docName}&blockNum=${page.pagebreaks[i]}" ID="B2">
 <IMG src="/ROMCache/pagebreak.gif" width=398 height=35>
@@ -259,3 +264,4 @@ data += `
 </CENTER>
 </BODY>
 </HTML>`;
+}

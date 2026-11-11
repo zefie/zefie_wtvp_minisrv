@@ -2,10 +2,10 @@ const minisrv_service_file = true;
 
 const pagestore_exists = session_data.pagestore.pagestoreExists();
 
-const site = session_data.pagestore.getPublishDomain();
-
 if (pagestore_exists !== true)
 	session_data.pagestore.createPagestore();
+
+const site = session_data.pagestore.getPublishDomain();
 	
 const pagearray = session_data.pagestore.listPages();
 const numofpages = pagearray.length
@@ -192,7 +192,7 @@ data += `
 <td colspan=4><img src="/ROMCache/horiz_line_bottom.gif" width=347 height=9>
 <td><img src="/ROMCache/right_mark.gif" width=5 height=9>`
 }
-if (minisrv_config.services["wtv-author"].max_pages) {
+if (minisrv_config.services["wtv-author"] && minisrv_config.services["wtv-author"].max_pages) {
 	data += `
 </table>
 <p>A maximum of <b>${minisrv_config.services["wtv-author"].max_pages}</b> pages can be created, regardless of publish status.
@@ -204,11 +204,6 @@ if (numofpages > 0) {
     }
 }
 data += `
-<SCRIPT language=JavaScript>
-function checkPageStatus() {
-location = "wtv-author:/scrapbook-serve-confirm-archive?pub=true&unpub=false";
-}
-</SCRIPT>
 
 </BODY>
 </HTML>`;

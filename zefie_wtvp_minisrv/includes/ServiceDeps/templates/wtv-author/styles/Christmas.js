@@ -32,7 +32,7 @@ class PBTemplate {
 <META NAME="description" CONTENT="${desc}">
 <title>${title}</title>
 </head>
-<body bgcolor="black" text="#e68a34" link="#e64045">
+<body background="#255126" text="#ffffff" link="#D26E81" vlink="#CC3333" bgcolor="#255126">
 <TABLE cellspacing=0 cellpadding=0 bgcolor=#1e4261 border=1 width=100%>
 <TR><TD valign=middle align=center><FONT color=#D1D1D1>
 You are previewing your page. Press <B>Back</B>

@@ -6,14 +6,20 @@ const docName = request_headers.query.docName;
 if (pagestore_exists !== true)
 {
 	session_data.pagestore.createPagestore();
-	headers = `300 OK
+	headers = `302 Found
 Location: wtv-author:/documents`
+	data = "";
 } else {
 	
 	const page = session_data.pagestore.loadPage(docName)
+	if (!page) {
+		headers = `300 OK
+Location: wtv-author:/documents`
+		data = "";
+	} else {
 	const discardAlert = function (docName) {
 		return new clientShowAlert({
-			'image': this.minisrv_config.config.service_logo,
+			'image': minisrv_config.config.service_logo,
 			'message': "Would you like to permanently discard this document and all of its contents?",
 			'buttonlabel1': "Don't Discard",
 			'buttonaction1': "client:donothing",
@@ -25,7 +31,7 @@ Location: wtv-author:/documents`
 	}
 	const unpublishAlert = function (docName) {
 		return new clientShowAlert({
-			'image': this.minisrv_config.config.service_logo,
+			'image': minisrv_config.config.service_logo,
 			'message': "Would you like to unpublish this document? You can republish it later.",
 			'buttonlabel1': "Don't Unpublish",
 			'buttonaction1': "client:donothing",
@@ -190,4 +196,5 @@ Permanently erase your entire page
 </BODY>
 </HTML>
 `;
+}
 }
